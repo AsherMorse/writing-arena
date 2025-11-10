@@ -1,0 +1,71 @@
+========================================
+VERCEL ENVIRONMENT VARIABLES
+========================================
+
+Copy and paste these into Vercel Dashboard:
+Project Settings → Environment Variables
+
+Add each variable one by one:
+
+----------------------------------------
+Variable Name: ANTHROPIC_API_KEY
+Variable Value: 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
+Environments: Production, Preview, Development
+----------------------------------------
+
+Variable Name: NEXT_PUBLIC_FIREBASE_API_KEY
+Variable Value: AIzaSyB05bWPL6KUzFeIknSTY8f49js7NlkcK9g
+Environments: Production, Preview, Development
+----------------------------------------
+
+Variable Name: NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN
+Variable Value: hour-college.firebaseapp.com
+Environments: Production, Preview, Development
+----------------------------------------
+
+Variable Name: NEXT_PUBLIC_FIREBASE_DATABASE_URL
+Variable Value: https://hour-college-default-rtdb.firebaseio.com
+Environments: Production, Preview, Development
+----------------------------------------
+
+Variable Name: NEXT_PUBLIC_FIREBASE_PROJECT_ID
+Variable Value: hour-college
+Environments: Production, Preview, Development
+----------------------------------------
+
+Variable Name: NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET
+Variable Value: hour-college.firebasestorage.app
+Environments: Production, Preview, Development
+----------------------------------------
+
+Variable Name: NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID
+Variable Value: 347195886512
+Environments: Production, Preview, Development
+----------------------------------------
+
+Variable Name: NEXT_PUBLIC_FIREBASE_APP_ID
+Variable Value: 1:347195886512:web:c1511f6294c1af40eca475
+Environments: Production, Preview, Development
+----------------------------------------
+
+Variable Name: NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID
+Variable Value: G-MJLX4BQ1EW
+Environments: Production, Preview, Development
+----------------------------------------
+
+========================================
+BULK FORMAT (if Vercel supports it)
+========================================
+
+ANTHROPIC_API_KEY=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
+NEXT_PUBLIC_FIREBASE_API_KEY=AIzaSyB05bWPL6KUzFeIknSTY8f49js7NlkcK9g
+NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=hour-college.firebaseapp.com
+NEXT_PUBLIC_FIREBASE_DATABASE_URL=https://hour-college-default-rtdb.firebaseio.com
+NEXT_PUBLIC_FIREBASE_PROJECT_ID=hour-college
+NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=hour-college.firebasestorage.app
+NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=347195886512
+NEXT_PUBLIC_FIREBASE_APP_ID=1:347195886512:web:c1511f6294c1af40eca475
+NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID=G-MJLX4BQ1EW
+
+========================================
+
