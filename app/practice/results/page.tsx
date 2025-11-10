@@ -3,10 +3,13 @@
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useState, useEffect, Suspense } from 'react';
 import Link from 'next/link';
+import { useAuth } from '@/contexts/AuthContext';
+import { saveWritingSession, updateUserStatsAfterSession } from '@/lib/firestore';
 
 function PracticeResultsContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { user, refreshProfile } = useAuth();
   const trait = searchParams.get('trait');
   const promptType = searchParams.get('promptType');
   const content = searchParams.get('content') || '';
@@ -37,6 +40,38 @@ function PracticeResultsContent() {
 
         const data = await response.json();
         
+        // Save to Firebase if user is logged in
+        if (user) {
+          try {
+            await saveWritingSession({
+              userId: user.uid,
+              mode: 'practice',
+              trait: trait || 'all',
+              promptType: promptType || 'narrative',
+              content: decodeURIComponent(content),
+              wordCount,
+              score: data.overallScore,
+              traitScores: data.traits,
+              xpEarned: data.xpEarned,
+              pointsEarned: data.overallScore,
+              timestamp: new Date() as any,
+            });
+            
+            await updateUserStatsAfterSession(
+              user.uid,
+              data.xpEarned,
+              data.overallScore,
+              undefined,
+              false,
+              wordCount
+            );
+            
+            await refreshProfile();
+          } catch (error) {
+            console.error('Error saving session:', error);
+          }
+        }
+        
         // Simulate loading time for better UX
         setTimeout(() => {
           setFeedback(data);
@@ -54,6 +89,7 @@ function PracticeResultsContent() {
     };
 
     analyzeWriting();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [trait, promptType, content, wordCount]);
 
   const generateMockFeedback = (focusTrait: string | null, words: number) => {

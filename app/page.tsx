@@ -1,6 +1,12 @@
+'use client';
+
 import Link from 'next/link';
+import { useAuth } from '@/contexts/AuthContext';
+import { useRouter } from 'next/navigation';
 
 export default function LandingPage() {
+  const { signIn, loading } = useAuth();
+  const router = useRouter();
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900">
       {/* Header */}
@@ -12,12 +18,16 @@ export default function LandingPage() {
             </div>
             <span className="text-2xl font-bold text-white">Writing Arena</span>
           </div>
-          <Link 
-            href="/dashboard"
-            className="px-6 py-2 bg-white/10 backdrop-blur-sm text-white rounded-lg hover:bg-white/20 transition-all duration-200 border border-white/20"
+          <button 
+            onClick={async () => {
+              await signIn();
+              router.push('/dashboard');
+            }}
+            disabled={loading}
+            className="px-6 py-2 bg-white/10 backdrop-blur-sm text-white rounded-lg hover:bg-white/20 transition-all duration-200 border border-white/20 disabled:opacity-50"
           >
-            Sign In
-          </Link>
+            {loading ? 'Loading...' : 'Sign In'}
+          </button>
         </nav>
       </header>
 
@@ -46,12 +56,16 @@ export default function LandingPage() {
 
           {/* CTA Buttons */}
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
-            <Link 
-              href="/dashboard"
-              className="px-8 py-4 bg-gradient-to-r from-orange-500 to-pink-500 text-white text-lg font-semibold rounded-xl hover:shadow-2xl hover:scale-105 transition-all duration-200 w-full sm:w-auto"
+            <button 
+              onClick={async () => {
+                await signIn();
+                router.push('/dashboard');
+              }}
+              disabled={loading}
+              className="px-8 py-4 bg-gradient-to-r from-orange-500 to-pink-500 text-white text-lg font-semibold rounded-xl hover:shadow-2xl hover:scale-105 transition-all duration-200 w-full sm:w-auto disabled:opacity-50"
             >
-              Start Writing Now
-            </Link>
+              {loading ? 'Loading...' : 'Start Writing Now'}
+            </button>
             <button className="px-8 py-4 bg-white/10 backdrop-blur-sm text-white text-lg font-semibold rounded-xl hover:bg-white/20 transition-all duration-200 border border-white/20 w-full sm:w-auto">
               Watch Demo
             </button>

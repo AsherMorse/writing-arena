@@ -1,10 +1,32 @@
 'use client';
 
 import Link from 'next/link';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useAuth } from '@/contexts/AuthContext';
+import { useRouter } from 'next/navigation';
 
 export default function DashboardPage() {
+  const { user, userProfile, loading, signOut } = useAuth();
+  const router = useRouter();
   const [showMatchModal, setShowMatchModal] = useState(true);
+
+  useEffect(() => {
+    if (!loading && !user) {
+      router.push('/');
+    }
+  }, [user, loading, router]);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center">
+        <div className="text-white text-2xl">Loading...</div>
+      </div>
+    );
+  }
+
+  if (!user || !userProfile) {
+    return null;
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
@@ -193,18 +215,22 @@ export default function DashboardPage() {
               {/* Points Display */}
               <div className="flex items-center space-x-2 bg-white/10 backdrop-blur-sm px-4 py-2 rounded-lg border border-white/20">
                 <span className="text-yellow-400">⭐</span>
-                <span className="text-white font-semibold">1,250</span>
+                <span className="text-white font-semibold">{userProfile.totalPoints.toLocaleString()}</span>
               </div>
 
               {/* User Profile */}
               <div className="flex items-center space-x-3">
                 <div className="text-right hidden sm:block">
-                  <div className="text-white text-sm font-semibold">Student Writer</div>
-                  <div className="text-white/60 text-xs">Level 2 - Sapling</div>
+                  <div className="text-white text-sm font-semibold">{userProfile.displayName}</div>
+                  <div className="text-white/60 text-xs">Level {userProfile.characterLevel} - Sapling</div>
                 </div>
-                <div className="w-10 h-10 bg-gradient-to-br from-green-400 to-emerald-500 rounded-full flex items-center justify-center text-xl">
-                  🌿
-                </div>
+                <button
+                  onClick={signOut}
+                  className="w-10 h-10 bg-gradient-to-br from-green-400 to-emerald-500 rounded-full flex items-center justify-center text-xl hover:scale-110 transition-transform"
+                  title="Sign Out"
+                >
+                  {userProfile.avatar}
+                </button>
               </div>
             </div>
           </nav>
@@ -265,17 +291,17 @@ export default function DashboardPage() {
               <h2 className="text-2xl font-bold text-white mb-4">Your Character</h2>
               
               <div className="flex items-center space-x-6 mb-6">
-                <div className="text-8xl">🌿</div>
+                <div className="text-8xl">{userProfile.avatar}</div>
                 <div className="flex-1">
                   <div className="flex items-center justify-between mb-2">
-                    <span className="text-white font-semibold">Level 2 - Sapling</span>
-                    <span className="text-white/60 text-sm">65% to Young Oak</span>
+                    <span className="text-white font-semibold">Level {userProfile.characterLevel} - Sapling</span>
+                    <span className="text-white/60 text-sm">{Math.round((userProfile.totalXP % 1000) / 10)}% to Young Oak</span>
                   </div>
                   <div className="w-full bg-white/10 rounded-full h-3 overflow-hidden">
-                    <div className="bg-gradient-to-r from-green-400 to-emerald-500 h-full rounded-full" style={{ width: '65%' }}></div>
+                    <div className="bg-gradient-to-r from-green-400 to-emerald-500 h-full rounded-full" style={{ width: `${(userProfile.totalXP % 1000) / 10}%` }}></div>
                   </div>
                   <p className="text-white/70 text-sm mt-3">
-                    Keep writing to grow your tree! You need 350 more XP to reach Young Oak.
+                    Keep writing to grow your tree! You need {1000 - (userProfile.totalXP % 1000)} more XP to reach Young Oak.
                   </p>
                 </div>
               </div>
@@ -283,11 +309,11 @@ export default function DashboardPage() {
               {/* Trait Progress */}
               <div className="grid grid-cols-5 gap-3">
                 {[
-                  { name: 'Content', level: 2, icon: '📚', color: 'from-blue-400 to-blue-600' },
-                  { name: 'Organization', level: 3, icon: '🗂️', color: 'from-purple-400 to-purple-600' },
-                  { name: 'Grammar', level: 2, icon: '✏️', color: 'from-green-400 to-green-600' },
-                  { name: 'Vocabulary', level: 1, icon: '📖', color: 'from-yellow-400 to-yellow-600' },
-                  { name: 'Mechanics', level: 2, icon: '⚙️', color: 'from-red-400 to-red-600' },
+                  { name: 'Content', level: userProfile.traits.content, icon: '📚', color: 'from-blue-400 to-blue-600' },
+                  { name: 'Organization', level: userProfile.traits.organization, icon: '🗂️', color: 'from-purple-400 to-purple-600' },
+                  { name: 'Grammar', level: userProfile.traits.grammar, icon: '✏️', color: 'from-green-400 to-green-600' },
+                  { name: 'Vocabulary', level: userProfile.traits.vocabulary, icon: '📖', color: 'from-yellow-400 to-yellow-600' },
+                  { name: 'Mechanics', level: userProfile.traits.mechanics, icon: '⚙️', color: 'from-red-400 to-red-600' },
                 ].map((trait) => (
                   <div key={trait.name} className="bg-white/5 rounded-xl p-3 text-center border border-white/10">
                     <div className="text-2xl mb-1">{trait.icon}</div>
@@ -344,25 +370,25 @@ export default function DashboardPage() {
                 <div>
                   <div className="flex justify-between text-sm mb-1">
                     <span className="text-white/70">Total Matches</span>
-                    <span className="text-white font-semibold">47</span>
+                    <span className="text-white font-semibold">{userProfile.stats.totalMatches}</span>
                   </div>
                 </div>
                 <div>
                   <div className="flex justify-between text-sm mb-1">
                     <span className="text-white/70">Win Rate</span>
-                    <span className="text-white font-semibold">62%</span>
+                    <span className="text-white font-semibold">{Math.round((userProfile.stats.wins / userProfile.stats.totalMatches) * 100)}%</span>
                   </div>
                 </div>
                 <div>
                   <div className="flex justify-between text-sm mb-1">
                     <span className="text-white/70">Current Streak</span>
-                    <span className="text-white font-semibold">🔥 3 days</span>
+                    <span className="text-white font-semibold">🔥 {userProfile.stats.currentStreak} days</span>
                   </div>
                 </div>
                 <div>
                   <div className="flex justify-between text-sm mb-1">
                     <span className="text-white/70">Total Words</span>
-                    <span className="text-white font-semibold">12,438</span>
+                    <span className="text-white font-semibold">{userProfile.stats.totalWords.toLocaleString()}</span>
                   </div>
                 </div>
               </div>
@@ -371,12 +397,12 @@ export default function DashboardPage() {
             {/* Rank Card */}
             <div className="bg-gradient-to-br from-amber-500 to-orange-600 rounded-2xl p-6">
               <h2 className="text-xl font-bold text-white mb-2">Current Rank</h2>
-              <div className="text-4xl font-bold text-white mb-1">Silver III</div>
+              <div className="text-4xl font-bold text-white mb-1">{userProfile.currentRank}</div>
               <p className="text-white/90 text-sm mb-4">Top 35% of all writers</p>
               <div className="bg-white/20 rounded-full h-2 overflow-hidden mb-2">
-                <div className="bg-white h-full" style={{ width: '40%' }}></div>
+                <div className="bg-white h-full" style={{ width: `${(userProfile.rankLP % 100)}%` }}></div>
               </div>
-              <p className="text-white/80 text-xs">120 points to Silver II</p>
+              <p className="text-white/80 text-xs">{100 - (userProfile.rankLP % 100)} LP to next tier</p>
             </div>
 
             {/* Recent Achievements */}
