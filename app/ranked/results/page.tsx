@@ -3,10 +3,15 @@
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useState, useEffect, Suspense } from 'react';
 import Link from 'next/link';
+import { useAuth } from '@/contexts/AuthContext';
+import { saveWritingSession, updateUserStatsAfterSession } from '@/lib/firestore';
 
 function RankedResultsContent() {
   const searchParams = useSearchParams();
+  const { user, refreshProfile } = useAuth();
   const trait = searchParams.get('trait');
+  const promptType = searchParams.get('promptType');
+  const content = searchParams.get('content') || '';
   const wordCount = parseInt(searchParams.get('wordCount') || '0');
   const aiScoresParam = searchParams.get('aiScores') || '0,0,0,0';
   
@@ -14,9 +19,24 @@ function RankedResultsContent() {
   const [results, setResults] = useState<any>(null);
 
   useEffect(() => {
-    const timer = setTimeout(() => {
-      const yourScore = Math.min(Math.max(60 + (wordCount / 5) + Math.random() * 15, 40), 100);
-      const aiScores = aiScoresParam.split(',').map(Number);
+    const analyzeRankedMatch = async () => {
+      try {
+        // Call Claude API for real feedback
+        const response = await fetch('/api/analyze-writing', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            content: decodeURIComponent(content),
+            trait,
+            promptType,
+          }),
+        });
+
+        const data = await response.ok ? await response.json() : null;
+        const yourScore = data?.overallScore || Math.min(Math.max(60 + (wordCount / 5) + Math.random() * 15, 40), 100);
+        const aiScores = aiScoresParam.split(',').map(Number);
       
       const rankings = [
         { name: 'You', avatar: '🌿', rank: 'Silver III', score: Math.round(yourScore), wordCount, isYou: true, position: 0 },
@@ -26,24 +46,86 @@ function RankedResultsContent() {
         { name: 'PenChampion', avatar: '🏅', rank: 'Silver IV', score: Math.round(60 + Math.random() * 30), wordCount: aiScores[3], isYou: false, position: 0 },
       ].sort((a, b) => b.score - a.score).map((player, index) => ({ ...player, position: index + 1 }));
 
-      const yourRank = rankings.find(p => p.isYou)?.position || 5;
-      const lpChange = yourRank === 1 ? 28 : yourRank === 2 ? 18 : yourRank === 3 ? 10 : -12;
-      const xpEarned = Math.round(yourScore * 2);
-      const pointsEarned = Math.round(yourScore * 2) + (yourRank === 1 ? 25 : 0);
+        const yourRank = rankings.find(p => p.isYou)?.position || 5;
+        const lpChange = yourRank === 1 ? 28 : yourRank === 2 ? 18 : yourRank === 3 ? 10 : -12;
+        const xpEarned = Math.round(yourScore * 2); // 2x for ranked
+        const pointsEarned = Math.round(yourScore * 2) + (yourRank === 1 ? 25 : 0);
+        const isVictory = yourRank === 1;
 
-      setResults({
-        rankings,
-        yourRank,
-        lpChange,
-        xpEarned,
-        pointsEarned,
-        isVictory: yourRank === 1,
-      });
-      setIsAnalyzing(false);
-    }, 2500);
+        // Save to Firebase if user is logged in
+        if (user && data) {
+          try {
+            await saveWritingSession({
+              userId: user.uid,
+              mode: 'ranked',
+              trait: trait || 'all',
+              promptType: promptType || 'narrative',
+              content: decodeURIComponent(content),
+              wordCount,
+              score: Math.round(yourScore),
+              traitScores: data.traits,
+              xpEarned,
+              pointsEarned,
+              lpChange,
+              placement: yourRank,
+              timestamp: new Date() as any,
+            });
+            
+            await updateUserStatsAfterSession(
+              user.uid,
+              xpEarned,
+              pointsEarned,
+              lpChange, // Update LP for ranked
+              isVictory,
+              wordCount
+            );
+            
+            await refreshProfile();
+          } catch (error) {
+            console.error('Error saving Ranked session:', error);
+          }
+        }
 
-    return () => clearTimeout(timer);
-  }, [wordCount, aiScoresParam]);
+        setResults({
+          rankings,
+          yourRank,
+          lpChange,
+          xpEarned,
+          pointsEarned,
+          isVictory,
+        });
+        setIsAnalyzing(false);
+      } catch (error) {
+        console.error('Error analyzing Ranked Match:', error);
+        // Fallback to mock if API fails
+        const yourScore = Math.min(Math.max(60 + (wordCount / 5), 40), 100);
+        const aiScores = aiScoresParam.split(',').map(Number);
+        const rankings = [
+          { name: 'You', avatar: '🌿', rank: 'Silver III', score: Math.round(yourScore), wordCount, isYou: true, position: 0 },
+          { name: 'ProWriter99', avatar: '🎯', rank: 'Silver II', score: Math.round(60 + Math.random() * 30), wordCount: aiScores[0], isYou: false, position: 0 },
+          { name: 'WordMaster', avatar: '📖', rank: 'Silver III', score: Math.round(65 + Math.random() * 25), wordCount: aiScores[1], isYou: false, position: 0 },
+          { name: 'EliteScribe', avatar: '✨', rank: 'Silver II', score: Math.round(55 + Math.random() * 35), wordCount: aiScores[2], isYou: false, position: 0 },
+          { name: 'PenChampion', avatar: '🏅', rank: 'Silver IV', score: Math.round(60 + Math.random() * 30), wordCount: aiScores[3], isYou: false, position: 0 },
+        ].sort((a, b) => b.score - a.score).map((player, index) => ({ ...player, position: index + 1 }));
+        
+        const yourRank = rankings.find(p => p.isYou)?.position || 5;
+        const lpChange = yourRank === 1 ? 28 : yourRank === 2 ? 18 : yourRank === 3 ? 10 : -12;
+        
+        setResults({
+          rankings,
+          yourRank,
+          lpChange,
+          xpEarned: Math.round(yourScore * 2),
+          pointsEarned: Math.round(yourScore * 2),
+          isVictory: yourRank === 1,
+        });
+        setIsAnalyzing(false);
+      }
+    };
+
+    analyzeRankedMatch();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [wordCount, aiScoresParam, trait, promptType, content]);
 
   if (isAnalyzing) {
     return (

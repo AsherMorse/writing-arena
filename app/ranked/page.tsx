@@ -2,11 +2,27 @@
 
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useAuth } from '@/contexts/AuthContext';
 
 export default function RankedPage() {
   const router = useRouter();
+  const { user, userProfile, loading } = useAuth();
   const [selectedTrait, setSelectedTrait] = useState<string>('all');
+
+  useEffect(() => {
+    if (!loading && !user) {
+      router.push('/');
+    }
+  }, [user, loading, router]);
+
+  if (loading || !userProfile) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center">
+        <div className="text-white text-xl">Loading...</div>
+      </div>
+    );
+  }
 
   const traits = [
     { id: 'all', name: 'All Traits', icon: '✨', color: 'from-purple-400 to-purple-600' },
@@ -70,14 +86,14 @@ export default function RankedPage() {
                   <div className="flex items-center justify-between mb-2">
                     <div>
                       <div className="text-white/80 text-[10px] mb-1">Current Rank</div>
-                      <div className="text-2xl font-bold text-white">Silver III</div>
+                      <div className="text-2xl font-bold text-white">{userProfile.currentRank}</div>
                     </div>
                     <div className="text-4xl">🥈</div>
                   </div>
                   <div className="bg-white/20 rounded-full h-1.5 overflow-hidden mb-1">
-                    <div className="bg-white h-full rounded-full" style={{ width: '40%' }}></div>
+                    <div className="bg-white h-full rounded-full" style={{ width: `${(userProfile.rankLP % 100)}%` }}></div>
                   </div>
-                  <div className="text-white/90 text-[10px]">120 LP to Silver II</div>
+                  <div className="text-white/90 text-[10px]">{100 - (userProfile.rankLP % 100)} LP to next tier</div>
                 </div>
 
                 {/* Match Info */}

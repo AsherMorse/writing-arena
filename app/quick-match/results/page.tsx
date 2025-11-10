@@ -3,10 +3,15 @@
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useState, useEffect, Suspense } from 'react';
 import Link from 'next/link';
+import { useAuth } from '@/contexts/AuthContext';
+import { saveWritingSession, updateUserStatsAfterSession } from '@/lib/firestore';
 
 function QuickMatchResultsContent() {
   const searchParams = useSearchParams();
+  const { user, refreshProfile } = useAuth();
   const trait = searchParams.get('trait');
+  const promptType = searchParams.get('promptType');
+  const content = searchParams.get('content') || '';
   const wordCount = parseInt(searchParams.get('wordCount') || '0');
   const aiScoresParam = searchParams.get('aiScores') || '0,0,0,0';
   
@@ -14,10 +19,24 @@ function QuickMatchResultsContent() {
   const [results, setResults] = useState<any>(null);
 
   useEffect(() => {
-    // Simulate AI analysis
-    const timer = setTimeout(() => {
-      const yourScore = Math.min(Math.max(60 + (wordCount / 5) + Math.random() * 15, 40), 100);
-      const aiScores = aiScoresParam.split(',').map(Number);
+    const analyzeMatch = async () => {
+      try {
+        // Call Claude API for real feedback
+        const response = await fetch('/api/analyze-writing', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            content: decodeURIComponent(content),
+            trait,
+            promptType,
+          }),
+        });
+
+        const data = await response.ok ? await response.json() : null;
+        const yourScore = data?.overallScore || Math.min(Math.max(60 + (wordCount / 5) + Math.random() * 15, 40), 100);
+        const aiScores = aiScoresParam.split(',').map(Number);
       
       const rankings = [
         { name: 'You', avatar: '🌿', score: Math.round(yourScore), wordCount, isYou: true, rank: 0 },
@@ -27,22 +46,80 @@ function QuickMatchResultsContent() {
         { name: 'QuillMaster', avatar: '🖋️', score: Math.round(60 + Math.random() * 30), wordCount: aiScores[3], isYou: false, rank: 0 },
       ].sort((a, b) => b.score - a.score).map((player, index) => ({ ...player, rank: index + 1 }));
 
-      const yourRank = rankings.find(p => p.isYou)?.rank || 5;
-      const xpEarned = Math.round(yourScore * 1.5) + (rankings.length - yourRank + 1) * 10;
-      const pointsEarned = Math.round(yourScore) + (yourRank === 1 ? 25 : 0);
+        const yourRank = rankings.find(p => p.isYou)?.rank || 5;
+        const xpEarned = Math.round(yourScore * 1.5) + (rankings.length - yourRank + 1) * 10;
+        const pointsEarned = Math.round(yourScore) + (yourRank === 1 ? 25 : 0);
+        const isVictory = yourRank === 1;
 
-      setResults({
-        rankings,
-        yourRank,
-        xpEarned,
-        pointsEarned,
-        isVictory: yourRank === 1,
-      });
-      setIsAnalyzing(false);
-    }, 2500);
+        // Save to Firebase if user is logged in
+        if (user && data) {
+          try {
+            await saveWritingSession({
+              userId: user.uid,
+              mode: 'quick-match',
+              trait: trait || 'all',
+              promptType: promptType || 'narrative',
+              content: decodeURIComponent(content),
+              wordCount,
+              score: Math.round(yourScore),
+              traitScores: data.traits,
+              xpEarned,
+              pointsEarned,
+              placement: yourRank,
+              timestamp: new Date() as any,
+            });
+            
+            await updateUserStatsAfterSession(
+              user.uid,
+              xpEarned,
+              pointsEarned,
+              undefined,
+              isVictory,
+              wordCount
+            );
+            
+            await refreshProfile();
+          } catch (error) {
+            console.error('Error saving Quick Match session:', error);
+          }
+        }
 
-    return () => clearTimeout(timer);
-  }, [wordCount, aiScoresParam]);
+        setResults({
+          rankings,
+          yourRank,
+          xpEarned,
+          pointsEarned,
+          isVictory,
+        });
+        setIsAnalyzing(false);
+      } catch (error) {
+        console.error('Error analyzing Quick Match:', error);
+        // Fallback to mock if API fails
+        const yourScore = Math.min(Math.max(60 + (wordCount / 5), 40), 100);
+        const aiScores = aiScoresParam.split(',').map(Number);
+        const rankings = [
+          { name: 'You', avatar: '🌿', score: Math.round(yourScore), wordCount, isYou: true, rank: 0 },
+          { name: 'WriteBot', avatar: '🤖', score: Math.round(60 + Math.random() * 30), wordCount: aiScores[0], isYou: false, rank: 0 },
+          { name: 'PenPal AI', avatar: '✍️', score: Math.round(65 + Math.random() * 25), wordCount: aiScores[1], isYou: false, rank: 0 },
+          { name: 'WordSmith', avatar: '📝', score: Math.round(55 + Math.random() * 35), wordCount: aiScores[2], isYou: false, rank: 0 },
+          { name: 'QuillMaster', avatar: '🖋️', score: Math.round(60 + Math.random() * 30), wordCount: aiScores[3], isYou: false, rank: 0 },
+        ].sort((a, b) => b.score - a.score).map((player, index) => ({ ...player, rank: index + 1 }));
+        
+        const yourRank = rankings.find(p => p.isYou)?.rank || 5;
+        setResults({
+          rankings,
+          yourRank,
+          xpEarned: Math.round(yourScore * 1.5),
+          pointsEarned: Math.round(yourScore),
+          isVictory: yourRank === 1,
+        });
+        setIsAnalyzing(false);
+      }
+    };
+
+    analyzeMatch();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [wordCount, aiScoresParam, trait, promptType, content]);
 
   if (isAnalyzing) {
     return (
