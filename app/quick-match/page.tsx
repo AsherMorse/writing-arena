@@ -101,7 +101,7 @@ export default function QuickMatchPage() {
                   <div className="flex items-start space-x-2">
                     <span className="text-orange-400 text-lg">💡</span>
                     <div className="text-white/80 text-sm">
-                      <span className="font-semibold text-orange-400">Pro Tip:</span> Quick Match is perfect for daily practice. Matchmaking is fast, and you'll always find a party ready to compete!
+                      <span className="font-semibold text-orange-400">Pro Tip:</span> Quick Match is perfect for daily practice. Matchmaking is fast, and you&apos;ll always find a party ready to compete!
                     </div>
                   </div>
                 </div>

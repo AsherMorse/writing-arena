@@ -153,7 +153,7 @@ function PracticeResultsContent() {
         <div className="text-center mb-12">
           <div className="text-7xl mb-4 animate-bounce">🎉</div>
           <h1 className="text-5xl font-bold text-white mb-3">Great Work!</h1>
-          <p className="text-xl text-white/70">Here's your detailed feedback</p>
+          <p className="text-xl text-white/70">Here&apos;s your detailed feedback</p>
         </div>
 
         {/* Score Card */}
@@ -307,7 +307,7 @@ function PracticeResultsContent() {
                 <div className="text-4xl mb-3">🌿</div>
                 <div className="text-white font-semibold mb-2">Character Update</div>
                 <p className="text-white/90 text-sm mb-3">
-                  You're getting closer to Young Oak!
+                  You&apos;re getting closer to Young Oak!
                 </p>
                 <div className="bg-white/20 rounded-full h-2 overflow-hidden">
                   <div className="bg-white h-full rounded-full" style={{ width: '73%' }}></div>

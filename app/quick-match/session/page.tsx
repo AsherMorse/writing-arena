@@ -61,6 +61,7 @@ function QuickMatchSessionContent() {
     } else {
       handleSubmit();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [timeLeft]);
 
   // Word count

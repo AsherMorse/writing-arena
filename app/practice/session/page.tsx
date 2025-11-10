@@ -75,6 +75,7 @@ function PracticeSessionContent() {
     } else if (timeLeft === 0 && isWriting) {
       handleSubmit();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isWriting, timeLeft]);
 
   useEffect(() => {
@@ -274,8 +275,8 @@ function PracticeSessionContent() {
             {/* Quick Tips */}
             <div className="mt-4 bg-white/5 backdrop-blur-sm rounded-lg p-4 border border-white/10">
               <div className="text-white/60 text-sm">
-                <span className="font-semibold text-white">💡 Tip:</span> Don't worry about perfection! 
-                Focus on getting your ideas down. You'll get feedback after the session.
+                <span className="font-semibold text-white">💡 Tip:</span> Don&apos;t worry about perfection! 
+                Focus on getting your ideas down. You&apos;ll get feedback after the session.
               </div>
             </div>
           </div>

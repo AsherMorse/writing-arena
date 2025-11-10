@@ -58,6 +58,7 @@ function RankedSessionContent() {
     } else {
       handleSubmit();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [timeLeft]);
 
   useEffect(() => {
