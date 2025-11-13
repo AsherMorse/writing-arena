@@ -1,15 +1,13 @@
 'use client';
 
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useSearchParams } from 'next/navigation';
 import { useState, useEffect, Suspense } from 'react';
 import Link from 'next/link';
 import { useAuth } from '@/contexts/AuthContext';
-import { saveWritingSession, updateUserStatsAfterSession } from '@/lib/firestore';
 
 function PracticeResultsContent() {
-  const router = useRouter();
   const searchParams = useSearchParams();
-  const { user, refreshProfile } = useAuth();
+  const { user } = useAuth();
   const trait = searchParams.get('trait');
   const promptType = searchParams.get('promptType');
   const content = searchParams.get('content') || '';
@@ -40,36 +38,15 @@ function PracticeResultsContent() {
 
         const data = await response.json();
         
-        // Save to Firebase if user is logged in
+        // MOCK: Skip Firebase calls for now
         if (user) {
-          try {
-            await saveWritingSession({
-              userId: user.uid,
-              mode: 'practice',
-              trait: trait || 'all',
-              promptType: promptType || 'narrative',
-              content: decodeURIComponent(content),
-              wordCount,
-              score: data.overallScore,
-              traitScores: data.traits,
-              xpEarned: data.xpEarned,
-              pointsEarned: data.overallScore,
-              timestamp: new Date() as any,
-            });
-            
-            await updateUserStatsAfterSession(
-              user.uid,
-              data.xpEarned,
-              data.overallScore,
-              undefined,
-              false,
-              wordCount
-            );
-            
-            await refreshProfile();
-          } catch (error) {
-            console.error('Error saving session:', error);
-          }
+          console.log('Mock: Would save practice session:', {
+            userId: user.uid,
+            mode: 'practice',
+            score: data.overallScore,
+            xpEarned: data.xpEarned,
+            wordCount
+          });
         }
         
         // Simulate loading time for better UX
@@ -318,6 +295,40 @@ function PracticeResultsContent() {
                     </div>
                   </div>
                 ))}
+              </div>
+            </div>
+
+            {/* The Writing Revolution Principles */}
+            <div className="bg-gradient-to-br from-blue-600 to-indigo-600 rounded-2xl p-6 border border-blue-400/30">
+              <div className="flex items-center space-x-2 mb-4">
+                <span className="text-2xl">📚</span>
+                <h3 className="text-xl font-bold text-white">Writing Revolution Tips</h3>
+              </div>
+              <div className="space-y-4">
+                <div>
+                  <div className="text-yellow-300 font-semibold text-sm mb-2">✍️ Sentence Expansion</div>
+                  <p className="text-white/90 text-sm leading-relaxed">
+                    Use <span className="font-semibold text-yellow-200">because, but, so</span> to expand simple sentences and show deeper thinking.
+                  </p>
+                </div>
+                <div>
+                  <div className="text-yellow-300 font-semibold text-sm mb-2">🔗 Sentence Combining</div>
+                  <p className="text-white/90 text-sm leading-relaxed">
+                    Join related short sentences with conjunctions (FANBOYS: for, and, nor, but, or, yet, so).
+                  </p>
+                </div>
+                <div>
+                  <div className="text-yellow-300 font-semibold text-sm mb-2">📝 SPO Structure</div>
+                  <p className="text-white/90 text-sm leading-relaxed">
+                    Single Paragraph Outline: <span className="font-semibold text-yellow-200">Topic sentence</span> + <span className="font-semibold text-yellow-200">Supporting details</span> + <span className="font-semibold text-yellow-200">Conclusion</span>
+                  </p>
+                </div>
+                <div>
+                  <div className="text-yellow-300 font-semibold text-sm mb-2">🎯 Appositives</div>
+                  <p className="text-white/90 text-sm leading-relaxed">
+                    Add description without new sentences. Example: &quot;The lighthouse, <span className="font-semibold text-yellow-200">an ancient stone tower</span>, stood on the cliff.&quot;
+                  </p>
+                </div>
               </div>
             </div>
 
