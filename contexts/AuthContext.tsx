@@ -1,19 +1,23 @@
 'use client';
 
-import React, { createContext, useContext, useState } from 'react';
-import { UserProfile } from '@/lib/firestore';
-
-// MOCK AUTH - No Firebase calls for testing
-interface MockUser {
-  uid: string;
-  email: string | null;
-}
+import React, { createContext, useContext, useEffect, useState } from 'react';
+import { 
+  User,
+  createUserWithEmailAndPassword,
+  signInWithEmailAndPassword,
+  signOut as firebaseSignOut,
+  onAuthStateChanged,
+  updateProfile
+} from 'firebase/auth';
+import { auth } from '@/lib/firebase';
+import { createUserProfile, getUserProfile, UserProfile } from '@/lib/firestore';
 
 interface AuthContextType {
-  user: MockUser | null;
+  user: User | null;
   userProfile: UserProfile | null;
   loading: boolean;
-  signIn: () => Promise<void>;
+  signIn: (email: string, password: string) => Promise<void>;
+  signUp: (email: string, password: string, displayName: string) => Promise<void>;
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
 }
@@ -21,71 +25,127 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType>({
   user: null,
   userProfile: null,
-  loading: false,
+  loading: true,
   signIn: async () => {},
+  signUp: async () => {},
   signOut: async () => {},
   refreshProfile: async () => {},
 });
 
-// Mock user profile for testing
-const MOCK_USER_PROFILE: UserProfile = {
-  uid: 'mock-user-123',
-  displayName: 'Test Student',
-  email: 'test@example.com',
-  avatar: '🌿',
-  characterLevel: 2,
-  totalXP: 1250,
-  totalPoints: 1250,
-  currentRank: 'Silver III',
-  rankLP: 120,
-  traits: {
-    content: 2,
-    organization: 3,
-    grammar: 2,
-    vocabulary: 1,
-    mechanics: 2,
-  },
-  stats: {
-    totalMatches: 47,
-    wins: 29,
-    totalWords: 12438,
-    currentStreak: 3,
-  },
-  createdAt: new Date() as any,
-  updatedAt: new Date() as any,
-};
-
-const MOCK_USER: MockUser = {
-  uid: 'mock-user-123',
-  email: 'test@example.com',
-};
-
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = useState<MockUser | null>(MOCK_USER);
-  const [userProfile, setUserProfile] = useState<UserProfile | null>(MOCK_USER_PROFILE);
-  const [loading] = useState(false);
+  const [user, setUser] = useState<User | null>(null);
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
+  const [loading, setLoading] = useState(true);
 
   const refreshProfile = async () => {
-    console.log('Mock: refreshProfile called');
+    if (user) {
+      const profile = await getUserProfile(user.uid);
+      setUserProfile(profile);
+    }
   };
 
-  const signIn = async () => {
-    console.log('Mock: signIn called');
-    setUser(MOCK_USER);
-    setUserProfile(MOCK_USER_PROFILE);
+  useEffect(() => {
+    // If auth is not initialized, set loading to false immediately
+    if (!auth) {
+      console.error('Firebase auth not initialized');
+      setLoading(false);
+      return;
+    }
+
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      try {
+        setUser(user);
+        
+        if (user) {
+          // Get or create user profile
+          let profile = await getUserProfile(user.uid);
+          if (!profile) {
+            // Create default profile for new users
+            await createUserProfile(user.uid, {
+              displayName: user.displayName || 'Student Writer',
+              email: user.email || '',
+            });
+            profile = await getUserProfile(user.uid);
+          }
+          setUserProfile(profile);
+        } else {
+          setUserProfile(null);
+        }
+      } catch (error) {
+        console.error('Error in auth state change:', error);
+      } finally {
+        setLoading(false);
+      }
+    });
+
+    return () => unsubscribe();
+  }, []);
+
+  const signIn = async (email: string, password: string) => {
+    try {
+      await signInWithEmailAndPassword(auth, email, password);
+    } catch (error: any) {
+      console.error('Error signing in:', error);
+      throw new Error(getAuthErrorMessage(error.code));
+    }
+  };
+
+  const signUp = async (email: string, password: string, displayName: string) => {
+    try {
+      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+      
+      // Update display name
+      await updateProfile(userCredential.user, {
+        displayName: displayName
+      });
+
+      // Create user profile in Firestore
+      await createUserProfile(userCredential.user.uid, {
+        displayName: displayName,
+        email: email,
+      });
+    } catch (error: any) {
+      console.error('Error signing up:', error);
+      throw new Error(getAuthErrorMessage(error.code));
+    }
   };
 
   const signOut = async () => {
-    console.log('Mock: signOut called');
-    setUser(null);
-    setUserProfile(null);
+    try {
+      await firebaseSignOut(auth);
+    } catch (error) {
+      console.error('Error signing out:', error);
+      throw error;
+    }
   };
 
   return (
-    <AuthContext.Provider value={{ user, userProfile, loading, signIn, signOut, refreshProfile }}>
+    <AuthContext.Provider value={{ user, userProfile, loading, signIn, signUp, signOut, refreshProfile }}>
       {children}
     </AuthContext.Provider>
   );
 }
 
 export const useAuth = () => useContext(AuthContext);
+
+// Helper function to convert Firebase auth error codes to user-friendly messages
+function getAuthErrorMessage(code: string): string {
+  switch (code) {
+    case 'auth/email-already-in-use':
+      return 'This email is already registered. Please sign in instead.';
+    case 'auth/invalid-email':
+      return 'Invalid email address.';
+    case 'auth/user-not-found':
+      return 'No account found with this email.';
+    case 'auth/wrong-password':
+      return 'Incorrect password.';
+    case 'auth/weak-password':
+      return 'Password should be at least 6 characters.';
+    case 'auth/too-many-requests':
+      return 'Too many attempts. Please try again later.';
+    case 'auth/network-request-failed':
+      return 'Network error. Please check your connection.';
+    default:
+      return 'Authentication failed. Please try again.';
+  }
+}
