@@ -5,13 +5,18 @@ import { useState, useEffect, Suspense } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { getPromptById, getRandomPrompt } from '@/lib/prompts';
 import WritingTipsModal from '@/components/WritingTipsModal';
+import WaitingForPlayers from '@/components/WaitingForPlayers';
+import { createMatchState, submitPhase, listenToMatchState, areAllPlayersReady, simulateAISubmissions } from '@/lib/match-sync';
+import { db } from '@/lib/firebase';
+import { doc, getDoc } from 'firebase/firestore';
 
 function RankedSessionContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const trait = searchParams.get('trait');
   const promptId = searchParams.get('promptId');
-  const { userProfile } = useAuth();
+  const matchId = searchParams.get('matchId') || `match-${Date.now()}`;
+  const { user, userProfile } = useAuth();
   
   // Get prompt from library by ID, or random if not found (memoized to prevent re-shuffling)
   const [prompt] = useState(() => {
@@ -26,6 +31,9 @@ function RankedSessionContent() {
   const [wordCount, setWordCount] = useState(0);
   const [showPasteWarning, setShowPasteWarning] = useState(false);
   const [showTipsModal, setShowTipsModal] = useState(false);
+  const [hasSubmitted, setHasSubmitted] = useState(false);
+  const [playersReady, setPlayersReady] = useState(0);
+  const [matchInitialized, setMatchInitialized] = useState(false);
 
   const userRank = userProfile?.currentRank || 'Silver III';
   const userAvatar = typeof userProfile?.avatar === 'string' ? userProfile.avatar : '🌿';
@@ -40,17 +48,70 @@ function RankedSessionContent() {
 
   const [aiWordCounts, setAiWordCounts] = useState<number[]>([0, 0, 0, 0]);
 
+  // Initialize match state on mount
   useEffect(() => {
-    if (timeLeft > 0) {
+    if (!user || !userProfile || matchInitialized) return;
+    
+    const initMatch = async () => {
+      console.log('🎮 SESSION - Initializing match state');
+      try {
+        await createMatchState(
+          matchId,
+          partyMembers.map(p => ({
+            userId: p.isYou ? user.uid : `ai-${p.name}`,
+            displayName: p.name,
+            avatar: p.avatar,
+            rank: p.rank,
+            isAI: !p.isYou
+          })),
+          1,
+          240
+        );
+        
+        // Simulate AI submissions (they finish randomly)
+        simulateAISubmissions(matchId, 1, Math.random() * 120000 + 60000); // 1-3 min
+        
+        setMatchInitialized(true);
+      } catch (error) {
+        console.error('❌ SESSION - Failed to init match:', error);
+      }
+    };
+    
+    initMatch();
+  }, [user, userProfile, matchId, matchInitialized, partyMembers]);
+
+  // Listen for match state updates
+  useEffect(() => {
+    if (!matchInitialized) return;
+    
+    const unsubscribe = listenToMatchState(matchId, (matchState) => {
+      const ready = areAllPlayersReady(matchState, 1);
+      const submitted = matchState.submissions?.phase1?.length || 0;
+      setPlayersReady(submitted);
+      
+      // If all players ready and user has submitted, move to rankings
+      if (ready && hasSubmitted) {
+        console.log('🎉 SESSION - All players ready, moving to rankings!');
+        unsubscribe();
+        proceedToRankings();
+      }
+    });
+    
+    return () => unsubscribe();
+  }, [matchInitialized, hasSubmitted, matchId]);
+
+  useEffect(() => {
+    if (timeLeft > 0 && !hasSubmitted) {
       const timer = setInterval(() => {
         setTimeLeft((prev) => prev - 1);
       }, 1000);
       return () => clearInterval(timer);
-    } else {
+    } else if (timeLeft === 0 && !hasSubmitted) {
+      // Time's up - auto submit
       handleSubmit();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [timeLeft]);
+  }, [timeLeft, hasSubmitted]);
 
   useEffect(() => {
     const words = writingContent.trim().split(/\s+/).filter(word => word.length > 0);
@@ -79,13 +140,64 @@ function RankedSessionContent() {
     return 'text-red-400';
   };
 
-  const handleSubmit = () => {
-    // Mock AI scoring for phase 1
-    const yourScore = Math.min(Math.max(60 + (wordCount / 5) + Math.random() * 15, 40), 100);
+  const proceedToRankings = () => {
     const encodedContent = encodeURIComponent(writingContent);
-    console.log('📤 SESSION - Submitting Phase 1, score:', Math.round(yourScore));
-    // Route to phase 1 rankings screen, then to peer feedback
-    router.push(`/ranked/phase-rankings?phase=1&trait=${trait}&promptId=${prompt.id}&promptType=${prompt.type}&content=${encodedContent}&wordCount=${wordCount}&aiScores=${aiWordCounts.join(',')}&yourScore=${Math.round(yourScore)}`);
+    const yourScore = sessionStorage.getItem(`${matchId}-phase1-score`) || '75';
+    console.log('🚀 SESSION - Proceeding to rankings with score:', yourScore);
+    router.push(`/ranked/phase-rankings?phase=1&matchId=${matchId}&trait=${trait}&promptId=${prompt.id}&promptType=${prompt.type}&content=${encodedContent}&wordCount=${wordCount}&aiScores=${aiWordCounts.join(',')}&yourScore=${yourScore}`);
+  };
+
+  const handleSubmit = async () => {
+    if (hasSubmitted || !user) return;
+    
+    console.log('📤 SESSION - Submitting Phase 1 for AI evaluation...');
+    setHasSubmitted(true);
+    
+    try {
+      // Call real AI API for Phase 1 evaluation
+      const response = await fetch('/api/analyze-writing', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          content: writingContent,
+          trait: trait || 'all',
+          promptType: prompt.type,
+        }),
+      });
+      
+      const data = await response.json();
+      const yourScore = data.overallScore || 75;
+      console.log('✅ SESSION - AI evaluation complete, score:', yourScore);
+      
+      // Save score temporarily
+      sessionStorage.setItem(`${matchId}-phase1-score`, yourScore.toString());
+      
+      // Submit to match state
+      await submitPhase(matchId, user.uid, 1, Math.round(yourScore));
+      
+      // Check if all ready immediately (might be last player)
+      const matchDoc = await getDoc(doc(db, 'matchStates', matchId));
+      if (matchDoc.exists()) {
+        const matchState = matchDoc.data();
+        if (areAllPlayersReady(matchState as any, 1)) {
+          console.log('🎉 SESSION - Was last player, proceeding immediately!');
+          proceedToRankings();
+        } else {
+          console.log('⏳ SESSION - Waiting for other players...');
+        }
+      }
+      
+    } catch (error) {
+      console.error('❌ SESSION - AI evaluation failed, using fallback');
+      const yourScore = Math.min(Math.max(60 + (wordCount / 5) + Math.random() * 15, 40), 100);
+      sessionStorage.setItem(`${matchId}-phase1-score`, yourScore.toString());
+      
+      if (user) {
+        await submitPhase(matchId, user.uid, 1, Math.round(yourScore)).catch(console.error);
+      }
+    }
   };
 
   const handlePaste = (e: React.ClipboardEvent<HTMLTextAreaElement>) => {
@@ -97,6 +209,18 @@ function RankedSessionContent() {
   const handleCut = (e: React.ClipboardEvent<HTMLTextAreaElement>) => {
     e.preventDefault();
   };
+
+  // Show waiting screen if user has submitted but not all players are ready
+  if (hasSubmitted) {
+    return (
+      <WaitingForPlayers 
+        phase={1}
+        playersReady={playersReady}
+        totalPlayers={partyMembers.length}
+        timeRemaining={timeLeft}
+      />
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">

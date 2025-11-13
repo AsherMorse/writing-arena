@@ -44,6 +44,7 @@ function RankedPeerFeedbackContent() {
   const [timeLeft, setTimeLeft] = useState(180); // 3 minutes for peer feedback
   const [currentPeer] = useState(MOCK_PEER_WRITINGS[0]); // In reality, match them with actual peer
   const [showTipsModal, setShowTipsModal] = useState(false);
+  const [isEvaluating, setIsEvaluating] = useState(false);
   
   // Feedback questions and responses
   const [responses, setResponses] = useState({
@@ -82,15 +83,40 @@ function RankedPeerFeedbackContent() {
     return Object.values(responses).every(response => response.trim().length > 10);
   };
 
-  const handleSubmit = () => {
-    // Mock peer feedback score (how well they gave feedback)
-    const feedbackQuality = isFormComplete() ? Math.random() * 20 + 75 : Math.random() * 30 + 50;
-    console.log('📤 PEER FEEDBACK - Submitting Phase 2, score:', Math.round(feedbackQuality));
+  const handleSubmit = async () => {
+    console.log('📤 PEER FEEDBACK - Submitting Phase 2 for AI evaluation...');
+    setIsEvaluating(true);
     
-    // Route to phase 2 rankings screen, then to revision
-    router.push(
-      `/ranked/phase-rankings?phase=2&trait=${trait}&promptId=${promptId}&promptType=${promptType}&content=${content}&wordCount=${wordCount}&aiScores=${aiScores}&yourScore=${yourScore}&feedbackScore=${Math.round(feedbackQuality)}&peerFeedback=${encodeURIComponent(JSON.stringify(responses))}`
-    );
+    try {
+      // Call real AI API for peer feedback evaluation
+      const response = await fetch('/api/evaluate-peer-feedback', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          responses,
+          peerWriting: currentPeer.content,
+        }),
+      });
+      
+      const data = await response.json();
+      const feedbackScore = data.score || 75;
+      console.log('✅ PEER FEEDBACK - AI evaluation complete, score:', feedbackScore);
+      
+      // Route to phase 2 rankings screen, then to revision
+      router.push(
+        `/ranked/phase-rankings?phase=2&trait=${trait}&promptId=${promptId}&promptType=${promptType}&content=${content}&wordCount=${wordCount}&aiScores=${aiScores}&yourScore=${yourScore}&feedbackScore=${Math.round(feedbackScore)}&peerFeedback=${encodeURIComponent(JSON.stringify(responses))}`
+      );
+    } catch (error) {
+      console.error('❌ PEER FEEDBACK - AI evaluation failed, using fallback');
+      const feedbackQuality = isFormComplete() ? Math.random() * 20 + 75 : Math.random() * 30 + 50;
+      router.push(
+        `/ranked/phase-rankings?phase=2&trait=${trait}&promptId=${promptId}&promptType=${promptType}&content=${content}&wordCount=${wordCount}&aiScores=${aiScores}&yourScore=${yourScore}&feedbackScore=${Math.round(feedbackQuality)}&peerFeedback=${encodeURIComponent(JSON.stringify(responses))}`
+      );
+    } finally {
+      setIsEvaluating(false);
+    }
   };
 
   return (
@@ -138,14 +164,14 @@ function RankedPeerFeedbackContent() {
 
             <button
               onClick={handleSubmit}
-              disabled={!isFormComplete()}
+              disabled={!isFormComplete() || isEvaluating}
               className={`px-6 py-2 font-semibold rounded-lg transition-all ${
-                isFormComplete()
+                isFormComplete() && !isEvaluating
                   ? 'bg-blue-500 hover:bg-blue-600 text-white'
                   : 'bg-gray-600 text-gray-400 cursor-not-allowed'
               }`}
             >
-              {isFormComplete() ? 'Submit Feedback' : 'Complete All Questions'}
+              {isEvaluating ? 'Evaluating...' : isFormComplete() ? 'Submit Feedback' : 'Complete All Questions'}
             </button>
           </div>
 

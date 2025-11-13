@@ -37,6 +37,9 @@ function RankedRevisionContent() {
   const [wordCountRevised, setWordCountRevised] = useState(0);
   const [showFeedback, setShowFeedback] = useState(true);
   const [showTipsModal, setShowTipsModal] = useState(false);
+  const [aiFeedback, setAiFeedback] = useState(MOCK_AI_FEEDBACK);
+  const [loadingFeedback, setLoadingFeedback] = useState(true);
+  const [isEvaluating, setIsEvaluating] = useState(false);
   
   // Parse peer feedback
   let peerFeedback;
@@ -45,6 +48,36 @@ function RankedRevisionContent() {
   } catch {
     peerFeedback = {};
   }
+
+  // Fetch real AI feedback on component mount
+  useEffect(() => {
+    const fetchAIFeedback = async () => {
+      console.log('🤖 REVISION - Fetching AI feedback...');
+      try {
+        const response = await fetch('/api/generate-feedback', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            content: originalContent,
+            promptType: promptType || 'narrative',
+          }),
+        });
+        
+        const data = await response.json();
+        console.log('✅ REVISION - AI feedback received');
+        setAiFeedback(data);
+      } catch (error) {
+        console.error('❌ REVISION - Failed to fetch AI feedback, using mock');
+        setAiFeedback(MOCK_AI_FEEDBACK);
+      } finally {
+        setLoadingFeedback(false);
+      }
+    };
+
+    fetchAIFeedback();
+  }, [originalContent, promptType]);
 
   useEffect(() => {
     if (timeLeft > 0) {
@@ -75,17 +108,45 @@ function RankedRevisionContent() {
     return 'text-red-400';
   };
 
-  const handleSubmit = () => {
-    // Mock revision score based on how much they changed and improved
-    const changeAmount = Math.abs(wordCountRevised - parseInt(wordCount));
-    const hasSignificantChanges = changeAmount > 10;
-    const revisionScore = hasSignificantChanges 
-      ? Math.min(85 + Math.random() * 10, 95)
-      : 60 + Math.random() * 15;
+  const handleSubmit = async () => {
+    console.log('📤 REVISION - Submitting Phase 3 for AI evaluation...');
+    setIsEvaluating(true);
     
-    router.push(
-      `/ranked/results?trait=${trait}&promptType=${promptType}&originalContent=${encodeURIComponent(originalContent)}&revisedContent=${encodeURIComponent(revisedContent)}&wordCount=${wordCount}&revisedWordCount=${wordCountRevised}&aiScores=${aiScores}&writingScore=${yourScore}&feedbackScore=${feedbackScore}&revisionScore=${Math.round(revisionScore)}`
-    );
+    try {
+      // Call real AI API for revision evaluation
+      const response = await fetch('/api/evaluate-revision', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          originalContent,
+          revisedContent,
+          feedback: aiFeedback,
+        }),
+      });
+      
+      const data = await response.json();
+      const revisionScore = data.score || 75;
+      console.log('✅ REVISION - AI evaluation complete, score:', revisionScore);
+      
+      router.push(
+        `/ranked/results?trait=${trait}&promptId=${promptId}&promptType=${promptType}&originalContent=${encodeURIComponent(originalContent)}&revisedContent=${encodeURIComponent(revisedContent)}&wordCount=${wordCount}&revisedWordCount=${wordCountRevised}&aiScores=${aiScores}&writingScore=${yourScore}&feedbackScore=${feedbackScore}&revisionScore=${Math.round(revisionScore)}`
+      );
+    } catch (error) {
+      console.error('❌ REVISION - AI evaluation failed, using fallback');
+      const changeAmount = Math.abs(wordCountRevised - parseInt(wordCount));
+      const hasSignificantChanges = changeAmount > 10;
+      const revisionScore = hasSignificantChanges 
+        ? Math.min(85 + Math.random() * 10, 95)
+        : 60 + Math.random() * 15;
+      
+      router.push(
+        `/ranked/results?trait=${trait}&promptId=${promptId}&promptType=${promptType}&originalContent=${encodeURIComponent(originalContent)}&revisedContent=${encodeURIComponent(revisedContent)}&wordCount=${wordCount}&revisedWordCount=${wordCountRevised}&aiScores=${aiScores}&writingScore=${yourScore}&feedbackScore=${feedbackScore}&revisionScore=${Math.round(revisionScore)}`
+      );
+    } finally {
+      setIsEvaluating(false);
+    }
   };
 
   const hasRevised = revisedContent !== originalContent;
@@ -144,9 +205,14 @@ function RankedRevisionContent() {
               </div>
               <button
                 onClick={handleSubmit}
-                className="px-6 py-2 bg-emerald-500 hover:bg-emerald-600 text-white font-semibold rounded-lg transition-all"
+                disabled={isEvaluating}
+                className={`px-6 py-2 font-semibold rounded-lg transition-all ${
+                  isEvaluating
+                    ? 'bg-gray-600 text-gray-400 cursor-not-allowed'
+                    : 'bg-emerald-500 hover:bg-emerald-600 text-white'
+                }`}
               >
-                Submit Revision
+                {isEvaluating ? 'Evaluating...' : 'Submit Revision'}
               </button>
             </div>
           </div>
@@ -191,24 +257,32 @@ function RankedRevisionContent() {
                 <div className="space-y-3">
                   <div>
                     <div className="text-emerald-400 text-sm font-semibold mb-2">✨ Strengths</div>
+                    {loadingFeedback ? (
+                    <div className="text-white/60 text-sm">Loading AI feedback...</div>
+                  ) : (
                     <ul className="space-y-1">
-                      {MOCK_AI_FEEDBACK.strengths.map((strength, i) => (
+                      {aiFeedback.strengths.map((strength, i) => (
                         <li key={i} className="text-white/80 text-sm leading-relaxed">
                           • {strength}
                         </li>
                       ))}
                     </ul>
+                  )}
                   </div>
 
                   <div>
                     <div className="text-yellow-400 text-sm font-semibold mb-2">💡 Suggestions</div>
-                    <ul className="space-y-1">
-                      {MOCK_AI_FEEDBACK.improvements.map((improvement, i) => (
-                        <li key={i} className="text-white/80 text-sm leading-relaxed">
-                          • {improvement}
-                        </li>
-                      ))}
-                    </ul>
+                    {loadingFeedback ? (
+                      <div className="text-white/60 text-sm">Loading AI feedback...</div>
+                    ) : (
+                      <ul className="space-y-1">
+                        {aiFeedback.improvements.map((improvement, i) => (
+                          <li key={i} className="text-white/80 text-sm leading-relaxed">
+                            • {improvement}
+                          </li>
+                        ))}
+                      </ul>
+                    )}
                   </div>
                 </div>
               </div>
