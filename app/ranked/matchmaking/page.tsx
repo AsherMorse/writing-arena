@@ -150,8 +150,10 @@ function RankedMatchmakingContent() {
       console.log('🚀 MATCHMAKING - Starting match!');
       // Get a truly random prompt from the library
       const randomPrompt = getRandomPrompt();
+      const matchId = `match-${userId}-${Date.now()}`;
       console.log('📝 MATCHMAKING - Selected prompt:', randomPrompt.id, randomPrompt.title);
-      router.push(`/ranked/session?trait=${trait}&promptId=${randomPrompt.id}`);
+      console.log('🎮 MATCHMAKING - Match ID:', matchId);
+      router.push(`/ranked/session?trait=${trait}&promptId=${randomPrompt.id}&matchId=${matchId}`);
     }
   }, [countdown, router, trait]);
 

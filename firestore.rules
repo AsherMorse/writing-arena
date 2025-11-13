@@ -383,6 +383,18 @@ service cloud.firestore {
       allow delete: if false;
     }
     
+    // Match States - real-time synchronization between players
+    match /matchStates/{matchId} {
+      // Anyone can read match states (to see who's ready)
+      allow read: if isAuthenticated();
+      
+      // Authenticated users can create and update match states
+      allow create, update: if isAuthenticated();
+      
+      // No deleting match states during game
+      allow delete: if false;
+    }
+    
     // Writing sessions - saved writing and feedback
     match /writingSessions/{sessionId} {
       // Users can read their own sessions
