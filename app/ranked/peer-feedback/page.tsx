@@ -2,6 +2,7 @@
 
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useState, useEffect, Suspense } from 'react';
+import WritingTipsModal from '@/components/WritingTipsModal';
 
 // Mock peer writings - in reality, these would come from other players
 const MOCK_PEER_WRITINGS = [
@@ -41,6 +42,7 @@ function RankedPeerFeedbackContent() {
 
   const [timeLeft, setTimeLeft] = useState(180); // 3 minutes for peer feedback
   const [currentPeer] = useState(MOCK_PEER_WRITINGS[0]); // In reality, match them with actual peer
+  const [showTipsModal, setShowTipsModal] = useState(false);
   
   // Feedback questions and responses
   const [responses, setResponses] = useState({
@@ -90,6 +92,32 @@ function RankedPeerFeedbackContent() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
+      {/* Peer Feedback Tips Modal - using 'informational' type for evaluation guidance */}
+      <WritingTipsModal 
+        isOpen={showTipsModal}
+        onClose={() => setShowTipsModal(false)}
+        promptType="informational"
+      />
+
+      {/* Floating Tips Button */}
+      <button
+        onClick={() => setShowTipsModal(true)}
+        className="fixed bottom-8 right-8 z-40 group"
+        title="Feedback Tips"
+      >
+        <div className="relative">
+          <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-indigo-500 rounded-full flex items-center justify-center shadow-2xl hover:scale-110 transition-all duration-200 border-2 border-white/20">
+            <span className="text-2xl">🔍</span>
+          </div>
+          <div className="absolute -top-1 -right-1 w-5 h-5 bg-yellow-400 rounded-full flex items-center justify-center animate-pulse">
+            <span className="text-xs">✨</span>
+          </div>
+          <div className="absolute -bottom-12 right-0 bg-black/80 text-white text-xs px-3 py-1 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
+            Feedback Tips
+          </div>
+        </div>
+      </button>
+
       <header className="border-b border-white/10 bg-black/30 backdrop-blur-sm sticky top-0 z-10">
         <div className="container mx-auto px-6 py-4">
           <div className="flex items-center justify-between">

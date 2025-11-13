@@ -13,11 +13,13 @@ function RankedSessionContent() {
   const promptId = searchParams.get('promptId');
   const { userProfile } = useAuth();
   
-  // Get prompt from library by ID, or random if not found
-  const currentPrompt = promptId ? getPromptById(promptId) : undefined;
-  const prompt = currentPrompt || getRandomPrompt();
-  
-  console.log('📝 SESSION - Using prompt:', { id: prompt.id, title: prompt.title, type: prompt.type });
+  // Get prompt from library by ID, or random if not found (memoized to prevent re-shuffling)
+  const [prompt] = useState(() => {
+    const currentPrompt = promptId ? getPromptById(promptId) : undefined;
+    const selectedPrompt = currentPrompt || getRandomPrompt();
+    console.log('📝 SESSION - Using prompt:', { id: selectedPrompt.id, title: selectedPrompt.title, type: selectedPrompt.type });
+    return selectedPrompt;
+  });
 
   const [timeLeft, setTimeLeft] = useState(240);
   const [writingContent, setWritingContent] = useState('');
