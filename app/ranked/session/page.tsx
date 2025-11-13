@@ -83,9 +83,9 @@ function RankedSessionContent() {
     // Mock AI scoring for phase 1
     const yourScore = Math.min(Math.max(60 + (wordCount / 5) + Math.random() * 15, 40), 100);
     const encodedContent = encodeURIComponent(writingContent);
-    console.log('📤 SESSION - Submitting, score:', Math.round(yourScore));
-    // Route to peer feedback phase instead of results
-    router.push(`/ranked/peer-feedback?trait=${trait}&promptId=${prompt.id}&promptType=${prompt.type}&content=${encodedContent}&wordCount=${wordCount}&aiScores=${aiWordCounts.join(',')}&yourScore=${Math.round(yourScore)}`);
+    console.log('📤 SESSION - Submitting Phase 1, score:', Math.round(yourScore));
+    // Route to phase 1 rankings screen, then to peer feedback
+    router.push(`/ranked/phase-rankings?phase=1&trait=${trait}&promptId=${prompt.id}&promptType=${prompt.type}&content=${encodedContent}&wordCount=${wordCount}&aiScores=${aiWordCounts.join(',')}&yourScore=${Math.round(yourScore)}`);
   };
 
   const handlePaste = (e: React.ClipboardEvent<HTMLTextAreaElement>) => {

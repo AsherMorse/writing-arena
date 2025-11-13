@@ -23,6 +23,7 @@ function RankedRevisionContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const trait = searchParams.get('trait');
+  const promptId = searchParams.get('promptId');
   const promptType = searchParams.get('promptType');
   const originalContent = decodeURIComponent(searchParams.get('content') || '');
   const wordCount = searchParams.get('wordCount') || '0';

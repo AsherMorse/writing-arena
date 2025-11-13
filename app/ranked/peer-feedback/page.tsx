@@ -34,6 +34,7 @@ function RankedPeerFeedbackContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const trait = searchParams.get('trait');
+  const promptId = searchParams.get('promptId');
   const promptType = searchParams.get('promptType');
   const content = searchParams.get('content') || '';
   const wordCount = searchParams.get('wordCount') || '0';
@@ -84,9 +85,11 @@ function RankedPeerFeedbackContent() {
   const handleSubmit = () => {
     // Mock peer feedback score (how well they gave feedback)
     const feedbackQuality = isFormComplete() ? Math.random() * 20 + 75 : Math.random() * 30 + 50;
+    console.log('📤 PEER FEEDBACK - Submitting Phase 2, score:', Math.round(feedbackQuality));
     
+    // Route to phase 2 rankings screen, then to revision
     router.push(
-      `/ranked/revision?trait=${trait}&promptType=${promptType}&content=${content}&wordCount=${wordCount}&aiScores=${aiScores}&yourScore=${yourScore}&feedbackScore=${Math.round(feedbackQuality)}&peerFeedback=${encodeURIComponent(JSON.stringify(responses))}`
+      `/ranked/phase-rankings?phase=2&trait=${trait}&promptId=${promptId}&promptType=${promptType}&content=${content}&wordCount=${wordCount}&aiScores=${aiScores}&yourScore=${yourScore}&feedbackScore=${Math.round(feedbackQuality)}&peerFeedback=${encodeURIComponent(JSON.stringify(responses))}`
     );
   };
 
