@@ -6,15 +6,44 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
 
 export default function DashboardPage() {
-  const { user, userProfile, loading, signOut } = useAuth();
+  const { user, userProfile, loading, signOut, refreshProfile } = useAuth();
   const router = useRouter();
   const [showMatchModal, setShowMatchModal] = useState(true);
+  const [creatingProfile, setCreatingProfile] = useState(false);
 
   useEffect(() => {
     if (!loading && !user) {
       router.push('/');
     }
   }, [user, loading, router]);
+
+  // If user exists but no profile after loading, create one
+  useEffect(() => {
+    const ensureProfile = async () => {
+      if (!loading && user && !userProfile && !creatingProfile) {
+        setCreatingProfile(true);
+        try {
+          console.log('Dashboard: Creating missing profile for user', user.uid);
+          const { createUserProfile, getUserProfile } = await import('@/lib/firestore');
+          
+          await createUserProfile(user.uid, {
+            displayName: user.displayName || user.email?.split('@')[0] || 'Student Writer',
+            email: user.email || '',
+          });
+          
+          // Wait and refresh
+          await new Promise(resolve => setTimeout(resolve, 1000));
+          await refreshProfile();
+        } catch (error) {
+          console.error('Dashboard: Failed to create profile', error);
+        } finally {
+          setCreatingProfile(false);
+        }
+      }
+    };
+
+    ensureProfile();
+  }, [user, userProfile, loading, creatingProfile, refreshProfile]);
 
   if (loading) {
     return (
@@ -33,13 +62,16 @@ export default function DashboardPage() {
   }
 
   // If user exists but profile doesn't, show loading (profile is being created)
-  if (!userProfile) {
+  if (!userProfile || creatingProfile) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center">
         <div className="text-center">
           <div className="inline-block animate-spin text-7xl mb-6">🌱</div>
           <h2 className="text-3xl font-bold text-white mb-3">Creating Your Profile...</h2>
           <p className="text-white/60 text-lg">This will only take a moment</p>
+          {creatingProfile && (
+            <p className="text-white/40 text-sm mt-2">Dashboard is ensuring your profile exists...</p>
+          )}
         </div>
       </div>
     );
