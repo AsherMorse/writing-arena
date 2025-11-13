@@ -119,6 +119,45 @@ export async function getUserProfile(uid: string): Promise<UserProfile | null> {
       traitsContent: data.traits?.content,
       fullData: data
     });
+    
+    // If profile is missing traits (old profile), update it
+    if (!data.traits || !data.traits.content) {
+      console.log('⚠️ FIRESTORE - Profile missing traits, updating...');
+      await setDoc(userRef, {
+        traits: {
+          content: 2,
+          organization: 3,
+          grammar: 2,
+          vocabulary: 1,
+          mechanics: 2,
+        },
+        stats: data.stats || {
+          totalMatches: 0,
+          wins: 0,
+          totalWords: 0,
+          currentStreak: 0,
+        },
+        avatar: data.avatar || '🌿',
+        characterLevel: data.characterLevel || 2,
+        totalXP: data.totalXP || 1250,
+        totalPoints: data.totalPoints || 1250,
+        currentRank: data.currentRank || 'Silver III',
+        rankLP: data.rankLP || 120,
+        updatedAt: serverTimestamp(),
+      }, { merge: true });
+      
+      console.log('✅ FIRESTORE - Profile updated with traits, refetching...');
+      const updatedSnap = await getDoc(userRef);
+      if (updatedSnap.exists()) {
+        const updatedData = updatedSnap.data() as UserProfile;
+        console.log('✅ FIRESTORE - Updated profile:', {
+          hasTraits: !!updatedData.traits,
+          traitsContent: updatedData.traits?.content
+        });
+        return updatedData;
+      }
+    }
+    
     return data;
   }
   
