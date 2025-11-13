@@ -42,7 +42,7 @@ function RankedPeerFeedbackContent() {
   const yourScore = searchParams.get('yourScore') || '75';
 
   const [timeLeft, setTimeLeft] = useState(180); // 3 minutes for peer feedback
-  const [currentPeer] = useState(MOCK_PEER_WRITINGS[0]); // In reality, match them with actual peer
+  const [currentPeer] = useState(MOCK_PEER_WRITINGS[0]);
   const [showTipsModal, setShowTipsModal] = useState(false);
   const [isEvaluating, setIsEvaluating] = useState(false);
   
@@ -73,22 +73,17 @@ function RankedPeerFeedbackContent() {
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
-  const getTimeColor = () => {
-    if (timeLeft > 120) return 'text-green-400';
-    if (timeLeft > 60) return 'text-yellow-400';
-    return 'text-red-400';
+  const isFormComplete = () => {
+    return Object.values(responses).every(response => response.trim().length > 30);
   };
 
-  const isFormComplete = () => {
-    return Object.values(responses).every(response => response.trim().length > 10);
+  const handleChange = (key: keyof typeof responses, value: string) => {
+    setResponses(prev => ({ ...prev, [key]: value }));
   };
 
   const handleSubmit = async () => {
-    console.log('📤 PEER FEEDBACK - Submitting Phase 2 for AI evaluation...');
     setIsEvaluating(true);
-    
     try {
-      // Call real AI API for peer feedback evaluation
       const response = await fetch('/api/evaluate-peer-feedback', {
         method: 'POST',
         headers: {
@@ -99,17 +94,12 @@ function RankedPeerFeedbackContent() {
           peerWriting: currentPeer.content,
         }),
       });
-      
       const data = await response.json();
       const feedbackScore = data.score || 75;
-      console.log('✅ PEER FEEDBACK - AI evaluation complete, score:', feedbackScore);
-      
-      // Route to phase 2 rankings screen, then to revision
       router.push(
         `/ranked/phase-rankings?phase=2&trait=${trait}&promptId=${promptId}&promptType=${promptType}&content=${content}&wordCount=${wordCount}&aiScores=${aiScores}&yourScore=${yourScore}&feedbackScore=${Math.round(feedbackScore)}&peerFeedback=${encodeURIComponent(JSON.stringify(responses))}`
       );
     } catch (error) {
-      console.error('❌ PEER FEEDBACK - AI evaluation failed, using fallback');
       const feedbackQuality = isFormComplete() ? Math.random() * 20 + 75 : Math.random() * 30 + 50;
       router.push(
         `/ranked/phase-rankings?phase=2&trait=${trait}&promptId=${promptId}&promptType=${promptType}&content=${content}&wordCount=${wordCount}&aiScores=${aiScores}&yourScore=${yourScore}&feedbackScore=${Math.round(feedbackQuality)}&peerFeedback=${encodeURIComponent(JSON.stringify(responses))}`
@@ -119,184 +109,143 @@ function RankedPeerFeedbackContent() {
     }
   };
 
+  const countdownColor = timeLeft > 120 ? 'text-emerald-200' : timeLeft > 60 ? 'text-yellow-300' : 'text-red-300';
+
+  const questionConfig = [
+    {
+      key: 'clarity' as const,
+      prompt: 'What is the main idea? Is the message clear?',
+      placeholder: 'Explain what the writer is trying to convey and whether the purpose stays clear from start to finish...'
+    },
+    {
+      key: 'strengths' as const,
+      prompt: 'Highlight the strongest moments.',
+      placeholder: 'Point to specific sentences or moves that you found effective and why they worked...'
+    },
+    {
+      key: 'improvements' as const,
+      prompt: 'Suggest the most important improvements.',
+      placeholder: 'Offer concrete ideas for revision. Mention what to add, remove, or restructure...'
+    },
+    {
+      key: 'organization' as const,
+      prompt: 'Describe how well it is organized.',
+      placeholder: 'Comment on transitions, paragraph focus, and logical flow from beginning to end...'
+    },
+    {
+      key: 'engagement' as const,
+      prompt: 'How engaging is the piece overall?',
+      placeholder: 'Share how the writing made you feel and note any places where attention dipped...'
+    },
+  ];
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
-      {/* Peer Feedback Tips Modal - using 'informational' type for evaluation guidance */}
-      <WritingTipsModal 
+    <div className="min-h-screen bg-[#0c141d] text-white">
+      <WritingTipsModal
         isOpen={showTipsModal}
         onClose={() => setShowTipsModal(false)}
         promptType="informational"
       />
 
-      {/* Floating Tips Button */}
-      <button
-        onClick={() => setShowTipsModal(true)}
-        className="fixed bottom-8 right-8 z-40 group"
-        title="Feedback Tips"
-      >
-        <div className="relative">
-          <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-indigo-500 rounded-full flex items-center justify-center shadow-2xl hover:scale-110 transition-all duration-200 border-2 border-white/20">
-            <span className="text-2xl">🔍</span>
-          </div>
-          <div className="absolute -top-1 -right-1 w-5 h-5 bg-yellow-400 rounded-full flex items-center justify-center animate-pulse">
-            <span className="text-xs">✨</span>
-          </div>
-          <div className="absolute -bottom-12 right-0 bg-black/80 text-white text-xs px-3 py-1 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
-            Feedback Tips
-          </div>
-        </div>
-      </button>
-
-      <header className="border-b border-white/10 bg-black/30 backdrop-blur-sm sticky top-0 z-10">
-        <div className="container mx-auto px-6 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-4">
-              <div className={`text-3xl font-bold ${getTimeColor()}`}>
-                {formatTime(timeLeft)}
-              </div>
-              <div className="text-white/60">
-                {timeLeft > 0 ? 'Time remaining' : 'Time&apos;s up!'}
-              </div>
-              <div className="px-3 py-1 bg-blue-500/20 border border-blue-400/30 rounded-full">
-                <span className="text-blue-400 text-sm font-semibold">📝 PHASE 2: PEER FEEDBACK</span>
-              </div>
+      <header className="sticky top-0 z-20 border-b border-white/10 bg-[#0c141d]/90 backdrop-blur">
+        <div className="mx-auto flex max-w-6xl flex-col gap-4 px-6 py-5 lg:flex-row lg:items-center lg:justify-between">
+          <div className="flex items-center gap-4">
+            <div className="flex h-14 w-14 items-center justify-center rounded-2xl border border-white/10 bg-[#141e27] text-xl font-semibold">
+              {formatTime(timeLeft)}
             </div>
-
+            <div>
+              <div className="text-xs uppercase tracking-[0.3em] text-white/50">Phase 2 · Peer feedback</div>
+              <p className={`text-sm font-semibold ${countdownColor}`}>Provide detailed, constructive insight.</p>
+            </div>
+            <div className="rounded-full border border-blue-200/30 bg-blue-400/10 px-3 py-1 text-xs font-semibold text-blue-200">
+              Trait focus: {trait || 'all'}
+            </div>
+          </div>
+          <div className="flex items-center gap-3 text-sm">
+            <button
+              onClick={() => setShowTipsModal(true)}
+              className="rounded-full border border-white/15 bg-white/5 px-4 py-2 font-semibold text-white transition hover:bg-white/10"
+            >
+              Feedback tips
+            </button>
             <button
               onClick={handleSubmit}
               disabled={!isFormComplete() || isEvaluating}
-              className={`px-6 py-2 font-semibold rounded-lg transition-all ${
+              className={`rounded-full px-6 py-2 font-semibold transition ${
                 isFormComplete() && !isEvaluating
-                  ? 'bg-blue-500 hover:bg-blue-600 text-white'
-                  : 'bg-gray-600 text-gray-400 cursor-not-allowed'
+                  ? 'bg-blue-400 text-[#0c141d] hover:bg-blue-300'
+                  : 'bg-white/5 text-white/40 cursor-not-allowed'
               }`}
             >
-              {isEvaluating ? 'Evaluating...' : isFormComplete() ? 'Submit Feedback' : 'Complete All Questions'}
+              {isEvaluating ? 'Scoring...' : 'Submit feedback'}
             </button>
           </div>
-
-          <div className="mt-4 w-full bg-white/10 rounded-full h-2 overflow-hidden">
-            <div 
-              className={`h-full transition-all duration-1000 ${
-                timeLeft > 120 ? 'bg-green-400' : timeLeft > 60 ? 'bg-yellow-400' : 'bg-red-400'
-              }`}
-              style={{ width: `${(timeLeft / 180) * 100}%` }}
-            />
-          </div>
+        </div>
+        <div className="mx-auto h-1.5 max-w-6xl rounded-full bg-white/10">
+          <div
+            className={`h-full rounded-full ${timeLeft > 120 ? 'bg-emerald-400' : timeLeft > 60 ? 'bg-yellow-400' : 'bg-red-400'}`}
+            style={{ width: `${(timeLeft / 180) * 100}%` }}
+          />
         </div>
       </header>
 
-      <main className="container mx-auto px-6 py-8 max-w-6xl">
-        <div className="mb-6 bg-gradient-to-r from-blue-500/20 to-purple-500/20 border border-blue-400/30 rounded-xl p-6">
-          <h1 className="text-2xl font-bold text-white mb-2">Evaluate Your Peer&apos;s Writing</h1>
-          <p className="text-white/80">
-            Your feedback will be scored on helpfulness and specificity. Be constructive and detailed!
-          </p>
-        </div>
-
-        <div className="grid lg:grid-cols-2 gap-6">
-          {/* Left side - Peer's writing */}
-          <div className="space-y-4">
-            <div className="bg-white/5 backdrop-blur-sm rounded-xl p-6 border border-white/10">
-              <div className="flex items-center space-x-3 mb-4">
-                <span className="text-3xl">{currentPeer.avatar}</span>
+      <main className="mx-auto max-w-6xl px-6 py-12">
+        <div className="grid gap-8 lg:grid-cols-[1.1fr,1.2fr]">
+          <section className="space-y-6">
+            <div className="rounded-3xl border border-white/10 bg-[#141e27] p-7">
+              <div className="flex items-center gap-4">
+                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-[#0c141d] text-2xl">
+                  {currentPeer.avatar}
+                </div>
                 <div>
-                  <div className="text-white font-bold">{currentPeer.author}</div>
-                  <div className="text-white/60 text-sm">{currentPeer.rank} • {currentPeer.wordCount} words</div>
+                  <div className="text-lg font-semibold text-white">{currentPeer.author}</div>
+                  <div className="text-sm text-white/50">{currentPeer.rank} · {currentPeer.wordCount} words</div>
                 </div>
               </div>
-              
-              <div className="bg-white rounded-xl p-6 max-h-[600px] overflow-y-auto">
-                <p className="text-gray-800 leading-relaxed font-serif whitespace-pre-wrap">
-                  {currentPeer.content}
-                </p>
+              <div className="mt-5 space-y-4 text-xs text-white/60">
+                <p>- Focus on clarity, organization, and engagement.</p>
+                <p>- Mention specific lines to justify your comments.</p>
+                <p>- Helpful, actionable advice earns higher LP.</p>
               </div>
             </div>
-          </div>
+            <article className="rounded-3xl border border-white/10 bg-white p-7 text-[#1b1f24] shadow-lg">
+              <header className="mb-4 flex items-center justify-between text-xs text-[#1b1f24]/60">
+                <span>Peer draft</span>
+                <span>{currentPeer.wordCount} words</span>
+              </header>
+              <div className="max-h-[540px] overflow-y-auto whitespace-pre-wrap text-base leading-relaxed">
+                {currentPeer.content}
+              </div>
+            </article>
+          </section>
 
-          {/* Right side - Feedback questions */}
-          <div className="space-y-4">
-            <div className="bg-white/5 backdrop-blur-sm rounded-xl p-6 border border-white/10">
-              <h3 className="text-white font-bold text-lg mb-4">Provide Detailed Feedback</h3>
-              
-              <div className="space-y-4">
+          <section className="space-y-5">
+            <div className="rounded-3xl border border-white/10 bg-[#141e27] p-7">
+              <div className="flex items-center justify-between">
                 <div>
-                  <label className="text-white font-semibold mb-2 block">
-                    1. What is the main idea or message? Is it clear?
-                  </label>
-                  <textarea
-                    value={responses.clarity}
-                    onChange={(e) => setResponses({...responses, clarity: e.target.value})}
-                    placeholder="Explain what the writing is about and whether it's easy to understand..."
-                    className="w-full p-3 rounded-lg bg-white/10 text-white placeholder-white/40 border border-white/20 focus:border-blue-400 focus:outline-none min-h-[80px]"
-                  />
-                  <div className="text-white/40 text-xs mt-1">
-                    {responses.clarity.length}/50 characters minimum
-                  </div>
+                  <div className="text-xs uppercase tracking-[0.3em] text-white/50">Feedback checklist</div>
+                  <p className="mt-2 text-xs text-white/50">Respond to each prompt with at least 30 characters.</p>
                 </div>
-
-                <div>
-                  <label className="text-white font-semibold mb-2 block">
-                    2. What are the strongest parts of this writing?
-                  </label>
-                  <textarea
-                    value={responses.strengths}
-                    onChange={(e) => setResponses({...responses, strengths: e.target.value})}
-                    placeholder="Point out specific examples of what works well..."
-                    className="w-full p-3 rounded-lg bg-white/10 text-white placeholder-white/40 border border-white/20 focus:border-blue-400 focus:outline-none min-h-[80px]"
-                  />
-                  <div className="text-white/40 text-xs mt-1">
-                    {responses.strengths.length}/50 characters minimum
-                  </div>
-                </div>
-
-                <div>
-                  <label className="text-white font-semibold mb-2 block">
-                    3. What could be improved? Be specific.
-                  </label>
-                  <textarea
-                    value={responses.improvements}
-                    onChange={(e) => setResponses({...responses, improvements: e.target.value})}
-                    placeholder="Give constructive suggestions for improvement..."
-                    className="w-full p-3 rounded-lg bg-white/10 text-white placeholder-white/40 border border-white/20 focus:border-blue-400 focus:outline-none min-h-[80px]"
-                  />
-                  <div className="text-white/40 text-xs mt-1">
-                    {responses.improvements.length}/50 characters minimum
-                  </div>
-                </div>
-
-                <div>
-                  <label className="text-white font-semibold mb-2 block">
-                    4. How well is the writing organized?
-                  </label>
-                  <textarea
-                    value={responses.organization}
-                    onChange={(e) => setResponses({...responses, organization: e.target.value})}
-                    placeholder="Comment on the structure, flow, and logical order..."
-                    className="w-full p-3 rounded-lg bg-white/10 text-white placeholder-white/40 border border-white/20 focus:border-blue-400 focus:outline-none min-h-[80px]"
-                  />
-                  <div className="text-white/40 text-xs mt-1">
-                    {responses.organization.length}/50 characters minimum
-                  </div>
-                </div>
-
-                <div>
-                  <label className="text-white font-semibold mb-2 block">
-                    5. How engaging is this piece? Does it hold your attention?
-                  </label>
-                  <textarea
-                    value={responses.engagement}
-                    onChange={(e) => setResponses({...responses, engagement: e.target.value})}
-                    placeholder="Describe how the writing makes you feel and why..."
-                    className="w-full p-3 rounded-lg bg-white/10 text-white placeholder-white/40 border border-white/20 focus:border-blue-400 focus:outline-none min-h-[80px]"
-                  />
-                  <div className="text-white/40 text-xs mt-1">
-                    {responses.engagement.length}/50 characters minimum
-                  </div>
+                <div className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-white/50">
+                  Autofinish when timer hits zero
                 </div>
               </div>
             </div>
-          </div>
+            {questionConfig.map(({ key, prompt, placeholder }) => (
+              <div key={key} className="rounded-3xl border border-white/10 bg-[#141e27] p-6 text-sm">
+                <label className="font-semibold text-white">{prompt}</label>
+                <textarea
+                  value={responses[key]}
+                  onChange={(e) => handleChange(key, e.target.value)}
+                  placeholder={placeholder}
+                  className="mt-3 h-32 w-full resize-none rounded-2xl border border-white/15 bg-white/5 px-4 py-3 text-sm text-white placeholder-white/40 focus:border-blue-300 focus:outline-none"
+                />
+                <div className={`mt-2 text-xs ${responses[key].length > 30 ? 'text-emerald-200' : 'text-white/40'}`}>
+                  {responses[key].length} / 30 characters minimum
+                </div>
+              </div>
+            ))}
+          </section>
         </div>
       </main>
     </div>
@@ -306,8 +255,8 @@ function RankedPeerFeedbackContent() {
 export default function RankedPeerFeedbackPage() {
   return (
     <Suspense fallback={
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center">
-        <div className="text-white text-xl">Loading peer feedback phase...</div>
+      <div className="min-h-screen bg-[#0c141d] flex items-center justify-center text-white/60 text-sm">
+        Loading peer feedback phase...
       </div>
     }>
       <RankedPeerFeedbackContent />

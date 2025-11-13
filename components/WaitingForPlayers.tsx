@@ -7,90 +7,123 @@ interface WaitingForPlayersProps {
   timeRemaining: number;
 }
 
-export default function WaitingForPlayers({ 
-  phase, 
-  playersReady, 
+export default function WaitingForPlayers({
+  phase,
+  playersReady,
   totalPlayers,
-  timeRemaining
+  timeRemaining,
 }: WaitingForPlayersProps) {
-  
   const phaseNames = {
-    1: 'Writing',
-    2: 'Peer Feedback',
+    1: 'Draft',
+    2: 'Feedback',
     3: 'Revision',
-  };
-  
+  } as const;
+
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
-  
+
+  const playersRemaining = Math.max(totalPlayers - playersReady, 0);
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center p-6">
-      <div className="max-w-2xl w-full text-center">
-        {/* Animated Icon */}
-        <div className="text-8xl mb-6 animate-bounce">⏳</div>
-        
-        {/* Title */}
-        <h1 className="text-4xl font-bold text-white mb-3">
-          Waiting for Other Players
-        </h1>
-        <p className="text-white/70 text-lg mb-8">
-          You&apos;ve completed {phaseNames[phase]}!
-        </p>
-        
-        {/* Progress Card */}
-        <div className="bg-white/5 backdrop-blur-sm rounded-2xl p-8 border border-white/10 mb-6">
-          <div className="flex items-center justify-center space-x-4 mb-6">
-            <div className="text-6xl font-bold text-white">{playersReady}</div>
-            <div className="text-4xl text-white/40">/</div>
-            <div className="text-6xl font-bold text-white/60">{totalPlayers}</div>
+    <div className="min-h-screen bg-[#0c141d] text-white">
+      <div className="mx-auto flex min-h-screen max-w-5xl flex-col gap-10 px-6 py-16">
+        <header className="flex flex-col gap-3 border-b border-white/10 pb-10 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <div className="text-xs uppercase tracking-[0.3em] text-white/50">Ranked circuit</div>
+            <h1 className="mt-3 text-3xl font-semibold">Awaiting squad</h1>
+            <p className="mt-2 text-sm text-white/60">You packed up your {phaseNames[phase]} phase. The arena will advance when the remaining teammates submit.</p>
           </div>
-          <div className="text-white/80 mb-4">Players Ready</div>
-          
-          {/* Progress Bar */}
-          <div className="w-full bg-white/10 rounded-full h-4 overflow-hidden mb-4">
-            <div 
-              className="h-full bg-gradient-to-r from-purple-400 to-blue-500 transition-all duration-500 rounded-full"
-              style={{ width: `${(playersReady / totalPlayers) * 100}%` }}
-            />
+          <div className="flex items-center gap-4 rounded-2xl border border-white/10 bg-[#141e27] px-5 py-4 text-sm">
+            <div className="flex h-12 w-12 items-center justify-center rounded-xl border border-white/10 bg-[#0c141d] text-lg font-semibold">
+              ⏳
+            </div>
+            <div>
+              <div className="text-xs uppercase text-white/50">Auto-advance in</div>
+              <div className="text-lg font-semibold text-emerald-200">{formatTime(timeRemaining)}</div>
+            </div>
           </div>
-          
-          {/* Player Status */}
-          <div className="grid grid-cols-5 gap-2">
-            {[...Array(totalPlayers)].map((_, index) => (
-              <div
-                key={index}
-                className={`p-2 rounded-lg transition-all ${
-                  index < playersReady
-                    ? 'bg-green-500/20 border-2 border-green-400'
-                    : 'bg-white/5 border border-white/10'
-                }`}
-              >
-                <div className="text-2xl">
-                  {index < playersReady ? '✓' : '⏳'}
+        </header>
+
+        <main className="grid gap-8 lg:grid-cols-[0.9fr,1.1fr]">
+          <section className="rounded-3xl border border-white/10 bg-[#141e27] p-8">
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="text-xs uppercase tracking-[0.3em] text-white/50">Submissions received</div>
+                <div className="mt-3 flex items-baseline gap-2">
+                  <span className="text-5xl font-semibold">{playersReady}</span>
+                  <span className="text-2xl text-white/40">/</span>
+                  <span className="text-2xl text-white/40">{totalPlayers}</span>
                 </div>
               </div>
-            ))}
-          </div>
-        </div>
-        
-        {/* Time Remaining */}
-        <div className="bg-gradient-to-r from-blue-600 to-purple-600 rounded-xl p-6">
-          <div className="text-white/80 text-sm mb-2">Phase will end automatically in</div>
-          <div className="text-4xl font-bold text-white mb-2">
-            {formatTime(timeRemaining)}
-          </div>
-          <div className="text-white/70 text-sm">
-            Or when all players finish
-          </div>
-        </div>
-        
-        {/* Fun Message */}
-        <div className="mt-6 text-white/60 text-sm">
-          <p>✨ Great job finishing! Others are still working on their {phaseNames[phase].toLowerCase()}...</p>
-        </div>
+              <div className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-white/50">Waiting on {playersRemaining}</div>
+            </div>
+
+            <div className="mt-6 h-2 rounded-full bg-white/10">
+              <div
+                className="h-full rounded-full bg-emerald-400 transition-all"
+                style={{ width: `${(playersReady / totalPlayers) * 100}%` }}
+              />
+            </div>
+
+            <div className="mt-6 grid grid-cols-1 gap-3 text-sm text-white/60 md:grid-cols-2">
+              {[...Array(totalPlayers)].map((_, index) => (
+                <div
+                  key={index}
+                  className={`flex items-center justify-between rounded-2xl border px-4 py-3 ${
+                    index < playersReady ? 'border-emerald-300/40 bg-emerald-400/10 text-emerald-200' : 'border-white/10 bg-white/5'
+                  }`}
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#0c141d] text-lg">
+                      {index < playersReady ? '✓' : '…'}
+                    </div>
+                    <span className={index < playersReady ? 'font-semibold' : undefined}>Slot {index + 1}</span>
+                  </div>
+                  <span className="text-xs uppercase tracking-wide">{index < playersReady ? 'Ready' : 'Pending'}</span>
+                </div>
+              ))}
+            </div>
+          </section>
+
+          <aside className="space-y-6">
+            <div className="rounded-3xl border border-white/10 bg-[#141e27] p-7 text-sm text-white/60">
+              <div className="text-xs uppercase tracking-[0.3em] text-white/50">Status feed</div>
+              <div className="mt-5 space-y-4">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 bg-white/5 text-lg text-emerald-200">1</div>
+                  <div>
+                    <div className="text-sm font-semibold text-white">You submitted</div>
+                    <p className="text-xs text-white/50">Draft saved and queued for scoring.</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 bg-white/5 text-lg text-white/60">2</div>
+                  <div>
+                    <div className="text-sm font-semibold text-white">Waiting on squadmates</div>
+                    <p className="text-xs text-white/50">We notify you when {playersRemaining} teammate{playersRemaining === 1 ? '' : 's'} submit.</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 bg-white/5 text-lg text-white/60">3</div>
+                  <div>
+                    <div className="text-sm font-semibold text-white">Auto advance</div>
+                    <p className="text-xs text-white/50">Phase ends at {formatTime(timeRemaining)} or sooner if all drafts arrive.</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="rounded-3xl border border-white/10 bg-[#141e27] p-7 text-xs text-white/50">
+              <div className="text-xs uppercase tracking-[0.3em] text-white/50">Next phase prep</div>
+              <p className="mt-3">- Review Claude&apos;s feedback template to speed through ratings.</p>
+              <p className="mt-3">- Keep browser active—phase 2 opens immediately.</p>
+              <p className="mt-3">- Hydrate and reset your timer habits.</p>
+            </div>
+          </aside>
+        </main>
       </div>
     </div>
   );

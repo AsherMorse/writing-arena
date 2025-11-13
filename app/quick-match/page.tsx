@@ -9,12 +9,12 @@ export default function QuickMatchPage() {
   const [selectedTrait, setSelectedTrait] = useState<string>('all');
 
   const traits = [
-    { id: 'all', name: 'All Traits', icon: '✨', color: 'from-purple-400 to-purple-600', description: 'Balanced practice across all writing skills' },
-    { id: 'content', name: 'Content', icon: '📚', color: 'from-blue-400 to-blue-600', description: 'Ideas, relevance, and supporting details' },
-    { id: 'organization', name: 'Organization', icon: '🗂️', color: 'from-purple-400 to-purple-600', description: 'Structure, flow, and transitions' },
-    { id: 'grammar', name: 'Grammar', icon: '✏️', color: 'from-green-400 to-green-600', description: 'Sentence variety and syntax' },
-    { id: 'vocabulary', name: 'Vocabulary', icon: '📖', color: 'from-yellow-400 to-yellow-600', description: 'Word choice and precision' },
-    { id: 'mechanics', name: 'Mechanics', icon: '⚙️', color: 'from-red-400 to-red-600', description: 'Spelling, punctuation, and conventions' },
+    { id: 'all', name: 'All traits', icon: '✨', description: 'Balanced practice across every writing skill.' },
+    { id: 'content', name: 'Content', icon: '📚', description: 'Sharpen ideas, relevance, and evidence.' },
+    { id: 'organization', name: 'Organization', icon: '🗂️', description: 'Tighten structure, flow, and transitions.' },
+    { id: 'grammar', name: 'Grammar', icon: '✏️', description: 'Strengthen sentence variety and syntax.' },
+    { id: 'vocabulary', name: 'Vocabulary', icon: '📖', description: 'Elevate precision and word choice.' },
+    { id: 'mechanics', name: 'Mechanics', icon: '⚙️', description: 'Polish spelling, punctuation, and conventions.' },
   ];
 
   const handleStartMatch = () => {
@@ -22,140 +22,100 @@ export default function QuickMatchPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-orange-900 to-slate-900">
-      {/* Header */}
-      <header className="border-b border-white/10 bg-black/20 backdrop-blur-sm">
-        <div className="container mx-auto px-6 py-4">
-          <nav className="flex items-center justify-between">
-            <div className="flex items-center space-x-8">
-              <Link href="/dashboard" className="flex items-center space-x-2">
-                <div className="w-8 h-8 bg-gradient-to-br from-yellow-400 to-orange-500 rounded-lg flex items-center justify-center">
-                  <span className="text-xl">✍️</span>
-                </div>
-                <span className="text-xl font-bold text-white">Writing Arena</span>
-              </Link>
-            </div>
-
-            <Link 
-              href="/dashboard"
-              className="flex items-center space-x-2 text-white/60 hover:text-white transition-colors"
-            >
-              <span>←</span>
-              <span>Back to Dashboard</span>
-            </Link>
-          </nav>
+    <div className="min-h-screen bg-[#0c141d] text-white">
+      <header className="border-b border-white/10">
+        <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-6">
+          <Link href="/dashboard" className="flex items-center gap-3">
+            <div className="flex h-11 w-11 items-center justify-center rounded-lg bg-emerald-400/20 text-xl text-emerald-200">✶</div>
+            <span className="text-xl font-semibold tracking-wide">Quick Match Lobby</span>
+          </Link>
+          <Link
+            href="/dashboard"
+            className="rounded-full border border-white/15 bg-white/5 px-4 py-2 text-sm font-semibold text-white transition hover:bg-white/10"
+          >
+            Back to dashboard
+          </Link>
         </div>
       </header>
 
-      {/* Main Content */}
-      <main className="min-h-[calc(100vh-80px)] flex items-center justify-center px-4 py-8">
-        <div className="w-full max-w-7xl">
-          <div className="grid lg:grid-cols-5 gap-8 items-start">
-            {/* Left Column - Title & Explanation */}
-            <div className="lg:col-span-2">
-              <div className="lg:sticky lg:top-24">
-                <div className="flex items-center space-x-4 mb-4">
-                  <div className="flex items-center justify-center w-16 h-16 bg-gradient-to-br from-orange-400 to-pink-500 rounded-xl text-4xl shadow-lg">
-                    ⚡
-                  </div>
-                  <h1 className="text-3xl md:text-4xl font-bold text-white">Quick Match</h1>
-                </div>
-                
-                <p className="text-white/70 text-base mb-6 leading-relaxed">
-                  Join a fast-paced 4-minute writing battle against AI opponents. Earn points, climb ranks, and improve your skills in competitive matches.
-                </p>
-
-                {/* Match Info */}
-                <div className="space-y-3 mb-6">
-                  <div className="flex items-start space-x-3">
-                    <div className="text-2xl">⏱️</div>
-                    <div>
-                      <div className="text-white font-semibold">4 Minutes</div>
-                      <div className="text-white/60 text-sm">Fast-paced writing sprint</div>
-                    </div>
-                  </div>
-                  <div className="flex items-start space-x-3">
-                    <div className="text-2xl">👥</div>
-                    <div>
-                      <div className="text-white font-semibold">4-6 Players</div>
-                      <div className="text-white/60 text-sm">AI fills empty slots instantly</div>
-                    </div>
-                  </div>
-                  <div className="flex items-start space-x-3">
-                    <div className="text-2xl">🏅</div>
-                    <div>
-                      <div className="text-white font-semibold">Competitive Scoring</div>
-                      <div className="text-white/60 text-sm">Earn points & climb ranks</div>
-                    </div>
-                  </div>
-                  <div className="flex items-start space-x-3">
-                    <div className="text-2xl">🎯</div>
-                    <div>
-                      <div className="text-white font-semibold">Focus Training</div>
-                      <div className="text-white/60 text-sm">Optional trait-specific practice</div>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="bg-orange-500/10 border border-orange-500/30 rounded-lg p-4">
-                  <div className="flex items-start space-x-2">
-                    <span className="text-orange-400 text-lg">💡</span>
-                    <div className="text-white/80 text-sm">
-                      <span className="font-semibold text-orange-400">Pro Tip:</span> Quick Match is perfect for daily practice. Matchmaking is fast, and you&apos;ll always find a party ready to compete!
-                    </div>
-                  </div>
-                </div>
+      <main className="mx-auto max-w-6xl px-6 py-14 space-y-10">
+        <section className="grid gap-8 lg:grid-cols-[1.1fr,0.9fr]">
+          <div className="rounded-3xl border border-white/10 bg-[#141e27] p-8">
+            <div className="flex items-center gap-4">
+              <div className="flex h-16 w-16 items-center justify-center rounded-2xl border border-white/10 bg-[#0c141d] text-3xl">⚡</div>
+              <div>
+                <div className="text-xs uppercase tracking-[0.3em] text-white/50">Four-minute scrims</div>
+                <h1 className="mt-2 text-3xl font-semibold">Sprint-ready queue</h1>
+                <p className="mt-3 text-sm text-white/60">Drop into an instant writing duel. AI backups keep the lobby full so you can focus on sharpening a trait and banking points.</p>
               </div>
             </div>
-
-            {/* Right Column - Selection Process */}
-            <div className="lg:col-span-3">
-              {/* Trait Selection */}
-              <div className="bg-white/5 backdrop-blur-sm rounded-2xl p-6 border border-white/10 mb-6">
-                <div className="mb-6">
-                  <h2 className="text-xl font-bold text-white mb-2">Choose Your Focus</h2>
-                  <p className="text-white/60 text-sm">Select which trait to compete on (optional)</p>
-                </div>
-
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                  {traits.map((trait) => (
-                    <button
-                      key={trait.id}
-                      onClick={() => setSelectedTrait(trait.id)}
-                      className={`group p-4 rounded-xl transition-all duration-200 text-center border-2 ${
-                        selectedTrait === trait.id
-                          ? 'border-orange-400 bg-orange-500/20 scale-105'
-                          : 'border-white/10 bg-white/5 hover:bg-white/10 hover:scale-105'
-                      }`}
-                    >
-                      <div className={`w-12 h-12 bg-gradient-to-br ${trait.color} rounded-lg flex items-center justify-center text-2xl mx-auto mb-2 group-hover:scale-110 transition-transform`}>
-                        {trait.icon}
-                      </div>
-                      <div className="text-white text-sm font-semibold mb-1">{trait.name}</div>
-                      {selectedTrait === trait.id && (
-                        <div className="text-orange-400 text-xs mt-1">✓ Selected</div>
-                      )}
-                    </button>
-                  ))}
-                </div>
+            <div className="mt-8 grid gap-4 sm:grid-cols-2">
+              <div className="rounded-2xl border border-white/10 bg-white/5 px-4 py-4 text-sm text-white/70">
+                <div className="text-xs uppercase text-white/50">Pace</div>
+                <p className="mt-2 text-white">4-minute timer with auto scoring.</p>
               </div>
-
-              {/* Start Button */}
-              <div className="text-center">
-                <button
-                  onClick={handleStartMatch}
-                  className="group w-full px-8 py-5 bg-gradient-to-r from-orange-500 to-pink-500 text-white font-bold text-xl rounded-xl hover:scale-105 transition-all duration-200 shadow-2xl hover:shadow-orange-500/50"
-                >
-                  <div className="flex items-center justify-center space-x-3">
-                    <span>Find Match</span>
-                    <span className="group-hover:translate-x-1 transition-transform text-2xl">→</span>
-                  </div>
-                </button>
-                <p className="text-white/50 text-sm mt-3">Matchmaking usually takes less than 10 seconds</p>
+              <div className="rounded-2xl border border-white/10 bg-white/5 px-4 py-4 text-sm text-white/70">
+                <div className="text-xs uppercase text-white/50">Party fill</div>
+                <p className="mt-2 text-white">Matches start with humans; AI joins instantly if needed.</p>
               </div>
+              <div className="rounded-2xl border border-white/10 bg-white/5 px-4 py-4 text-sm text-white/70">
+                <div className="text-xs uppercase text-white/50">Scoring</div>
+                <p className="mt-2 text-white">Earn XP, season points, and consistency streak credit.</p>
+              </div>
+              <div className="rounded-2xl border border-white/10 bg-white/5 px-4 py-4 text-sm text-white/70">
+                <div className="text-xs uppercase text-white/50">Focus lanes</div>
+                <p className="mt-2 text-white">Stay balanced or target the trait you need most.</p>
+              </div>
+            </div>
+            <div className="mt-8 rounded-2xl border border-emerald-300/30 bg-emerald-400/10 px-5 py-4 text-sm text-emerald-200">
+              Daily reps unlock streak bonuses. Queue here for warmups before heading to ranked.
             </div>
           </div>
-        </div>
+
+          <aside className="space-y-6">
+            <div className="rounded-3xl border border-white/10 bg-[#141e27] p-7">
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="text-xs uppercase tracking-[0.3em] text-white/50">Trait selection</div>
+                  <p className="mt-2 text-xs text-white/50">Pick a focus to guide prompts and scoring emphasis.</p>
+                </div>
+                <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-white/50">Optional</span>
+              </div>
+              <div className="mt-5 grid gap-3 sm:grid-cols-2">
+                {traits.map(trait => (
+                  <button
+                    key={trait.id}
+                    onClick={() => setSelectedTrait(trait.id)}
+                    className={`flex items-start gap-3 rounded-2xl border px-4 py-4 text-left text-sm transition ${
+                      selectedTrait === trait.id
+                        ? 'border-emerald-300/40 bg-emerald-400/10'
+                        : 'border-white/10 bg-white/5 hover:border-emerald-200/30'
+                    }`}
+                  >
+                    <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#0c141d] text-lg">{trait.icon}</span>
+                    <div>
+                      <div className="text-white font-semibold">{trait.name}</div>
+                      <p className="text-xs text-white/50">{trait.description}</p>
+                      {selectedTrait === trait.id && <div className="mt-2 text-[10px] uppercase text-emerald-200">Selected</div>}
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="rounded-3xl border border-white/10 bg-[#141e27] p-7 text-center">
+              <div className="text-xs uppercase tracking-[0.3em] text-white/50">Ready?</div>
+              <h2 className="mt-3 text-xl font-semibold">Launch match</h2>
+              <p className="mt-2 text-sm text-white/60">Average wait time under 10 seconds.</p>
+              <button
+                onClick={handleStartMatch}
+                className="mt-6 w-full rounded-full bg-emerald-400 px-6 py-3 text-sm font-semibold text-[#0c141d] transition hover:bg-emerald-300"
+              >
+                Find match
+              </button>
+            </div>
+          </aside>
+        </section>
       </main>
     </div>
   );

@@ -57,11 +57,9 @@ export default function AuthPage() {
     setLoading(true);
 
     try {
-      // Try to create demo account if it doesn't exist, otherwise just sign in
       try {
         await signUp('demo@writingarena.app', 'demo123456', 'Demo Student');
       } catch (signUpError: any) {
-        // If account exists, try to sign in instead
         if (signUpError.message.includes('already')) {
           await signIn('demo@writingarena.app', 'demo123456');
         } else {
@@ -77,144 +75,137 @@ export default function AuthPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900">
-      {/* Header */}
-      <header className="container mx-auto px-6 py-8">
-        <Link href="/" className="flex items-center space-x-2">
-          <div className="w-10 h-10 bg-gradient-to-br from-yellow-400 to-orange-500 rounded-lg flex items-center justify-center">
-            <span className="text-2xl">✍️</span>
-          </div>
-          <span className="text-2xl font-bold text-white">Writing Arena</span>
-        </Link>
+    <div className="min-h-screen bg-[#101820] text-white">
+      <header className="border-b border-white/10">
+        <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-6">
+          <Link href="/" className="flex items-center gap-3">
+            <div className="flex h-11 w-11 items-center justify-center rounded-lg bg-emerald-400/20 text-xl text-emerald-200">
+              ✶
+            </div>
+            <span className="text-xl font-semibold tracking-wide">Writing Arena</span>
+          </Link>
+          <Link
+            href="/auth"
+            className="rounded-full border border-white/15 bg-white/5 px-4 py-2 text-sm font-semibold text-white transition hover:bg-white/10"
+          >
+            Return home
+          </Link>
+        </div>
       </header>
 
-      {/* Auth Form */}
-      <main className="container mx-auto px-6 py-12 max-w-md">
-        <div className="bg-white/10 backdrop-blur-lg rounded-3xl p-8 border border-white/20">
-          <div className="text-center mb-8">
-            <h1 className="text-3xl font-bold text-white mb-2">
-              {isSignUp ? 'Create Account' : 'Welcome Back'}
+      <main className="mx-auto flex max-w-6xl flex-col items-center px-6 py-16">
+        <div className="w-full max-w-lg rounded-3xl border border-white/10 bg-[#141e27] p-10">
+          <div className="text-center">
+            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-emerald-400/15 text-xl text-emerald-200">
+              {isSignUp ? '🌱' : '✶'}
+            </div>
+            <h1 className="mt-6 text-3xl font-semibold">
+              {isSignUp ? 'Create your account' : 'Welcome back'}
             </h1>
-            <p className="text-white/70">
-              {isSignUp ? 'Start your writing journey' : 'Sign in to continue'}
+            <p className="mt-2 text-sm text-white/60">
+              {isSignUp ? 'Set up your profile and enter the arena.' : 'Sign in to keep your streak alive.'}
             </p>
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={handleSubmit} className="mt-8 space-y-5">
             {isSignUp && (
-              <div>
-                <label htmlFor="displayName" className="block text-white text-sm font-semibold mb-2">
-                  Your Name
-                </label>
+              <div className="space-y-2">
+                <label htmlFor="displayName" className="text-sm font-semibold">Name</label>
                 <input
                   id="displayName"
                   type="text"
                   value={displayName}
                   onChange={(e) => setDisplayName(e.target.value)}
-                  placeholder="Enter your name"
-                  className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-xl text-white placeholder-white/40 focus:outline-none focus:border-yellow-400 transition-all"
+                  placeholder="Your name"
+                  className="w-full rounded-xl border border-white/15 bg-white/5 px-4 py-3 text-sm text-white placeholder-white/40 outline-none transition focus:border-emerald-300"
                   required={isSignUp}
                 />
               </div>
             )}
 
-            <div>
-              <label htmlFor="email" className="block text-white text-sm font-semibold mb-2">
-                Email
-              </label>
+            <div className="space-y-2">
+              <label htmlFor="email" className="text-sm font-semibold">Email</label>
               <input
                 id="email"
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="your@email.com"
-                className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-xl text-white placeholder-white/40 focus:outline-none focus:border-yellow-400 transition-all"
+                placeholder="you@example.com"
+                className="w-full rounded-xl border border-white/15 bg-white/5 px-4 py-3 text-sm text-white placeholder-white/40 outline-none transition focus:border-emerald-300"
                 required
               />
             </div>
 
-            <div>
-              <label htmlFor="password" className="block text-white text-sm font-semibold mb-2">
-                Password
-              </label>
+            <div className="space-y-2">
+              <label htmlFor="password" className="text-sm font-semibold">Password</label>
               <input
                 id="password"
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="••••••••"
-                className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-xl text-white placeholder-white/40 focus:outline-none focus:border-yellow-400 transition-all"
+                className="w-full rounded-xl border border-white/15 bg-white/5 px-4 py-3 text-sm text-white placeholder-white/40 outline-none transition focus:border-emerald-300"
                 required
                 minLength={6}
               />
-              {isSignUp && (
-                <p className="text-white/50 text-xs mt-1">At least 6 characters</p>
-              )}
+              {isSignUp && <p className="text-xs text-white/50">At least 6 characters</p>}
             </div>
 
             {error && (
-              <div className="bg-red-500/20 border border-red-500/50 rounded-xl p-3">
-                <p className="text-red-200 text-sm">{error}</p>
+              <div className="rounded-xl border border-red-500/50 bg-red-500/10 px-4 py-3 text-sm text-red-200">
+                {error}
               </div>
             )}
 
             <button
               type="submit"
               disabled={loading}
-              className="w-full px-6 py-3 bg-gradient-to-r from-yellow-400 to-orange-500 text-gray-900 font-bold rounded-xl hover:shadow-lg hover:scale-105 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full rounded-full bg-emerald-400 px-6 py-3 text-sm font-semibold text-[#0c141c] transition hover:bg-emerald-300 disabled:cursor-not-allowed disabled:opacity-60"
             >
-              {loading ? 'Please wait...' : isSignUp ? 'Create Account' : 'Sign In'}
+              {loading ? 'Please wait...' : isSignUp ? 'Create account' : 'Sign in'}
             </button>
           </form>
 
-          {/* Divider */}
-          <div className="relative my-6">
-            <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-white/20"></div>
-            </div>
-            <div className="relative flex justify-center text-sm">
-              <span className="px-2 bg-transparent text-white/60">Or continue with</span>
-            </div>
+          <div className="my-8 flex items-center gap-3 text-xs text-white/40">
+            <div className="h-px flex-1 bg-white/10" />
+            Or
+            <div className="h-px flex-1 bg-white/10" />
           </div>
 
-          {/* Google Sign-In */}
           <button
             onClick={handleGoogleSignIn}
             disabled={loading}
-            className="w-full px-6 py-3 bg-white text-gray-800 font-semibold rounded-xl hover:bg-gray-100 transition-all flex items-center justify-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="flex w-full items-center justify-center gap-3 rounded-full border border-white/15 bg-white px-6 py-3 text-sm font-semibold text-[#1b1f24] transition hover:bg-white/90 disabled:cursor-not-allowed disabled:opacity-60"
           >
-            <svg className="w-5 h-5" viewBox="0 0 24 24">
-              <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
-              <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
-              <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
-              <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+            <svg className="h-5 w-5" viewBox="0 0 24 24">
+              <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
+              <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
+              <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" />
+              <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
             </svg>
-            <span>Sign in with Google</span>
+            Sign in with Google
           </button>
 
-          <div className="mt-6 text-center">
+          <div className="mt-6 text-center text-sm text-white/60">
             <button
               onClick={() => {
                 setIsSignUp(!isSignUp);
                 setError('');
               }}
-              className="text-white/70 hover:text-white text-sm transition-colors"
+              className="font-semibold text-emerald-200 transition hover:text-emerald-100"
             >
-              {isSignUp ? 'Already have an account? Sign in' : "Don't have an account? Sign up"}
+              {isSignUp ? 'Already have an account? Sign in' : "Need an account? Create one"}
             </button>
           </div>
 
-          {/* Demo/Guest Option */}
-          <div className="mt-6 pt-6 border-t border-white/10">
-            <p className="text-white/50 text-xs text-center mb-3">
-              Just want to try it out?
-            </p>
+          <div className="mt-8 border-t border-white/10 pt-6 text-center">
+            <p className="text-xs text-white/40">Preview the experience without signing up</p>
             <button
               onClick={handleDemoAccount}
               disabled={loading}
-              className="w-full px-4 py-2 bg-white/5 text-white/70 text-sm rounded-lg hover:bg-white/10 transition-all disabled:opacity-50"
+              className="mt-4 w-full rounded-full border border-white/15 bg-white/5 px-4 py-2 text-sm font-semibold text-white transition hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-60"
             >
-              {loading ? 'Please wait...' : 'Try Demo Account'}
+              {loading ? 'Please wait...' : 'Launch demo account'}
             </button>
           </div>
         </div>

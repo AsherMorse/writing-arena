@@ -9,56 +9,56 @@ import { useAuth } from '@/contexts/AuthContext';
 const MOCK_PHASE_FEEDBACK = {
   writing: {
     strengths: [
-      'Clear topic sentence establishes the main idea',
-      'Good use of transition words (First, Then, Finally)',
-      'Concrete details support your points'
+      'Clear topic sentence establishes the main idea.',
+      'Effective transition language keeps the draft moving.',
+      'Concrete details show rather than tell.',
     ],
     improvements: [
-      'Try expanding sentences with because/but/so to show deeper thinking',
-      'Add more specific details - use the five senses (what did you see, hear, feel?)',
-      'Consider using an appositive to add description (e.g., "The lighthouse, an ancient stone tower, stood...")'
+      'Try sentence expansion with because/but/so to deepen reasoning.',
+      'Add sensory detail to ground the reader in the setting.',
+      'Introduce an appositive to enrich description.',
     ],
     writingRevConcepts: [
-      'Sentence expansion: Practice combining short sentences',
-      'Note-taking: Organize ideas before writing',
-      'Single Paragraph Outline (SPO): Use topic sentence + supporting details + conclusion'
-    ]
+      'Sentence expansion',
+      'Note-taking before drafting',
+      'Single paragraph outline (topic + evidence + close)',
+    ],
   },
   feedback: {
     strengths: [
-      'You identified specific strengths in your peer\'s writing',
-      'Suggestions were constructive and actionable',
-      'Good attention to organization and structure'
+      'Highlighted specific strengths from the peer draft.',
+      'Suggestions were constructive and actionable.',
+      'Called out organization in a helpful way.',
     ],
     improvements: [
-      'Be more specific about which sentences worked well and why',
-      'Reference Writing Revolution strategies (sentence combining, transitions)',
-      'Suggest concrete revision strategies, not just general comments'
+      'Reference exact sentences when praising strengths.',
+      'Tie comments back to Writing Revolution strategies.',
+      'Offer concrete revision moves instead of general advice.',
     ],
     writingRevConcepts: [
-      'Analyzing sentence structure: Look for fragments or run-ons',
-      'Evaluating transitions: Check if ideas connect logically',
-      'Assessing paragraph structure: Topic sentence + evidence + conclusion'
-    ]
+      'Analyze sentence structure for fragments/run-ons.',
+      'Check transitions for logical flow.',
+      'Evaluate paragraph structure: topic, evidence, wrap-up.',
+    ],
   },
   revision: {
     strengths: [
-      'Applied peer feedback by adding descriptive details',
-      'Improved sentence variety and complexity',
-      'Better use of transitional phrases'
+      'Applied peer suggestions by adding specific detail.',
+      'Improved sentence variety and rhythm.',
+      'Stronger transitions between key ideas.',
     ],
     improvements: [
-      'Could combine more short sentences for better flow',
-      'Add subordinating conjunctions (although, since, while) for complexity',
-      'Use appositives to add information without new sentences'
+      'Combine short sentences where ideas connect.',
+      'Add subordinating conjunctions (although, since, while).',
+      'Use appositives to pack more information into a sentence.',
     ],
     writingRevConcepts: [
-      'Revision vs. Editing: Focus on ideas first, grammar later',
-      'Sentence combining: Join related ideas',
-      'Adding conjunctions: Use FANBOYS (for, and, nor, but, or, yet, so) and subordinating conjunctions'
-    ]
-  }
-};
+      'Revision vs. editing: ideas first, polish later.',
+      'Sentence combining to tighten prose.',
+      'Use FANBOYS and subordinators to connect ideas.',
+    ],
+  },
+} as const;
 
 function RankedResultsContent() {
   const searchParams = useSearchParams();
@@ -76,15 +76,12 @@ function RankedResultsContent() {
   
   const [isAnalyzing, setIsAnalyzing] = useState(true);
   const [results, setResults] = useState<any>(null);
-  const [expandedPhase, setExpandedPhase] = useState<string | null>(null);
+  const [activePhase, setActivePhase] = useState<'writing' | 'feedback' | 'revision'>('writing');
 
   useEffect(() => {
     const analyzeRankedMatch = async () => {
       try {
-        // Calculate composite score from all 3 phases
         const yourCompositeScore = (writingScore * 0.4) + (feedbackScore * 0.3) + (revisionScore * 0.3);
-        
-        // Generate mock scores for AI players across all 3 phases
         const aiScores = aiScoresParam.split(',').map(Number);
         const aiPlayers = [
           {
@@ -125,7 +122,6 @@ function RankedResultsContent() {
           },
         ];
 
-        // Calculate composite scores for AI players
         const allPlayers = [
           {
             name: 'You',
@@ -145,34 +141,21 @@ function RankedResultsContent() {
             compositeScore: Math.round((player.phase1 * 0.4) + (player.phase2 * 0.3) + (player.phase3 * 0.3)),
             isYou: false,
             position: 0,
-          }))
+          })),
         ];
 
-        // Sort by composite score and assign positions
         const rankings = allPlayers
           .sort((a, b) => b.compositeScore - a.compositeScore)
           .map((player, index) => ({ ...player, position: index + 1 }));
 
         const yourRank = rankings.find(p => p.isYou)?.position || 5;
-        
-        // LP calculation based on final placement
-        const lpChange = 
-          yourRank === 1 ? 35 : 
-          yourRank === 2 ? 22 : 
-          yourRank === 3 ? 12 : 
-          yourRank === 4 ? -5 : -15;
-        
-        // XP based on performance across all phases
-        const xpEarned = Math.round(yourCompositeScore * 2.5); // 2.5x for ranked
+        const lpChange = yourRank === 1 ? 35 : yourRank === 2 ? 22 : yourRank === 3 ? 12 : yourRank === 4 ? -5 : -15;
+        const xpEarned = Math.round(yourCompositeScore * 2.5);
         const pointsEarned = Math.round(yourCompositeScore * 2) + (yourRank === 1 ? 30 : yourRank === 2 ? 15 : 0);
-        const isVictory = yourRank === 1;
-
-        // Calculate improvement from original to revision
         const improvementBonus = Math.max(0, revisionScore - writingScore);
 
-        // MOCK: Skip Firebase calls for now
         if (user) {
-          console.log('Mock: Would save session data:', {
+          console.log('Mock save ranked session', {
             userId: user.uid,
             mode: 'ranked',
             score: Math.round(yourCompositeScore),
@@ -189,37 +172,40 @@ function RankedResultsContent() {
           lpChange,
           xpEarned,
           pointsEarned,
-          isVictory,
+          isVictory: yourRank === 1,
           improvementBonus: Math.round(improvementBonus),
           phases: {
             writing: Math.round(writingScore),
             feedback: Math.round(feedbackScore),
             revision: Math.round(revisionScore),
             composite: Math.round(yourCompositeScore),
-          }
+          },
         });
         setIsAnalyzing(false);
       } catch (error) {
-        console.error('Error analyzing Ranked Match:', error);
+        console.error('Error analyzing ranked match', error);
         setIsAnalyzing(false);
       }
     };
 
     analyzeRankedMatch();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [wordCount, aiScoresParam, trait, promptType, writingScore, feedbackScore, revisionScore]);
+  }, [wordCount, aiScoresParam, writingScore, feedbackScore, revisionScore, user]);
 
-  if (isAnalyzing) {
+  if (isAnalyzing || !results) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center">
-        <div className="text-center">
-          <div className="inline-block animate-spin text-7xl mb-6">🏆</div>
-          <h2 className="text-3xl font-bold text-white mb-3">Analyzing Complete Battle...</h2>
-          <p className="text-white/60 text-lg mb-6">Calculating scores across all 3 phases</p>
-          <div className="flex justify-center space-x-2">
-            <div className="w-3 h-3 bg-purple-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
-            <div className="w-3 h-3 bg-purple-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
-            <div className="w-3 h-3 bg-purple-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
+      <div className="min-h-screen bg-[#0c141d] text-white">
+        <div className="mx-auto flex min-h-screen max-w-4xl flex-col items-center justify-center gap-6 px-6 text-center">
+          <div className="flex h-20 w-20 items-center justify-center rounded-full border border-white/10 bg-[#141e27] text-4xl">🏆</div>
+          <h2 className="text-2xl font-semibold">Calculating match results</h2>
+          <p className="text-sm text-white/60">We are combining draft, feedback, and revision scores into your composite rank.</p>
+          <div className="flex gap-2">
+            {[0, 150, 300].map(delay => (
+              <span
+                key={delay}
+                className="h-2 w-2 animate-bounce rounded-full bg-emerald-300"
+                style={{ animationDelay: `${delay}ms` }}
+              />
+            ))}
           </div>
         </div>
       </div>
@@ -233,299 +219,258 @@ function RankedResultsContent() {
     return `#${rank}`;
   };
 
+  const phaseMeta = {
+    writing: { label: 'Draft', weight: '40%', icon: '📝' },
+    feedback: { label: 'Peer feedback', weight: '30%', icon: '🔍' },
+    revision: { label: 'Revision', weight: '30%', icon: '✏️' },
+  } as const;
+
+  const activeFeedback = MOCK_PHASE_FEEDBACK[activePhase];
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
-      <header className="border-b border-white/10 bg-black/20 backdrop-blur-sm">
-        <div className="container mx-auto px-6 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-2">
-              <div className="w-8 h-8 bg-gradient-to-br from-yellow-400 to-orange-500 rounded-lg flex items-center justify-center">
-                <span className="text-xl">✍️</span>
-              </div>
-              <span className="text-xl font-bold text-white">Writing Arena</span>
-            </div>
-            <Link 
-              href="/dashboard"
-              className="text-white/60 hover:text-white transition-colors"
-            >
-              Back to Dashboard
-            </Link>
-          </div>
-        </div>
-      </header>
-
-      <main className="container mx-auto px-6 py-12 max-w-5xl">
-        <div className="text-center mb-12">
-          <div className="text-8xl mb-4 animate-bounce">
-            {results.isVictory ? '🏆' : results.yourRank <= 3 ? '🎉' : results.lpChange >= 0 ? '💪' : '😔'}
-          </div>
-          <h1 className="text-5xl font-bold text-white mb-3">
-            {results.isVictory ? 'Victory!' : results.yourRank <= 3 ? 'Great Job!' : results.lpChange >= 0 ? 'Match Complete!' : 'Keep Improving!'}
-          </h1>
-          <p className="text-xl text-white/70 mb-2">
-            You placed {getMedalEmoji(results.yourRank)} in your ranked party
-          </p>
-          <p className="text-white/60">
-            Performance evaluated across Writing, Peer Feedback, and Revision
-          </p>
-        </div>
-
-        {/* Phase Breakdown - Clickable */}
-        <div className="bg-gradient-to-r from-purple-600 to-blue-600 rounded-2xl p-8 mb-8 shadow-2xl">
-          <h2 className="text-2xl font-bold text-white mb-2 text-center">Your Performance</h2>
-          <p className="text-white/80 text-center mb-6 text-sm">Click on each phase to review detailed feedback</p>
-          
-          <div className="grid md:grid-cols-4 gap-4 mb-6">
-            <button
-              onClick={() => setExpandedPhase(expandedPhase === 'writing' ? null : 'writing')}
-              className={`bg-white/10 backdrop-blur-sm rounded-xl p-4 text-center hover:bg-white/20 transition-all cursor-pointer border-2 ${
-                expandedPhase === 'writing' ? 'border-purple-400 scale-105' : 'border-transparent'
-              }`}
-            >
-              <div className="text-purple-300 text-sm mb-2">📝 Phase 1</div>
-              <div className="text-white text-xs mb-2">Writing</div>
-              <div className="text-4xl font-bold text-white">{results.phases.writing}</div>
-              <div className="text-white/60 text-xs mt-1">40% weight</div>
-              {expandedPhase === 'writing' && (
-                <div className="text-purple-300 text-xs mt-2">▼ Click to close</div>
-              )}
-            </button>
-            
-            <button
-              onClick={() => setExpandedPhase(expandedPhase === 'feedback' ? null : 'feedback')}
-              className={`bg-white/10 backdrop-blur-sm rounded-xl p-4 text-center hover:bg-white/20 transition-all cursor-pointer border-2 ${
-                expandedPhase === 'feedback' ? 'border-blue-400 scale-105' : 'border-transparent'
-              }`}
-            >
-              <div className="text-blue-300 text-sm mb-2">🔍 Phase 2</div>
-              <div className="text-white text-xs mb-2">Peer Feedback</div>
-              <div className="text-4xl font-bold text-white">{results.phases.feedback}</div>
-              <div className="text-white/60 text-xs mt-1">30% weight</div>
-              {expandedPhase === 'feedback' && (
-                <div className="text-blue-300 text-xs mt-2">▼ Click to close</div>
-              )}
-            </button>
-            
-            <button
-              onClick={() => setExpandedPhase(expandedPhase === 'revision' ? null : 'revision')}
-              className={`bg-white/10 backdrop-blur-sm rounded-xl p-4 text-center hover:bg-white/20 transition-all cursor-pointer border-2 ${
-                expandedPhase === 'revision' ? 'border-emerald-400 scale-105' : 'border-transparent'
-              }`}
-            >
-              <div className="text-emerald-300 text-sm mb-2">✏️ Phase 3</div>
-              <div className="text-white text-xs mb-2">Revision</div>
-              <div className="text-4xl font-bold text-white">{results.phases.revision}</div>
-              <div className="text-white/60 text-xs mt-1">30% weight</div>
-              {expandedPhase === 'revision' && (
-                <div className="text-emerald-300 text-xs mt-2">▼ Click to close</div>
-              )}
-            </button>
-            
-            <div className="bg-gradient-to-br from-yellow-400/20 to-orange-400/20 backdrop-blur-sm rounded-xl p-4 text-center border-2 border-yellow-400/50">
-              <div className="text-yellow-300 text-sm mb-2">⭐ Final</div>
-              <div className="text-white text-xs mb-2">Composite</div>
-              <div className="text-4xl font-bold text-yellow-300">{results.phases.composite}</div>
-              <div className="text-white/80 text-xs mt-1">Overall Score</div>
-            </div>
-          </div>
-
-          {/* Expanded Feedback Panel */}
-          {expandedPhase && (
-            <div className="bg-white/10 backdrop-blur-sm rounded-xl p-6 border border-white/20 animate-in fade-in slide-in-from-top duration-300">
-              <h3 className="text-xl font-bold text-white mb-4 flex items-center space-x-2">
-                <span>{expandedPhase === 'writing' ? '📝' : expandedPhase === 'feedback' ? '🔍' : '✏️'}</span>
-                <span>
-                  {expandedPhase === 'writing' ? 'Phase 1: Writing' : 
-                   expandedPhase === 'feedback' ? 'Phase 2: Peer Feedback' : 
-                   'Phase 3: Revision'} Feedback
-                </span>
-              </h3>
-              
-              <div className="space-y-4">
-                {/* Strengths */}
-                <div>
-                  <div className="text-emerald-300 font-semibold mb-2 flex items-center space-x-2">
-                    <span>✨</span>
-                    <span>Strengths</span>
-                  </div>
-                  <ul className="space-y-1">
-                    {MOCK_PHASE_FEEDBACK[expandedPhase as keyof typeof MOCK_PHASE_FEEDBACK].strengths.map((strength, i) => (
-                      <li key={i} className="text-white/90 text-sm leading-relaxed pl-4">
-                        • {strength}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-
-                {/* Areas for Growth */}
-                <div>
-                  <div className="text-yellow-300 font-semibold mb-2 flex items-center space-x-2">
-                    <span>💡</span>
-                    <span>Areas for Growth</span>
-                  </div>
-                  <ul className="space-y-1">
-                    {MOCK_PHASE_FEEDBACK[expandedPhase as keyof typeof MOCK_PHASE_FEEDBACK].improvements.map((improvement, i) => (
-                      <li key={i} className="text-white/90 text-sm leading-relaxed pl-4">
-                        • {improvement}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-
-                {/* Writing Revolution Concepts */}
-                <div className="bg-blue-500/20 border border-blue-400/30 rounded-lg p-4">
-                  <div className="text-blue-300 font-semibold mb-2 flex items-center space-x-2">
-                    <span>📚</span>
-                    <span>The Writing Revolution - Key Strategies</span>
-                  </div>
-                  <ul className="space-y-1">
-                    {MOCK_PHASE_FEEDBACK[expandedPhase as keyof typeof MOCK_PHASE_FEEDBACK].writingRevConcepts.map((concept, i) => (
-                      <li key={i} className="text-white/90 text-sm leading-relaxed pl-4">
-                        • {concept}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {results.improvementBonus > 0 && (
-            <div className="mt-6 bg-emerald-500/20 border border-emerald-400/30 rounded-xl p-4 text-center">
-              <div className="text-emerald-300 font-semibold">
-                🌟 Improvement Bonus: +{results.improvementBonus} points from revision!
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* LP Change Banner */}
-        <div className={`rounded-2xl p-6 mb-8 text-center shadow-2xl ${
-          results.lpChange > 0 
-            ? 'bg-gradient-to-r from-green-600 to-emerald-600' 
-            : 'bg-gradient-to-r from-red-600 to-orange-600'
-        }`}>
-          <div className="text-white/80 text-sm mb-2">Rank Change</div>
-          <div className="text-6xl font-bold text-white mb-2">
-            {results.lpChange > 0 ? '+' : ''}{results.lpChange} LP
-          </div>
-          <div className="text-white/90">
-            {results.lpChange > 0 ? '🎉 Climbing the ranks!' : '💪 Keep fighting to climb back!'}
-          </div>
-        </div>
-
-        {/* Rewards */}
-        <div className="bg-gradient-to-r from-indigo-600 to-purple-600 rounded-2xl p-8 mb-8 shadow-2xl">
-          <h2 className="text-2xl font-bold text-white mb-6 text-center">Match Rewards</h2>
-          <div className="grid md:grid-cols-3 gap-6">
-            <div className="text-center">
-              <div className="text-white/80 mb-2">Placement</div>
-              <div className="text-5xl font-bold text-white mb-2">{getMedalEmoji(results.yourRank)}</div>
-              <div className="text-white/80 text-sm">of {results.rankings.length}</div>
-            </div>
-            <div className="text-center">
-              <div className="text-white/80 mb-2">XP Earned</div>
-              <div className="text-5xl font-bold text-yellow-300 mb-2">+{results.xpEarned}</div>
-              <div className="text-white/80 text-sm">2.5x ranked bonus</div>
-            </div>
-            <div className="text-center">
-              <div className="text-white/80 mb-2">Points Earned</div>
-              <div className="text-5xl font-bold text-white mb-2">+{results.pointsEarned}</div>
-              <div className="text-white/80 text-sm">
-                {results.isVictory && <span className="text-yellow-300">+30 Victory!</span>}
-                {results.yourRank === 2 && <span className="text-gray-300">+15 Runner-up!</span>}
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Rankings with Phase Breakdown */}
-        <div className="bg-white/5 backdrop-blur-sm rounded-2xl p-8 border border-white/10 mb-8">
-          <h2 className="text-2xl font-bold text-white mb-6 flex items-center space-x-2">
-            <span>🏆</span>
-            <span>Final Rankings</span>
-          </h2>
-          
-          <div className="space-y-3">
-            {results.rankings.map((player: any) => (
-              <div
-                key={player.name}
-                className={`p-5 rounded-xl transition-all ${
-                  player.isYou
-                    ? 'bg-gradient-to-r from-purple-500/20 to-blue-500/20 border-2 border-purple-400 scale-105'
-                    : 'bg-white/5 border border-white/10'
-                }`}
-              >
-                <div className="flex items-center justify-between mb-3">
-                  <div className="flex items-center space-x-4">
-                    <div className={`w-12 h-12 rounded-full flex items-center justify-center text-2xl font-bold ${
-                      player.position === 1 ? 'bg-yellow-500 text-yellow-900' :
-                      player.position === 2 ? 'bg-gray-300 text-gray-700' :
-                      player.position === 3 ? 'bg-orange-400 text-orange-900' :
-                      'bg-white/10 text-white/60'
-                    }`}>
-                      {player.position === 1 ? '🥇' : player.position === 2 ? '🥈' : player.position === 3 ? '🥉' : player.position}
-                    </div>
-
-                    <div className="flex items-center space-x-3">
-                      <span className="text-4xl">{player.avatar}</span>
-                      <div>
-                        <div className="flex items-center space-x-2">
-                          <span className={`font-bold ${player.isYou ? 'text-purple-400' : 'text-white'}`}>
-                            {player.name}
-                          </span>
-                          {player.isYou && (
-                            <span className="text-xs px-2 py-1 bg-purple-500 text-white rounded-full">You</span>
-                          )}
-                        </div>
-                        <div className="text-white/60 text-sm">{player.rank}</div>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="text-right">
-                    <div className={`text-3xl font-bold ${player.isYou ? 'text-purple-400' : 'text-white'}`}>
-                      {player.compositeScore}
-                    </div>
-                    <div className="text-white/60 text-sm">composite</div>
-                  </div>
-                </div>
-
-                {/* Phase scores */}
-                <div className="grid grid-cols-3 gap-2 mt-3 pt-3 border-t border-white/10">
-                  <div className="text-center">
-                    <div className="text-white/40 text-xs mb-1">Writing</div>
-                    <div className="text-white text-sm font-semibold">{player.phase1}</div>
-                  </div>
-                  <div className="text-center">
-                    <div className="text-white/40 text-xs mb-1">Feedback</div>
-                    <div className="text-white text-sm font-semibold">{player.phase2}</div>
-                  </div>
-                  <div className="text-center">
-                    <div className="text-white/40 text-xs mb-1">Revision</div>
-                    <div className="text-white text-sm font-semibold">{player.phase3}</div>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Actions */}
-        <div className="flex flex-col sm:flex-row gap-4 justify-center">
+    <div className="min-h-screen bg-[#0c141d] text-white">
+      <main className="mx-auto flex max-w-6xl flex-col gap-12 px-6 py-16">
+        <section className="flex flex-col gap-4 sm:flex-row sm:justify-end">
           <Link
             href="/ranked"
-            className="px-8 py-4 bg-gradient-to-r from-blue-500 to-purple-600 text-white font-bold text-lg rounded-xl hover:scale-105 transition-all duration-200 text-center shadow-lg"
+            className="rounded-full border border-emerald-200/40 bg-emerald-400 px-8 py-3 text-center text-sm font-semibold text-[#0c141d] transition hover:bg-emerald-300"
           >
-            Play Ranked Again 🏆
+            Queue another ranked match
           </Link>
           <Link
             href="/dashboard"
-            className="px-8 py-4 bg-white/10 backdrop-blur-sm text-white font-semibold rounded-xl hover:bg-white/20 transition-all border border-white/20 text-center text-lg"
+            className="rounded-full border border-white/15 bg-white/5 px-8 py-3 text-center text-sm font-semibold text-white transition hover:bg-white/10"
           >
-            Back to Dashboard
+            Return to dashboard
           </Link>
-        </div>
+        </section>
+
+        <section className="grid gap-6 lg:grid-cols-[1.1fr,0.9fr]">
+          <div className="rounded-3xl border border-white/10 bg-[#141e27] p-8">
+            <div className="flex items-center gap-4">
+              <div className="flex h-16 w-16 items-center justify-center rounded-2xl border border-white/10 bg-[#0c141d] text-3xl">
+                {results.isVictory ? '🏆' : results.yourRank <= 3 ? '🎉' : results.lpChange >= 0 ? '💪' : '🔥'}
+              </div>
+              <div>
+                <div className="text-xs uppercase tracking-[0.3em] text-white/50">Ranked circuit</div>
+                <h1 className="mt-2 text-3xl font-semibold">
+                  {results.isVictory ? 'Victory secured' : results.yourRank <= 3 ? 'Strong finish' : results.lpChange >= 0 ? 'Solid recovery' : 'Battle complete'}
+                </h1>
+                <p className="mt-2 text-sm text-white/60">Placement: {getMedalEmoji(results.yourRank)} · Composite {results.phases.composite}</p>
+              </div>
+            </div>
+            <div className="mt-6 grid gap-4 sm:grid-cols-3 text-sm">
+              <div className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-center">
+                <div className="text-white/50">LP change</div>
+                <div className={`mt-2 text-2xl font-semibold ${results.lpChange >= 0 ? 'text-emerald-200' : 'text-red-300'}`}>
+                  {results.lpChange >= 0 ? '+' : ''}{results.lpChange} LP
+                </div>
+              </div>
+              <div className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-center">
+                <div className="text-white/50">XP earned</div>
+                <div className="mt-2 text-2xl font-semibold text-white">+{results.xpEarned}</div>
+              </div>
+              <div className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-center">
+                <div className="text-white/50">Points earned</div>
+                <div className="mt-2 text-2xl font-semibold text-white">+{results.pointsEarned}</div>
+              </div>
+            </div>
+            {results.improvementBonus > 0 && (
+              <div className="mt-6 rounded-2xl border border-emerald-300/40 bg-emerald-400/10 px-4 py-3 text-sm text-emerald-200">
+                Revision bonus: +{results.improvementBonus} points compared to draft.
+              </div>
+            )}
+          </div>
+
+          <aside className="rounded-3xl border border-white/10 bg-[#141e27] p-8">
+            <h2 className="text-lg font-semibold">Phase breakdown</h2>
+            <p className="mt-2 text-xs text-white/50">Each phase contributes to your composite score. Tap to review targeted coaching.</p>
+            <div className="mt-6 space-y-3">
+              {(Object.keys(phaseMeta) as Array<'writing' | 'feedback' | 'revision'>).map(key => (
+                <button
+                  key={key}
+                  onClick={() => setActivePhase(key)}
+                  className={`flex w-full items-center justify-between rounded-2xl border px-4 py-3 text-left text-sm transition ${
+                    activePhase === key
+                      ? 'border-emerald-300/40 bg-emerald-400/10'
+                      : 'border-white/10 bg-white/5 hover:border-emerald-200/30'
+                  }`}
+                >
+                  <div className="flex items-center gap-3">
+                    <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#0c141d] text-lg">
+                      {phaseMeta[key].icon}
+                    </span>
+                    <div>
+                      <div className="font-semibold text-white">{phaseMeta[key].label}</div>
+                      <div className="text-xs text-white/50">Weight: {phaseMeta[key].weight}</div>
+                    </div>
+                  </div>
+                  <div className="text-lg font-semibold text-white">{results.phases[key]}</div>
+                </button>
+              ))}
+            </div>
+            <div className="mt-6 rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-xs text-white/60">
+              Trait focus: {trait || 'all'} · Prompt type: {promptType || 'n/a'}
+            </div>
+          </aside>
+        </section>
+
+        <section className="grid gap-6 lg:grid-cols-[1.1fr,0.9fr]">
+          <div className="rounded-3xl border border-white/10 bg-[#141e27] p-8">
+            <header className="flex items-center justify-between">
+              <div>
+                <h2 className="text-lg font-semibold">Final rankings</h2>
+                <p className="text-xs text-white/50">Composite scores across all three phases.</p>
+              </div>
+              <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-white/60">
+                {results.rankings.length} competitors
+              </span>
+            </header>
+            <div className="mt-6 space-y-3">
+              {results.rankings.map((player: any) => (
+                <div
+                  key={player.name}
+                  className={`rounded-2xl border px-5 py-4 transition ${
+                    player.isYou ? 'border-emerald-300/40 bg-emerald-400/10' : 'border-white/10 bg-white/5'
+                  }`}
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-4">
+                      <div className={`flex h-11 w-11 items-center justify-center rounded-xl text-lg font-semibold ${
+                        player.position === 1
+                          ? 'bg-yellow-400 text-[#0c141d]'
+                          : player.position === 2
+                          ? 'bg-white/80 text-[#0c141d]'
+                          : player.position === 3
+                          ? 'bg-orange-300 text-[#0c141d]'
+                          : 'bg-white/10 text-white/60'
+                      }`}
+                      >
+                        {player.position === 1 ? '🥇' : player.position === 2 ? '🥈' : player.position === 3 ? '🥉' : `#${player.position}`}
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <span className="text-3xl">{player.avatar}</span>
+                        <div>
+                          <div className={`text-sm font-semibold ${player.isYou ? 'text-emerald-200' : 'text-white'}`}>{player.name}</div>
+                          <div className="text-xs text-white/50">{player.rank}</div>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <div className={`text-2xl font-semibold ${player.isYou ? 'text-emerald-200' : 'text-white'}`}>{player.compositeScore}</div>
+                      <div className="text-xs text-white/50">composite</div>
+                    </div>
+                  </div>
+                  <div className="mt-4 grid grid-cols-3 gap-2 rounded-xl border border-white/10 bg-[#0c141d] px-4 py-3 text-center text-xs text-white/60">
+                    <div>
+                      <div>Draft</div>
+                      <div className="mt-1 text-sm font-semibold text-white">{player.phase1}</div>
+                    </div>
+                    <div>
+                      <div>Feedback</div>
+                      <div className="mt-1 text-sm font-semibold text-white">{player.phase2}</div>
+                    </div>
+                    <div>
+                      <div>Revision</div>
+                      <div className="mt-1 text-sm font-semibold text-white">{player.phase3}</div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <aside className="space-y-6">
+            <div className="rounded-3xl border border-white/10 bg-[#141e27] p-8">
+              <header className="flex items-center gap-3 text-sm font-semibold text-white">
+                <span className="flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 bg-[#0c141d]">
+                  {phaseMeta[activePhase].icon}
+                </span>
+                <div>
+                  <div>{phaseMeta[activePhase].label} coaching</div>
+                  <div className="text-xs text-white/50">Weight {phaseMeta[activePhase].weight}</div>
+                </div>
+              </header>
+              <div className="mt-6 space-y-5 text-sm text-white/70">
+                <div>
+                  <div className="text-xs uppercase text-emerald-200">Strengths</div>
+                  <ul className="mt-2 space-y-1">
+                    {activeFeedback.strengths.map((item, index) => (
+                      <li key={index}>- {item}</li>
+                    ))}
+                  </ul>
+                </div>
+                <div>
+                  <div className="text-xs uppercase text-yellow-300">Improve next time</div>
+                  <ul className="mt-2 space-y-1">
+                    {activeFeedback.improvements.map((item, index) => (
+                      <li key={index}>- {item}</li>
+                    ))}
+                  </ul>
+                </div>
+                <div className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-xs text-white/60">
+                  <div className="text-white/70">Writing Revolution cues:</div>
+                  <ul className="mt-2 space-y-1 text-white/60">
+                    {activeFeedback.writingRevConcepts.map((item, index) => (
+                      <li key={index}>- {item}</li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
+            </div>
+
+            <div className="rounded-3xl border border-white/10 bg-[#141e27] p-8 text-xs text-white/60">
+              <div className="text-xs uppercase tracking-[0.3em] text-white/50">Draft vs. Revision</div>
+              <div className="mt-4 space-y-3">
+                <div className="flex items-center justify-between">
+                  <span>Original words</span>
+                  <span className="font-semibold text-white">{wordCount}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span>Revised words</span>
+                  <span className="font-semibold text-white">{revisedWordCount}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span>Change</span>
+                  <span className={`${revisedWordCount - wordCount >= 0 ? 'text-emerald-200' : 'text-white/50'} font-semibold`}>
+                    {revisedWordCount - wordCount >= 0 ? '+' : ''}{revisedWordCount - wordCount}
+                  </span>
+                </div>
+              </div>
+              <div className="mt-4 rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-white/70">
+                <div className="text-white/60">Prompt recap</div>
+                <p className="mt-2 text-xs">
+                  Continue iterating on this prompt to solidify gains, or queue another ranked match to push momentum.
+                </p>
+              </div>
+            </div>
+          </aside>
+        </section>
+
+        <section className="flex flex-col gap-4 text-sm text-white/60">
+          <div className="rounded-3xl border border-white/10 bg-[#141e27] p-8">
+            <div className="grid gap-6 lg:grid-cols-2">
+              <div className="space-y-2">
+                <div className="text-xs uppercase tracking-[0.3em] text-white/50">Original draft</div>
+                <div className="rounded-2xl border border-white/10 bg-white/5 px-4 py-4 text-xs leading-relaxed text-white/80 whitespace-pre-wrap">
+                  {originalContent || 'Original draft unavailable.'}
+                </div>
+              </div>
+              <div className="space-y-2">
+                <div className="text-xs uppercase tracking-[0.3em] text-white/50">Revised submission</div>
+                <div className="rounded-2xl border border-white/10 bg-white/5 px-4 py-4 text-xs leading-relaxed text-white/80 whitespace-pre-wrap">
+                  {revisedContent || 'Revision unavailable.'}
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section className="flex flex-col gap-4 sm:flex-row sm:justify-center">
+          <p className="text-center text-xs text-white/50 sm:text-left">
+            Review the breakdown above before jumping into your next match.
+          </p>
+        </section>
       </main>
     </div>
   );
@@ -534,8 +479,8 @@ function RankedResultsContent() {
 export default function RankedResultsPage() {
   return (
     <Suspense fallback={
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center">
-        <div className="text-white text-xl">Loading results...</div>
+      <div className="min-h-screen bg-[#0c141d] flex items-center justify-center text-white/60 text-sm">
+        Loading results...
       </div>
     }>
       <RankedResultsContent />
