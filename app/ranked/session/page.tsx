@@ -3,18 +3,27 @@
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useState, useEffect, Suspense } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
+import { getPromptById, getRandomPrompt } from '@/lib/prompts';
+import WritingTipsModal from '@/components/WritingTipsModal';
 
 function RankedSessionContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const trait = searchParams.get('trait');
-  const promptType = searchParams.get('promptType');
+  const promptId = searchParams.get('promptId');
   const { userProfile } = useAuth();
+  
+  // Get prompt from library by ID, or random if not found
+  const currentPrompt = promptId ? getPromptById(promptId) : undefined;
+  const prompt = currentPrompt || getRandomPrompt();
+  
+  console.log('📝 SESSION - Using prompt:', { id: prompt.id, title: prompt.title, type: prompt.type });
 
   const [timeLeft, setTimeLeft] = useState(240);
   const [writingContent, setWritingContent] = useState('');
   const [wordCount, setWordCount] = useState(0);
   const [showPasteWarning, setShowPasteWarning] = useState(false);
+  const [showTipsModal, setShowTipsModal] = useState(false);
 
   const userRank = userProfile?.currentRank || 'Silver III';
   const userAvatar = typeof userProfile?.avatar === 'string' ? userProfile.avatar : '🌿';
@@ -28,31 +37,6 @@ function RankedSessionContent() {
   ]);
 
   const [aiWordCounts, setAiWordCounts] = useState<number[]>([0, 0, 0, 0]);
-
-  const prompts: Record<string, any> = {
-    narrative: {
-      image: '🌄',
-      title: 'An Unexpected Adventure',
-      description: 'Write a story about a character who discovers something surprising on an ordinary day.',
-    },
-    descriptive: {
-      image: '🏰',
-      title: 'A Mysterious Place',
-      description: 'Describe a place that feels magical or mysterious.',
-    },
-    informational: {
-      image: '🔬',
-      title: 'How Things Work',
-      description: 'Explain how something works or why something happens.',
-    },
-    argumentative: {
-      image: '💭',
-      title: 'Take a Stand',
-      description: 'Should students have more choices in what they learn? State your opinion with reasons.',
-    }
-  };
-
-  const currentPrompt = prompts[promptType as string] || prompts.narrative;
 
   useEffect(() => {
     if (timeLeft > 0) {
@@ -97,8 +81,9 @@ function RankedSessionContent() {
     // Mock AI scoring for phase 1
     const yourScore = Math.min(Math.max(60 + (wordCount / 5) + Math.random() * 15, 40), 100);
     const encodedContent = encodeURIComponent(writingContent);
+    console.log('📤 SESSION - Submitting, score:', Math.round(yourScore));
     // Route to peer feedback phase instead of results
-    router.push(`/ranked/peer-feedback?trait=${trait}&promptType=${promptType}&content=${encodedContent}&wordCount=${wordCount}&aiScores=${aiWordCounts.join(',')}&yourScore=${Math.round(yourScore)}`);
+    router.push(`/ranked/peer-feedback?trait=${trait}&promptId=${prompt.id}&promptType=${prompt.type}&content=${encodedContent}&wordCount=${wordCount}&aiScores=${aiWordCounts.join(',')}&yourScore=${Math.round(yourScore)}`);
   };
 
   const handlePaste = (e: React.ClipboardEvent<HTMLTextAreaElement>) => {
@@ -113,6 +98,32 @@ function RankedSessionContent() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
+      {/* Writing Tips Modal */}
+      <WritingTipsModal 
+        isOpen={showTipsModal}
+        onClose={() => setShowTipsModal(false)}
+        promptType={prompt.type}
+      />
+
+      {/* Floating Tips Button */}
+      <button
+        onClick={() => setShowTipsModal(true)}
+        className="fixed bottom-8 right-8 z-40 group"
+        title="Writing Tips"
+      >
+        <div className="relative">
+          <div className="w-16 h-16 bg-gradient-to-br from-emerald-500 to-teal-500 rounded-full flex items-center justify-center shadow-2xl hover:scale-110 transition-all duration-200 border-2 border-white/20">
+            <span className="text-2xl">💡</span>
+          </div>
+          <div className="absolute -top-1 -right-1 w-5 h-5 bg-yellow-400 rounded-full flex items-center justify-center animate-pulse">
+            <span className="text-xs">✨</span>
+          </div>
+          <div className="absolute -bottom-12 right-0 bg-black/80 text-white text-xs px-3 py-1 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
+            Writing Tips
+          </div>
+        </div>
+      </button>
+
       <header className="border-b border-white/10 bg-black/30 backdrop-blur-sm sticky top-0 z-10">
         <div className="container mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
@@ -217,10 +228,13 @@ function RankedSessionContent() {
           <div className="lg:col-span-3">
             <div className="bg-white/5 backdrop-blur-sm rounded-xl p-6 border border-white/10 mb-4">
               <div className="flex items-start space-x-4">
-                <div className="text-5xl">{currentPrompt.image}</div>
+                <div className="text-5xl">{prompt.image}</div>
                 <div className="flex-1">
-                  <h2 className="text-2xl font-bold text-white mb-2">{currentPrompt.title}</h2>
-                  <p className="text-white/80 leading-relaxed">{currentPrompt.description}</p>
+                  <div className="flex items-center justify-between mb-2">
+                    <h2 className="text-2xl font-bold text-white">{prompt.title}</h2>
+                    <span className="text-white/40 text-xs uppercase tracking-wide">{prompt.type}</span>
+                  </div>
+                  <p className="text-white/80 leading-relaxed">{prompt.description}</p>
                 </div>
               </div>
             </div>

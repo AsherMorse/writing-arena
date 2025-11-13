@@ -5,6 +5,7 @@ import { useState, useEffect, Suspense, useRef } from 'react';
 import Link from 'next/link';
 import { useAuth } from '@/contexts/AuthContext';
 import { joinQueue, leaveQueue, listenToQueue, generateAIPlayer, QueueEntry } from '@/lib/matchmaking-queue';
+import { getRandomPrompt } from '@/lib/prompts';
 
 function RankedMatchmakingContent() {
   const router = useRouter();
@@ -147,8 +148,10 @@ function RankedMatchmakingContent() {
       return () => clearTimeout(timer);
     } else {
       console.log('🚀 MATCHMAKING - Starting match!');
-      const randomPromptType = ['narrative', 'descriptive', 'informational', 'argumentative'][Math.floor(Math.random() * 4)];
-      router.push(`/ranked/session?trait=${trait}&promptType=${randomPromptType}`);
+      // Get a truly random prompt from the library
+      const randomPrompt = getRandomPrompt();
+      console.log('📝 MATCHMAKING - Selected prompt:', randomPrompt.id, randomPrompt.title);
+      router.push(`/ranked/session?trait=${trait}&promptId=${randomPrompt.id}`);
     }
   }, [countdown, router, trait]);
 
