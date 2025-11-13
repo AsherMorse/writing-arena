@@ -19,13 +19,30 @@ export default function DashboardPage() {
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center">
-        <div className="text-white text-2xl">Loading...</div>
+        <div className="text-center">
+          <div className="inline-block animate-spin text-7xl mb-6">🌿</div>
+          <h2 className="text-3xl font-bold text-white mb-3">Loading Dashboard...</h2>
+          <p className="text-white/60 text-lg">Setting up your profile</p>
+        </div>
       </div>
     );
   }
 
-  if (!user || !userProfile) {
+  if (!user) {
     return null;
+  }
+
+  // If user exists but profile doesn't, show loading (profile is being created)
+  if (!userProfile) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center">
+        <div className="text-center">
+          <div className="inline-block animate-spin text-7xl mb-6">🌱</div>
+          <h2 className="text-3xl font-bold text-white mb-3">Creating Your Profile...</h2>
+          <p className="text-white/60 text-lg">This will only take a moment</p>
+        </div>
+      </div>
+    );
   }
 
   return (

@@ -61,7 +61,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setUser(user);
         
         if (user) {
-          // Get or create user profile
+          // Get or create user profile with retry
           let profile = await getUserProfile(user.uid);
           if (!profile) {
             // Create default profile for new users
@@ -69,7 +69,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               displayName: user.displayName || 'Student Writer',
               email: user.email || '',
             });
-            profile = await getUserProfile(user.uid);
+            
+            // Retry a few times to get the profile
+            for (let i = 0; i < 3; i++) {
+              await new Promise(resolve => setTimeout(resolve, 500));
+              profile = await getUserProfile(user.uid);
+              if (profile) break;
+            }
           }
           setUserProfile(profile);
         } else {
@@ -103,11 +109,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         displayName: displayName
       });
 
-      // Create user profile in Firestore
+      // Create user profile in Firestore and wait for it
       await createUserProfile(userCredential.user.uid, {
         displayName: displayName,
         email: email,
       });
+      
+      // Wait a moment to ensure profile is created
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      // Fetch the profile to verify it was created
+      const profile = await getUserProfile(userCredential.user.uid);
+      if (profile) {
+        setUserProfile(profile);
+      }
     } catch (error: any) {
       console.error('Error signing up:', error);
       throw new Error(getAuthErrorMessage(error.code));
@@ -126,6 +141,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           displayName: result.user.displayName || 'Student Writer',
           email: result.user.email || '',
         });
+        
+        // Wait for profile to be created
+        await new Promise(resolve => setTimeout(resolve, 500));
+        profile = await getUserProfile(result.user.uid);
+      }
+      
+      if (profile) {
+        setUserProfile(profile);
       }
     } catch (error: any) {
       console.error('Error signing in with Google:', error);
