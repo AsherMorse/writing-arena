@@ -93,7 +93,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signIn = async (email: string, password: string) => {
     try {
-      await signInWithEmailAndPassword(auth, email, password);
+      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      
+      // Check if user profile exists, create if it doesn't
+      let profile = await getUserProfile(userCredential.user.uid);
+      if (!profile) {
+        console.log('Profile not found for existing user, creating...');
+        await createUserProfile(userCredential.user.uid, {
+          displayName: userCredential.user.displayName || userCredential.user.email?.split('@')[0] || 'Student Writer',
+          email: userCredential.user.email || '',
+        });
+        
+        // Wait and fetch the new profile
+        await new Promise(resolve => setTimeout(resolve, 500));
+        profile = await getUserProfile(userCredential.user.uid);
+      }
+      
+      if (profile) {
+        setUserProfile(profile);
+      }
     } catch (error: any) {
       console.error('Error signing in:', error);
       throw new Error(getAuthErrorMessage(error.code));
