@@ -5,6 +5,61 @@ import { useState, useEffect, Suspense } from 'react';
 import Link from 'next/link';
 import { useAuth } from '@/contexts/AuthContext';
 
+// Mock feedback based on The Writing Revolution concepts
+const MOCK_PHASE_FEEDBACK = {
+  writing: {
+    strengths: [
+      'Clear topic sentence establishes the main idea',
+      'Good use of transition words (First, Then, Finally)',
+      'Concrete details support your points'
+    ],
+    improvements: [
+      'Try expanding sentences with because/but/so to show deeper thinking',
+      'Add more specific details - use the five senses (what did you see, hear, feel?)',
+      'Consider using an appositive to add description (e.g., "The lighthouse, an ancient stone tower, stood...")'
+    ],
+    writingRevConcepts: [
+      'Sentence expansion: Practice combining short sentences',
+      'Note-taking: Organize ideas before writing',
+      'Single Paragraph Outline (SPO): Use topic sentence + supporting details + conclusion'
+    ]
+  },
+  feedback: {
+    strengths: [
+      'You identified specific strengths in your peer\'s writing',
+      'Suggestions were constructive and actionable',
+      'Good attention to organization and structure'
+    ],
+    improvements: [
+      'Be more specific about which sentences worked well and why',
+      'Reference Writing Revolution strategies (sentence combining, transitions)',
+      'Suggest concrete revision strategies, not just general comments'
+    ],
+    writingRevConcepts: [
+      'Analyzing sentence structure: Look for fragments or run-ons',
+      'Evaluating transitions: Check if ideas connect logically',
+      'Assessing paragraph structure: Topic sentence + evidence + conclusion'
+    ]
+  },
+  revision: {
+    strengths: [
+      'Applied peer feedback by adding descriptive details',
+      'Improved sentence variety and complexity',
+      'Better use of transitional phrases'
+    ],
+    improvements: [
+      'Could combine more short sentences for better flow',
+      'Add subordinating conjunctions (although, since, while) for complexity',
+      'Use appositives to add information without new sentences'
+    ],
+    writingRevConcepts: [
+      'Revision vs. Editing: Focus on ideas first, grammar later',
+      'Sentence combining: Join related ideas',
+      'Adding conjunctions: Use FANBOYS (for, and, nor, but, or, yet, so) and subordinating conjunctions'
+    ]
+  }
+};
+
 function RankedResultsContent() {
   const searchParams = useSearchParams();
   const { user } = useAuth();
@@ -21,6 +76,7 @@ function RankedResultsContent() {
   
   const [isAnalyzing, setIsAnalyzing] = useState(true);
   const [results, setResults] = useState<any>(null);
+  const [expandedPhase, setExpandedPhase] = useState<string | null>(null);
 
   useEffect(() => {
     const analyzeRankedMatch = async () => {
@@ -214,28 +270,57 @@ function RankedResultsContent() {
           </p>
         </div>
 
-        {/* Phase Breakdown */}
+        {/* Phase Breakdown - Clickable */}
         <div className="bg-gradient-to-r from-purple-600 to-blue-600 rounded-2xl p-8 mb-8 shadow-2xl">
-          <h2 className="text-2xl font-bold text-white mb-6 text-center">Your Performance</h2>
-          <div className="grid md:grid-cols-4 gap-4">
-            <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 text-center">
+          <h2 className="text-2xl font-bold text-white mb-2 text-center">Your Performance</h2>
+          <p className="text-white/80 text-center mb-6 text-sm">Click on each phase to review detailed feedback</p>
+          
+          <div className="grid md:grid-cols-4 gap-4 mb-6">
+            <button
+              onClick={() => setExpandedPhase(expandedPhase === 'writing' ? null : 'writing')}
+              className={`bg-white/10 backdrop-blur-sm rounded-xl p-4 text-center hover:bg-white/20 transition-all cursor-pointer border-2 ${
+                expandedPhase === 'writing' ? 'border-purple-400 scale-105' : 'border-transparent'
+              }`}
+            >
               <div className="text-purple-300 text-sm mb-2">📝 Phase 1</div>
               <div className="text-white text-xs mb-2">Writing</div>
               <div className="text-4xl font-bold text-white">{results.phases.writing}</div>
               <div className="text-white/60 text-xs mt-1">40% weight</div>
-            </div>
-            <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 text-center">
+              {expandedPhase === 'writing' && (
+                <div className="text-purple-300 text-xs mt-2">▼ Click to close</div>
+              )}
+            </button>
+            
+            <button
+              onClick={() => setExpandedPhase(expandedPhase === 'feedback' ? null : 'feedback')}
+              className={`bg-white/10 backdrop-blur-sm rounded-xl p-4 text-center hover:bg-white/20 transition-all cursor-pointer border-2 ${
+                expandedPhase === 'feedback' ? 'border-blue-400 scale-105' : 'border-transparent'
+              }`}
+            >
               <div className="text-blue-300 text-sm mb-2">🔍 Phase 2</div>
               <div className="text-white text-xs mb-2">Peer Feedback</div>
               <div className="text-4xl font-bold text-white">{results.phases.feedback}</div>
               <div className="text-white/60 text-xs mt-1">30% weight</div>
-            </div>
-            <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 text-center">
+              {expandedPhase === 'feedback' && (
+                <div className="text-blue-300 text-xs mt-2">▼ Click to close</div>
+              )}
+            </button>
+            
+            <button
+              onClick={() => setExpandedPhase(expandedPhase === 'revision' ? null : 'revision')}
+              className={`bg-white/10 backdrop-blur-sm rounded-xl p-4 text-center hover:bg-white/20 transition-all cursor-pointer border-2 ${
+                expandedPhase === 'revision' ? 'border-emerald-400 scale-105' : 'border-transparent'
+              }`}
+            >
               <div className="text-emerald-300 text-sm mb-2">✏️ Phase 3</div>
               <div className="text-white text-xs mb-2">Revision</div>
               <div className="text-4xl font-bold text-white">{results.phases.revision}</div>
               <div className="text-white/60 text-xs mt-1">30% weight</div>
-            </div>
+              {expandedPhase === 'revision' && (
+                <div className="text-emerald-300 text-xs mt-2">▼ Click to close</div>
+              )}
+            </button>
+            
             <div className="bg-gradient-to-br from-yellow-400/20 to-orange-400/20 backdrop-blur-sm rounded-xl p-4 text-center border-2 border-yellow-400/50">
               <div className="text-yellow-300 text-sm mb-2">⭐ Final</div>
               <div className="text-white text-xs mb-2">Composite</div>
@@ -243,6 +328,67 @@ function RankedResultsContent() {
               <div className="text-white/80 text-xs mt-1">Overall Score</div>
             </div>
           </div>
+
+          {/* Expanded Feedback Panel */}
+          {expandedPhase && (
+            <div className="bg-white/10 backdrop-blur-sm rounded-xl p-6 border border-white/20 animate-in fade-in slide-in-from-top duration-300">
+              <h3 className="text-xl font-bold text-white mb-4 flex items-center space-x-2">
+                <span>{expandedPhase === 'writing' ? '📝' : expandedPhase === 'feedback' ? '🔍' : '✏️'}</span>
+                <span>
+                  {expandedPhase === 'writing' ? 'Phase 1: Writing' : 
+                   expandedPhase === 'feedback' ? 'Phase 2: Peer Feedback' : 
+                   'Phase 3: Revision'} Feedback
+                </span>
+              </h3>
+              
+              <div className="space-y-4">
+                {/* Strengths */}
+                <div>
+                  <div className="text-emerald-300 font-semibold mb-2 flex items-center space-x-2">
+                    <span>✨</span>
+                    <span>Strengths</span>
+                  </div>
+                  <ul className="space-y-1">
+                    {MOCK_PHASE_FEEDBACK[expandedPhase as keyof typeof MOCK_PHASE_FEEDBACK].strengths.map((strength, i) => (
+                      <li key={i} className="text-white/90 text-sm leading-relaxed pl-4">
+                        • {strength}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+
+                {/* Areas for Growth */}
+                <div>
+                  <div className="text-yellow-300 font-semibold mb-2 flex items-center space-x-2">
+                    <span>💡</span>
+                    <span>Areas for Growth</span>
+                  </div>
+                  <ul className="space-y-1">
+                    {MOCK_PHASE_FEEDBACK[expandedPhase as keyof typeof MOCK_PHASE_FEEDBACK].improvements.map((improvement, i) => (
+                      <li key={i} className="text-white/90 text-sm leading-relaxed pl-4">
+                        • {improvement}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+
+                {/* Writing Revolution Concepts */}
+                <div className="bg-blue-500/20 border border-blue-400/30 rounded-lg p-4">
+                  <div className="text-blue-300 font-semibold mb-2 flex items-center space-x-2">
+                    <span>📚</span>
+                    <span>The Writing Revolution - Key Strategies</span>
+                  </div>
+                  <ul className="space-y-1">
+                    {MOCK_PHASE_FEEDBACK[expandedPhase as keyof typeof MOCK_PHASE_FEEDBACK].writingRevConcepts.map((concept, i) => (
+                      <li key={i} className="text-white/90 text-sm leading-relaxed pl-4">
+                        • {concept}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
+            </div>
+          )}
 
           {results.improvementBonus > 0 && (
             <div className="mt-6 bg-emerald-500/20 border border-emerald-400/30 rounded-xl p-4 text-center">
