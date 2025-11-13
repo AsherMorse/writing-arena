@@ -112,13 +112,13 @@ export async function getUserProfile(uid: string): Promise<UserProfile | null> {
   
   if (userSnap.exists()) {
     let rawData = userSnap.data();
-    console.log('📖 FIRESTORE - Profile found:', {
-      uid: rawData.uid,
-      displayName: rawData.displayName,
-      hasTraits: !!rawData.traits,
-      traitsContent: rawData.traits?.content,
-      allKeys: Object.keys(rawData)
-    });
+    console.log('📖 FIRESTORE - Profile found:');
+    console.log('  - uid:', rawData.uid);
+    console.log('  - displayName:', rawData.displayName);
+    console.log('  - hasTraits:', !!rawData.traits);
+    console.log('  - traits:', rawData.traits);
+    console.log('  - ALL KEYS:', Object.keys(rawData));
+    console.log('  - FULL RAW DATA:', JSON.stringify(rawData, null, 2));
     
     // If profile is missing traits (old profile), update it
     if (!rawData.traits || !rawData.traits.content) {
@@ -180,10 +180,13 @@ export async function getUserProfile(uid: string): Promise<UserProfile | null> {
       updatedAt: rawData.updatedAt,
     };
     
-    console.log('✅ FIRESTORE - Returning clean profile:', {
-      hasTraits: !!cleanProfile.traits,
-      traitsContent: cleanProfile.traits?.content
-    });
+    console.log('✅ FIRESTORE - Returning clean profile:');
+    console.log('  - uid:', cleanProfile.uid);
+    console.log('  - displayName:', cleanProfile.displayName);
+    console.log('  - traits:', cleanProfile.traits);
+    console.log('  - stats:', cleanProfile.stats);
+    console.log('  - CLEAN PROFILE KEYS:', Object.keys(cleanProfile));
+    console.log('  - CLEAN PROFILE JSON:', JSON.stringify(cleanProfile, null, 2));
     
     return cleanProfile;
   }
