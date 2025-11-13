@@ -1,29 +1,42 @@
 'use client';
 
 import { useRouter, useSearchParams } from 'next/navigation';
-import { useState, useEffect, Suspense } from 'react';
+import { useState, useEffect, Suspense, useRef } from 'react';
 import Link from 'next/link';
 import { useAuth } from '@/contexts/AuthContext';
+import { joinQueue, leaveQueue, listenToQueue, generateAIPlayer, QueueEntry } from '@/lib/matchmaking-queue';
 
 function RankedMatchmakingContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const trait = searchParams.get('trait');
-  const { userProfile } = useAuth();
+  const trait = searchParams.get('trait') || 'all';
+  const { user, userProfile } = useAuth();
 
   // Ensure avatar is a string (old profiles had it as an object)
   const userAvatar = typeof userProfile?.avatar === 'string' ? userProfile.avatar : '🌿';
   const userRank = userProfile?.currentRank || 'Silver III';
+  const userName = userProfile?.displayName || 'You';
+  const userId = user?.uid || 'temp-user';
 
-  const [players, setPlayers] = useState<Array<{name: string, avatar: string, rank: string}>>([
+  const [players, setPlayers] = useState<Array<{
+    userId: string;
+    name: string;
+    avatar: string;
+    rank: string;
+    isAI: boolean;
+  }>>([
     { 
+      userId: userId,
       name: 'You', 
       avatar: userAvatar, 
-      rank: userRank 
+      rank: userRank,
+      isAI: false
     }
   ]);
   const [searchingDots, setSearchingDots] = useState('');
   const [countdown, setCountdown] = useState<number | null>(null);
+  const aiBackfillIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const hasJoinedQueueRef = useRef(false);
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -32,31 +45,100 @@ function RankedMatchmakingContent() {
     return () => clearInterval(interval);
   }, []);
 
+  // Join queue and listen for players
   useEffect(() => {
-    const rankedPlayers = [
-      { name: 'ProWriter99', avatar: '🎯', rank: 'Silver II' },
-      { name: 'WordMaster', avatar: '📖', rank: 'Silver III' },
-      { name: 'EliteScribe', avatar: '✨', rank: 'Silver II' },
-      { name: 'PenChampion', avatar: '🏅', rank: 'Silver IV' },
-    ];
+    if (!user || !userProfile || hasJoinedQueueRef.current) return;
 
-    const timeouts: NodeJS.Timeout[] = [];
-    
-    [1200, 2000, 2800, 3600].forEach((delay, index) => {
-      const timeout = setTimeout(() => {
-        setPlayers(prev => [...prev, rankedPlayers[index]]);
-      }, delay);
-      timeouts.push(timeout);
-    });
+    console.log('🎮 MATCHMAKING - Starting matchmaking for:', userName);
+    hasJoinedQueueRef.current = true;
 
-    const countdownTimeout = setTimeout(() => {
+    let unsubscribeQueue: (() => void) | null = null;
+
+    const startMatchmaking = async () => {
+      try {
+        // Join the queue
+        await joinQueue(userId, userName, userAvatar, userRank, userProfile.rankLP || 0, trait);
+        console.log('✅ MATCHMAKING - In queue, listening for others...');
+
+        // Listen for other players in queue
+        unsubscribeQueue = listenToQueue(trait, userId, (queuePlayers: QueueEntry[]) => {
+          console.log('📥 MATCHMAKING - Queue update, players found:', queuePlayers.length);
+          
+          // Convert queue entries to player format
+          const realPlayers = queuePlayers.map(p => ({
+            userId: p.userId,
+            name: p.userId === userId ? 'You' : p.displayName,
+            avatar: p.avatar,
+            rank: p.rank,
+            isAI: false,
+          }));
+
+          setPlayers(realPlayers);
+        });
+
+        // Start AI backfill timer - add AI every 5 seconds
+        let aiIndex = 0;
+        aiBackfillIntervalRef.current = setInterval(() => {
+          setPlayers(prev => {
+            if (prev.length >= 5) {
+              console.log('🎮 MATCHMAKING - Party full, stopping AI backfill');
+              if (aiBackfillIntervalRef.current) {
+                clearInterval(aiBackfillIntervalRef.current);
+              }
+              return prev;
+            }
+
+            console.log('🤖 MATCHMAKING - Adding AI player', aiIndex + 1);
+            const aiPlayer = generateAIPlayer(userRank, aiIndex);
+            aiIndex++;
+            return [...prev, aiPlayer];
+          });
+        }, 5000); // Every 5 seconds
+
+      } catch (error) {
+        console.error('❌ MATCHMAKING - Error:', error);
+      }
+    };
+
+    startMatchmaking();
+
+    // Cleanup on unmount
+    return () => {
+      console.log('🧹 MATCHMAKING - Cleanup');
+      if (unsubscribeQueue) {
+        unsubscribeQueue();
+      }
+      if (aiBackfillIntervalRef.current) {
+        clearInterval(aiBackfillIntervalRef.current);
+      }
+      if (hasJoinedQueueRef.current && user) {
+        leaveQueue(userId).catch(err => 
+          console.error('Error leaving queue:', err)
+        );
+      }
+    };
+  }, [user, userProfile, userId, userName, userAvatar, userRank, trait]);
+
+  // Start match when 5 players
+  useEffect(() => {
+    if (players.length >= 5 && countdown === null) {
+      console.log('🎉 MATCHMAKING - Party full! Starting countdown...');
+      
+      // Stop AI backfill
+      if (aiBackfillIntervalRef.current) {
+        clearInterval(aiBackfillIntervalRef.current);
+      }
+      
+      // Leave queue
+      if (user) {
+        leaveQueue(userId).catch(err => console.error('Error leaving queue:', err));
+      }
+      
       setCountdown(3);
-    }, 4500);
-    timeouts.push(countdownTimeout);
+    }
+  }, [players.length, countdown, userId, user]);
 
-    return () => timeouts.forEach(clearTimeout);
-  }, []);
-
+  // Countdown and start match
   useEffect(() => {
     if (countdown === null) return;
     
@@ -64,6 +146,7 @@ function RankedMatchmakingContent() {
       const timer = setTimeout(() => setCountdown(countdown - 1), 1000);
       return () => clearTimeout(timer);
     } else {
+      console.log('🚀 MATCHMAKING - Starting match!');
       const randomPromptType = ['narrative', 'descriptive', 'informational', 'argumentative'][Math.floor(Math.random() * 4)];
       router.push(`/ranked/session?trait=${trait}&promptType=${randomPromptType}`);
     }
@@ -110,7 +193,9 @@ function RankedMatchmakingContent() {
                       key={index}
                       className={`relative bg-white/5 backdrop-blur-sm rounded-xl p-6 border-2 transition-all duration-500 ${
                         player 
-                          ? 'border-purple-400/50 scale-100 opacity-100' 
+                          ? player.isAI
+                            ? 'border-blue-400/30 scale-100 opacity-100'
+                            : 'border-purple-400/50 scale-100 opacity-100'
                           : 'border-white/10 scale-95 opacity-50'
                       }`}
                     >
@@ -118,12 +203,15 @@ function RankedMatchmakingContent() {
                         <div className="text-center animate-in fade-in zoom-in duration-300">
                           <div className="text-5xl mb-3">{player.avatar}</div>
                           <div className="text-white font-semibold mb-1">{player.name}</div>
-                          <div className="text-purple-400 text-xs">{player.rank}</div>
+                          <div className={`text-xs flex items-center justify-center gap-1 ${player.isAI ? 'text-blue-400' : 'text-purple-400'}`}>
+                            {player.isAI && <span className="text-[10px]">🤖</span>}
+                            <span>{player.rank}</span>
+                          </div>
                         </div>
                       ) : (
                         <div className="text-center">
                           <div className="text-4xl text-white/20 mb-3">👤</div>
-                          <div className="text-white/40 text-sm">Matching...</div>
+                          <div className="text-white/40 text-sm">Searching...</div>
                         </div>
                       )}
                       
@@ -158,9 +246,17 @@ function RankedMatchmakingContent() {
                       <div key={index} className="text-center">
                         <div className="text-3xl mb-1">{player.avatar}</div>
                         <div className="text-white text-xs font-semibold truncate">{player.name}</div>
-                        <div className="text-purple-400 text-[10px]">{player.rank}</div>
+                        <div className={`text-[10px] ${player.isAI ? 'text-blue-400' : 'text-purple-400'}`}>
+                          {player.isAI && '🤖 '}
+                          {player.rank}
+                        </div>
                       </div>
                     ))}
+                  </div>
+                  <div className="mt-4 pt-4 border-t border-white/10 text-center">
+                    <div className="text-white/60 text-xs">
+                      {players.filter(p => !p.isAI).length} Real Player{players.filter(p => !p.isAI).length !== 1 ? 's' : ''} • {players.filter(p => p.isAI).length} AI
+                    </div>
                   </div>
                 </div>
               </div>

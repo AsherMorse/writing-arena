@@ -1,0 +1,407 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // ============================================================================
+    // HELPER FUNCTIONS
+    // ============================================================================
+    
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+    
+    // ============================================================================
+    // PITCH RISE SPECIFIC COLLECTIONS - SECURED
+    // ============================================================================
+    
+    // User Progress & Onboarding
+    match /cursorSetupProgress/{userId} {
+      allow read, write: if isOwner(userId);
+    }
+    
+    match /personalWebsiteProgress/{userId} {
+      allow read, write: if isOwner(userId);
+    }
+    
+    match /vercelDeploymentProgress/{userId} {
+      allow read, write: if isOwner(userId);
+    }
+    
+    match /loomVideoProgress/{userId} {
+      allow read, write: if isOwner(userId);
+    }
+    
+    match /localSiteVerifications/{userId} {
+      allow read, write: if isOwner(userId);
+    }
+    
+    match /verificationCodeLookup/{code} {
+      allow read, write: if false; // Backend only
+    }
+    
+    // User Profiles & Data
+    match /userProfiles/{userId} {
+      allow read: if isAuthenticated();
+      allow write: if isOwner(userId);
+    }
+    
+    match /userVisions/{userId} {
+      allow read, write: if isOwner(userId);
+    }
+    
+    // Projects & Portfolio
+    match /userProjects/{projectId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated() && request.resource.data.userId == request.auth.uid;
+      allow update, delete: if isAuthenticated() && resource.data.userId == request.auth.uid;
+    }
+    
+    match /userProjectProgress/{projectId} {
+      allow read, write: if isAuthenticated();
+    }
+    
+    match /portfolioItems/{itemId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated() && request.resource.data.userId == request.auth.uid;
+      allow update, delete: if isAuthenticated() && resource.data.userId == request.auth.uid;
+    }
+    
+    match /userPortfolios/{userId} {
+      allow read: if isAuthenticated();
+      allow write: if isOwner(userId);
+    }
+    
+    match /projectLoomVideos/{projectId} {
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated();
+    }
+    
+    // Basics Dashboard
+    match /userBasicsProgress/{progressId} {
+      allow read, write: if isAuthenticated() && progressId == request.auth.uid;
+    }
+    
+    match /basicsEngagement/{engagementId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated() && request.resource.data.userId == request.auth.uid;
+      allow update: if isAuthenticated() && resource.data.userId == request.auth.uid;
+    }
+    
+    match /basicsProblemsCache/{cacheId} {
+      allow read: if isAuthenticated();
+      allow write: if false; // Backend only
+    }
+    
+    match /videoExplanations/{videoId} {
+      allow read: if isAuthenticated();
+      allow write: if false; // Backend only
+    }
+    
+    match /basicsLeaderboard/{entryId} {
+      allow read: if isAuthenticated();
+      allow write: if false; // Backend only
+    }
+    
+    match /basics-progress/{userId} {
+      allow read, write: if isOwner(userId);
+    }
+    
+    match /basics-reading-aloud-attempts/{attemptId} {
+      allow read: if isAuthenticated() && resource.data.userId == request.auth.uid;
+      allow write: if false; // Backend only
+    }
+    
+    // Surveys
+    match /surveyResponses/{responseId} {
+      allow read: if false; // Admin only via backend
+      allow create: if isAuthenticated();
+    }
+    
+    match /surveyProgress/{userId} {
+      allow read, write: if isOwner(userId);
+    }
+    
+    // Mentor Applications
+    match /mentorApplications/{userId} {
+      allow read: if isOwner(userId);
+      allow create: if isOwner(userId);
+      allow update: if false; // Admin only
+    }
+    
+    // Achievements & Gamification
+    match /userAchievements/{achievementId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated() && request.resource.data.userId == request.auth.uid;
+    }
+    
+    match /userStats/{userId} {
+      allow read: if isAuthenticated();
+      allow write: if isOwner(userId);
+    }
+    
+    match /pointsActivity/{activityId} {
+      allow read: if isAuthenticated() && resource.data.userId == request.auth.uid;
+      allow create: if isAuthenticated() && request.resource.data.userId == request.auth.uid;
+    }
+    
+    // NEW FEATURES - Daily Challenges
+    match /dailyChallenges/{challengeId} {
+      allow read, write: if isAuthenticated() && challengeId.matches('^' + request.auth.uid + '_.*');
+    }
+    
+    // NEW FEATURES - Quick Wins
+    match /quickWins/{winId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated() && request.resource.data.userId == request.auth.uid;
+      allow update, delete: if isAuthenticated() && resource.data.userId == request.auth.uid;
+    }
+    
+    // NEW FEATURES - Study Rooms
+    match /studyRooms/{roomId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated() && request.resource.data.creatorId == request.auth.uid;
+      allow update: if isAuthenticated() && (
+        resource.data.creatorId == request.auth.uid ||
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['currentParticipants'])
+      );
+      allow delete: if isAuthenticated() && resource.data.creatorId == request.auth.uid;
+    }
+    
+    match /roomParticipants/{participantId} {
+      allow read: if isAuthenticated();
+      allow create, update: if isAuthenticated() && participantId.matches('.*_' + request.auth.uid + '$');
+      allow delete: if isAuthenticated() && participantId.matches('.*_' + request.auth.uid + '$');
+    }
+    
+    match /roomMessages/{messageId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated() && 
+        request.resource.data.userId == request.auth.uid &&
+        request.resource.data.message.size() <= 500;
+    }
+    
+    match /roomActivities/{activityId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated() && request.resource.data.userId == request.auth.uid;
+    }
+    
+    // Social Features
+    match /userFollows/{followId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated() && request.resource.data.followerId == request.auth.uid;
+      allow delete: if isAuthenticated() && resource.data.followerId == request.auth.uid;
+    }
+    
+    match /reactions/{reactionId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated() && request.resource.data.userId == request.auth.uid;
+      allow delete: if isAuthenticated() && resource.data.userId == request.auth.uid;
+    }
+    
+    // Cohorts
+    match /cohorts/{cohortId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated() && request.resource.data.creatorId == request.auth.uid;
+      allow update: if isAuthenticated() && (
+        resource.data.creatorId == request.auth.uid ||
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['currentSize'])
+      );
+      allow delete: if isAuthenticated() && resource.data.creatorId == request.auth.uid;
+    }
+    
+    match /cohortMembers/{memberId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated() && request.resource.data.userId == request.auth.uid;
+      allow delete: if isAuthenticated() && resource.data.userId == request.auth.uid;
+    }
+    
+    match /cohortMessages/{messageId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated() && request.resource.data.userId == request.auth.uid;
+    }
+    
+    match /cohortSessions/{sessionId} {
+      allow read, write: if isAuthenticated();
+    }
+    
+    // Messaging
+    match /messages/{messageId} {
+      allow read: if isAuthenticated() && (
+        resource.data.senderId == request.auth.uid ||
+        resource.data.recipientId == request.auth.uid
+      );
+      allow create: if isAuthenticated() && request.resource.data.senderId == request.auth.uid;
+    }
+    
+    match /conversations/{conversationId} {
+      allow read: if isAuthenticated() && resource.data.participants[request.auth.uid] == true;
+      allow write: if isAuthenticated();
+    }
+    
+    match /notifications/{notificationId} {
+      allow read: if isAuthenticated() && resource.data.userId == request.auth.uid;
+      allow create: if isAuthenticated();
+      allow update: if isAuthenticated() && resource.data.userId == request.auth.uid;
+    }
+    
+    match /aiConversations/{conversationId} {
+      allow read, write: if isAuthenticated() && resource.data.userId == request.auth.uid;
+    }
+    
+    // Resources
+    match /resourceBookmarks/{bookmarkId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated() && request.resource.data.userId == request.auth.uid;
+      allow delete: if isAuthenticated() && resource.data.userId == request.auth.uid;
+    }
+    
+    // Sessions
+    match /sessionBookings/{bookingId} {
+      allow read: if isAuthenticated() && (
+        resource.data.studentId == request.auth.uid ||
+        resource.data.mentorId == request.auth.uid
+      );
+      allow create: if isAuthenticated() && request.resource.data.studentId == request.auth.uid;
+      allow update: if isAuthenticated() && (
+        resource.data.studentId == request.auth.uid ||
+        resource.data.mentorId == request.auth.uid
+      );
+    }
+    
+    // API & Webhooks
+    match /apiKeys/{keyId} {
+      allow read: if isAuthenticated() && resource.data.userId == request.auth.uid;
+      allow create: if isAuthenticated() && request.resource.data.userId == request.auth.uid;
+      allow update, delete: if isAuthenticated() && resource.data.userId == request.auth.uid;
+    }
+    
+    match /apiKeyUsage/{usageId} {
+      allow read: if isAuthenticated();
+      allow write: if false; // Backend only
+    }
+    
+    match /webhooks/{webhookId} {
+      allow read: if isAuthenticated() && resource.data.userId == request.auth.uid;
+      allow create: if isAuthenticated() && request.resource.data.userId == request.auth.uid;
+      allow update, delete: if isAuthenticated() && resource.data.userId == request.auth.uid;
+    }
+    
+    match /webhookDeliveries/{deliveryId} {
+      allow read: if isAuthenticated();
+      allow write: if false; // Backend only
+    }
+    
+    match /webVitals/{vitalId} {
+      allow read: if false; // Backend only
+      allow create: if isAuthenticated();
+    }
+    
+    // Customer Documents & Multi-Developer System
+    match /customerDocuments/{documentId} {
+      allow read, write: if isAuthenticated();
+    }
+    
+    match /developerProfiles/{developerId} {
+      allow read: if isAuthenticated();
+      allow write: if isOwner(developerId);
+    }
+    
+    match /projects/{projectId} {
+      allow read, write: if isAuthenticated();
+    }
+    
+    match /clientRequirements/{requirementId} {
+      allow read, write: if isAuthenticated();
+    }
+    
+    match /developmentSessions/{sessionId} {
+      allow read, write: if isAuthenticated();
+    }
+    
+    match /documentCommunications/{communicationId} {
+      allow read, write: if isAuthenticated();
+    }
+    
+    // Voice Notes & Calendar Integration
+    match /voiceNotes/{recordingId} {
+      allow read: if isAuthenticated() && resource.data.userId == request.auth.uid;
+      allow create: if isAuthenticated() && request.resource.data.userId == request.auth.uid;
+      allow update, delete: if isAuthenticated() && resource.data.userId == request.auth.uid;
+    }
+    
+    match /calendarIntegrations/{userId} {
+      allow read, write: if isOwner(userId);
+    }
+    
+    match /meetingBots/{botId} {
+      allow read: if isAuthenticated() && resource.data.userId == request.auth.uid;
+      allow write: if false; // Backend only
+    }
+    
+    // ============================================================================
+    // WRITING ARENA SPECIFIC COLLECTIONS
+    // ============================================================================
+    
+    // Writing Arena User Profiles (separate from Pitch Rise userProfiles)
+    match /users/{userId} {
+      // Anyone can read user profiles (for displaying opponents in matches)
+      allow read: if isAuthenticated();
+      
+      // Users can only create/update their own profile
+      allow create, update: if isOwner(userId);
+      
+      // No deleting profiles
+      allow delete: if false;
+    }
+    
+    // Matchmaking Queue - temporary entries while searching for matches
+    match /matchmakingQueue/{userId} {
+      // Anyone in queue can read all queue entries (to see who's waiting)
+      allow read: if isAuthenticated();
+      
+      // Users can only add/remove themselves from queue
+      allow create, delete: if isOwner(userId);
+      allow update: if isOwner(userId);
+    }
+    
+    // Matches collection - ongoing and completed ranked battles
+    match /matches/{matchId} {
+      // Anyone can read matches (for spectating, history)
+      allow read: if isAuthenticated();
+      
+      // Authenticated users can create matches
+      allow create: if isAuthenticated();
+      
+      // Players in the match can update it
+      allow update: if isAuthenticated();
+      
+      // No deleting matches (keep history)
+      allow delete: if false;
+    }
+    
+    // Writing sessions - saved writing and feedback
+    match /writingSessions/{sessionId} {
+      // Users can read their own sessions
+      allow read: if isAuthenticated() && resource.data.userId == request.auth.uid;
+      
+      // Users can create their own sessions
+      allow create: if isAuthenticated() && request.resource.data.userId == request.auth.uid;
+      
+      // No updating or deleting sessions (immutable history)
+      allow update, delete: if false;
+    }
+    
+    // ============================================================================
+    // DEFAULT RULE - ALL OTHER COLLECTIONS (OTHER PLATFORMS)
+    // This keeps existing behavior for shared collections
+    // ============================================================================
+    
+    match /{document=**} {
+      allow read, write: if request.auth != null;
+    }
+  }
+}
