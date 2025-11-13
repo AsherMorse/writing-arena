@@ -142,25 +142,36 @@ export default function RankedPage() {
                 </div>
 
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                  {traits.map((trait) => (
-                    <button
-                      key={trait.id}
-                      onClick={() => setSelectedTrait(trait.id)}
-                      className={`group p-3 rounded-lg transition-all duration-200 text-center border-2 ${
-                        selectedTrait === trait.id
-                          ? 'border-purple-400 bg-purple-500/20 scale-105'
-                          : 'border-white/10 bg-white/5 hover:bg-white/10 hover:scale-105'
-                      }`}
-                    >
-                      <div className={`w-10 h-10 bg-gradient-to-br ${trait.color} rounded-lg flex items-center justify-center text-xl mx-auto mb-1 group-hover:scale-110 transition-transform`}>
-                        {trait.icon}
-                      </div>
-                      <div className="text-white text-xs font-semibold">{trait.name}</div>
-                      {selectedTrait === trait.id && (
-                        <div className="text-purple-400 text-[10px] mt-0.5">✓</div>
-                      )}
-                    </button>
-                  ))}
+                  {traits.map((trait) => {
+                    const isDisabled = trait.id !== 'all';
+                    return (
+                      <button
+                        key={trait.id}
+                        onClick={() => !isDisabled && setSelectedTrait(trait.id)}
+                        disabled={isDisabled}
+                        className={`group p-3 rounded-lg transition-all duration-200 text-center border-2 ${
+                          selectedTrait === trait.id
+                            ? 'border-purple-400 bg-purple-500/20 scale-105'
+                            : isDisabled
+                            ? 'border-white/5 bg-white/5 opacity-40 cursor-not-allowed'
+                            : 'border-white/10 bg-white/5 hover:bg-white/10 hover:scale-105'
+                        }`}
+                      >
+                        <div className={`w-10 h-10 bg-gradient-to-br ${trait.color} rounded-lg flex items-center justify-center text-xl mx-auto mb-1 ${!isDisabled && 'group-hover:scale-110'} transition-transform`}>
+                          {trait.icon}
+                        </div>
+                        <div className={`text-xs font-semibold ${isDisabled ? 'text-white/30' : 'text-white'}`}>
+                          {trait.name}
+                        </div>
+                        {selectedTrait === trait.id && (
+                          <div className="text-purple-400 text-[10px] mt-0.5">✓ Selected</div>
+                        )}
+                        {isDisabled && (
+                          <div className="text-white/20 text-[10px] mt-0.5">Coming Soon</div>
+                        )}
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
 

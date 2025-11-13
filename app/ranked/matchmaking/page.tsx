@@ -3,14 +3,24 @@
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useState, useEffect, Suspense } from 'react';
 import Link from 'next/link';
+import { useAuth } from '@/contexts/AuthContext';
 
 function RankedMatchmakingContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const trait = searchParams.get('trait');
+  const { userProfile } = useAuth();
+
+  // Ensure avatar is a string (old profiles had it as an object)
+  const userAvatar = typeof userProfile?.avatar === 'string' ? userProfile.avatar : '🌿';
+  const userRank = userProfile?.currentRank || 'Silver III';
 
   const [players, setPlayers] = useState<Array<{name: string, avatar: string, rank: string}>>([
-    { name: 'You', avatar: '🌿', rank: 'Silver III' }
+    { 
+      name: 'You', 
+      avatar: userAvatar, 
+      rank: userRank 
+    }
   ]);
   const [searchingDots, setSearchingDots] = useState('');
   const [countdown, setCountdown] = useState<number | null>(null);

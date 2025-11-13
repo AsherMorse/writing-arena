@@ -2,20 +2,25 @@
 
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useState, useEffect, Suspense } from 'react';
+import { useAuth } from '@/contexts/AuthContext';
 
 function RankedSessionContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const trait = searchParams.get('trait');
   const promptType = searchParams.get('promptType');
+  const { userProfile } = useAuth();
 
   const [timeLeft, setTimeLeft] = useState(240);
   const [writingContent, setWritingContent] = useState('');
   const [wordCount, setWordCount] = useState(0);
   const [showPasteWarning, setShowPasteWarning] = useState(false);
 
+  const userRank = userProfile?.currentRank || 'Silver III';
+  const userAvatar = typeof userProfile?.avatar === 'string' ? userProfile.avatar : '🌿';
+
   const [partyMembers] = useState([
-    { name: 'You', avatar: '🌿', rank: 'Silver III', wordCount: 0, isYou: true },
+    { name: 'You', avatar: userAvatar, rank: userRank, wordCount: 0, isYou: true },
     { name: 'ProWriter99', avatar: '🎯', rank: 'Silver II', wordCount: 0, isYou: false },
     { name: 'WordMaster', avatar: '📖', rank: 'Silver III', wordCount: 0, isYou: false },
     { name: 'EliteScribe', avatar: '✨', rank: 'Silver II', wordCount: 0, isYou: false },
