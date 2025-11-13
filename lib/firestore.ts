@@ -111,17 +111,17 @@ export async function getUserProfile(uid: string): Promise<UserProfile | null> {
   const userSnap = await getDoc(userRef);
   
   if (userSnap.exists()) {
-    const data = userSnap.data() as UserProfile;
+    let rawData = userSnap.data();
     console.log('📖 FIRESTORE - Profile found:', {
-      uid: data.uid,
-      displayName: data.displayName,
-      hasTraits: !!data.traits,
-      traitsContent: data.traits?.content,
-      fullData: data
+      uid: rawData.uid,
+      displayName: rawData.displayName,
+      hasTraits: !!rawData.traits,
+      traitsContent: rawData.traits?.content,
+      allKeys: Object.keys(rawData)
     });
     
     // If profile is missing traits (old profile), update it
-    if (!data.traits || !data.traits.content) {
+    if (!rawData.traits || !rawData.traits.content) {
       console.log('⚠️ FIRESTORE - Profile missing traits, updating...');
       await setDoc(userRef, {
         traits: {
@@ -131,34 +131,61 @@ export async function getUserProfile(uid: string): Promise<UserProfile | null> {
           vocabulary: 1,
           mechanics: 2,
         },
-        stats: data.stats || {
+        stats: rawData.stats || {
           totalMatches: 0,
           wins: 0,
           totalWords: 0,
           currentStreak: 0,
         },
-        avatar: data.avatar || '🌿',
-        characterLevel: data.characterLevel || 2,
-        totalXP: data.totalXP || 1250,
-        totalPoints: data.totalPoints || 1250,
-        currentRank: data.currentRank || 'Silver III',
-        rankLP: data.rankLP || 120,
+        avatar: rawData.avatar || '🌿',
+        characterLevel: rawData.characterLevel || 2,
+        totalXP: rawData.totalXP || 1250,
+        totalPoints: rawData.totalPoints || 1250,
+        currentRank: rawData.currentRank || 'Silver III',
+        rankLP: rawData.rankLP || 120,
         updatedAt: serverTimestamp(),
       }, { merge: true });
       
       console.log('✅ FIRESTORE - Profile updated with traits, refetching...');
       const updatedSnap = await getDoc(userRef);
-      if (updatedSnap.exists()) {
-        const updatedData = updatedSnap.data() as UserProfile;
-        console.log('✅ FIRESTORE - Updated profile:', {
-          hasTraits: !!updatedData.traits,
-          traitsContent: updatedData.traits?.content
-        });
-        return updatedData;
-      }
+      rawData = updatedSnap.exists() ? updatedSnap.data() : rawData;
+      console.log('✅ FIRESTORE - Updated profile, keys:', Object.keys(rawData));
     }
     
-    return data;
+    // Return only expected UserProfile fields to avoid rendering issues
+    const cleanProfile: UserProfile = {
+      uid: rawData.uid || uid,
+      displayName: rawData.displayName || 'Student Writer',
+      email: rawData.email || '',
+      avatar: rawData.avatar || '🌿',
+      characterLevel: rawData.characterLevel || 2,
+      totalXP: rawData.totalXP || 1250,
+      totalPoints: rawData.totalPoints || 1250,
+      currentRank: rawData.currentRank || 'Silver III',
+      rankLP: rawData.rankLP || 120,
+      traits: rawData.traits || {
+        content: 2,
+        organization: 3,
+        grammar: 2,
+        vocabulary: 1,
+        mechanics: 2,
+      },
+      stats: rawData.stats || {
+        totalMatches: 0,
+        wins: 0,
+        totalWords: 0,
+        currentStreak: 0,
+      },
+      createdAt: rawData.createdAt,
+      updatedAt: rawData.updatedAt,
+    };
+    
+    console.log('✅ FIRESTORE - Returning clean profile:', {
+      hasTraits: !!cleanProfile.traits,
+      traitsContent: cleanProfile.traits?.content
+    });
+    
+    return cleanProfile;
   }
   
   console.log('📖 FIRESTORE - No profile found for:', uid);
