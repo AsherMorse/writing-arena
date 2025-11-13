@@ -64,8 +64,10 @@ export interface WritingSession {
 
 // Create or update user profile
 export async function createUserProfile(uid: string, data: Partial<UserProfile>) {
+  console.log('💾 FIRESTORE - Creating profile for:', uid, data);
   const userRef = doc(db, 'users', uid);
-  await setDoc(userRef, {
+  
+  const profileData = {
     uid,
     displayName: data.displayName || 'Student Writer',
     email: data.email || '',
@@ -90,17 +92,37 @@ export async function createUserProfile(uid: string, data: Partial<UserProfile>)
     },
     createdAt: serverTimestamp(),
     updatedAt: serverTimestamp(),
-  }, { merge: true });
+  };
+  
+  console.log('💾 FIRESTORE - Profile data to write:', {
+    uid: profileData.uid,
+    hasTraits: !!profileData.traits,
+    traitsContent: profileData.traits.content
+  });
+  
+  await setDoc(userRef, profileData, { merge: true });
+  console.log('✅ FIRESTORE - Profile write complete');
 }
 
 // Get user profile
 export async function getUserProfile(uid: string): Promise<UserProfile | null> {
+  console.log('📖 FIRESTORE - Fetching profile for:', uid);
   const userRef = doc(db, 'users', uid);
   const userSnap = await getDoc(userRef);
   
   if (userSnap.exists()) {
-    return userSnap.data() as UserProfile;
+    const data = userSnap.data() as UserProfile;
+    console.log('📖 FIRESTORE - Profile found:', {
+      uid: data.uid,
+      displayName: data.displayName,
+      hasTraits: !!data.traits,
+      traitsContent: data.traits?.content,
+      fullData: data
+    });
+    return data;
   }
+  
+  console.log('📖 FIRESTORE - No profile found for:', uid);
   return null;
 }
 

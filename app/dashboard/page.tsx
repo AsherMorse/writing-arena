@@ -11,8 +11,20 @@ export default function DashboardPage() {
   const [showMatchModal, setShowMatchModal] = useState(true);
   const [creatingProfile, setCreatingProfile] = useState(false);
 
+  // Log every render
+  console.log('🏠 DASHBOARD RENDER:', {
+    loading,
+    hasUser: !!user,
+    hasUserProfile: !!userProfile,
+    hasTraits: !!userProfile?.traits,
+    traitsContent: userProfile?.traits?.content,
+    creatingProfile
+  });
+
   useEffect(() => {
+    console.log('🏠 DASHBOARD - Redirect check:', { loading, hasUser: !!user });
     if (!loading && !user) {
+      console.log('🏠 DASHBOARD - Redirecting to home (no user)');
       router.push('/');
     }
   }, [user, loading, router]);
@@ -20,22 +32,33 @@ export default function DashboardPage() {
   // If user exists but no profile after loading, create one
   useEffect(() => {
     const ensureProfile = async () => {
+      console.log('🏠 DASHBOARD - Profile check:', {
+        loading,
+        hasUser: !!user,
+        hasUserProfile: !!userProfile,
+        creatingProfile
+      });
+      
       if (!loading && user && !userProfile && !creatingProfile) {
+        console.log('⚠️ DASHBOARD - Missing profile detected, creating...');
         setCreatingProfile(true);
         try {
-          console.log('Dashboard: Creating missing profile for user', user.uid);
           const { createUserProfile, getUserProfile } = await import('@/lib/firestore');
           
+          console.log('🏠 DASHBOARD - Creating profile for:', user.uid);
           await createUserProfile(user.uid, {
             displayName: user.displayName || user.email?.split('@')[0] || 'Student Writer',
             email: user.email || '',
           });
+          console.log('✅ DASHBOARD - Profile created, waiting...');
           
           // Wait and refresh
           await new Promise(resolve => setTimeout(resolve, 1000));
+          console.log('🏠 DASHBOARD - Refreshing profile...');
           await refreshProfile();
+          console.log('✅ DASHBOARD - Profile refresh complete');
         } catch (error) {
-          console.error('Dashboard: Failed to create profile', error);
+          console.error('❌ DASHBOARD - Failed to create profile:', error);
         } finally {
           setCreatingProfile(false);
         }
@@ -46,6 +69,7 @@ export default function DashboardPage() {
   }, [user, userProfile, loading, creatingProfile, refreshProfile]);
 
   if (loading) {
+    console.log('🏠 DASHBOARD - Showing loading screen');
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center">
         <div className="text-center">
@@ -58,11 +82,13 @@ export default function DashboardPage() {
   }
 
   if (!user) {
+    console.log('🏠 DASHBOARD - No user, returning null');
     return null;
   }
 
   // If user exists but profile doesn't, show loading (profile is being created)
   if (!userProfile || creatingProfile) {
+    console.log('🏠 DASHBOARD - Showing profile creation screen');
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center">
         <div className="text-center">
@@ -76,6 +102,12 @@ export default function DashboardPage() {
       </div>
     );
   }
+
+  console.log('🏠 DASHBOARD - Rendering main dashboard with profile:', {
+    displayName: userProfile.displayName,
+    hasTraits: !!userProfile.traits,
+    traitsContent: userProfile.traits?.content
+  });
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
