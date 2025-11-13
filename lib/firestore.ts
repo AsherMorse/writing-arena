@@ -152,12 +152,28 @@ export async function getUserProfile(uid: string): Promise<UserProfile | null> {
       console.log('✅ FIRESTORE - Updated profile, keys:', Object.keys(rawData));
     }
     
+    // Handle avatar - could be a string or an object from old schema
+    let avatarValue = '🌿';
+    if (rawData.avatar) {
+      if (typeof rawData.avatar === 'string') {
+        avatarValue = rawData.avatar;
+      } else if (rawData.avatar.photoURL) {
+        // Old schema had avatar as object with photoURL - just use default emoji
+        avatarValue = '🌿';
+      }
+    }
+    console.log('🎨 Avatar processing:', { 
+      type: typeof rawData.avatar, 
+      isObject: typeof rawData.avatar === 'object',
+      final: avatarValue 
+    });
+    
     // Return only expected UserProfile fields to avoid rendering issues
     const cleanProfile: UserProfile = {
-      uid: rawData.uid || uid,
+      uid: rawData.uid || rawData.id || uid,
       displayName: rawData.displayName || 'Student Writer',
       email: rawData.email || '',
-      avatar: rawData.avatar || '🌿',
+      avatar: avatarValue,
       characterLevel: rawData.characterLevel || 2,
       totalXP: rawData.totalXP || 1250,
       totalPoints: rawData.totalPoints || 1250,
@@ -170,11 +186,11 @@ export async function getUserProfile(uid: string): Promise<UserProfile | null> {
         vocabulary: 1,
         mechanics: 2,
       },
-      stats: rawData.stats || {
-        totalMatches: 0,
-        wins: 0,
-        totalWords: 0,
-        currentStreak: 0,
+      stats: {
+        totalMatches: rawData.stats?.totalMatches || 0,
+        wins: rawData.stats?.wins || 0,
+        totalWords: rawData.stats?.totalWords || 0,
+        currentStreak: rawData.stats?.currentStreak || 0,
       },
       createdAt: rawData.createdAt,
       updatedAt: rawData.updatedAt,
