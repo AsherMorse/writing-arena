@@ -1,17 +1,16 @@
 'use client';
 
-import React, { createContext, useContext, useEffect, useState } from 'react';
-import { 
-  User,
-  signInAnonymously,
-  onAuthStateChanged,
-  signOut as firebaseSignOut
-} from 'firebase/auth';
-import { auth } from '@/lib/firebase';
-import { createUserProfile, getUserProfile, UserProfile } from '@/lib/firestore';
+import React, { createContext, useContext, useState } from 'react';
+import { UserProfile } from '@/lib/firestore';
+
+// MOCK AUTH - No Firebase calls for testing
+interface MockUser {
+  uid: string;
+  email: string | null;
+}
 
 interface AuthContextType {
-  user: User | null;
+  user: MockUser | null;
   userProfile: UserProfile | null;
   loading: boolean;
   signIn: () => Promise<void>;
@@ -22,63 +21,64 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType>({
   user: null,
   userProfile: null,
-  loading: true,
+  loading: false,
   signIn: async () => {},
   signOut: async () => {},
   refreshProfile: async () => {},
 });
 
+// Mock user profile for testing
+const MOCK_USER_PROFILE: UserProfile = {
+  uid: 'mock-user-123',
+  displayName: 'Test Student',
+  email: 'test@example.com',
+  avatar: '🌿',
+  characterLevel: 2,
+  totalXP: 1250,
+  totalPoints: 1250,
+  currentRank: 'Silver III',
+  rankLP: 120,
+  traits: {
+    content: 2,
+    organization: 3,
+    grammar: 2,
+    vocabulary: 1,
+    mechanics: 2,
+  },
+  stats: {
+    totalMatches: 47,
+    wins: 29,
+    totalWords: 12438,
+    currentStreak: 3,
+  },
+  createdAt: new Date() as any,
+  updatedAt: new Date() as any,
+};
+
+const MOCK_USER: MockUser = {
+  uid: 'mock-user-123',
+  email: 'test@example.com',
+};
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = useState<User | null>(null);
-  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [user, setUser] = useState<MockUser | null>(MOCK_USER);
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(MOCK_USER_PROFILE);
+  const [loading] = useState(false);
 
   const refreshProfile = async () => {
-    if (user) {
-      const profile = await getUserProfile(user.uid);
-      setUserProfile(profile);
-    }
+    console.log('Mock: refreshProfile called');
   };
 
-  useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      setUser(user);
-      
-      if (user) {
-        // Get or create user profile
-        let profile = await getUserProfile(user.uid);
-        if (!profile) {
-          await createUserProfile(user.uid, {
-            displayName: 'Student Writer',
-            email: user.email || '',
-          });
-          profile = await getUserProfile(user.uid);
-        }
-        setUserProfile(profile);
-      } else {
-        setUserProfile(null);
-      }
-      
-      setLoading(false);
-    });
-
-    return () => unsubscribe();
-  }, []);
-
   const signIn = async () => {
-    try {
-      await signInAnonymously(auth);
-    } catch (error) {
-      console.error('Error signing in:', error);
-    }
+    console.log('Mock: signIn called');
+    setUser(MOCK_USER);
+    setUserProfile(MOCK_USER_PROFILE);
   };
 
   const signOut = async () => {
-    try {
-      await firebaseSignOut(auth);
-    } catch (error) {
-      console.error('Error signing out:', error);
-    }
+    console.log('Mock: signOut called');
+    setUser(null);
+    setUserProfile(null);
   };
 
   return (
@@ -89,4 +89,3 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 }
 
 export const useAuth = () => useContext(AuthContext);
-

@@ -14,15 +14,24 @@ const firebaseConfig = {
   measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID,
 };
 
-// Initialize Firebase only if it hasn't been initialized
-const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
+// Check if config is valid
+const isConfigValid = firebaseConfig.apiKey && firebaseConfig.projectId;
+
+if (!isConfigValid) {
+  console.warn('Firebase config is missing. Please check your .env.local file.');
+}
+
+// Initialize Firebase only if it hasn't been initialized and config is valid
+const app = isConfigValid && getApps().length === 0 
+  ? initializeApp(firebaseConfig) 
+  : getApps()[0];
 
 // Initialize services
-export const auth = getAuth(app);
-export const db = getFirestore(app);
+export const auth = app ? getAuth(app) : null as any;
+export const db = app ? getFirestore(app) : null as any;
 
 // Analytics only on client side
-export const analytics = typeof window !== 'undefined' ? getAnalytics(app) : null;
+export const analytics = typeof window !== 'undefined' && app ? getAnalytics(app) : null;
 
 export default app;
 

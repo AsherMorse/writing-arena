@@ -89,8 +89,11 @@ function RankedSessionContent() {
   };
 
   const handleSubmit = () => {
+    // Mock AI scoring for phase 1
+    const yourScore = Math.min(Math.max(60 + (wordCount / 5) + Math.random() * 15, 40), 100);
     const encodedContent = encodeURIComponent(writingContent);
-    router.push(`/ranked/results?trait=${trait}&promptType=${promptType}&content=${encodedContent}&wordCount=${wordCount}&aiScores=${aiWordCounts.join(',')}`);
+    // Route to peer feedback phase instead of results
+    router.push(`/ranked/peer-feedback?trait=${trait}&promptType=${promptType}&content=${encodedContent}&wordCount=${wordCount}&aiScores=${aiWordCounts.join(',')}&yourScore=${Math.round(yourScore)}`);
   };
 
   const handlePaste = (e: React.ClipboardEvent<HTMLTextAreaElement>) => {
