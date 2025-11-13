@@ -41,25 +41,36 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      setUser(user);
-      
-      if (user) {
-        // Get or create user profile
-        let profile = await getUserProfile(user.uid);
-        if (!profile) {
-          await createUserProfile(user.uid, {
-            displayName: 'Student Writer',
-            email: user.email || '',
-          });
-          profile = await getUserProfile(user.uid);
-        }
-        setUserProfile(profile);
-      } else {
-        setUserProfile(null);
-      }
-      
+    // If auth is not initialized, set loading to false immediately
+    if (!auth) {
+      console.error('Firebase auth not initialized');
       setLoading(false);
+      return;
+    }
+
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      try {
+        setUser(user);
+        
+        if (user) {
+          // Get or create user profile
+          let profile = await getUserProfile(user.uid);
+          if (!profile) {
+            await createUserProfile(user.uid, {
+              displayName: 'Student Writer',
+              email: user.email || '',
+            });
+            profile = await getUserProfile(user.uid);
+          }
+          setUserProfile(profile);
+        } else {
+          setUserProfile(null);
+        }
+      } catch (error) {
+        console.error('Error in auth state change:', error);
+      } finally {
+        setLoading(false);
+      }
     });
 
     return () => unsubscribe();
