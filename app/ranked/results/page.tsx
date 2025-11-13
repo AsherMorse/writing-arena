@@ -1,14 +1,13 @@
 'use client';
 
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useSearchParams } from 'next/navigation';
 import { useState, useEffect, Suspense } from 'react';
 import Link from 'next/link';
 import { useAuth } from '@/contexts/AuthContext';
-import { saveWritingSession, updateUserStatsAfterSession } from '@/lib/firestore';
 
 function RankedResultsContent() {
   const searchParams = useSearchParams();
-  const { user, refreshProfile } = useAuth();
+  const { user } = useAuth();
   const trait = searchParams.get('trait');
   const promptType = searchParams.get('promptType');
   const originalContent = searchParams.get('originalContent') || '';
@@ -115,46 +114,17 @@ function RankedResultsContent() {
         // Calculate improvement from original to revision
         const improvementBonus = Math.max(0, revisionScore - writingScore);
 
-        // Save to Firebase if user is logged in
+        // MOCK: Skip Firebase calls for now
         if (user) {
-          try {
-            // Note: revisedContent will be saved when we extend the WritingSession type
-            // For now, saving the original content with composite score
-            await saveWritingSession({
-              userId: user.uid,
-              mode: 'ranked',
-              trait: trait || 'all',
-              promptType: promptType || 'narrative',
-              content: decodeURIComponent(originalContent),
-              wordCount,
-              score: Math.round(yourCompositeScore),
-              traitScores: {
-                content: writingScore,
-                organization: feedbackScore,
-                grammar: revisionScore,
-                vocabulary: Math.round(yourCompositeScore),
-                mechanics: Math.round(yourCompositeScore),
-              },
-              xpEarned,
-              pointsEarned,
-              lpChange,
-              placement: yourRank,
-              timestamp: new Date() as any,
-            });
-            
-            await updateUserStatsAfterSession(
-              user.uid,
-              xpEarned,
-              pointsEarned,
-              lpChange,
-              isVictory,
-              wordCount
-            );
-            
-            await refreshProfile();
-          } catch (error) {
-            console.error('Error saving Ranked session:', error);
-          }
+          console.log('Mock: Would save session data:', {
+            userId: user.uid,
+            mode: 'ranked',
+            score: Math.round(yourCompositeScore),
+            xpEarned,
+            pointsEarned,
+            lpChange,
+            placement: yourRank,
+          });
         }
 
         setResults({

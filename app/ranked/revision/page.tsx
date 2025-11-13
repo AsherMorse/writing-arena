@@ -184,35 +184,36 @@ function RankedRevisionContent() {
                 </div>
               </div>
 
-              {/* Peer Feedback */}
-              {peerFeedback.improvements && (
-                <div className="bg-gradient-to-br from-blue-500/20 to-cyan-500/20 backdrop-blur-sm rounded-xl p-4 border border-blue-400/30">
-                  <h3 className="text-white font-bold mb-3 flex items-center space-x-2">
-                    <span>👥</span>
-                    <span>Peer Feedback</span>
-                  </h3>
-                  
-                  <div className="space-y-3">
-                    {peerFeedback.strengths && (
-                      <div>
-                        <div className="text-emerald-400 text-xs font-semibold mb-1">Strengths noted:</div>
-                        <p className="text-white/80 text-sm leading-relaxed">
-                          {peerFeedback.strengths}
-                        </p>
-                      </div>
-                    )}
+              {/* Peer Feedback - MOCK */}
+              <div className="bg-gradient-to-br from-blue-500/20 to-cyan-500/20 backdrop-blur-sm rounded-xl p-4 border border-blue-400/30">
+                <h3 className="text-white font-bold mb-3 flex items-center space-x-2">
+                  <span>👥</span>
+                  <span>Peer Feedback</span>
+                </h3>
+                
+                <div className="space-y-3">
+                  <div>
+                    <div className="text-emerald-400 text-xs font-semibold mb-1">Strengths noted:</div>
+                    <p className="text-white/80 text-sm leading-relaxed break-words">
+                      Your story has a great sense of mystery and adventure. The lighthouse setting is really interesting and makes me want to know more. The golden light is a nice detail that adds magic to the scene.
+                    </p>
+                  </div>
 
-                    {peerFeedback.improvements && (
-                      <div>
-                        <div className="text-yellow-400 text-xs font-semibold mb-1">Suggestions:</div>
-                        <p className="text-white/80 text-sm leading-relaxed">
-                          {peerFeedback.improvements}
-                        </p>
-                      </div>
-                    )}
+                  <div>
+                    <div className="text-yellow-400 text-xs font-semibold mb-1">Suggestions:</div>
+                    <p className="text-white/80 text-sm leading-relaxed break-words">
+                      Try adding more description about what Sarah is feeling - is she scared, excited, or curious? Also, what does the inside of the lighthouse look like? Adding more sensory details would help readers feel like they&apos;re there with Sarah.
+                    </p>
+                  </div>
+
+                  <div>
+                    <div className="text-blue-400 text-xs font-semibold mb-1">Organization:</div>
+                    <p className="text-white/80 text-sm leading-relaxed break-words">
+                      The story flows well from the ordinary to the mysterious. Good job building up to the discovery!
+                    </p>
                   </div>
                 </div>
-              )}
+              </div>
             </div>
           </div>
 
