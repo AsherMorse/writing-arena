@@ -3,6 +3,8 @@
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useState, useEffect, Suspense } from 'react';
 import WritingTipsModal from '@/components/WritingTipsModal';
+import { useAuth } from '@/contexts/AuthContext';
+import { submitPhase, getPeerFeedbackResponses } from '@/lib/match-sync';
 
 // Mock AI feedback - will be replaced with real AI later
 const MOCK_AI_FEEDBACK = {
@@ -22,6 +24,8 @@ const MOCK_AI_FEEDBACK = {
 function RankedRevisionContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { user } = useAuth();
+  const matchId = searchParams.get('matchId') || '';
   const trait = searchParams.get('trait');
   const promptId = searchParams.get('promptId');
   const promptType = searchParams.get('promptType');
@@ -40,6 +44,9 @@ function RankedRevisionContent() {
   const [aiFeedback, setAiFeedback] = useState(MOCK_AI_FEEDBACK);
   const [loadingFeedback, setLoadingFeedback] = useState(true);
   const [isEvaluating, setIsEvaluating] = useState(false);
+  const [realPeerFeedback, setRealPeerFeedback] = useState<any>(null);
+  const [loadingPeerFeedback, setLoadingPeerFeedback] = useState(true);
+  const [aiRevisionsGenerated, setAiRevisionsGenerated] = useState(false);
   
   // Parse peer feedback
   let peerFeedback;
@@ -48,6 +55,34 @@ function RankedRevisionContent() {
   } catch {
     peerFeedback = {};
   }
+
+  // Fetch real peer feedback from Phase 2
+  useEffect(() => {
+    const fetchPeerFeedback = async () => {
+      if (!user || !matchId) {
+        setLoadingPeerFeedback(false);
+        return;
+      }
+      
+      console.log('👥 REVISION - Fetching peer feedback from Phase 2...');
+      try {
+        const peerFeedbackData = await getPeerFeedbackResponses(matchId, user.uid);
+        
+        if (peerFeedbackData) {
+          console.log('✅ REVISION - Loaded peer feedback from:', peerFeedbackData.reviewerName);
+          setRealPeerFeedback(peerFeedbackData);
+        } else {
+          console.warn('⚠️ REVISION - No peer feedback found, will show placeholder');
+        }
+      } catch (error) {
+        console.error('❌ REVISION - Error loading peer feedback:', error);
+      } finally {
+        setLoadingPeerFeedback(false);
+      }
+    };
+    
+    fetchPeerFeedback();
+  }, [user, matchId]);
 
   // Fetch real AI feedback on component mount
   useEffect(() => {
@@ -79,6 +114,88 @@ function RankedRevisionContent() {
     fetchAIFeedback();
   }, [originalContent, promptType]);
 
+  // Generate AI revisions when phase starts
+  useEffect(() => {
+    const generateAIRevisions = async () => {
+      if (!matchId || !user || aiRevisionsGenerated) return;
+      
+      console.log('🤖 REVISION - Generating AI revisions...');
+      setAiRevisionsGenerated(true);
+      
+      try {
+        const { getDoc, doc, updateDoc } = await import('firebase/firestore');
+        const { db } = await import('@/lib/firebase');
+        
+        // Get match state to find AI players and their writings/feedback
+        const matchDoc = await getDoc(doc(db, 'matchStates', matchId));
+        if (!matchDoc.exists()) return;
+        
+        const matchState = matchDoc.data();
+        const players = matchState.players || [];
+        const aiPlayers = players.filter((p: any) => p.isAI);
+        const phase1Writings = matchState.aiWritings?.phase1 || [];
+        
+        // Generate revisions for each AI player
+        const aiRevisionPromises = aiPlayers.map(async (aiPlayer: any) => {
+          // Get AI's original writing
+          const aiWriting = phase1Writings.find((w: any) => w.playerId === aiPlayer.userId);
+          if (!aiWriting) return null;
+          
+          // Generate AI feedback for this AI (they got feedback too)
+          const feedbackResponse = await fetch('/api/generate-feedback', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              content: aiWriting.content,
+              promptType: promptType || 'narrative',
+            }),
+          });
+          
+          const feedbackData = await feedbackResponse.json();
+          
+          // Generate revision
+          const revisionResponse = await fetch('/api/generate-ai-revision', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              originalContent: aiWriting.content,
+              feedback: feedbackData,
+              rank: aiPlayer.rank,
+              playerName: aiPlayer.displayName,
+            }),
+          });
+          
+          const revisionData = await revisionResponse.json();
+          console.log(`✅ Generated revision for ${aiPlayer.displayName}:`, revisionData.wordCount, 'words');
+          
+          return {
+            playerId: aiPlayer.userId,
+            playerName: aiPlayer.displayName,
+            originalContent: aiWriting.content,
+            revisedContent: revisionData.content,
+            wordCount: revisionData.wordCount,
+            isAI: true,
+            rank: aiPlayer.rank,
+          };
+        });
+        
+        const aiRevisions = (await Promise.all(aiRevisionPromises)).filter(r => r !== null);
+        
+        // Store AI revisions in Firestore
+        const matchRef = doc(db, 'matchStates', matchId);
+        await updateDoc(matchRef, {
+          'aiRevisions.phase3': aiRevisions,
+        });
+        
+        console.log('✅ REVISION - All AI revisions generated and stored');
+      } catch (error) {
+        console.error('❌ REVISION - Failed to generate AI revisions:', error);
+      }
+    };
+    
+    generateAIRevisions();
+  }, [matchId, user, aiRevisionsGenerated, promptType]);
+
   useEffect(() => {
     if (timeLeft > 0) {
       const timer = setInterval(() => {
@@ -109,41 +226,133 @@ function RankedRevisionContent() {
   };
 
   const handleSubmit = async () => {
-    console.log('📤 REVISION - Submitting Phase 3 for AI evaluation...');
+    console.log('📤 REVISION - Submitting for batch ranking...');
     setIsEvaluating(true);
     
     try {
-      // Call real AI API for revision evaluation
-      const response = await fetch('/api/evaluate-revision', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
+      // Get AI revisions from Firestore
+      const { getDoc, doc, updateDoc } = await import('firebase/firestore');
+      const { db } = await import('@/lib/firebase');
+      
+      const matchDoc = await getDoc(doc(db, 'matchStates', matchId));
+      if (!matchDoc.exists()) throw new Error('Match state not found');
+      
+      const matchState = matchDoc.data();
+      const aiRevisions = matchState?.aiRevisions?.phase3 || [];
+      
+      if (aiRevisions.length === 0) {
+        console.warn('⚠️ REVISION - No AI revisions found, falling back to individual evaluation');
+        throw new Error('AI revisions not available');
+      }
+      
+      // Prepare all revision submissions for batch ranking
+      const allRevisionSubmissions = [
+        {
+          playerId: user?.uid || '',
+          playerName: 'You',
           originalContent,
           revisedContent,
           feedback: aiFeedback,
+          wordCount: wordCountRevised,
+          isAI: false,
+        },
+        ...aiRevisions
+      ];
+      
+      console.log(`📊 REVISION - Batch ranking ${allRevisionSubmissions.length} revisions...`);
+      
+      // Call batch ranking API
+      const response = await fetch('/api/batch-rank-revisions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          revisionSubmissions: allRevisionSubmissions,
         }),
       });
       
       const data = await response.json();
-      const revisionScore = data.score || 75;
-      console.log('✅ REVISION - AI evaluation complete, score:', revisionScore);
+      const rankings = data.rankings;
+      
+      console.log('✅ REVISION - Batch ranking complete:', rankings.length, 'revisions ranked');
+      
+      // Find your ranking
+      const yourRanking = rankings.find((r: any) => r.playerId === user?.uid);
+      if (!yourRanking) throw new Error('Your ranking not found');
+      
+      const revisionScore = yourRanking.score;
+      
+      console.log(`🎯 REVISION - You ranked #${yourRanking.rank} with score ${revisionScore}`);
+      
+      // Store ALL revision rankings in Firestore
+      const matchRef = doc(db, 'matchStates', matchId);
+      await updateDoc(matchRef, {
+        'rankings.phase3': rankings,
+      });
+      
+      // Save feedback to session storage
+      sessionStorage.setItem(`${matchId}-phase3-feedback`, JSON.stringify(yourRanking));
+      
+      // Submit to match state WITH full AI feedback
+      if (user) {
+        await submitPhase(matchId, user.uid, 3, Math.round(revisionScore), {
+          improvements: yourRanking.improvements || [],
+          strengths: yourRanking.strengths || [],
+          suggestions: yourRanking.suggestions || [],
+        });
+      }
       
       router.push(
-        `/ranked/results?trait=${trait}&promptId=${promptId}&promptType=${promptType}&originalContent=${encodeURIComponent(originalContent)}&revisedContent=${encodeURIComponent(revisedContent)}&wordCount=${wordCount}&revisedWordCount=${wordCountRevised}&aiScores=${aiScores}&writingScore=${yourScore}&feedbackScore=${feedbackScore}&revisionScore=${Math.round(revisionScore)}`
+        `/ranked/results?matchId=${matchId}&trait=${trait}&promptId=${promptId}&promptType=${promptType}&originalContent=${encodeURIComponent(originalContent)}&revisedContent=${encodeURIComponent(revisedContent)}&wordCount=${wordCount}&revisedWordCount=${wordCountRevised}&aiScores=${aiScores}&writingScore=${yourScore}&feedbackScore=${feedbackScore}&revisionScore=${Math.round(revisionScore)}`
       );
+      
     } catch (error) {
-      console.error('❌ REVISION - AI evaluation failed, using fallback');
-      const changeAmount = Math.abs(wordCountRevised - parseInt(wordCount));
-      const hasSignificantChanges = changeAmount > 10;
-      const revisionScore = hasSignificantChanges 
-        ? Math.min(85 + Math.random() * 10, 95)
-        : 60 + Math.random() * 15;
+      console.error('❌ REVISION - Batch ranking failed, using fallback:', error);
       
-      router.push(
-        `/ranked/results?trait=${trait}&promptId=${promptId}&promptType=${promptType}&originalContent=${encodeURIComponent(originalContent)}&revisedContent=${encodeURIComponent(revisedContent)}&wordCount=${wordCount}&revisedWordCount=${wordCountRevised}&aiScores=${aiScores}&writingScore=${yourScore}&feedbackScore=${feedbackScore}&revisionScore=${Math.round(revisionScore)}`
-      );
+      // Fallback to individual evaluation
+      try {
+        const response = await fetch('/api/evaluate-revision', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            originalContent,
+            revisedContent,
+            feedback: aiFeedback,
+          }),
+        });
+        
+        const data = await response.json();
+        const revisionScore = data.score || 75;
+        console.log('✅ REVISION - Fallback evaluation complete, score:', revisionScore);
+        
+        sessionStorage.setItem(`${matchId}-phase3-feedback`, JSON.stringify(data));
+        
+        if (user) {
+          await submitPhase(matchId, user.uid, 3, Math.round(revisionScore), {
+            improvements: data.improvements || [],
+            strengths: data.strengths || [],
+            suggestions: data.suggestions || [],
+          });
+        }
+        
+        router.push(
+          `/ranked/results?matchId=${matchId}&trait=${trait}&promptId=${promptId}&promptType=${promptType}&originalContent=${encodeURIComponent(originalContent)}&revisedContent=${encodeURIComponent(revisedContent)}&wordCount=${wordCount}&revisedWordCount=${wordCountRevised}&aiScores=${aiScores}&writingScore=${yourScore}&feedbackScore=${feedbackScore}&revisionScore=${Math.round(revisionScore)}`
+        );
+      } catch (fallbackError) {
+        console.error('❌ REVISION - Even fallback failed:', fallbackError);
+        const changeAmount = Math.abs(wordCountRevised - parseInt(wordCount));
+        const hasSignificantChanges = changeAmount > 10;
+        const revisionScore = hasSignificantChanges 
+          ? Math.min(85 + Math.random() * 10, 95)
+          : 60 + Math.random() * 15;
+        
+        if (user) {
+          await submitPhase(matchId, user.uid, 3, Math.round(revisionScore)).catch(console.error);
+        }
+        
+        router.push(
+          `/ranked/results?matchId=${matchId}&trait=${trait}&promptId=${promptId}&promptType=${promptType}&originalContent=${encodeURIComponent(originalContent)}&revisedContent=${encodeURIComponent(revisedContent)}&wordCount=${wordCount}&revisedWordCount=${wordCountRevised}&aiScores=${aiScores}&writingScore=${yourScore}&feedbackScore=${feedbackScore}&revisionScore=${Math.round(revisionScore)}`
+        );
+      }
     } finally {
       setIsEvaluating(false);
     }
@@ -248,7 +457,7 @@ function RankedRevisionContent() {
 
             <div className={`space-y-4 ${showFeedback ? 'block' : 'hidden lg:block'}`}>
               {/* AI Feedback */}
-              <div className="bg-gradient-to-br from-purple-500/20 to-blue-500/20 backdrop-blur-sm rounded-xl p-4 border border-purple-400/30 sticky top-24">
+              <div className="bg-gradient-to-br from-purple-500/20 to-blue-500/20 backdrop-blur-sm rounded-xl p-4 border border-purple-400/30">
                 <h3 className="text-white font-bold mb-3 flex items-center space-x-2">
                   <span>🤖</span>
                   <span>AI Feedback</span>
@@ -287,35 +496,63 @@ function RankedRevisionContent() {
                 </div>
               </div>
 
-              {/* Peer Feedback - MOCK */}
+              {/* Peer Feedback - REAL */}
               <div className="bg-gradient-to-br from-blue-500/20 to-cyan-500/20 backdrop-blur-sm rounded-xl p-4 border border-blue-400/30">
                 <h3 className="text-white font-bold mb-3 flex items-center space-x-2">
                   <span>👥</span>
                   <span>Peer Feedback</span>
+                  {realPeerFeedback && (
+                    <span className="text-xs text-emerald-400 ml-auto">from {realPeerFeedback.reviewerName}</span>
+                  )}
                 </h3>
                 
-                <div className="space-y-3">
-                  <div>
-                    <div className="text-emerald-400 text-xs font-semibold mb-1">Strengths noted:</div>
-                    <p className="text-white/80 text-sm leading-relaxed break-words">
-                      Your story has a great sense of mystery and adventure. The lighthouse setting is really interesting and makes me want to know more. The golden light is a nice detail that adds magic to the scene.
-                    </p>
+                {loadingPeerFeedback ? (
+                  <div className="text-center py-6">
+                    <div className="text-3xl mb-2 animate-spin">📝</div>
+                    <div className="text-white/60 text-sm">Loading peer feedback...</div>
                   </div>
+                ) : realPeerFeedback ? (
+                  <div className="space-y-3">
+                    <div>
+                      <div className="text-blue-400 text-xs font-semibold mb-1">Main Idea Clarity:</div>
+                      <p className="text-white/80 text-sm leading-relaxed break-words">
+                        {realPeerFeedback.responses.clarity}
+                      </p>
+                    </div>
 
-                  <div>
-                    <div className="text-yellow-400 text-xs font-semibold mb-1">Suggestions:</div>
-                    <p className="text-white/80 text-sm leading-relaxed break-words">
-                      Try adding more description about what Sarah is feeling - is she scared, excited, or curious? Also, what does the inside of the lighthouse look like? Adding more sensory details would help readers feel like they&apos;re there with Sarah.
-                    </p>
-                  </div>
+                    <div>
+                      <div className="text-emerald-400 text-xs font-semibold mb-1">Strengths noted:</div>
+                      <p className="text-white/80 text-sm leading-relaxed break-words">
+                        {realPeerFeedback.responses.strengths}
+                      </p>
+                    </div>
 
-                  <div>
-                    <div className="text-blue-400 text-xs font-semibold mb-1">Organization:</div>
-                    <p className="text-white/80 text-sm leading-relaxed break-words">
-                      The story flows well from the ordinary to the mysterious. Good job building up to the discovery!
-                    </p>
+                    <div>
+                      <div className="text-yellow-400 text-xs font-semibold mb-1">Suggestions:</div>
+                      <p className="text-white/80 text-sm leading-relaxed break-words">
+                        {realPeerFeedback.responses.improvements}
+                      </p>
+                    </div>
+
+                    <div>
+                      <div className="text-purple-400 text-xs font-semibold mb-1">Organization:</div>
+                      <p className="text-white/80 text-sm leading-relaxed break-words">
+                        {realPeerFeedback.responses.organization}
+                      </p>
+                    </div>
+
+                    <div>
+                      <div className="text-cyan-400 text-xs font-semibold mb-1">Engagement:</div>
+                      <p className="text-white/80 text-sm leading-relaxed break-words">
+                        {realPeerFeedback.responses.engagement}
+                      </p>
+                    </div>
                   </div>
-                </div>
+                ) : (
+                  <div className="text-center py-6">
+                    <div className="text-white/40 text-sm">No peer feedback available</div>
+                  </div>
+                )}
               </div>
             </div>
           </div>

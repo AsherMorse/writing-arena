@@ -67,25 +67,33 @@ export async function createMatchState(
   console.log('✅ MATCH SYNC - Match state created');
 }
 
-// Submit for current phase
+// Submit for current phase with full AI feedback
 export async function submitPhase(
   matchId: string,
   userId: string,
   phase: 1 | 2 | 3,
-  score: number
+  score: number,
+  feedback?: any  // Full AI feedback object (strengths, improvements, etc.)
 ): Promise<void> {
-  console.log('📤 MATCH SYNC - Submitting phase:', { matchId, userId, phase, score });
+  console.log('📤 MATCH SYNC - Submitting phase:', { matchId, userId, phase, score, hasFeedback: !!feedback });
   
   const matchRef = doc(db, 'matchStates', matchId);
   const phaseKey = `phase${phase}` as 'phase1' | 'phase2' | 'phase3';
   
-  await updateDoc(matchRef, {
+  const updateData: any = {
     [`submissions.${phaseKey}`]: arrayUnion(userId),
     [`scores.${userId}.phase${phase}`]: score,
     updatedAt: serverTimestamp(),
-  });
+  };
   
-  console.log('✅ MATCH SYNC - Submission recorded');
+  // Store full AI feedback if provided
+  if (feedback) {
+    updateData[`feedback.${userId}.phase${phase}`] = feedback;
+  }
+  
+  await updateDoc(matchRef, updateData);
+  
+  console.log('✅ MATCH SYNC - Submission recorded with feedback');
 }
 
 // Listen for match state changes
@@ -162,5 +170,146 @@ export async function simulateAISubmissions(
       console.log('✅ MATCH SYNC - AI submissions complete');
     }
   }, delay);
+}
+
+// Retrieve AI feedback for a specific user and phase
+export async function getAIFeedback(
+  matchId: string,
+  userId: string,
+  phase: 1 | 2 | 3
+): Promise<any | null> {
+  console.log('📥 MATCH SYNC - Retrieving AI feedback:', { matchId, userId, phase });
+  
+  try {
+    const matchRef = doc(db, 'matchStates', matchId);
+    const matchSnap = await getDoc(matchRef);
+    
+    if (matchSnap.exists()) {
+      const data = matchSnap.data();
+      const feedback = data?.feedback?.[userId]?.[`phase${phase}`];
+      console.log('✅ MATCH SYNC - Feedback retrieved:', !!feedback);
+      return feedback || null;
+    }
+  } catch (error) {
+    console.error('❌ MATCH SYNC - Error retrieving feedback:', error);
+  }
+  
+  return null;
+}
+
+// Get peer's Phase 2 feedback responses for display in Phase 3
+export async function getPeerFeedbackResponses(
+  matchId: string,
+  userId: string
+): Promise<any | null> {
+  console.log('👥 MATCH SYNC - Getting peer feedback for:', userId);
+  
+  try {
+    const matchRef = doc(db, 'matchStates', matchId);
+    const matchSnap = await getDoc(matchRef);
+    
+    if (!matchSnap.exists()) return null;
+    
+    const matchState = matchSnap.data();
+    const players = matchState.players || [];
+    const feedbackRankings = matchState.rankings?.phase2 || [];
+    
+    // Find who gave YOU feedback (reverse round-robin: you were reviewed by previous player)
+    const yourIndex = players.findIndex((p: any) => p.userId === userId);
+    if (yourIndex === -1) return null;
+    
+    // The person who reviewed YOU is the one before you (wrap around)
+    const reviewerIndex = yourIndex === 0 ? players.length - 1 : yourIndex - 1;
+    const reviewer = players[reviewerIndex];
+    
+    console.log('🎯 MATCH SYNC - Your reviewer was:', reviewer.displayName);
+    
+    // Get their feedback from rankings
+    const reviewerFeedback = feedbackRankings.find((r: any) => r.playerId === reviewer.userId);
+    
+    if (reviewerFeedback && reviewerFeedback.responses) {
+      console.log('✅ MATCH SYNC - Retrieved peer feedback responses');
+      return {
+        reviewerName: reviewer.displayName,
+        reviewerAvatar: reviewer.avatar || '👤',
+        responses: reviewerFeedback.responses,
+      };
+    }
+    
+    console.warn('⚠️ MATCH SYNC - No peer feedback found');
+    return null;
+    
+  } catch (error) {
+    console.error('❌ MATCH SYNC - Error getting peer feedback:', error);
+    return null;
+  }
+}
+
+// Get peer assignment for Phase 2 (round-robin)
+export async function getAssignedPeer(
+  matchId: string,
+  userId: string
+): Promise<{ userId: string; displayName: string; writing: string; wordCount: number } | null> {
+  console.log('👥 MATCH SYNC - Getting assigned peer for:', userId);
+  
+  try {
+    const matchRef = doc(db, 'matchStates', matchId);
+    const matchSnap = await getDoc(matchRef);
+    
+    if (!matchSnap.exists()) return null;
+    
+    const matchState = matchSnap.data();
+    const players = matchState.players || [];
+    const writings = matchState.aiWritings?.phase1 || [];
+    
+    // Find your position in the party
+    const yourIndex = players.findIndex((p: any) => p.userId === userId);
+    if (yourIndex === -1) return null;
+    
+    // Round-robin: review the next person (wrap around)
+    const peerIndex = (yourIndex + 1) % players.length;
+    const peer = players[peerIndex];
+    
+    console.log('🎯 MATCH SYNC - Assigned peer:', peer.displayName, 'at index', peerIndex);
+    
+    // Get peer's Phase 1 writing
+    let peerWriting = '';
+    let peerWordCount = 0;
+    
+    if (peer.isAI) {
+      // Get AI writing from stored writings
+      const aiWriting = writings.find((w: any) => w.playerId === peer.userId);
+      if (aiWriting) {
+        peerWriting = aiWriting.content;
+        peerWordCount = aiWriting.wordCount;
+        console.log('✅ MATCH SYNC - Retrieved AI peer writing:', peerWordCount, 'words');
+      }
+    } else {
+      // Get human player's writing from rankings
+      const rankings = matchState.rankings?.phase1 || [];
+      const peerRanking = rankings.find((r: any) => r.playerId === peer.userId);
+      if (peerRanking && peerRanking.content) {
+        peerWriting = peerRanking.content;
+        peerWordCount = peerRanking.wordCount || 0;
+        console.log('✅ MATCH SYNC - Retrieved human peer writing:', peerWordCount, 'words');
+      }
+    }
+    
+    if (!peerWriting) {
+      console.warn('⚠️ MATCH SYNC - No writing found for peer');
+      return null;
+    }
+    
+    return {
+      userId: peer.userId,
+      displayName: peer.displayName,
+      writing: peerWriting,
+      wordCount: peerWordCount,
+    };
+    
+  } catch (error) {
+    console.error('❌ MATCH SYNC - Error getting assigned peer:', error);
+    return null;
+  }
 }
 

@@ -4,6 +4,9 @@ import { useSearchParams } from 'next/navigation';
 import { useState, useEffect, Suspense } from 'react';
 import Link from 'next/link';
 import { useAuth } from '@/contexts/AuthContext';
+import { getAIFeedback } from '@/lib/match-sync';
+import { saveWritingSession, updateUserStatsAfterSession } from '@/lib/firestore';
+import { updateAIStudentAfterMatch } from '@/lib/ai-students';
 
 // Mock feedback based on The Writing Revolution concepts
 const MOCK_PHASE_FEEDBACK = {
@@ -63,6 +66,7 @@ const MOCK_PHASE_FEEDBACK = {
 function RankedResultsContent() {
   const searchParams = useSearchParams();
   const { user } = useAuth();
+  const matchId = searchParams.get('matchId') || '';
   const trait = searchParams.get('trait');
   const promptType = searchParams.get('promptType');
   const originalContent = searchParams.get('originalContent') || '';
@@ -77,53 +81,149 @@ function RankedResultsContent() {
   const [isAnalyzing, setIsAnalyzing] = useState(true);
   const [results, setResults] = useState<any>(null);
   const [expandedPhase, setExpandedPhase] = useState<string | null>(null);
+  const [realFeedback, setRealFeedback] = useState<any>({
+    writing: null,
+    feedback: null,
+    revision: null,
+  });
+
+  // Fetch real AI feedback from Firestore
+  useEffect(() => {
+    const fetchAIFeedback = async () => {
+      if (!user || !matchId) return;
+      
+      console.log('📥 RESULTS - Fetching AI feedback from Firestore...');
+      try {
+        const [phase1Feedback, phase2Feedback, phase3Feedback] = await Promise.all([
+          getAIFeedback(matchId, user.uid, 1),
+          getAIFeedback(matchId, user.uid, 2),
+          getAIFeedback(matchId, user.uid, 3),
+        ]);
+        
+        // Also try session storage as fallback
+        const phase1Storage = sessionStorage.getItem(`${matchId}-phase1-feedback`);
+        const phase2Storage = sessionStorage.getItem(`${matchId}-phase2-feedback`);
+        const phase3Storage = sessionStorage.getItem(`${matchId}-phase3-feedback`);
+        
+        setRealFeedback({
+          writing: phase1Feedback || (phase1Storage ? JSON.parse(phase1Storage) : null),
+          feedback: phase2Feedback || (phase2Storage ? JSON.parse(phase2Storage) : null),
+          revision: phase3Feedback || (phase3Storage ? JSON.parse(phase3Storage) : null),
+        });
+        
+        console.log('✅ RESULTS - AI feedback loaded:', {
+          hasPhase1: !!(phase1Feedback || phase1Storage),
+          hasPhase2: !!(phase2Feedback || phase2Storage),
+          hasPhase3: !!(phase3Feedback || phase3Storage),
+        });
+      } catch (error) {
+        console.error('❌ RESULTS - Error fetching AI feedback:', error);
+      }
+    };
+    
+    fetchAIFeedback();
+  }, [user, matchId]);
 
   useEffect(() => {
     const analyzeRankedMatch = async () => {
       try {
+        // Try to get real rankings from Firestore
+        let realPhase1Rankings: any[] = [];
+        let realPhase2Rankings: any[] = [];
+        let realPhase3Rankings: any[] = [];
+        
+        if (matchId) {
+          try {
+            const { getDoc, doc } = await import('firebase/firestore');
+            const { db } = await import('@/lib/firebase');
+            
+            const matchDoc = await getDoc(doc(db, 'matchStates', matchId));
+            if (matchDoc.exists()) {
+              const matchState = matchDoc.data();
+              realPhase1Rankings = matchState?.rankings?.phase1 || [];
+              realPhase2Rankings = matchState?.rankings?.phase2 || [];
+              realPhase3Rankings = matchState?.rankings?.phase3 || [];
+              
+              console.log('✅ RESULTS - Loaded real rankings:', {
+                phase1: realPhase1Rankings.length,
+                phase2: realPhase2Rankings.length,
+                phase3: realPhase3Rankings.length,
+              });
+            }
+          } catch (error) {
+            console.error('❌ RESULTS - Error loading real rankings:', error);
+          }
+        }
+        
         // Calculate composite score from all 3 phases
         const yourCompositeScore = (writingScore * 0.4) + (feedbackScore * 0.3) + (revisionScore * 0.3);
         
-        // Generate mock scores for AI players across all 3 phases
+        // Build AI players data from real rankings if available, otherwise use fallback
         const aiScores = aiScoresParam.split(',').map(Number);
-        const aiPlayers = [
-          {
-            name: 'ProWriter99',
-            avatar: '🎯',
-            rank: 'Silver II',
-            phase1: Math.round(65 + Math.random() * 25),
-            phase2: Math.round(70 + Math.random() * 20),
-            phase3: Math.round(75 + Math.random() * 15),
-            wordCount: aiScores[0],
-          },
-          {
-            name: 'WordMaster',
-            avatar: '📖',
-            rank: 'Silver III',
-            phase1: Math.round(60 + Math.random() * 30),
-            phase2: Math.round(65 + Math.random() * 25),
-            phase3: Math.round(70 + Math.random() * 20),
-            wordCount: aiScores[1],
-          },
-          {
-            name: 'EliteScribe',
-            avatar: '✨',
-            rank: 'Silver II',
-            phase1: Math.round(70 + Math.random() * 20),
-            phase2: Math.round(75 + Math.random() * 15),
-            phase3: Math.round(65 + Math.random() * 25),
-            wordCount: aiScores[2],
-          },
-          {
-            name: 'PenChampion',
-            avatar: '🏅',
-            rank: 'Silver IV',
-            phase1: Math.round(55 + Math.random() * 30),
-            phase2: Math.round(60 + Math.random() * 25),
-            phase3: Math.round(70 + Math.random() * 20),
-            wordCount: aiScores[3],
-          },
-        ];
+        let aiPlayers: any[];
+        
+        if (realPhase1Rankings.length > 0) {
+          // Use real AI scores from batch rankings
+          console.log('📊 RESULTS - Using real AI scores from batch rankings');
+          const aiPlayerData = realPhase1Rankings.filter((r: any) => r.isAI);
+          
+          aiPlayers = aiPlayerData.map((p1: any, idx: number) => {
+            // Find matching player in phase 2 and 3
+            const p2 = realPhase2Rankings.find((r: any) => r.playerId === p1.playerId);
+            const p3 = realPhase3Rankings.find((r: any) => r.playerId === p1.playerId);
+            
+            return {
+              name: p1.playerName,
+              avatar: ['🎯', '📖', '✨', '🏅'][idx % 4],
+              rank: ['Silver II', 'Silver III', 'Silver II', 'Silver IV'][idx % 4],
+              phase1: p1.score,
+              phase2: p2?.score || Math.round(65 + Math.random() * 25),
+              phase3: p3?.score || Math.round(70 + Math.random() * 20),
+              wordCount: aiScores[idx] || 95,
+            };
+          });
+        } else {
+          // Fallback: Generate mock scores for AI players
+          console.log('⚠️ RESULTS - No real rankings found, using fallback scores');
+          aiPlayers = [
+            {
+              name: 'ProWriter99',
+              avatar: '🎯',
+              rank: 'Silver II',
+              phase1: Math.round(65 + Math.random() * 25),
+              phase2: Math.round(70 + Math.random() * 20),
+              phase3: Math.round(75 + Math.random() * 15),
+              wordCount: aiScores[0],
+            },
+            {
+              name: 'WordMaster',
+              avatar: '📖',
+              rank: 'Silver III',
+              phase1: Math.round(60 + Math.random() * 30),
+              phase2: Math.round(65 + Math.random() * 25),
+              phase3: Math.round(70 + Math.random() * 20),
+              wordCount: aiScores[1],
+            },
+            {
+              name: 'EliteScribe',
+              avatar: '✨',
+              rank: 'Silver II',
+              phase1: Math.round(70 + Math.random() * 20),
+              phase2: Math.round(75 + Math.random() * 15),
+              phase3: Math.round(65 + Math.random() * 25),
+              wordCount: aiScores[2],
+            },
+            {
+              name: 'PenChampion',
+              avatar: '🏅',
+              rank: 'Silver IV',
+              phase1: Math.round(55 + Math.random() * 30),
+              phase2: Math.round(60 + Math.random() * 25),
+              phase3: Math.round(70 + Math.random() * 20),
+              wordCount: aiScores[3],
+            },
+          ];
+        }
 
         // Calculate composite scores for AI players
         const allPlayers = [
@@ -170,17 +270,94 @@ function RankedResultsContent() {
         // Calculate improvement from original to revision
         const improvementBonus = Math.max(0, revisionScore - writingScore);
 
-        // MOCK: Skip Firebase calls for now
+        // Save session and update user profile
         if (user) {
-          console.log('Mock: Would save session data:', {
-            userId: user.uid,
-            mode: 'ranked',
-            score: Math.round(yourCompositeScore),
-            xpEarned,
-            pointsEarned,
-            lpChange,
-            placement: yourRank,
-          });
+          console.log('💾 RESULTS - Saving session data and updating profile...');
+          try {
+            // Save writing session
+            await saveWritingSession({
+              userId: user.uid,
+              mode: 'ranked',
+              trait: trait || 'all',
+              promptType: promptType || 'narrative',
+              content: originalContent,
+              wordCount: wordCount,
+              score: Math.round(yourCompositeScore),
+              traitScores: {
+                content: Math.round(writingScore),
+                organization: Math.round(writingScore),
+                grammar: Math.round(writingScore),
+                vocabulary: Math.round(writingScore),
+                mechanics: Math.round(writingScore),
+              },
+              xpEarned,
+              pointsEarned,
+              lpChange,
+              placement: yourRank,
+              timestamp: new Date() as any,
+            });
+            console.log('✅ RESULTS - Session saved');
+
+            // Update user stats (XP, points, LP, wins, word count)
+            await updateUserStatsAfterSession(
+              user.uid,
+              xpEarned,
+              pointsEarned,
+              lpChange,
+              isVictory,
+              wordCount
+            );
+            console.log('✅ RESULTS - Profile updated with LP change:', lpChange);
+            
+            // Update AI students' ranks and stats
+            console.log('🤖 RESULTS - Updating AI student ranks...');
+            for (const aiPlayer of aiPlayers) {
+              if (!aiPlayer.name) continue;
+              
+              // Determine AI player's LP change based on their placement
+              const aiComposite = (aiPlayer.phase1 * 0.4) + (aiPlayer.phase2 * 0.3) + (aiPlayer.phase3 * 0.3);
+              const aiPlayerData = allPlayers.find(p => p.name === aiPlayer.name);
+              const aiPlacement = aiPlayerData?.position || 5;
+              
+              const aiLPChange = 
+                aiPlacement === 1 ? 35 : 
+                aiPlacement === 2 ? 22 : 
+                aiPlacement === 3 ? 12 : 
+                aiPlacement === 4 ? -5 : -15;
+              
+              const aiXP = Math.round(aiComposite * 2.5);
+              const aiIsWin = aiPlacement === 1;
+              
+              // Extract AI student ID from their data
+              // AI player IDs are stored as "ai-student-XXX" from database
+              const aiStudentId = aiPlayer.name; // This will be their userId which is the database ID
+              
+              // Try to get real AI student ID from stored players
+              const storedPlayers = sessionStorage.getItem(`${matchId}-players`);
+              if (storedPlayers) {
+                try {
+                  const players = JSON.parse(storedPlayers);
+                  const aiPlayerMatch = players.find((p: any) => p.name === aiPlayer.name && p.isAI);
+                  if (aiPlayerMatch && aiPlayerMatch.userId) {
+                    // Update the persistent AI student
+                    await updateAIStudentAfterMatch(
+                      aiPlayerMatch.userId,
+                      aiLPChange,
+                      aiXP,
+                      aiIsWin,
+                      aiPlayer.wordCount || 100
+                    ).catch(err => console.error('Error updating AI student:', err));
+                  }
+                } catch (e) {
+                  console.warn('Could not update AI student:', e);
+                }
+              }
+            }
+            console.log('✅ RESULTS - AI students updated');
+            
+          } catch (error) {
+            console.error('❌ RESULTS - Error saving session:', error);
+          }
         }
 
         setResults({
@@ -330,65 +507,92 @@ function RankedResultsContent() {
           </div>
 
           {/* Expanded Feedback Panel */}
-          {expandedPhase && (
-            <div className="bg-white/10 backdrop-blur-sm rounded-xl p-6 border border-white/20 animate-in fade-in slide-in-from-top duration-300">
-              <h3 className="text-xl font-bold text-white mb-4 flex items-center space-x-2">
-                <span>{expandedPhase === 'writing' ? '📝' : expandedPhase === 'feedback' ? '🔍' : '✏️'}</span>
-                <span>
-                  {expandedPhase === 'writing' ? 'Phase 1: Writing' : 
-                   expandedPhase === 'feedback' ? 'Phase 2: Peer Feedback' : 
-                   'Phase 3: Revision'} Feedback
-                </span>
-              </h3>
-              
-              <div className="space-y-4">
-                {/* Strengths */}
-                <div>
-                  <div className="text-emerald-300 font-semibold mb-2 flex items-center space-x-2">
-                    <span>✨</span>
-                    <span>Strengths</span>
+          {expandedPhase && (() => {
+            // Get real AI feedback for this phase, fallback to mock if not available
+            const phaseFeedbackData = expandedPhase === 'writing' ? realFeedback.writing : 
+                                      expandedPhase === 'feedback' ? realFeedback.feedback : 
+                                      realFeedback.revision;
+            
+            const mockFeedback = MOCK_PHASE_FEEDBACK[expandedPhase as keyof typeof MOCK_PHASE_FEEDBACK];
+            
+            // Use real feedback if available, otherwise use mock
+            const strengths = phaseFeedbackData?.strengths || mockFeedback.strengths;
+            const improvements = phaseFeedbackData?.improvements || 
+                                (phaseFeedbackData?.suggestions) || // revision uses 'suggestions'
+                                mockFeedback.improvements;
+            const nextSteps = phaseFeedbackData?.nextSteps || 
+                             phaseFeedbackData?.specificFeedback || 
+                             mockFeedback.writingRevConcepts;
+            
+            return (
+              <div className="bg-white/10 backdrop-blur-sm rounded-xl p-6 border border-white/20 animate-in fade-in slide-in-from-top duration-300">
+                <h3 className="text-xl font-bold text-white mb-4 flex items-center space-x-2">
+                  <span>{expandedPhase === 'writing' ? '📝' : expandedPhase === 'feedback' ? '🔍' : '✏️'}</span>
+                  <span>
+                    {expandedPhase === 'writing' ? 'Phase 1: Writing' : 
+                     expandedPhase === 'feedback' ? 'Phase 2: Peer Feedback' : 
+                     'Phase 3: Revision'} Feedback
+                  </span>
+                  {phaseFeedbackData && (
+                    <span className="text-emerald-400 text-xs ml-2">✓ Real AI</span>
+                  )}
+                </h3>
+                
+                <div className="space-y-4">
+                  {/* Strengths */}
+                  <div>
+                    <div className="text-emerald-300 font-semibold mb-2 flex items-center space-x-2">
+                      <span>✨</span>
+                      <span>Strengths</span>
+                    </div>
+                    <ul className="space-y-1">
+                      {Array.isArray(strengths) ? strengths.map((strength, i) => (
+                        <li key={i} className="text-white/90 text-sm leading-relaxed pl-4">
+                          • {strength}
+                        </li>
+                      )) : <li className="text-white/60 text-sm italic pl-4">No strengths data available</li>}
+                    </ul>
                   </div>
-                  <ul className="space-y-1">
-                    {MOCK_PHASE_FEEDBACK[expandedPhase as keyof typeof MOCK_PHASE_FEEDBACK].strengths.map((strength, i) => (
-                      <li key={i} className="text-white/90 text-sm leading-relaxed pl-4">
-                        • {strength}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
 
-                {/* Areas for Growth */}
-                <div>
-                  <div className="text-yellow-300 font-semibold mb-2 flex items-center space-x-2">
-                    <span>💡</span>
-                    <span>Areas for Growth</span>
+                  {/* Areas for Growth */}
+                  <div>
+                    <div className="text-yellow-300 font-semibold mb-2 flex items-center space-x-2">
+                      <span>💡</span>
+                      <span>Areas for Growth</span>
+                    </div>
+                    <ul className="space-y-1">
+                      {Array.isArray(improvements) ? improvements.map((improvement, i) => (
+                        <li key={i} className="text-white/90 text-sm leading-relaxed pl-4">
+                          • {improvement}
+                        </li>
+                      )) : <li className="text-white/60 text-sm italic pl-4">No improvement suggestions available</li>}
+                    </ul>
                   </div>
-                  <ul className="space-y-1">
-                    {MOCK_PHASE_FEEDBACK[expandedPhase as keyof typeof MOCK_PHASE_FEEDBACK].improvements.map((improvement, i) => (
-                      <li key={i} className="text-white/90 text-sm leading-relaxed pl-4">
-                        • {improvement}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
 
-                {/* Writing Revolution Concepts */}
-                <div className="bg-blue-500/20 border border-blue-400/30 rounded-lg p-4">
-                  <div className="text-blue-300 font-semibold mb-2 flex items-center space-x-2">
-                    <span>📚</span>
-                    <span>The Writing Revolution - Key Strategies</span>
-                  </div>
-                  <ul className="space-y-1">
-                    {MOCK_PHASE_FEEDBACK[expandedPhase as keyof typeof MOCK_PHASE_FEEDBACK].writingRevConcepts.map((concept, i) => (
-                      <li key={i} className="text-white/90 text-sm leading-relaxed pl-4">
-                        • {concept}
-                      </li>
-                    ))}
-                  </ul>
+                  {/* Writing Revolution Concepts / Next Steps */}
+                  {(Array.isArray(nextSteps) || typeof nextSteps === 'object') && (
+                    <div className="bg-blue-500/20 border border-blue-400/30 rounded-lg p-4">
+                      <div className="text-blue-300 font-semibold mb-2 flex items-center space-x-2">
+                        <span>📚</span>
+                        <span>{expandedPhase === 'writing' ? 'Next Steps' : 'The Writing Revolution - Key Strategies'}</span>
+                      </div>
+                      <ul className="space-y-1">
+                        {Array.isArray(nextSteps) ? nextSteps.map((item, i) => (
+                          <li key={i} className="text-white/90 text-sm leading-relaxed pl-4">
+                            • {item}
+                          </li>
+                        )) : typeof nextSteps === 'object' ? Object.entries(nextSteps).map(([key, value], i) => (
+                          <li key={i} className="text-white/90 text-sm leading-relaxed pl-4">
+                            <strong>{key}:</strong> {value as string}
+                          </li>
+                        )) : null}
+                      </ul>
+                    </div>
+                  )}
                 </div>
               </div>
-            </div>
-          )}
+            );
+          })()}
 
           {results.improvementBonus > 0 && (
             <div className="mt-6 bg-emerald-500/20 border border-emerald-400/30 rounded-xl p-4 text-center">

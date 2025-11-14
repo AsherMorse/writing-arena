@@ -34,17 +34,42 @@ function RankedSessionContent() {
   const [hasSubmitted, setHasSubmitted] = useState(false);
   const [playersReady, setPlayersReady] = useState(0);
   const [matchInitialized, setMatchInitialized] = useState(false);
+  const [aiWritingsGenerated, setAiWritingsGenerated] = useState(false);
 
   const userRank = userProfile?.currentRank || 'Silver III';
   const userAvatar = typeof userProfile?.avatar === 'string' ? userProfile.avatar : '🌿';
 
-  const [partyMembers] = useState([
-    { name: 'You', avatar: userAvatar, rank: userRank, wordCount: 0, isYou: true },
-    { name: 'ProWriter99', avatar: '🎯', rank: 'Silver II', wordCount: 0, isYou: false },
-    { name: 'WordMaster', avatar: '📖', rank: 'Silver III', wordCount: 0, isYou: false },
-    { name: 'EliteScribe', avatar: '✨', rank: 'Silver II', wordCount: 0, isYou: false },
-    { name: 'PenChampion', avatar: '🏅', rank: 'Silver IV', wordCount: 0, isYou: false },
-  ]);
+  // Load party members from sessionStorage (set by matchmaking page)
+  const [partyMembers] = useState(() => {
+    const stored = sessionStorage.getItem(`${matchId}-players`);
+    if (stored) {
+      try {
+        const players = JSON.parse(stored);
+        console.log('✅ SESSION - Loaded', players.length, 'party members from matchmaking');
+        return players.map((p: any) => ({
+          name: p.name,
+          avatar: p.avatar,
+          rank: p.rank,
+          userId: p.userId,
+          wordCount: 0,
+          isYou: p.name === 'You',
+          isAI: p.isAI,
+        }));
+      } catch (e) {
+        console.warn('⚠️ SESSION - Failed to parse stored players');
+      }
+    }
+    
+    // Fallback to default party
+    console.log('⚠️ SESSION - Using fallback party members');
+    return [
+      { name: 'You', avatar: userAvatar, rank: userRank, userId: user?.uid, wordCount: 0, isYou: true, isAI: false },
+      { name: 'ProWriter99', avatar: '🎯', rank: 'Silver II', userId: 'ai-fallback-1', wordCount: 0, isYou: false, isAI: true },
+      { name: 'WordMaster', avatar: '📖', rank: 'Silver III', userId: 'ai-fallback-2', wordCount: 0, isYou: false, isAI: true },
+      { name: 'EliteScribe', avatar: '✨', rank: 'Silver II', userId: 'ai-fallback-3', wordCount: 0, isYou: false, isAI: true },
+      { name: 'PenChampion', avatar: '🏅', rank: 'Silver IV', userId: 'ai-fallback-4', wordCount: 0, isYou: false, isAI: true },
+    ];
+  });
 
   const [aiWordCounts, setAiWordCounts] = useState<number[]>([0, 0, 0, 0]);
 
@@ -57,12 +82,12 @@ function RankedSessionContent() {
       try {
         await createMatchState(
           matchId,
-          partyMembers.map(p => ({
-            userId: p.isYou ? user.uid : `ai-${p.name}`,
+          partyMembers.map((p: any) => ({
+            userId: p.userId || (p.isYou ? user.uid : `ai-${p.name}`),
             displayName: p.name,
             avatar: p.avatar,
             rank: p.rank,
-            isAI: !p.isYou
+            isAI: p.isAI || !p.isYou
           })),
           1,
           240
@@ -79,6 +104,67 @@ function RankedSessionContent() {
     
     initMatch();
   }, [user, userProfile, matchId, matchInitialized, partyMembers]);
+
+  // Generate AI writings when match initializes
+  useEffect(() => {
+    if (!matchInitialized || aiWritingsGenerated || !user) return;
+    
+    const generateAIWritings = async () => {
+      console.log('🤖 SESSION - Generating AI writings...');
+      setAiWritingsGenerated(true);
+      
+      try {
+        // Get AI players (all except "You")
+        const aiPlayers = partyMembers.filter((p: any) => !p.isYou);
+        
+        // Generate writing for each AI player in parallel
+        const aiWritingPromises = aiPlayers.map(async (aiPlayer: any) => {
+          const response = await fetch('/api/generate-ai-writing', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              prompt: prompt.description,
+              promptType: prompt.type,
+              rank: aiPlayer.rank,
+              playerName: aiPlayer.name,
+            }),
+          });
+          
+          const data = await response.json();
+          console.log(`✅ Generated writing for ${aiPlayer.name}:`, data.wordCount, 'words');
+          
+          return {
+            playerId: aiPlayer.userId || `ai-${aiPlayer.name}`,
+            playerName: aiPlayer.name,
+            content: data.content,
+            wordCount: data.wordCount,
+            isAI: true,
+            rank: aiPlayer.rank,
+          };
+        });
+        
+        const aiWritings = await Promise.all(aiWritingPromises);
+        
+        // Store AI writings in Firestore
+        const { updateDoc } = await import('firebase/firestore');
+        const matchRef = doc(db, 'matchStates', matchId);
+        await updateDoc(matchRef, {
+          'aiWritings.phase1': aiWritings,
+        });
+        
+        // Update AI word counts for UI
+        setAiWordCounts(aiWritings.map(w => w.wordCount));
+        
+        console.log('✅ SESSION - All AI writings generated and stored');
+      } catch (error) {
+        console.error('❌ SESSION - Failed to generate AI writings:', error);
+        // Continue with fallback word counts
+        setAiWordCounts([95, 103, 87, 112]);
+      }
+    };
+    
+    generateAIWritings();
+  }, [matchInitialized, aiWritingsGenerated, user, matchId, partyMembers, prompt]);
 
   // Listen for match state updates
   useEffect(() => {
@@ -98,6 +184,7 @@ function RankedSessionContent() {
     });
     
     return () => unsubscribe();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [matchInitialized, hasSubmitted, matchId]);
 
   useEffect(() => {
@@ -150,38 +237,86 @@ function RankedSessionContent() {
   const handleSubmit = async () => {
     if (hasSubmitted || !user) return;
     
-    console.log('📤 SESSION - Submitting Phase 1 for AI evaluation...');
+    console.log('📤 SESSION - Submitting for batch ranking...');
     setHasSubmitted(true);
     
     try {
-      // Call real AI API for Phase 1 evaluation
-      const response = await fetch('/api/analyze-writing', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
+      // Get AI writings from Firestore
+      const matchDoc = await getDoc(doc(db, 'matchStates', matchId));
+      if (!matchDoc.exists()) throw new Error('Match state not found');
+      
+      const matchState = matchDoc.data();
+      const aiWritings = matchState?.aiWritings?.phase1 || [];
+      
+      if (aiWritings.length === 0) {
+        console.warn('⚠️ SESSION - No AI writings found, falling back to individual evaluation');
+        throw new Error('AI writings not available');
+      }
+      
+      // Prepare all writings for batch ranking
+      const allWritings = [
+        {
+          playerId: user.uid,
+          playerName: userProfile?.displayName || 'You',
           content: writingContent,
-          trait: trait || 'all',
+          wordCount: wordCount,
+          isAI: false,
+          rank: userRank,
+        },
+        ...aiWritings
+      ];
+      
+      console.log(`📊 SESSION - Batch ranking ${allWritings.length} writings...`);
+      
+      // Call batch ranking API
+      const response = await fetch('/api/batch-rank-writings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          writings: allWritings,
+          prompt: prompt.description,
           promptType: prompt.type,
+          trait: trait || 'all',
         }),
       });
       
       const data = await response.json();
-      const yourScore = data.overallScore || 75;
-      console.log('✅ SESSION - AI evaluation complete, score:', yourScore);
+      const rankings = data.rankings;
       
-      // Save score temporarily
+      console.log('✅ SESSION - Batch ranking complete:', rankings.length, 'players ranked');
+      
+      // Find your ranking
+      const yourRanking = rankings.find((r: any) => r.playerId === user.uid);
+      if (!yourRanking) throw new Error('Your ranking not found');
+      
+      const yourScore = yourRanking.score;
+      const yourRank = yourRanking.rank;
+      
+      console.log(`🎯 SESSION - You ranked #${yourRank} with score ${yourScore}`);
+      
+      // Store ALL rankings in Firestore
+      const { updateDoc } = await import('firebase/firestore');
+      const matchRef = doc(db, 'matchStates', matchId);
+      await updateDoc(matchRef, {
+        'rankings.phase1': rankings,
+      });
+      
+      // Save your score and feedback
       sessionStorage.setItem(`${matchId}-phase1-score`, yourScore.toString());
+      sessionStorage.setItem(`${matchId}-phase1-feedback`, JSON.stringify(yourRanking));
       
-      // Submit to match state
-      await submitPhase(matchId, user.uid, 1, Math.round(yourScore));
+      // Submit to match state WITH full AI feedback
+      await submitPhase(matchId, user.uid, 1, Math.round(yourScore), {
+        strengths: yourRanking.strengths || [],
+        improvements: yourRanking.improvements || [],
+        traitFeedback: yourRanking.traitFeedback || {},
+      });
       
       // Check if all ready immediately (might be last player)
-      const matchDoc = await getDoc(doc(db, 'matchStates', matchId));
-      if (matchDoc.exists()) {
-        const matchState = matchDoc.data();
-        if (areAllPlayersReady(matchState as any, 1)) {
+      const updatedMatchDoc = await getDoc(doc(db, 'matchStates', matchId));
+      if (updatedMatchDoc.exists()) {
+        const updatedMatchState = updatedMatchDoc.data();
+        if (areAllPlayersReady(updatedMatchState as any, 1)) {
           console.log('🎉 SESSION - Was last player, proceeding immediately!');
           proceedToRankings();
         } else {
@@ -190,11 +325,37 @@ function RankedSessionContent() {
       }
       
     } catch (error) {
-      console.error('❌ SESSION - AI evaluation failed, using fallback');
-      const yourScore = Math.min(Math.max(60 + (wordCount / 5) + Math.random() * 15, 40), 100);
-      sessionStorage.setItem(`${matchId}-phase1-score`, yourScore.toString());
+      console.error('❌ SESSION - Batch ranking failed, using fallback individual evaluation:', error);
       
-      if (user) {
+      // Fallback to individual evaluation
+      try {
+        const response = await fetch('/api/analyze-writing', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            content: writingContent,
+            trait: trait || 'all',
+            promptType: prompt.type,
+          }),
+        });
+        
+        const data = await response.json();
+        const yourScore = data.overallScore || 75;
+        console.log('✅ SESSION - Fallback evaluation complete, score:', yourScore);
+        
+        sessionStorage.setItem(`${matchId}-phase1-score`, yourScore.toString());
+        sessionStorage.setItem(`${matchId}-phase1-feedback`, JSON.stringify(data));
+        
+        await submitPhase(matchId, user.uid, 1, Math.round(yourScore), {
+          strengths: data.strengths || [],
+          improvements: data.improvements || [],
+          nextSteps: data.nextSteps || [],
+          specificFeedback: data.specificFeedback || {},
+        });
+      } catch (fallbackError) {
+        console.error('❌ SESSION - Even fallback failed:', fallbackError);
+        const yourScore = Math.min(Math.max(60 + (wordCount / 5) + Math.random() * 15, 40), 100);
+        sessionStorage.setItem(`${matchId}-phase1-score`, yourScore.toString());
         await submitPhase(matchId, user.uid, 1, Math.round(yourScore)).catch(console.error);
       }
     }

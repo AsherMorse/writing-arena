@@ -3,6 +3,8 @@
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useState, useEffect, Suspense } from 'react';
 import WritingTipsModal from '@/components/WritingTipsModal';
+import { useAuth } from '@/contexts/AuthContext';
+import { submitPhase, getAssignedPeer } from '@/lib/match-sync';
 
 // Mock peer writings - in reality, these would come from other players
 const MOCK_PEER_WRITINGS = [
@@ -33,6 +35,8 @@ I was standing in a forest I'd never seen before. There were trees everywhere an
 function RankedPeerFeedbackContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { user } = useAuth();
+  const matchId = searchParams.get('matchId') || '';
   const trait = searchParams.get('trait');
   const promptId = searchParams.get('promptId');
   const promptType = searchParams.get('promptType');
@@ -42,9 +46,11 @@ function RankedPeerFeedbackContent() {
   const yourScore = searchParams.get('yourScore') || '75';
 
   const [timeLeft, setTimeLeft] = useState(180); // 3 minutes for peer feedback
-  const [currentPeer] = useState(MOCK_PEER_WRITINGS[0]); // In reality, match them with actual peer
+  const [currentPeer, setCurrentPeer] = useState<any>(null);
+  const [loadingPeer, setLoadingPeer] = useState(true);
   const [showTipsModal, setShowTipsModal] = useState(false);
   const [isEvaluating, setIsEvaluating] = useState(false);
+  const [aiFeedbackGenerated, setAiFeedbackGenerated] = useState(false);
   
   // Feedback questions and responses
   const [responses, setResponses] = useState({
@@ -54,6 +60,125 @@ function RankedPeerFeedbackContent() {
     organization: '',
     engagement: ''
   });
+
+  // Generate AI peer feedback when phase starts
+  useEffect(() => {
+    const generateAIFeedback = async () => {
+      if (!matchId || !user || aiFeedbackGenerated) return;
+      
+      console.log('🤖 PEER FEEDBACK - Generating AI peer feedback...');
+      setAiFeedbackGenerated(true);
+      
+      try {
+        const { getDoc, doc, updateDoc } = await import('firebase/firestore');
+        const { db } = await import('@/lib/firebase');
+        
+        // Get match state to find AI players and their assigned peers
+        const matchDoc = await getDoc(doc(db, 'matchStates', matchId));
+        if (!matchDoc.exists()) return;
+        
+        const matchState = matchDoc.data();
+        const players = matchState.players || [];
+        const aiPlayers = players.filter((p: any) => p.isAI);
+        const writings = matchState.aiWritings?.phase1 || [];
+        
+        // Generate feedback for each AI player
+        const aiFeedbackPromises = aiPlayers.map(async (aiPlayer: any, idx: number) => {
+          // Get AI's assigned peer (round-robin)
+          const aiIndex = players.findIndex((p: any) => p.userId === aiPlayer.userId);
+          const peerIndex = (aiIndex + 1) % players.length;
+          const peer = players[peerIndex];
+          
+          // Get peer's writing
+          let peerWriting = '';
+          if (peer.isAI) {
+            const aiWriting = writings.find((w: any) => w.playerId === peer.userId);
+            peerWriting = aiWriting?.content || '';
+          } else {
+            const rankings = matchState.rankings?.phase1 || [];
+            const peerRanking = rankings.find((r: any) => r.playerId === peer.userId);
+            peerWriting = peerRanking?.content || '';
+          }
+          
+          if (!peerWriting) return null;
+          
+          // Generate AI feedback
+          const response = await fetch('/api/generate-ai-feedback', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              peerWriting,
+              rank: aiPlayer.rank,
+              playerName: aiPlayer.displayName,
+            }),
+          });
+          
+          const data = await response.json();
+          console.log(`✅ Generated feedback from ${aiPlayer.displayName}`);
+          
+          return {
+            playerId: aiPlayer.userId,
+            playerName: aiPlayer.displayName,
+            responses: data.responses,
+            peerWriting,
+            isAI: true,
+            rank: aiPlayer.rank,
+          };
+        });
+        
+        const aiFeedbacks = (await Promise.all(aiFeedbackPromises)).filter(f => f !== null);
+        
+        // Store AI feedback in Firestore
+        const matchRef = doc(db, 'matchStates', matchId);
+        await updateDoc(matchRef, {
+          'aiFeedbacks.phase2': aiFeedbacks,
+        });
+        
+        console.log('✅ PEER FEEDBACK - All AI feedback generated and stored');
+      } catch (error) {
+        console.error('❌ PEER FEEDBACK - Failed to generate AI feedback:', error);
+      }
+    };
+    
+    generateAIFeedback();
+  }, [matchId, user, aiFeedbackGenerated]);
+
+  // Load assigned peer's writing
+  useEffect(() => {
+    const loadPeerWriting = async () => {
+      if (!user || !matchId) {
+        setLoadingPeer(false);
+        return;
+      }
+      
+      console.log('👥 PEER FEEDBACK - Loading assigned peer writing...');
+      try {
+        const assignedPeer = await getAssignedPeer(matchId, user.uid);
+        
+        if (assignedPeer) {
+          console.log('✅ PEER FEEDBACK - Loaded peer:', assignedPeer.displayName);
+          setCurrentPeer({
+            id: assignedPeer.userId,
+            author: assignedPeer.displayName,
+            avatar: '📝',
+            rank: 'Silver III',
+            content: assignedPeer.writing,
+            wordCount: assignedPeer.wordCount,
+          });
+        } else {
+          console.warn('⚠️ PEER FEEDBACK - No assigned peer found, using fallback');
+          setCurrentPeer(MOCK_PEER_WRITINGS[0]);
+        }
+      } catch (error) {
+        console.error('❌ PEER FEEDBACK - Error loading peer:', error);
+        setCurrentPeer(MOCK_PEER_WRITINGS[0]);
+      } finally {
+        setLoadingPeer(false);
+      }
+    };
+    
+    loadPeerWriting();
+  }, [user, matchId]);
 
   useEffect(() => {
     if (timeLeft > 0) {
@@ -84,36 +209,125 @@ function RankedPeerFeedbackContent() {
   };
 
   const handleSubmit = async () => {
-    console.log('📤 PEER FEEDBACK - Submitting Phase 2 for AI evaluation...');
+    console.log('📤 PEER FEEDBACK - Submitting for batch ranking...');
     setIsEvaluating(true);
     
     try {
-      // Call real AI API for peer feedback evaluation
-      const response = await fetch('/api/evaluate-peer-feedback', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
+      // Get AI feedback submissions from Firestore
+      const { getDoc, doc, updateDoc } = await import('firebase/firestore');
+      const { db } = await import('@/lib/firebase');
+      
+      const matchDoc = await getDoc(doc(db, 'matchStates', matchId));
+      if (!matchDoc.exists()) throw new Error('Match state not found');
+      
+      const matchState = matchDoc.data();
+      const aiFeedbacks = matchState?.aiFeedbacks?.phase2 || [];
+      
+      if (aiFeedbacks.length === 0) {
+        console.warn('⚠️ PEER FEEDBACK - No AI feedback found, falling back to individual evaluation');
+        throw new Error('AI feedback not available');
+      }
+      
+      // Prepare all feedback submissions for batch ranking
+      const allFeedbackSubmissions = [
+        {
+          playerId: user?.uid || '',
+          playerName: 'You',
           responses,
-          peerWriting: currentPeer.content,
+          peerWriting: currentPeer?.content || '',
+          isAI: false,
+        },
+        ...aiFeedbacks
+      ];
+      
+      console.log(`📊 PEER FEEDBACK - Batch ranking ${allFeedbackSubmissions.length} feedback submissions...`);
+      
+      // Call batch ranking API
+      const response = await fetch('/api/batch-rank-feedback', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          feedbackSubmissions: allFeedbackSubmissions,
         }),
       });
       
       const data = await response.json();
-      const feedbackScore = data.score || 75;
-      console.log('✅ PEER FEEDBACK - AI evaluation complete, score:', feedbackScore);
+      const rankings = data.rankings;
+      
+      console.log('✅ PEER FEEDBACK - Batch ranking complete:', rankings.length, 'feedback ranked');
+      
+      // Find your ranking
+      const yourRanking = rankings.find((r: any) => r.playerId === user?.uid);
+      if (!yourRanking) throw new Error('Your ranking not found');
+      
+      const feedbackScore = yourRanking.score;
+      
+      console.log(`🎯 PEER FEEDBACK - You ranked #${yourRanking.rank} with score ${feedbackScore}`);
+      
+      // Store ALL feedback rankings in Firestore
+      const matchRef = doc(db, 'matchStates', matchId);
+      await updateDoc(matchRef, {
+        'rankings.phase2': rankings,
+      });
+      
+      // Save feedback to session storage
+      sessionStorage.setItem(`${matchId}-phase2-feedback`, JSON.stringify(yourRanking));
+      
+      // Submit to match state WITH full AI feedback
+      if (user) {
+        await submitPhase(matchId, user.uid, 2, Math.round(feedbackScore), {
+          strengths: yourRanking.strengths || [],
+          improvements: yourRanking.improvements || [],
+        });
+      }
       
       // Route to phase 2 rankings screen, then to revision
       router.push(
-        `/ranked/phase-rankings?phase=2&trait=${trait}&promptId=${promptId}&promptType=${promptType}&content=${content}&wordCount=${wordCount}&aiScores=${aiScores}&yourScore=${yourScore}&feedbackScore=${Math.round(feedbackScore)}&peerFeedback=${encodeURIComponent(JSON.stringify(responses))}`
+        `/ranked/phase-rankings?phase=2&matchId=${matchId}&trait=${trait}&promptId=${promptId}&promptType=${promptType}&content=${content}&wordCount=${wordCount}&aiScores=${aiScores}&yourScore=${yourScore}&feedbackScore=${Math.round(feedbackScore)}&peerFeedback=${encodeURIComponent(JSON.stringify(responses))}`
       );
+      
     } catch (error) {
-      console.error('❌ PEER FEEDBACK - AI evaluation failed, using fallback');
-      const feedbackQuality = isFormComplete() ? Math.random() * 20 + 75 : Math.random() * 30 + 50;
-      router.push(
-        `/ranked/phase-rankings?phase=2&trait=${trait}&promptId=${promptId}&promptType=${promptType}&content=${content}&wordCount=${wordCount}&aiScores=${aiScores}&yourScore=${yourScore}&feedbackScore=${Math.round(feedbackQuality)}&peerFeedback=${encodeURIComponent(JSON.stringify(responses))}`
-      );
+      console.error('❌ PEER FEEDBACK - Batch ranking failed, using fallback:', error);
+      
+      // Fallback to individual evaluation
+      try {
+        const response = await fetch('/api/evaluate-peer-feedback', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            responses,
+            peerWriting: currentPeer?.content || '',
+          }),
+        });
+        
+        const data = await response.json();
+        const feedbackScore = data.score || 75;
+        console.log('✅ PEER FEEDBACK - Fallback evaluation complete, score:', feedbackScore);
+        
+        sessionStorage.setItem(`${matchId}-phase2-feedback`, JSON.stringify(data));
+        
+        if (user) {
+          await submitPhase(matchId, user.uid, 2, Math.round(feedbackScore), {
+            strengths: data.strengths || [],
+            improvements: data.improvements || [],
+          });
+        }
+        
+        router.push(
+          `/ranked/phase-rankings?phase=2&matchId=${matchId}&trait=${trait}&promptId=${promptId}&promptType=${promptType}&content=${content}&wordCount=${wordCount}&aiScores=${aiScores}&yourScore=${yourScore}&feedbackScore=${Math.round(feedbackScore)}&peerFeedback=${encodeURIComponent(JSON.stringify(responses))}`
+        );
+      } catch (fallbackError) {
+        console.error('❌ PEER FEEDBACK - Even fallback failed:', fallbackError);
+        const feedbackQuality = isFormComplete() ? Math.random() * 20 + 75 : Math.random() * 30 + 50;
+        
+        if (user) {
+          await submitPhase(matchId, user.uid, 2, Math.round(feedbackQuality)).catch(console.error);
+        }
+        
+        router.push(
+          `/ranked/phase-rankings?phase=2&matchId=${matchId}&trait=${trait}&promptId=${promptId}&promptType=${promptType}&content=${content}&wordCount=${wordCount}&aiScores=${aiScores}&yourScore=${yourScore}&feedbackScore=${Math.round(feedbackQuality)}&peerFeedback=${encodeURIComponent(JSON.stringify(responses))}`
+        );
+      }
     } finally {
       setIsEvaluating(false);
     }
@@ -198,19 +412,28 @@ function RankedPeerFeedbackContent() {
           {/* Left side - Peer's writing */}
           <div className="space-y-4">
             <div className="bg-white/5 backdrop-blur-sm rounded-xl p-6 border border-white/10">
-              <div className="flex items-center space-x-3 mb-4">
-                <span className="text-3xl">{currentPeer.avatar}</span>
-                <div>
-                  <div className="text-white font-bold">{currentPeer.author}</div>
-                  <div className="text-white/60 text-sm">{currentPeer.rank} • {currentPeer.wordCount} words</div>
+              {loadingPeer || !currentPeer ? (
+                <div className="text-center py-12">
+                  <div className="text-4xl mb-3 animate-spin">📖</div>
+                  <div className="text-white/60">Loading peer&apos;s writing...</div>
                 </div>
-              </div>
-              
-              <div className="bg-white rounded-xl p-6 max-h-[600px] overflow-y-auto">
-                <p className="text-gray-800 leading-relaxed font-serif whitespace-pre-wrap">
-                  {currentPeer.content}
-                </p>
-              </div>
+              ) : (
+                <>
+                  <div className="flex items-center space-x-3 mb-4">
+                    <span className="text-3xl">{currentPeer.avatar}</span>
+                    <div>
+                      <div className="text-white font-bold">{currentPeer.author}</div>
+                      <div className="text-white/60 text-sm">{currentPeer.rank} &bull; {currentPeer.wordCount} words</div>
+                    </div>
+                  </div>
+                  
+                  <div className="bg-white rounded-xl p-6 max-h-[600px] overflow-y-auto">
+                    <p className="text-gray-800 leading-relaxed font-serif whitespace-pre-wrap">
+                      {currentPeer.content}
+                    </p>
+                  </div>
+                </>
+              )}
             </div>
           </div>
 

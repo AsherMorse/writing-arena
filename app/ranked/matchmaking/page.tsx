@@ -4,8 +4,9 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { useState, useEffect, Suspense, useRef } from 'react';
 import Link from 'next/link';
 import { useAuth } from '@/contexts/AuthContext';
-import { joinQueue, leaveQueue, listenToQueue, generateAIPlayer, QueueEntry } from '@/lib/matchmaking-queue';
+import { joinQueue, leaveQueue, listenToQueue, QueueEntry } from '@/lib/matchmaking-queue';
 import { getRandomPrompt } from '@/lib/prompts';
+import { getRandomAIStudents } from '@/lib/ai-students';
 
 function RankedMatchmakingContent() {
   const router = useRouter();
@@ -38,6 +39,60 @@ function RankedMatchmakingContent() {
   const [countdown, setCountdown] = useState<number | null>(null);
   const aiBackfillIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const hasJoinedQueueRef = useRef(false);
+  const [currentTipIndex, setCurrentTipIndex] = useState(0);
+  const [selectedAIStudents, setSelectedAIStudents] = useState<any[]>([]);
+
+  // Writing Revolution concepts carousel
+  const writingConcepts = [
+    {
+      name: 'Sentence Expansion',
+      tip: 'Use because, but, or so to show why things happen and add depth to your writing.',
+      example: 'She opened the door because she heard a strange noise.',
+      icon: '🔗',
+    },
+    {
+      name: 'Appositives',
+      tip: 'Add description using commas to provide extra information about nouns.',
+      example: 'Sarah, a curious ten-year-old, pushed open the rusty gate.',
+      icon: '✏️',
+    },
+    {
+      name: 'Five Senses',
+      tip: 'Include what you see, hear, smell, taste, and feel to create vivid descriptions.',
+      example: 'The salty air stung my eyes while waves crashed loudly below.',
+      icon: '👁️',
+    },
+    {
+      name: 'Show, Don\'t Tell',
+      tip: 'Use specific details instead of general statements to engage readers.',
+      example: 'Instead of "She was scared" → "Her hands trembled as she reached for the handle."',
+      icon: '🎭',
+    },
+    {
+      name: 'Transition Words',
+      tip: 'Use signal words to connect ideas and show relationships between sentences.',
+      example: 'First, Then, However, Therefore, For example, In contrast',
+      icon: '➡️',
+    },
+    {
+      name: 'Topic Sentences',
+      tip: 'Start paragraphs with a clear main idea, then support it with details.',
+      example: 'Photosynthesis is how plants make food. First, they capture sunlight...',
+      icon: '📝',
+    },
+    {
+      name: 'Counterarguments',
+      tip: 'Address opposing views to strengthen your argument and show critical thinking.',
+      example: 'Some might argue that... However, this ignores the fact that...',
+      icon: '⚖️',
+    },
+    {
+      name: 'Specific Details',
+      tip: 'Replace vague words with precise descriptions to paint a clearer picture.',
+      example: 'Instead of "pretty flower" → "crimson rose with velvet petals"',
+      icon: '🎨',
+    },
+  ];
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -45,6 +100,17 @@ function RankedMatchmakingContent() {
     }, 500);
     return () => clearInterval(interval);
   }, []);
+
+  // Rotate writing concepts every 6 seconds while searching
+  useEffect(() => {
+    if (countdown !== null) return; // Stop rotating when match is found
+    
+    const interval = setInterval(() => {
+      setCurrentTipIndex(prev => (prev + 1) % writingConcepts.length);
+    }, 6000);
+    
+    return () => clearInterval(interval);
+  }, [countdown, writingConcepts.length]);
 
   // Join queue and listen for players
   useEffect(() => {
@@ -77,24 +143,49 @@ function RankedMatchmakingContent() {
           setPlayers(realPlayers);
         });
 
-        // Start AI backfill timer - add AI every 5 seconds
-        let aiIndex = 0;
-        aiBackfillIntervalRef.current = setInterval(() => {
-          setPlayers(prev => {
-            if (prev.length >= 5) {
-              console.log('🎮 MATCHMAKING - Party full, stopping AI backfill');
-              if (aiBackfillIntervalRef.current) {
-                clearInterval(aiBackfillIntervalRef.current);
+        // Fetch AI students from database and add them gradually
+        const fetchAndAddAIStudents = async () => {
+          console.log('🤖 MATCHMAKING - Fetching AI students from database...');
+          const aiStudents = await getRandomAIStudents(userRank, 4);
+          
+          if (aiStudents.length === 0) {
+            console.warn('⚠️ MATCHMAKING - No AI students found in database, using fallback');
+            return;
+          }
+          
+          console.log('✅ MATCHMAKING - Loaded', aiStudents.length, 'AI students:', aiStudents.map(s => s.displayName).join(', '));
+          setSelectedAIStudents(aiStudents);
+          
+          // Add AI students gradually (one every 5 seconds)
+          let aiIndex = 0;
+          aiBackfillIntervalRef.current = setInterval(() => {
+            setPlayers(prev => {
+              if (prev.length >= 5 || aiIndex >= aiStudents.length) {
+                console.log('🎮 MATCHMAKING - Party full, stopping AI backfill');
+                if (aiBackfillIntervalRef.current) {
+                  clearInterval(aiBackfillIntervalRef.current);
+                }
+                return prev;
               }
-              return prev;
-            }
 
-            console.log('🤖 MATCHMAKING - Adding AI player', aiIndex + 1);
-            const aiPlayer = generateAIPlayer(userRank, aiIndex);
-            aiIndex++;
-            return [...prev, aiPlayer];
-          });
-        }, 5000); // Every 5 seconds
+              const aiStudent = aiStudents[aiIndex];
+              console.log('🤖 MATCHMAKING - Adding AI student:', aiStudent.displayName);
+              
+              const aiPlayer = {
+                userId: aiStudent.id,
+                name: aiStudent.displayName,
+                avatar: aiStudent.avatar,
+                rank: aiStudent.currentRank,
+                isAI: true,
+              };
+              
+              aiIndex++;
+              return [...prev, aiPlayer];
+            });
+          }, 5000); // Every 5 seconds
+        };
+        
+        fetchAndAddAIStudents();
 
       } catch (error) {
         console.error('❌ MATCHMAKING - Error:', error);
@@ -153,9 +244,19 @@ function RankedMatchmakingContent() {
       const matchId = `match-${userId}-${Date.now()}`;
       console.log('📝 MATCHMAKING - Selected prompt:', randomPrompt.id, randomPrompt.title);
       console.log('🎮 MATCHMAKING - Match ID:', matchId);
+      
+      // Save selected AI students to sessionStorage so session page can use them
+      if (selectedAIStudents.length > 0) {
+        sessionStorage.setItem(`${matchId}-ai-students`, JSON.stringify(selectedAIStudents));
+        console.log('💾 MATCHMAKING - Saved', selectedAIStudents.length, 'AI students for match');
+      }
+      
+      // Save all players for the match
+      sessionStorage.setItem(`${matchId}-players`, JSON.stringify(players));
+      
       router.push(`/ranked/session?trait=${trait}&promptId=${randomPrompt.id}&matchId=${matchId}`);
     }
-  }, [countdown, router, trait]);
+  }, [countdown, router, trait, userId, players, selectedAIStudents]);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
@@ -182,12 +283,63 @@ function RankedMatchmakingContent() {
         <div className="w-full max-w-4xl">
           {countdown === null ? (
             <>
-              <div className="text-center mb-12">
+              <div className="text-center mb-8">
                 <div className="inline-block animate-spin text-6xl mb-6">🏆</div>
                 <h1 className="text-4xl font-bold text-white mb-3">
                   Finding Ranked Match{searchingDots}
                 </h1>
                 <p className="text-white/60 text-lg">Matching with similar skill level</p>
+              </div>
+
+              {/* Writing Revolution Concepts Carousel */}
+              <div className="mb-8 max-w-3xl mx-auto">
+                <div className="bg-gradient-to-br from-emerald-500/20 to-teal-500/20 backdrop-blur-sm rounded-2xl p-6 border-2 border-emerald-400/30 relative overflow-hidden">
+                  {/* Animated background */}
+                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent animate-pulse"></div>
+                  
+                  {/* Content */}
+                  <div className="relative z-10">
+                    <div className="flex items-center justify-center mb-4">
+                      <div className="text-3xl mr-3">{writingConcepts[currentTipIndex].icon}</div>
+                      <h3 className="text-2xl font-bold text-white">
+                        {writingConcepts[currentTipIndex].name}
+                      </h3>
+                    </div>
+                    
+                    <p className="text-white/90 text-center mb-4 leading-relaxed">
+                      {writingConcepts[currentTipIndex].tip}
+                    </p>
+                    
+                    <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/20">
+                      <div className="text-emerald-300 text-xs font-semibold mb-2 text-center">Example:</div>
+                      <p className="text-white text-sm italic text-center leading-relaxed">
+                        {writingConcepts[currentTipIndex].example}
+                      </p>
+                    </div>
+
+                    {/* Progress dots */}
+                    <div className="flex justify-center space-x-2 mt-4">
+                      {writingConcepts.map((_, index) => (
+                        <button
+                          key={index}
+                          onClick={() => setCurrentTipIndex(index)}
+                          className={`w-2 h-2 rounded-full transition-all duration-300 ${
+                            index === currentTipIndex 
+                              ? 'bg-emerald-400 w-8' 
+                              : 'bg-white/30 hover:bg-white/50'
+                          }`}
+                          aria-label={`Go to tip ${index + 1}`}
+                        />
+                      ))}
+                    </div>
+
+                    <div className="text-center mt-3">
+                      <p className="text-white/50 text-xs">
+                        💡 The Writing Revolution • Tip {currentTipIndex + 1} of {writingConcepts.length}
+                      </p>
+                    </div>
+                  </div>
+                </div>
               </div>
 
               <div className="grid md:grid-cols-3 gap-4 mb-8">
