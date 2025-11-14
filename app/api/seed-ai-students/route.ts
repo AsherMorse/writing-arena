@@ -1,9 +1,21 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/firebase';
 import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 
-export async function POST() {
+export async function POST(request: NextRequest) {
   try {
+    // Simple authorization check - only proceed if called from admin page
+    // The admin page already restricts access to roger.hunt@superbuilders.school
+    const referer = request.headers.get('referer');
+    const isFromAdminPage = referer && referer.includes('/admin/seed-database');
+    
+    if (!isFromAdminPage && process.env.NODE_ENV === 'production') {
+      return NextResponse.json(
+        { error: 'Unauthorized - Access via /admin/seed-database only' },
+        { status: 403 }
+      );
+    }
+    
     console.log('🌱 Starting AI student seeding...');
     
     const students = await generateAIStudents();

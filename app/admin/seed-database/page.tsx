@@ -12,6 +12,9 @@ export default function SeedDatabasePage() {
   const [result, setResult] = useState<any>(null);
   const [error, setError] = useState('');
 
+  // Only allow roger.hunt@superbuilders.school
+  const isAuthorized = user?.email === 'roger.hunt@superbuilders.school';
+
   if (!user) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center p-6">
@@ -23,6 +26,25 @@ export default function SeedDatabasePage() {
             className="px-6 py-2 bg-purple-500 hover:bg-purple-600 text-white rounded-lg transition-all"
           >
             Go to Login
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  if (!isAuthorized) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center p-6">
+        <div className="bg-white/10 backdrop-blur-sm rounded-xl p-8 border border-red-500/30 max-w-md text-center">
+          <div className="text-5xl mb-4">🚫</div>
+          <h1 className="text-2xl font-bold text-white mb-4">Access Denied</h1>
+          <p className="text-white/70 mb-2">This page is restricted to administrators only.</p>
+          <p className="text-white/50 text-sm mb-6">Your email: {user.email}</p>
+          <button
+            onClick={() => router.push('/dashboard')}
+            className="px-6 py-2 bg-white/20 hover:bg-white/30 text-white rounded-lg transition-all"
+          >
+            Go to Dashboard
           </button>
         </div>
       </div>
