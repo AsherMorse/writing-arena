@@ -52,6 +52,7 @@ export default function WritingSessionContent() {
   const [wordCount, setWordCount] = useState(0);
   const [showPasteWarning, setShowPasteWarning] = useState(false);
   const [showTipsModal, setShowTipsModal] = useState(false);
+  const [showRankingModal, setShowRankingModal] = useState(false);
   const [showRestoredNotice, setShowRestoredNotice] = useState(() => {
     // Show notice if content was restored
     const stored = sessionStorage.getItem(`${matchId}-content`);
@@ -265,8 +266,11 @@ export default function WritingSessionContent() {
       }, 1000);
       return () => clearInterval(timer);
     } else if (timeLeft === 0 && !hasSubmitted) {
-      // Time's up - auto submit
-      handleSubmit();
+      // Time's up - show ranking modal then auto submit
+      setShowRankingModal(true);
+      setTimeout(() => {
+        handleSubmit();
+      }, 500);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [timeLeft, hasSubmitted]);
@@ -467,6 +471,24 @@ export default function WritingSessionContent() {
  
   return (
     <div className="min-h-screen bg-[#0c141d] text-white">
+      {/* Ranking Modal */}
+      {showRankingModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm">
+          <div className="rounded-3xl border border-emerald-400/30 bg-[#141e27] p-12 shadow-2xl text-center max-w-md mx-4">
+            <div className="text-6xl mb-6 animate-bounce">🏆</div>
+            <h2 className="text-3xl font-bold text-white mb-3">Time's Up!</h2>
+            <p className="text-white/70 text-lg mb-6">
+              Reviewing and ranking all submissions...
+            </p>
+            <div className="flex items-center justify-center gap-2">
+              <div className="w-2 h-2 bg-emerald-400 rounded-full animate-pulse" style={{ animationDelay: '0ms' }}></div>
+              <div className="w-2 h-2 bg-emerald-400 rounded-full animate-pulse" style={{ animationDelay: '150ms' }}></div>
+              <div className="w-2 h-2 bg-emerald-400 rounded-full animate-pulse" style={{ animationDelay: '300ms' }}></div>
+            </div>
+          </div>
+        </div>
+      )}
+      
       <WritingTipsModal
         isOpen={showTipsModal}
         onClose={() => setShowTipsModal(false)}

@@ -49,6 +49,7 @@ export default function PeerFeedbackContent() {
   const [currentPeer, setCurrentPeer] = useState<any>(null);
   const [loadingPeer, setLoadingPeer] = useState(true);
   const [showTipsModal, setShowTipsModal] = useState(false);
+  const [showRankingModal, setShowRankingModal] = useState(false);
   const [isEvaluating, setIsEvaluating] = useState(false);
   const [aiFeedbackGenerated, setAiFeedbackGenerated] = useState(false);
   
@@ -187,7 +188,10 @@ export default function PeerFeedbackContent() {
       }, 1000);
       return () => clearInterval(timer);
     } else {
-      handleSubmit();
+      setShowRankingModal(true);
+      setTimeout(() => {
+        handleSubmit();
+      }, 500);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [timeLeft]);
@@ -347,6 +351,24 @@ export default function PeerFeedbackContent() {
 
   return (
     <div className="min-h-screen bg-[#0c141d] text-white">
+      {/* Ranking Modal */}
+      {showRankingModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm">
+          <div className="rounded-3xl border border-blue-400/30 bg-[#141e27] p-12 shadow-2xl text-center max-w-md mx-4">
+            <div className="text-6xl mb-6 animate-bounce">📊</div>
+            <h2 className="text-3xl font-bold text-white mb-3">Time's Up!</h2>
+            <p className="text-white/70 text-lg mb-6">
+              Evaluating feedback quality and ranking responses...
+            </p>
+            <div className="flex items-center justify-center gap-2">
+              <div className="w-2 h-2 bg-blue-400 rounded-full animate-pulse" style={{ animationDelay: '0ms' }}></div>
+              <div className="w-2 h-2 bg-blue-400 rounded-full animate-pulse" style={{ animationDelay: '150ms' }}></div>
+              <div className="w-2 h-2 bg-blue-400 rounded-full animate-pulse" style={{ animationDelay: '300ms' }}></div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Peer Feedback Tips Modal - using 'informational' type for evaluation guidance */}
       <WritingTipsModal 
         isOpen={showTipsModal}
@@ -381,7 +403,7 @@ export default function PeerFeedbackContent() {
                 {formatTime(timeLeft)}
               </div>
               <div className="text-white/60">
-                {timeLeft > 0 ? 'Time remaining' : 'Time&apos;s up!'}
+                {timeLeft > 0 ? 'Time remaining' : 'Time\'s up!'}
               </div>
               <div className="px-3 py-1 bg-blue-500/20 border border-blue-400/30 rounded-full">
                 <span className="text-blue-400 text-sm font-semibold">📝 PHASE 2: PEER FEEDBACK</span>
@@ -406,7 +428,7 @@ export default function PeerFeedbackContent() {
 
       <main className="container mx-auto px-6 py-8 max-w-6xl">
         <div className="mb-6 bg-gradient-to-r from-blue-500/20 to-purple-500/20 border border-blue-400/30 rounded-xl p-6">
-          <h1 className="text-2xl font-bold text-white mb-2">Evaluate Your Peer&apos;s Writing</h1>
+          <h1 className="text-2xl font-bold text-white mb-2">Evaluate Your Peer's Writing</h1>
           <p className="text-white/80">
             Your feedback will be scored on helpfulness and specificity. Be constructive and detailed!
           </p>
@@ -419,7 +441,7 @@ export default function PeerFeedbackContent() {
               {loadingPeer || !currentPeer ? (
                 <div className="text-center py-12">
                   <div className="text-4xl mb-3 animate-spin">📖</div>
-                  <div className="text-white/60">Loading peer&apos;s writing...</div>
+                  <div className="text-white/60">Loading peer's writing...</div>
                 </div>
               ) : (
                 <>

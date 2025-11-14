@@ -124,7 +124,7 @@ export default function DashboardContent({ userProfile }: DashboardContentProps)
             <div className="flex items-center justify-between">
               <div>
                 <div className="text-xs uppercase tracking-[0.3em] text-white/50">
-                  Today&apos;s objectives
+                  Today's objectives
                 </div>
                 <h2 className="mt-2 text-2xl font-semibold">Stay focused before queueing</h2>
               </div>

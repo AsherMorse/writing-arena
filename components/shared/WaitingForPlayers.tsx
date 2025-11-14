@@ -89,7 +89,7 @@ export default function WaitingForPlayers({
             Waiting for Other Players
           </h1>
           <p className="text-white/60 text-sm">
-            You&apos;ve completed {phaseNames[phase]}!
+            You've completed {phaseNames[phase]}!
           </p>
         </div>
 
