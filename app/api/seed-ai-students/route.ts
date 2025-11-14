@@ -3,28 +3,38 @@ import { db } from '@/lib/firebase';
 import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 
 export async function POST(request: NextRequest) {
+  console.log('🔵 API - Seed endpoint called');
+  
   try {
     // Simple authorization check - only proceed if called from admin page
-    // The admin page already restricts access to roger.hunt@superbuilders.school
     const referer = request.headers.get('referer');
+    console.log('🔵 API - Referer:', referer);
+    console.log('🔵 API - NODE_ENV:', process.env.NODE_ENV);
+    
     const isFromAdminPage = referer && referer.includes('/admin/seed-database');
     
     if (!isFromAdminPage && process.env.NODE_ENV === 'production') {
+      console.log('❌ API - Unauthorized access attempt');
       return NextResponse.json(
         { error: 'Unauthorized - Access via /admin/seed-database only' },
         { status: 403 }
       );
     }
     
-    console.log('🌱 Starting AI student seeding...');
+    console.log('✅ API - Authorization passed');
+    console.log('🌱 API - Starting AI student generation...');
     
     const students = await generateAIStudents();
+    console.log(`✅ API - Generated ${students.length} students`);
     
-    console.log('💾 Writing to Firestore...');
+    console.log('💾 API - Writing to Firestore...');
     let successCount = 0;
+    let errorCount = 0;
+    const errors: string[] = [];
     
     for (const student of students) {
       try {
+        console.log(`🔵 API - Writing student ${successCount + 1}: ${student.displayName}`);
         const studentRef = doc(db, 'aiStudents', student.id);
         await setDoc(studentRef, {
           ...student,
@@ -34,19 +44,35 @@ export async function POST(request: NextRequest) {
         successCount++;
         
         if (successCount % 10 === 0) {
-          console.log(`  ✅ Saved ${successCount}/${students.length} students...`);
+          console.log(`  ✅ API - Saved ${successCount}/${students.length} students...`);
         }
-      } catch (error) {
-        console.error(`  ❌ Failed to save ${student.displayName}:`, error);
+      } catch (error: any) {
+        errorCount++;
+        const errorMsg = `Failed to save ${student.displayName}: ${error.message}`;
+        console.error(`  ❌ API - ${errorMsg}`);
+        errors.push(errorMsg);
+        
+        // Stop after 3 errors to avoid spamming
+        if (errorCount >= 3) {
+          console.error('❌ API - Too many errors, stopping');
+          break;
+        }
       }
     }
     
-    console.log(`🎉 Seeding complete! ${successCount}/${students.length} AI students saved.`);
+    console.log(`🎉 API - Seeding complete! ${successCount}/${students.length} AI students saved.`);
+    console.log(`❌ API - Errors: ${errorCount}`);
+    
+    if (errors.length > 0) {
+      console.error('🔴 API - First few errors:', errors.slice(0, 3));
+    }
     
     return NextResponse.json({
-      success: true,
+      success: successCount > 0,
       studentsCreated: successCount,
       total: students.length,
+      errorCount,
+      errors: errors.slice(0, 5), // Return first 5 errors
       students: students.slice(0, 10), // Return first 10 as sample
     });
     

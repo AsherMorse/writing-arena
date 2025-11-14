@@ -52,12 +52,14 @@ export default function SeedDatabasePage() {
   }
 
   const handleSeed = async () => {
+    console.log('🔵 CLIENT - Starting seed process');
     setSeeding(true);
     setProgress('Starting database seed...');
     setError('');
     setResult(null);
 
     try {
+      console.log('🔵 CLIENT - Calling API endpoint');
       setProgress('Calling seed API endpoint...');
       
       const response = await fetch('/api/seed-ai-students', {
@@ -67,6 +69,7 @@ export default function SeedDatabasePage() {
         },
       });
 
+      console.log('🔵 CLIENT - Got response, status:', response.status);
       setProgress('Processing response...');
       
       if (!response.ok) {
@@ -75,7 +78,15 @@ export default function SeedDatabasePage() {
 
       const data = await response.json();
       
-      setProgress('Complete!');
+      console.log('🔵 CLIENT - Seed response:', data);
+      
+      if (data.errorCount > 0) {
+        setProgress(`Complete with ${data.errorCount} errors`);
+        console.error('🔴 CLIENT - Errors occurred:', data.errors);
+      } else {
+        setProgress('Complete!');
+      }
+      
       setResult(data);
       
     } catch (err: any) {
@@ -140,13 +151,32 @@ export default function SeedDatabasePage() {
 
           {result && (
             <div className="mt-6 space-y-4">
-              <div className="bg-green-500/20 border border-green-500/30 rounded-lg p-6">
-                <div className="text-green-400 font-bold text-xl mb-4">✅ Seeding Successful!</div>
+              <div className={`${result.studentsCreated > 0 ? 'bg-green-500/20 border-green-500/30' : 'bg-red-500/20 border-red-500/30'} border rounded-lg p-6`}>
+                <div className={`${result.studentsCreated > 0 ? 'text-green-400' : 'text-red-400'} font-bold text-xl mb-4`}>
+                  {result.studentsCreated > 0 ? '✅ Seeding Successful!' : '❌ Seeding Failed'}
+                </div>
                 <div className="space-y-2 text-white/90">
-                  <div>Total Students Created: <span className="font-bold text-green-400">{result.studentsCreated}</span></div>
+                  <div>Total Students Created: <span className={`font-bold ${result.studentsCreated > 0 ? 'text-green-400' : 'text-red-400'}`}>{result.studentsCreated}</span></div>
                   <div>Expected Total: <span className="font-bold">{result.total}</span></div>
+                  {result.errorCount > 0 && (
+                    <div>Errors: <span className="font-bold text-red-400">{result.errorCount}</span></div>
+                  )}
                 </div>
               </div>
+
+              {result.errors && result.errors.length > 0 && (
+                <div className="bg-red-500/20 border border-red-500/30 rounded-lg p-6">
+                  <h3 className="text-red-400 font-bold mb-3">Errors Encountered:</h3>
+                  <div className="space-y-1 text-white/80 text-sm">
+                    {result.errors.map((err: string, idx: number) => (
+                      <div key={idx} className="font-mono text-xs">• {err}</div>
+                    ))}
+                  </div>
+                  <div className="mt-3 text-white/60 text-xs">
+                    Check browser console for full error details
+                  </div>
+                </div>
+              )}
 
               {result.students && result.students.length > 0 && (
                 <div className="bg-white/5 backdrop-blur-sm rounded-lg p-6 border border-white/10">
