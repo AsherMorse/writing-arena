@@ -402,7 +402,7 @@ export default function MatchmakingContent() {
                 <div className="rounded-3xl border border-white/10 bg-[#141e27] p-8 max-w-2xl mx-auto">
                   <h3 className="text-white font-bold mb-4">Your Ranked Party</h3>
                   <div className="grid grid-cols-5 gap-3">
-                    {players.map((player, index) => (
+                    {finalPlayersRef.current.map((player, index) => (
                       <div key={index} className="text-center">
                         <div className="text-3xl mb-1">{player.avatar}</div>
                         <div className="text-white text-xs font-semibold truncate">{player.name}</div>
@@ -415,7 +415,7 @@ export default function MatchmakingContent() {
                   </div>
                   <div className="mt-4 pt-4 border-t border-white/10 text-center">
                     <div className="text-white/60 text-xs">
-                      {players.filter(p => !p.isAI).length} Real Player{players.filter(p => !p.isAI).length !== 1 ? 's' : ''} • {players.filter(p => p.isAI).length} AI
+                      {finalPlayersRef.current.filter(p => !p.isAI).length} Real Player{finalPlayersRef.current.filter(p => !p.isAI).length !== 1 ? 's' : ''} • {finalPlayersRef.current.filter(p => p.isAI).length} AI
                     </div>
                   </div>
                 </div>
