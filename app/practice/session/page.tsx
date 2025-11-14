@@ -2,7 +2,7 @@
 
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useState, useEffect, Suspense } from 'react';
-import WritingTipsModal from '@/components/WritingTipsModal';
+import WritingTipsModal from '@/components/shared/WritingTipsModal';
 
 function PracticeSessionContent() {
   const router = useRouter();

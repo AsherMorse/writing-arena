@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
-import ProfileSettingsModal from '@/components/ProfileSettingsModal';
+import ProfileSettingsModal from '@/components/shared/ProfileSettingsModal';
 
 export default function DashboardPage() {
   const { user, userProfile, loading } = useAuth();
