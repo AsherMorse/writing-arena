@@ -199,13 +199,13 @@ export default function DashboardPage() {
               </div>
             </div>
 
-            <div className="rounded-3xl border border-white/10 bg-[#141e27] p-8">
+            <div className="rounded-3xl border border-white/10 bg-[#141e27] p-8 opacity-60">
               <div className="flex items-center justify-between">
                 <div>
                   <div className="text-xs uppercase tracking-[0.3em] text-white/50">Today&apos;s objectives</div>
                   <h2 className="mt-2 text-2xl font-semibold">Stay focused before queueing</h2>
                 </div>
-                <span className="rounded-full border border-white/10 px-3 py-1 text-xs text-white/50">Match prep</span>
+                <span className="rounded-full border border-yellow-400/30 bg-yellow-400/10 px-3 py-1 text-xs text-yellow-300">Coming Soon</span>
               </div>
               <div className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
                 {objectives.map(item => (
@@ -216,8 +216,8 @@ export default function DashboardPage() {
                       <p className="mt-2 text-xs text-white/60">{item.detail}</p>
                     </div>
                     <button
-                      onClick={() => router.push('/practice')}
-                      className="mt-4 inline-flex items-center gap-2 rounded-full border border-white/10 px-3 py-1.5 text-xs text-emerald-200 transition hover:border-emerald-200"
+                      disabled
+                      className="mt-4 inline-flex items-center gap-2 rounded-full border border-white/10 px-3 py-1.5 text-xs text-white/40 cursor-not-allowed"
                     >
                       Mark complete
                       <span>→</span>
@@ -248,13 +248,13 @@ export default function DashboardPage() {
               </div>
             </div>
 
-            <div className="rounded-3xl border border-white/10 bg-[#141e27] p-8">
+            <div className="rounded-3xl border border-white/10 bg-[#141e27] p-8 opacity-60">
               <div className="flex items-center justify-between">
                 <div>
                   <div className="text-xs uppercase tracking-[0.3em] text-white/50">Upcoming sessions</div>
                   <h2 className="mt-2 text-2xl font-semibold">Lock in your schedule</h2>
                 </div>
-                <button className="text-sm text-emerald-200 transition hover:text-emerald-100">Manage</button>
+                <span className="rounded-full border border-yellow-400/30 bg-yellow-400/10 px-3 py-1 text-xs text-yellow-300">Coming Soon</span>
               </div>
               <div className="mt-6 grid gap-4 md:grid-cols-2">
                 {upcomingMatches.map(match => (
@@ -263,8 +263,8 @@ export default function DashboardPage() {
                     <div className="mt-2 text-sm font-semibold text-white">{match.eta}</div>
                     <div className="mt-3 text-xs text-white/50">With {match.teammates.join(', ')}</div>
                     <button
-                      onClick={() => router.push(match.route)}
-                      className="mt-4 inline-flex items-center gap-2 rounded-full border border-white/10 px-3 py-1.5 text-xs text-emerald-200 transition hover:border-emerald-200"
+                      disabled
+                      className="mt-4 inline-flex items-center gap-2 rounded-full border border-white/10 px-3 py-1.5 text-xs text-white/40 cursor-not-allowed"
                     >
                       Open lobby
                       <span>→</span>
@@ -290,16 +290,19 @@ export default function DashboardPage() {
               </ul>
             </div>
 
-            <div className="rounded-3xl border border-white/10 bg-[#141e27] p-8">
-              <div className="text-xs uppercase tracking-[0.3em] text-white/50">Warm-up prompts</div>
+            <div className="rounded-3xl border border-white/10 bg-[#141e27] p-8 opacity-60">
+              <div className="flex items-center justify-between">
+                <div className="text-xs uppercase tracking-[0.3em] text-white/50">Warm-up prompts</div>
+                <span className="rounded-full border border-yellow-400/30 bg-yellow-400/10 px-3 py-1 text-xs text-yellow-300">Coming Soon</span>
+              </div>
               <div className="mt-6 space-y-4">
                 {warmupPrompts.map(prompt => (
                   <div key={prompt.title} className="rounded-2xl border border-white/10 bg-white/5 px-4 py-4 text-sm text-white/70">
                     <div className="text-sm font-semibold text-white">{prompt.title}</div>
                     <div className="mt-1 text-xs text-white/50">{prompt.trait} · {prompt.duration}</div>
                     <button
-                      onClick={() => router.push('/practice')}
-                      className="mt-4 inline-flex items-center gap-2 rounded-full border border-white/10 px-3 py-1.5 text-xs text-emerald-200 transition hover:border-emerald-200"
+                      disabled
+                      className="mt-4 inline-flex items-center gap-2 rounded-full border border-white/10 px-3 py-1.5 text-xs text-white/40 cursor-not-allowed"
                     >
                       Launch drill
                       <span>→</span>
