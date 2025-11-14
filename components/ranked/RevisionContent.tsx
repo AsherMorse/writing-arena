@@ -4,7 +4,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { useState, useEffect, Suspense } from 'react';
 import WritingTipsModal from '@/components/shared/WritingTipsModal';
 import { useAuth } from '@/contexts/AuthContext';
-import { submitPhase, getPeerFeedbackResponses } from '@/lib/match-sync';
+import { submitPhase, getPeerFeedbackResponses } from '@/lib/services/match-sync';
 
 // Mock AI feedback - will be replaced with real AI later
 const MOCK_AI_FEEDBACK = {
@@ -124,7 +124,7 @@ export default function RevisionContent() {
       
       try {
         const { getDoc, doc, updateDoc } = await import('firebase/firestore');
-        const { db } = await import('@/lib/firebase');
+        const { db } = await import('@/lib/config/firebase');
         
         // Get match state to find AI players and their writings/feedback
         const matchDoc = await getDoc(doc(db, 'matchStates', matchId));
@@ -232,7 +232,7 @@ export default function RevisionContent() {
     try {
       // Get AI revisions from Firestore
       const { getDoc, doc, updateDoc } = await import('firebase/firestore');
-      const { db } = await import('@/lib/firebase');
+      const { db } = await import('@/lib/config/firebase');
       
       const matchDoc = await getDoc(doc(db, 'matchStates', matchId));
       if (!matchDoc.exists()) throw new Error('Match state not found');

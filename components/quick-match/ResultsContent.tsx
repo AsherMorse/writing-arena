@@ -4,7 +4,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { useState, useEffect, Suspense } from 'react';
 import Link from 'next/link';
 import { useAuth } from '@/contexts/AuthContext';
-import { saveWritingSession, updateUserStatsAfterSession } from '@/lib/firestore';
+import { saveWritingSession, updateUserStatsAfterSession } from '@/lib/services/firestore';
 
 export default function ResultsContent() {
   const searchParams = useSearchParams();

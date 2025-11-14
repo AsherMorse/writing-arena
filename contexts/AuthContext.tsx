@@ -11,8 +11,8 @@ import {
   signInWithPopup,
   GoogleAuthProvider
 } from 'firebase/auth';
-import { auth } from '@/lib/firebase';
-import { createUserProfile, getUserProfile, UserProfile } from '@/lib/firestore';
+import { auth } from '@/lib/config/firebase';
+import { createUserProfile, getUserProfile, UserProfile } from '@/lib/services/firestore';
 
 interface AuthContextType {
   user: User | null;

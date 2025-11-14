@@ -71,7 +71,7 @@ export default function PhaseRankingsContent() {
       
       try {
         const { getDoc, doc } = await import('firebase/firestore');
-        const { db } = await import('@/lib/firebase');
+        const { db } = await import('@/lib/config/firebase');
         
         const matchDoc = await getDoc(doc(db, 'matchStates', matchId));
         if (!matchDoc.exists()) return;

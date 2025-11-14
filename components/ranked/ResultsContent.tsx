@@ -4,9 +4,9 @@ import { useSearchParams } from 'next/navigation';
 import { useState, useEffect, Suspense } from 'react';
 import Link from 'next/link';
 import { useAuth } from '@/contexts/AuthContext';
-import { getAIFeedback } from '@/lib/match-sync';
-import { saveWritingSession, updateUserStatsAfterSession } from '@/lib/firestore';
-import { updateAIStudentAfterMatch } from '@/lib/ai-students';
+import { getAIFeedback } from '@/lib/services/match-sync';
+import { saveWritingSession, updateUserStatsAfterSession } from '@/lib/services/firestore';
+import { updateAIStudentAfterMatch } from '@/lib/services/ai-students';
 
 // Mock feedback based on The Writing Revolution concepts
 const MOCK_PHASE_FEEDBACK = {
@@ -135,7 +135,7 @@ export default function ResultsContent() {
         if (matchId) {
           try {
             const { getDoc, doc } = await import('firebase/firestore');
-            const { db } = await import('@/lib/firebase');
+            const { db } = await import('@/lib/config/firebase');
             
             const matchDoc = await getDoc(doc(db, 'matchStates', matchId));
             if (matchDoc.exists()) {

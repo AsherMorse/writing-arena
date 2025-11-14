@@ -4,7 +4,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { useState, useEffect, Suspense } from 'react';
 import WritingTipsModal from '@/components/shared/WritingTipsModal';
 import { useAuth } from '@/contexts/AuthContext';
-import { submitPhase, getAssignedPeer } from '@/lib/match-sync';
+import { submitPhase, getAssignedPeer } from '@/lib/services/match-sync';
 
 // Mock peer writings - in reality, these would come from other players
 const MOCK_PEER_WRITINGS = [
@@ -71,7 +71,7 @@ export default function PeerFeedbackContent() {
       
       try {
         const { getDoc, doc, updateDoc } = await import('firebase/firestore');
-        const { db } = await import('@/lib/firebase');
+        const { db } = await import('@/lib/config/firebase');
         
         // Get match state to find AI players and their assigned peers
         const matchDoc = await getDoc(doc(db, 'matchStates', matchId));
@@ -215,7 +215,7 @@ export default function PeerFeedbackContent() {
     try {
       // Get AI feedback submissions from Firestore
       const { getDoc, doc, updateDoc } = await import('firebase/firestore');
-      const { db } = await import('@/lib/firebase');
+      const { db } = await import('@/lib/config/firebase');
       
       const matchDoc = await getDoc(doc(db, 'matchStates', matchId));
       if (!matchDoc.exists()) throw new Error('Match state not found');

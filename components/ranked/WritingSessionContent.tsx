@@ -3,11 +3,11 @@
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useState, useEffect, Suspense } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { getPromptById, getRandomPrompt } from '@/lib/prompts';
+import { getPromptById, getRandomPrompt } from '@/lib/utils/prompts';
 import WritingTipsModal from '@/components/shared/WritingTipsModal';
 import WaitingForPlayers from '@/components/shared/WaitingForPlayers';
-import { createMatchState, submitPhase, listenToMatchState, areAllPlayersReady, simulateAISubmissions } from '@/lib/match-sync';
-import { db } from '@/lib/firebase';
+import { createMatchState, submitPhase, listenToMatchState, areAllPlayersReady, simulateAISubmissions } from '@/lib/services/match-sync';
+import { db } from '@/lib/config/firebase';
 import { doc, getDoc } from 'firebase/firestore';
 export default function WritingSessionContent() {
   const router = useRouter();

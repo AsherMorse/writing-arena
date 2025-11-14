@@ -4,9 +4,9 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { useAuth } from '@/contexts/AuthContext';
-import { joinQueue, leaveQueue, listenToQueue, QueueEntry } from '@/lib/matchmaking-queue';
-import { getRandomPrompt } from '@/lib/prompts';
-import { getRandomAIStudents } from '@/lib/ai-students';
+import { joinQueue, leaveQueue, listenToQueue, QueueEntry } from '@/lib/services/matchmaking-queue';
+import { getRandomPrompt } from '@/lib/utils/prompts';
+import { getRandomAIStudents } from '@/lib/services/ai-students';
 
 export default function MatchmakingContent() {
   const router = useRouter();

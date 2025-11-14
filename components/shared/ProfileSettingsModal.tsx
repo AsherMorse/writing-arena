@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { updateUserProfile } from '@/lib/firestore';
+import { updateUserProfile } from '@/lib/services/firestore';
 
 interface ProfileSettingsModalProps {
   isOpen: boolean;
