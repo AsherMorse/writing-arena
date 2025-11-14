@@ -4,7 +4,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { useAuth } from '@/contexts/AuthContext';
-import { joinQueue, leaveQueue, listenToQueue, QueueEntry } from '@/lib/services/matchmaking-queue';
+import { joinQueue, leaveQueue, listenToQueue, QueueEntry, createMatchLobby, listenToMatchLobby } from '@/lib/services/matchmaking-queue';
 import { getRandomPrompt } from '@/lib/utils/prompts';
 import { getRandomAIStudents } from '@/lib/services/ai-students';
 
@@ -44,6 +44,9 @@ export default function MatchmakingContent() {
   const [selectedAIStudents, setSelectedAIStudents] = useState<any[]>([]);
   const finalPlayersRef = useRef<any[]>([]);
   const [queueSnapshot, setQueueSnapshot] = useState<QueueEntry[]>([]);
+  const [isLeader, setIsLeader] = useState(false);
+  const [sharedMatchId, setSharedMatchId] = useState<string | null>(null);
+  const lobbyListenerRef = useRef<(() => void) | null>(null);
 
   // Writing Revolution concepts carousel
   const writingConcepts = [
@@ -303,14 +306,19 @@ export default function MatchmakingContent() {
       return () => clearTimeout(timer);
     } else {
       console.log('🚀 MATCHMAKING - Starting match!');
+      
+      // Determine if this is a multi-player match
+      const realPlayersInQueue = queueSnapshot.filter(p => finalPlayersRef.current.some(fp => fp.userId === p.userId));
+      const isMultiPlayer = realPlayersInQueue.length >= 2;
+      
       // Get a truly random prompt from the library
       const randomPrompt = getRandomPrompt();
       
       // If multiple real players, coordinate matchId (use earliest player's ID as leader)
       let matchId: string;
-      const realPlayersInQueue = queueSnapshot.filter(p => finalPlayersRef.current.some(fp => fp.userId === p.userId));
+      let amILeader = false;
       
-      if (realPlayersInQueue.length >= 2) {
+      if (isMultiPlayer) {
         // Sort by join time and use earliest player as leader
         const sortedPlayers = [...realPlayersInQueue].sort((a, b) => {
           const aTime = a.joinedAt?.toMillis() || 0;
@@ -320,10 +328,15 @@ export default function MatchmakingContent() {
         const leaderId = sortedPlayers[0].userId;
         const leaderJoinTime = sortedPlayers[0].joinedAt?.toMillis() || Date.now();
         matchId = `match-${leaderId}-${leaderJoinTime}`;
-        console.log('👥 MATCHMAKING - Multi-player match, leader:', leaderId, 'matchId:', matchId);
+        amILeader = leaderId === userId;
+        
+        console.log('👥 MATCHMAKING - Multi-player match, leader:', leaderId, 'I am leader:', amILeader, 'matchId:', matchId);
+        setIsLeader(amILeader);
+        setSharedMatchId(matchId);
       } else {
         // Single player match
         matchId = `match-${userId}-${Date.now()}`;
+        amILeader = true;
         console.log('👤 MATCHMAKING - Single player match, matchId:', matchId);
       }
       
@@ -341,9 +354,58 @@ export default function MatchmakingContent() {
       sessionStorage.setItem(`${matchId}-players`, JSON.stringify(playersToSave));
       console.log('💾 MATCHMAKING - Saved', playersToSave.length, 'players:', playersToSave.map(p => p.name).join(', '));
       
-      router.push(`/ranked/session?trait=${trait}&promptId=${randomPrompt.id}&matchId=${matchId}`);
+      // If multi-player match, leader creates lobby and all navigate
+      if (isMultiPlayer && amILeader) {
+        console.log('👑 MATCHMAKING - I am leader, creating shared lobby...');
+        
+        // Convert players to proper format
+        const lobbyPlayers = playersToSave.map((p: any) => ({
+          userId: p.userId,
+          displayName: p.name === 'You' ? userName : p.name,
+          avatar: p.avatar,
+          rank: p.rank,
+          isAI: p.isAI
+        }));
+        
+        // Create shared lobby in Firestore
+        createMatchLobby(matchId, lobbyPlayers, trait, randomPrompt.id)
+          .then(() => {
+            console.log('✅ MATCHMAKING - Lobby created, navigating...');
+            router.push(`/ranked/session?trait=${trait}&promptId=${randomPrompt.id}&matchId=${matchId}&isLeader=true`);
+          })
+          .catch(err => {
+            console.error('❌ MATCHMAKING - Failed to create lobby:', err);
+            // Navigate anyway
+            router.push(`/ranked/session?trait=${trait}&promptId=${randomPrompt.id}&matchId=${matchId}`);
+          });
+      } else if (isMultiPlayer && !amILeader) {
+        console.log('👤 MATCHMAKING - I am follower, waiting for leader to create lobby...');
+        
+        // Listen for leader to create lobby
+        lobbyListenerRef.current = listenToMatchLobby(matchId, (lobbyData) => {
+          console.log('✅ MATCHMAKING - Leader created lobby, navigating...');
+          if (lobbyListenerRef.current) {
+            lobbyListenerRef.current();
+            lobbyListenerRef.current = null;
+          }
+          router.push(`/ranked/session?trait=${trait}&promptId=${randomPrompt.id}&matchId=${matchId}`);
+        });
+        
+        // Timeout after 10 seconds if lobby not created
+        setTimeout(() => {
+          if (lobbyListenerRef.current) {
+            console.warn('⚠️ MATCHMAKING - Lobby timeout, navigating anyway...');
+            lobbyListenerRef.current();
+            lobbyListenerRef.current = null;
+            router.push(`/ranked/session?trait=${trait}&promptId=${randomPrompt.id}&matchId=${matchId}`);
+          }
+        }, 10000);
+      } else {
+        // Single player, navigate immediately
+        router.push(`/ranked/session?trait=${trait}&promptId=${randomPrompt.id}&matchId=${matchId}`);
+      }
     }
-  }, [countdown, router, trait, userId, players, selectedAIStudents, queueSnapshot]);
+  }, [countdown, router, trait, userId, userName, players, selectedAIStudents, queueSnapshot]);
 
   return (
     <div className="min-h-screen bg-[#0c141d] text-white">

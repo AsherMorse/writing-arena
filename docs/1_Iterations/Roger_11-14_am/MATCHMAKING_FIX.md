@@ -1,4 +1,4 @@
-# Matchmaking Race Condition Fix
+# Matchmaking Race Condition Fix - FINAL SOLUTION
 
 ## Problem
 When two human players joined the ranked matchmaking queue simultaneously, they would be forced into separate games instead of matching together. This was caused by:
@@ -97,12 +97,75 @@ When multiple real players match together, they all use the same matchId based o
   - Queried by trait
   - Listened to in real-time
   
+## Update: Leader-Based Coordination System (IMPLEMENTED)
+
+After the initial fix, players could still see each other but would end up in separate games because:
+- Each client independently created their own match state in Firestore
+- No coordination on who creates the "official" match
+- Players would see ghost versions of each other in separate games
+
+### Solution: Match Lobby System
+
+Implemented a **leader-based coordination system**:
+
+1. **Leader Election**: When countdown starts, earliest player in queue becomes "leader"
+2. **Shared Lobby**: Leader creates `matchLobbies/{matchId}` document in Firestore
+3. **Follower Waiting**: Non-leader players listen for lobby creation
+4. **Synchronized Navigation**: All players navigate to same matchId
+5. **Single Match State**: Only leader creates `matchStates/{matchId}` document
+
+### New Files/Functions Added
+
+**`lib/services/matchmaking-queue.ts`**:
+- `createMatchLobby()`: Leader creates shared lobby with all players
+- `listenToMatchLobby()`: Followers listen for lobby to be created
+
+**`components/ranked/MatchmakingContent.tsx`**:
+- Leader detection logic based on queue join time
+- Conditional navigation (leader creates, followers wait)
+- 10-second timeout fallback if lobby not created
+
+**`components/ranked/WritingSessionContent.tsx`**:
+- Only leader creates match state
+- Followers poll for match state to exist (15 second timeout)
+- Fallback creation if leader fails
+
+**`firestore.rules`**:
+- Added `matchLobbies` collection rules
+
+### Flow Diagram
+
+```
+Player A (Leader)                    Player B (Follower)
+     |                                       |
+     | Countdown 3...2...1...0               | Countdown 3...2...1...0
+     |                                       |
+     | Calculate matchId (leader)            | Calculate matchId (follower)
+     | matchId = match-playerA-timestamp     | matchId = match-playerA-timestamp (SAME!)
+     |                                       |
+     | Create matchLobbies/{matchId}         | Listen for matchLobbies/{matchId}
+     | - Save all 5 players                  |    ↓
+     | - Save trait & promptId               |    ↓ Lobby detected!
+     |                                       |
+     | Navigate to /ranked/session           | Navigate to /ranked/session
+     |   ?matchId=X&isLeader=true           |   ?matchId=X
+     |                                       |
+     | Session page loads                    | Session page loads
+     |                                       |
+     | Create matchStates/{matchId}          | Poll for matchStates/{matchId}
+     | - All 5 players                       |    ↓
+     | - Phase 1, 120s timer                 |    ↓ Match state found!
+     |                                       |
+     | Start writing!                        | Start writing!
+     |          |                                   |
+     |          └──────── SAME GAME ────────────────┘
+```
+
 ## Future Improvements
-For a fully robust solution, consider:
-1. **Server-side matchmaker**: Cloud Function that forms parties on the server
-2. **Match lobby collection**: Create a `matchLobbies` collection where parties form before match starts
-3. **Party leader system**: One player becomes "host" and creates match for everyone
-4. **Timeout handling**: Handle cases where players disconnect during matchmaking
+For an even more robust solution, consider:
+1. **Cloud Function matchmaker**: Server-side party formation
+2. **Real-time presence detection**: Know when players disconnect
+3. **Automatic cleanup**: Remove stale lobbies and match states
 
 ## Debug Logs
 Watch console for these key messages:

@@ -179,3 +179,47 @@ export async function findOrCreateParty(
   return matchId;
 }
 
+// Create a shared match lobby (for coordinated multi-player matches)
+export async function createMatchLobby(
+  matchId: string,
+  players: Array<{userId: string; displayName: string; avatar: string; rank: string; isAI: boolean}>,
+  trait: string,
+  promptId: string
+): Promise<void> {
+  console.log('🏛️ MATCHMAKING - Creating shared match lobby:', matchId);
+  
+  const lobbyRef = doc(db, 'matchLobbies', matchId);
+  await setDoc(lobbyRef, {
+    matchId,
+    players,
+    trait,
+    promptId,
+    createdAt: serverTimestamp(),
+    status: 'ready',
+  });
+  
+  console.log('✅ MATCHMAKING - Lobby created with', players.length, 'players');
+}
+
+// Listen for match lobby (for followers to detect when leader creates it)
+export function listenToMatchLobby(
+  matchId: string,
+  onLobbyReady: (lobbyData: any) => void
+): () => void {
+  console.log('👂 MATCHMAKING - Listening for lobby:', matchId);
+  
+  const lobbyRef = doc(db, 'matchLobbies', matchId);
+  
+  const unsubscribe = onSnapshot(lobbyRef, (snapshot) => {
+    if (snapshot.exists()) {
+      const data = snapshot.data();
+      console.log('✅ MATCHMAKING - Lobby found:', data);
+      onLobbyReady(data);
+    }
+  }, (error) => {
+    console.error('❌ MATCHMAKING - Error listening to lobby:', error);
+  });
+  
+  return unsubscribe;
+}
+

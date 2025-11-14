@@ -371,6 +371,21 @@ service cloud.firestore {
       allow update: if isOwner(userId);
     }
     
+    // Match Lobbies - shared lobbies for coordinating multi-player matches
+    match /matchLobbies/{matchId} {
+      // Anyone can read lobbies (to join when leader creates)
+      allow read: if isAuthenticated();
+      
+      // Authenticated users can create lobbies
+      allow create: if isAuthenticated();
+      
+      // Allow updates (for status changes)
+      allow update: if isAuthenticated();
+      
+      // Auto-cleanup after match starts
+      allow delete: if isAuthenticated();
+    }
+    
     // Matches collection - ongoing and completed ranked battles
     match /matches/{matchId} {
       // Anyone can read matches (for spectating, history)

@@ -15,6 +15,7 @@ export default function WritingSessionContent() {
   const trait = searchParams.get('trait');
   const promptId = searchParams.get('promptId');
   const matchId = searchParams.get('matchId') || `match-${Date.now()}`;
+  const isLeader = searchParams.get('isLeader') === 'true';
   const { user, userProfile } = useAuth();
   
   // Get prompt from library by ID, or random if not found (memoized to prevent re-shuffling)
@@ -118,7 +119,7 @@ export default function WritingSessionContent() {
     if (!user || !userProfile || matchInitialized) return;
     
     const initMatch = async () => {
-      console.log('🎮 SESSION - Initializing/restoring match state');
+      console.log('🎮 SESSION - Initializing/restoring match state, isLeader:', isLeader);
       try {
         // Check if match already exists in Firestore
         const matchRef = doc(db, 'matchStates', matchId);
@@ -131,8 +132,54 @@ export default function WritingSessionContent() {
           return;
         }
         
-        // Create new match state
-        console.log('🆕 SESSION - Creating new match state');
+        // If not leader, wait for leader to create match state
+        if (!isLeader) {
+          console.log('👤 SESSION - I am follower, waiting for leader to create match state...');
+          
+          // Poll for match state to exist (max 15 seconds)
+          let attempts = 0;
+          const maxAttempts = 30; // 15 seconds
+          
+          const waitForMatch = async (): Promise<void> => {
+            const snap = await getDoc(matchRef);
+            if (snap.exists()) {
+              console.log('✅ SESSION - Leader created match state!');
+              setMatchInitialized(true);
+              setAiWritingsGenerated(true);
+              return;
+            }
+            
+            attempts++;
+            if (attempts >= maxAttempts) {
+              console.warn('⚠️ SESSION - Timeout waiting for leader, creating match anyway...');
+              // Fallback: create match ourselves
+              await createMatchState(
+                matchId,
+                partyMembers.map((p: any) => ({
+                  userId: p.userId || (p.isYou ? user.uid : `ai-${p.name}`),
+                  displayName: p.name,
+                  avatar: p.avatar,
+                  rank: p.rank,
+                  isAI: p.isAI || !p.isYou
+                })),
+                1,
+                120
+              );
+              simulateAISubmissions(matchId, 1, Math.random() * 60000 + 60000);
+              setMatchInitialized(true);
+              return;
+            }
+            
+            // Try again in 500ms
+            setTimeout(() => waitForMatch(), 500);
+          };
+          
+          await waitForMatch();
+          return;
+        }
+        
+        // Create new match state (only if leader)
+        console.log('👑 SESSION - I am leader, creating new match state');
         await createMatchState(
           matchId,
           partyMembers.map((p: any) => ({
@@ -156,7 +203,7 @@ export default function WritingSessionContent() {
     };
     
     initMatch();
-  }, [user, userProfile, matchId, matchInitialized, partyMembers]);
+  }, [user, userProfile, matchId, matchInitialized, partyMembers, isLeader]);
 
   // Generate AI writings when match initializes (or restore if exists)
   useEffect(() => {
