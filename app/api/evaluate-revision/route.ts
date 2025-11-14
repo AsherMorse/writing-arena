@@ -1,8 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 export async function POST(request: NextRequest) {
+  let payload: { originalContent?: string; revisedContent?: string; feedback?: any };
   try {
-    const { originalContent, revisedContent, feedback } = await request.json();
+    payload = await request.json();
+  } catch (error) {
+    console.error('Error parsing revision body:', error);
+    return NextResponse.json(generateMockRevisionScore('', ''));
+  }
+
+  const originalContent = payload.originalContent || '';
+  const revisedContent = payload.revisedContent || '';
+  const feedback = payload.feedback;
+
+  try {
 
     const apiKey = process.env.ANTHROPIC_API_KEY;
     
@@ -40,7 +51,6 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(evaluation);
   } catch (error) {
     console.error('Error evaluating revision:', error);
-    const { originalContent, revisedContent } = await request.json();
     return NextResponse.json(generateMockRevisionScore(originalContent, revisedContent));
   }
 }

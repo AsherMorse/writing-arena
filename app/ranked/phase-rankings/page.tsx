@@ -83,18 +83,18 @@ function PhaseRankingsContent() {
   // Phase information
   const phaseInfo = {
     1: {
-      title: 'Phase 1 Complete: Writing',
+      title: 'Phase 1 recap · Draft',
       icon: '📝',
-      nextPhase: 'Peer Feedback',
-      color: 'from-purple-600 to-blue-600'
+      nextPhase: 'Peer feedback briefing',
+      descriptor: 'Draft scores locked in. Review standings before feedback phase opens.',
     },
     2: {
-      title: 'Phase 2 Complete: Peer Feedback',
+      title: 'Phase 2 recap · Feedback',
       icon: '🔍',
-      nextPhase: 'Revision',
-      color: 'from-blue-600 to-indigo-600'
+      nextPhase: 'Revision showdown',
+      descriptor: 'Feedback accuracy tallied. Collect insights before revision.',
     },
-  };
+  } as const;
   
   const currentPhaseInfo = phaseInfo[phase as keyof typeof phaseInfo] || phaseInfo[1];
   
@@ -117,107 +117,113 @@ function PhaseRankingsContent() {
     }
   }, [countdown, phase, router, trait, promptId, promptType, content, wordCount, aiScores, yourScore, feedbackScore, peerFeedback]);
   
-  const getMedalEmoji = (rank: number) => {
-    if (rank === 1) return '🥇';
-    if (rank === 2) return '🥈';
-    if (rank === 3) return '🥉';
-    return `#${rank}`;
+  const getPlacementBadge = (rank: number) => {
+    if (rank === 1) return { label: '🥇', tone: 'bg-emerald-400 text-[#0c141d]' };
+    if (rank === 2) return { label: '🥈', tone: 'bg-white/70 text-[#0c141d]' };
+    if (rank === 3) return { label: '🥉', tone: 'bg-orange-300 text-[#0c141d]' };
+    return { label: `#${rank}`, tone: 'bg-white/10 text-white/60' };
   };
   
+  const yourBadge = getPlacementBadge(yourRank);
+  
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center p-6">
-      <div className="max-w-4xl w-full">
-        {/* Header */}
-        <div className="text-center mb-8">
-          <div className="text-7xl mb-4 animate-bounce">{currentPhaseInfo.icon}</div>
-          <h1 className="text-4xl font-bold text-white mb-2">{currentPhaseInfo.title}</h1>
-          <p className="text-white/70 text-lg mb-6">Current Standings</p>
-          
-          {/* Countdown Circle */}
-          <div className="inline-flex items-center justify-center">
-            <div className={`relative w-24 h-24 bg-gradient-to-br ${currentPhaseInfo.color} rounded-full flex items-center justify-center shadow-2xl`}>
-              <span className="text-5xl font-bold text-white">{countdown}</span>
+    <div className="min-h-screen bg-[#0c141d] text-white">
+      <div className="mx-auto flex min-h-screen max-w-6xl flex-col gap-12 px-6 py-16">
+        <header className="flex flex-col gap-6 rounded-3xl border border-white/10 bg-[#141e27] p-8 lg:flex-row lg:items-center lg:justify-between">
+          <div className="flex items-start gap-4">
+            <div className="flex h-16 w-16 items-center justify-center rounded-2xl border border-white/10 bg-[#0c141d] text-3xl">
+              {currentPhaseInfo.icon}
+            </div>
+            <div className="space-y-2">
+              <div className="text-xs uppercase tracking-[0.3em] text-white/50">Ranked circuit</div>
+              <h1 className="text-3xl font-semibold">{currentPhaseInfo.title}</h1>
+              <p className="text-sm text-white/60">{currentPhaseInfo.descriptor}</p>
             </div>
           </div>
-          <p className="text-white/60 mt-3">
-            Preparing {currentPhaseInfo.nextPhase} in {countdown}s...
-          </p>
-        </div>
-        
-        {/* Rankings */}
-        <div className="bg-white/5 backdrop-blur-sm rounded-2xl p-6 border border-white/10 mb-6">
-          <h2 className="text-xl font-bold text-white mb-4 flex items-center space-x-2">
-            <span>🏆</span>
-            <span>Current Rankings</span>
-            <span className="text-white/40 text-sm font-normal ml-auto">After Phase {phase}</span>
-          </h2>
-          
-          <div className="space-y-3">
-            {rankings.map((player) => (
-              <div
-                key={player.name}
-                className={`p-4 rounded-xl transition-all ${
-                  player.isYou
-                    ? 'bg-gradient-to-r from-purple-500/20 to-blue-500/20 border-2 border-purple-400 scale-105'
-                    : 'bg-white/5 border border-white/10'
-                }`}
-              >
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-4">
-                    <div className={`w-10 h-10 rounded-full flex items-center justify-center text-xl font-bold ${
-                      player.position === 1 ? 'bg-yellow-500 text-yellow-900' :
-                      player.position === 2 ? 'bg-gray-300 text-gray-700' :
-                      player.position === 3 ? 'bg-orange-400 text-orange-900' :
-                      'bg-white/10 text-white/60'
-                    }`}>
-                      {player.position === 1 ? '🥇' : player.position === 2 ? '🥈' : player.position === 3 ? '🥉' : player.position}
-                    </div>
+          <div className="flex items-center gap-4 rounded-2xl border border-white/10 bg-[#0c141d] px-6 py-5 text-sm">
+            <div className="flex h-16 w-16 items-center justify-center rounded-xl border border-white/10 bg-[#141e27] text-2xl font-semibold">
+              {countdown}
+            </div>
+            <div>
+              <div className="text-xs uppercase text-white/50">Next phase</div>
+              <div className="text-base font-semibold text-emerald-200">{currentPhaseInfo.nextPhase}</div>
+              <div className="text-xs text-white/50">Launching in {countdown}s</div>
+            </div>
+          </div>
+        </header>
 
-                    <div className="flex items-center space-x-3">
-                      <span className="text-3xl">{player.avatar}</span>
-                      <div>
-                        <div className="flex items-center space-x-2">
-                          <span className={`font-bold ${player.isYou ? 'text-purple-400' : 'text-white'}`}>
-                            {player.name}
-                          </span>
-                          {player.isYou && (
-                            <span className="text-xs px-2 py-1 bg-purple-500 text-white rounded-full">You</span>
-                          )}
+        <main className="grid gap-10 lg:grid-cols-[1.4fr,0.85fr]">
+          <section className="rounded-3xl border border-white/10 bg-[#141e27] p-7">
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="text-xs uppercase tracking-[0.3em] text-white/50">Current standings</div>
+                <p className="mt-2 text-xs text-white/50">Scores normalized to 100. Top three get bonus LP.</p>
+              </div>
+              <div className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-white/50">Phase {phase}</div>
+            </div>
+            <div className="mt-6 space-y-3">
+              {rankings.map(player => {
+                const badge = getPlacementBadge(player.position);
+                return (
+                  <div
+                    key={player.name}
+                    className={`flex items-center justify-between rounded-2xl border px-5 py-4 ${
+                      player.isYou ? 'border-emerald-300/40 bg-emerald-400/10' : 'border-white/10 bg-white/5'
+                    }`}
+                  >
+                    <div className="flex items-center gap-4">
+                      <div className={`flex h-11 w-11 items-center justify-center rounded-xl text-lg font-semibold ${badge.tone}`}>
+                        {badge.label}
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <span className="text-2xl">{player.avatar}</span>
+                        <div>
+                          <div className={`text-sm font-semibold ${player.isYou ? 'text-emerald-200' : 'text-white'}`}>{player.name}</div>
+                          <div className="text-[11px] text-white/50">{player.rank}</div>
                         </div>
-                        <div className="text-white/60 text-sm">{player.rank}</div>
                       </div>
                     </div>
-                  </div>
-
-                  <div className="text-right">
-                    <div className={`text-2xl font-bold ${player.isYou ? 'text-purple-400' : 'text-white'}`}>
-                      {player.score}
+                    <div className="text-right">
+                      <div className={`text-2xl font-semibold ${player.isYou ? 'text-emerald-200' : 'text-white'}`}>{player.score}</div>
+                      <div className="text-[11px] uppercase text-white/40">score</div>
                     </div>
-                    <div className="text-white/60 text-xs">score</div>
+                  </div>
+                );
+              })}
+            </div>
+          </section>
+
+          <aside className="space-y-6">
+            <div className="rounded-3xl border border-white/10 bg-[#141e27] p-7 text-sm text-white/60">
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="text-xs uppercase tracking-[0.3em] text-white/50">Your placement</div>
+                  <div className="mt-3 flex items-center gap-3">
+                    <div className={`flex h-12 w-12 items-center justify-center rounded-xl text-lg font-semibold ${yourBadge.tone}`}>
+                      {yourBadge.label}
+                    </div>
+                    <div>
+                      <div className="text-lg font-semibold text-white">You are in position {yourRank}</div>
+                      <p className="text-xs text-white/50">{yourRank <= 3 ? 'Eligible for LP boost.' : 'Push harder next phase to climb.'}</p>
+                    </div>
                   </div>
                 </div>
               </div>
-            ))}
-          </div>
-        </div>
-        
-        {/* Your Position Banner */}
-        <div className={`rounded-xl p-4 text-center ${
-          yourRank === 1 ? 'bg-gradient-to-r from-yellow-600 to-orange-600' :
-          yourRank <= 3 ? 'bg-gradient-to-r from-green-600 to-emerald-600' :
-          'bg-gradient-to-r from-blue-600 to-purple-600'
-        }`}>
-          <div className="text-white/90 text-sm mb-1">You&apos;re currently in</div>
-          <div className="text-4xl font-bold text-white mb-1">
-            {getMedalEmoji(yourRank)} Place
-          </div>
-          <div className="text-white/90 text-sm">
-            {yourRank === 1 ? '🔥 Leading the pack!' : 
-             yourRank === 2 ? '💪 Close to the top!' :
-             yourRank === 3 ? '👍 In the top 3!' :
-             '⚔️ Keep pushing!'}
-          </div>
-        </div>
+              <div className="mt-5 grid gap-3 text-xs text-white/50">
+                <div className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3">Phase 1 (draft) influences final LP by 40%.</div>
+                <div className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3">Phase 2 (feedback) contributes 30%.</div>
+                <div className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3">Phase 3 (revision) closes with the remaining 30%.</div>
+              </div>
+            </div>
+
+            <div className="rounded-3xl border border-white/10 bg-[#141e27] p-7 text-xs text-white/50">
+              <div className="text-xs uppercase tracking-[0.3em] text-white/50">Next steps</div>
+              <p className="mt-3">- Phase transitions automatically. Stay focused on the next prompt segment.</p>
+              <p className="mt-3">- Review your draft copy; you may need it for revision cues.</p>
+              <p className="mt-3">- Aim to improve relative rank for extra LP.</p>
+            </div>
+          </aside>
+        </main>
       </div>
     </div>
   );
@@ -226,8 +232,8 @@ function PhaseRankingsContent() {
 export default function PhaseRankingsPage() {
   return (
     <Suspense fallback={
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center">
-        <div className="text-white text-xl">Loading rankings...</div>
+      <div className="min-h-screen bg-[#0c141d] flex items-center justify-center text-white/60 text-sm">
+        Loading rankings...
       </div>
     }>
       <PhaseRankingsContent />

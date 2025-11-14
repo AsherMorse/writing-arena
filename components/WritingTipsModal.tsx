@@ -11,172 +11,166 @@ export default function WritingTipsModal({ isOpen, onClose, promptType }: Writin
 
   const tips = {
     narrative: {
-      title: 'Narrative Writing Tips',
+      title: 'Narrative tactics',
       icon: '📖',
+      subtitle: 'Build momentum with concrete detail and pacing moves.',
       strategies: [
         {
-          name: 'Sentence Expansion',
-          tip: 'Use because, but, or so to show why things happen',
-          example: 'She opened the door because she heard a strange noise.',
+          name: 'Sentence expansion',
+          tip: 'Use because, but, or so to explain cause and effect.',
+          example: 'She opened the door because she heard a strange noise in the stairwell.',
         },
         {
-          name: 'Show, Don\'t Tell',
-          tip: 'Use specific details instead of general statements',
-          example: 'Instead of "She was scared" → "Her hands trembled as she reached for the handle."',
+          name: 'Show versus tell',
+          tip: 'Swap general statements for sensory detail.',
+          example: 'Her hands trembled on the rusted handle as the lighthouse groaned in the wind.',
         },
         {
           name: 'Appositives',
-          tip: 'Add description using commas',
-          example: 'Sarah, a curious ten-year-old, pushed open the rusty gate.',
+          tip: 'Add quick description inside commas without starting a new sentence.',
+          example: 'Sarah, a curious fifth grader, pushed the door open with her elbow.',
         },
         {
-          name: 'Time Transitions',
-          tip: 'Show passage of time clearly',
-          example: 'Use: First, Then, After that, Finally, Suddenly',
+          name: 'Time transitions',
+          tip: 'Sequence events with words like first, suddenly, after that, finally.',
+          example: 'First she checked the hall. Moments later a golden light spilled out.',
         },
       ],
     },
     descriptive: {
-      title: 'Descriptive Writing Tips',
+      title: 'Descriptive tactics',
       icon: '🎨',
+      subtitle: 'Anchor readers with vivid, specific images.',
       strategies: [
         {
-          name: 'Five Senses',
-          tip: 'Include what you see, hear, smell, taste, and feel',
-          example: 'The salty air stung my eyes while waves crashed loudly below.',
+          name: 'Five senses',
+          tip: 'Describe what characters see, hear, smell, taste, and feel.',
+          example: 'Salt stung her tongue while cold spray dripped from the lantern room ceiling.',
         },
         {
-          name: 'Specific Details',
-          tip: 'Replace vague words with precise descriptions',
-          example: 'Instead of "pretty flower" → "crimson rose with velvet petals"',
+          name: 'Specific nouns',
+          tip: 'Replace vague words with precise objects or textures.',
+          example: 'Instead of old book try leather bound log streaked with soot.',
         },
         {
-          name: 'Spatial Order',
-          tip: 'Organize from one location to another',
-          example: 'Near the entrance... Moving deeper... At the far end...',
+          name: 'Spatial order',
+          tip: 'Tour the scene from one location to another so readers can follow.',
+          example: 'At the entrance the floor creaked, farther in broken glass glittered beside the lamp.',
         },
         {
-          name: 'Figurative Language',
-          tip: 'Use similes and metaphors',
-          example: 'The fog rolled in like a silent ghost.',
+          name: 'Figurative language',
+          tip: 'Use similes or metaphors to compare unfamiliar images.',
+          example: 'Fog coiled around the beacon like a lazy cat.',
         },
       ],
     },
     informational: {
-      title: 'Informational Writing Tips',
+      title: 'Informational tactics',
       icon: '📚',
+      subtitle: 'Explain clearly with structure, signal words, and evidence.',
       strategies: [
         {
-          name: 'Topic Sentence',
-          tip: 'Start with main idea, then support it',
-          example: 'Photosynthesis is how plants make food. First, they... Then...',
+          name: 'Topic sentence',
+          tip: 'Lead each paragraph with the main idea, then support it.',
+          example: 'Lighthouses prevent shipwrecks. First they send light, then horns warn during storms.',
         },
         {
-          name: 'Signal Words',
-          tip: 'Use words that show relationships',
-          example: 'because (cause), therefore (effect), however (contrast)',
+          name: 'Signal words',
+          tip: 'Use connectors like because, therefore, however to show relationships.',
+          example: 'The beacon rotates every thirty seconds therefore sailors can measure distance.',
         },
         {
-          name: 'Step-by-Step Order',
-          tip: 'Use sequence words for processes',
-          example: 'First... Next... Then... Finally...',
+          name: 'Sequential steps',
+          tip: 'Describe processes in order from start to finish.',
+          example: 'First the keeper trims the wick, next he polishes the lens, finally he logs the weather.',
         },
         {
-          name: 'Examples & Evidence',
-          tip: 'Support every point with specific examples',
-          example: 'For example, For instance, Such as, Specifically',
+          name: 'Evidence and examples',
+          tip: 'Support each claim with specific facts or sources.',
+          example: 'According to the Coast Guard the Heceta Head light reaches twenty one miles.',
         },
       ],
     },
     argumentative: {
-      title: 'Argumentative Writing Tips',
+      title: 'Argument tactics',
       icon: '💬',
+      subtitle: 'State a claim, reinforce it, then dismantle the counterpoint.',
       strategies: [
         {
-          name: 'Claim + Reasons',
-          tip: 'State your position clearly, then give reasons',
-          example: 'Students should... because... Additionally... Furthermore...',
+          name: 'Claim and reasons',
+          tip: 'Lead with your position and two or three strong reasons.',
+          example: 'Students should rotate as lighthouse guides because it builds teamwork and persistence.',
         },
         {
           name: 'Counterargument',
-          tip: 'Address the other side, then refute it',
-          example: 'Some might argue that... However, this ignores...',
+          tip: 'Address the other side briefly, then refute it.',
+          example: 'Some argue tours are unsafe, however safety gear and training solve that problem.',
         },
         {
-          name: 'Evidence & Examples',
-          tip: 'Support each reason with specific evidence',
-          example: 'According to... Studies show... For example...',
+          name: 'Evidence stack',
+          tip: 'Back each reason with data, quotes, or concrete examples.',
+          example: 'A 2024 study found field shifts increased science scores by fifteen percent.',
         },
         {
-          name: 'Conclusion',
-          tip: 'Restate your claim and strongest reason',
-          example: 'Therefore... In conclusion... For these reasons...',
+          name: 'Closing loop',
+          tip: 'Finish by restating the claim and strongest takeaway.',
+          example: 'Therefore rotating tours build responsibility and should continue.',
         },
       ],
     },
-  };
+  } as const;
 
   const currentTips = tips[promptType as keyof typeof tips] || tips.narrative;
 
   return (
-    <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={onClose}>
-      <div 
-        className="bg-gradient-to-br from-slate-800 to-slate-900 rounded-3xl max-w-3xl w-full max-h-[80vh] overflow-y-auto border-2 border-purple-400/30 shadow-2xl"
-        onClick={(e) => e.stopPropagation()}
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#0c141d]/80 backdrop-blur" onClick={onClose}>
+      <div
+        className="relative w-full max-w-3xl max-h-[85vh] overflow-y-auto rounded-3xl border border-white/10 bg-[#141e27] p-0 text-white shadow-2xl"
+        onClick={event => event.stopPropagation()}
       >
-        {/* Header */}
-        <div className="sticky top-0 bg-gradient-to-r from-purple-600 to-blue-600 p-6 rounded-t-3xl border-b border-white/10">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-3">
-              <span className="text-4xl">{currentTips.icon}</span>
-              <div>
-                <h2 className="text-2xl font-bold text-white">{currentTips.title}</h2>
-                <p className="text-white/80 text-sm">The Writing Revolution Strategies</p>
-              </div>
+        <header className="sticky top-0 flex items-center justify-between border-b border-white/10 bg-[#0c141d] px-6 py-5">
+          <div className="flex items-center gap-4">
+            <div className="flex h-12 w-12 items-center justify-center rounded-xl border border-white/10 bg-[#141e27] text-2xl">
+              {currentTips.icon}
             </div>
-            <button
-              onClick={onClose}
-              className="w-10 h-10 bg-white/20 hover:bg-white/30 rounded-full flex items-center justify-center transition-all text-white text-xl"
-            >
-              ✕
-            </button>
+            <div>
+              <h2 className="text-xl font-semibold">{currentTips.title}</h2>
+              <p className="text-xs text-white/50">{currentTips.subtitle}</p>
+            </div>
           </div>
-        </div>
+          <button
+            onClick={onClose}
+            className="flex h-10 w-10 items-center justify-center rounded-full border border-white/10 bg-white/5 text-lg text-white transition hover:bg-white/15"
+            aria-label="Close tips"
+          >
+            ×
+          </button>
+        </header>
 
-        {/* Content */}
-        <div className="p-6 space-y-4">
+        <div className="space-y-4 px-6 py-6">
           {currentTips.strategies.map((strategy, index) => (
-            <div
-              key={index}
-              className="bg-white/5 backdrop-blur-sm rounded-xl p-5 border border-white/10 hover:bg-white/10 transition-all"
-            >
-              <div className="flex items-start space-x-3">
-                <div className="w-8 h-8 bg-gradient-to-br from-purple-400 to-blue-500 rounded-lg flex items-center justify-center flex-shrink-0 text-white font-bold text-sm">
+            <article key={strategy.name} className="rounded-2xl border border-white/10 bg-white/5 px-5 py-4">
+              <div className="flex items-start gap-4">
+                <span className="flex h-8 w-8 items-center justify-center rounded-lg border border-white/10 bg-[#0c141d] text-sm font-semibold">
                   {index + 1}
-                </div>
-                <div className="flex-1">
-                  <h3 className="text-white font-bold mb-2 text-lg">{strategy.name}</h3>
-                  <p className="text-white/80 text-sm mb-3 leading-relaxed">{strategy.tip}</p>
-                  <div className="bg-blue-500/20 border border-blue-400/30 rounded-lg p-3">
-                    <div className="text-blue-300 text-xs font-semibold mb-1">Example:</div>
-                    <p className="text-white/90 text-sm italic leading-relaxed">
-                      {strategy.example}
-                    </p>
+                </span>
+                <div className="space-y-3">
+                  <div>
+                    <h3 className="text-sm font-semibold text-white">{strategy.name}</h3>
+                    <p className="mt-1 text-xs text-white/60 leading-relaxed">{strategy.tip}</p>
+                  </div>
+                  <div className="rounded-2xl border border-emerald-300/30 bg-emerald-400/10 px-4 py-3 text-xs text-white/70">
+                    <span className="font-semibold text-emerald-200">Example:</span> {strategy.example}
                   </div>
                 </div>
               </div>
-            </div>
+            </article>
           ))}
         </div>
 
-        {/* Footer */}
-        <div className="sticky bottom-0 bg-gradient-to-r from-emerald-600 to-teal-600 p-4 rounded-b-3xl">
-          <div className="text-center">
-            <p className="text-white text-sm">
-              💡 <span className="font-semibold">Pro Tip:</span> Try using one or two of these strategies in your writing right now!
-            </p>
-          </div>
-        </div>
+        <footer className="sticky bottom-0 border-t border-white/10 bg-[#141e27] px-6 py-4 text-center text-xs text-white/60">
+          Apply one strategy immediately, then queue another if time allows.
+        </footer>
       </div>
     </div>
   );

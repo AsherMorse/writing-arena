@@ -7,16 +7,16 @@ import WritingTipsModal from '@/components/WritingTipsModal';
 // Mock AI feedback - will be replaced with real AI later
 const MOCK_AI_FEEDBACK = {
   strengths: [
-    "Strong opening hook that draws the reader in",
-    "Good use of descriptive language and sensory details",
-    "Clear narrative structure with a beginning, middle, and setup for continuation"
+    'Strong opening hook that draws the reader in',
+    'Good use of descriptive language and sensory details',
+    'Clear narrative structure with a beginning, middle, and setup for continuation',
   ],
   improvements: [
-    "Consider adding more character development - what does Sarah look like? What are her motivations?",
-    "The pacing could be slower to build more tension before discovering the chest",
-    "Add more specific details about the lighthouse's interior to create atmosphere"
+    'Consider adding more character development to deepen Sarah as a protagonist.',
+    'Slow the pacing to build tension before the chest is revealed.',
+    'Layer additional sensory details about the lighthouse interior.',
   ],
-  score: 78
+  score: 78,
 };
 
 function RankedRevisionContent() {
@@ -32,7 +32,7 @@ function RankedRevisionContent() {
   const feedbackScore = searchParams.get('feedbackScore') || '80';
   const peerFeedbackRaw = searchParams.get('peerFeedback') || '{}';
   
-  const [timeLeft, setTimeLeft] = useState(240); // 4 minutes for revision
+  const [timeLeft, setTimeLeft] = useState(240);
   const [revisedContent, setRevisedContent] = useState(originalContent);
   const [wordCountRevised, setWordCountRevised] = useState(0);
   const [showFeedback, setShowFeedback] = useState(true);
@@ -41,7 +41,6 @@ function RankedRevisionContent() {
   const [loadingFeedback, setLoadingFeedback] = useState(true);
   const [isEvaluating, setIsEvaluating] = useState(false);
   
-  // Parse peer feedback
   let peerFeedback;
   try {
     peerFeedback = JSON.parse(decodeURIComponent(peerFeedbackRaw));
@@ -49,27 +48,20 @@ function RankedRevisionContent() {
     peerFeedback = {};
   }
 
-  // Fetch real AI feedback on component mount
   useEffect(() => {
     const fetchAIFeedback = async () => {
-      console.log('🤖 REVISION - Fetching AI feedback...');
       try {
         const response = await fetch('/api/generate-feedback', {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             content: originalContent,
             promptType: promptType || 'narrative',
           }),
         });
-        
         const data = await response.json();
-        console.log('✅ REVISION - AI feedback received');
         setAiFeedback(data);
       } catch (error) {
-        console.error('❌ REVISION - Failed to fetch AI feedback, using mock');
         setAiFeedback(MOCK_AI_FEEDBACK);
       } finally {
         setLoadingFeedback(false);
@@ -81,13 +73,10 @@ function RankedRevisionContent() {
 
   useEffect(() => {
     if (timeLeft > 0) {
-      const timer = setInterval(() => {
-        setTimeLeft((prev) => prev - 1);
-      }, 1000);
+      const timer = setInterval(() => setTimeLeft(prev => prev - 1), 1000);
       return () => clearInterval(timer);
-    } else {
-      handleSubmit();
     }
+    handleSubmit();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [timeLeft]);
 
@@ -102,45 +91,28 @@ function RankedRevisionContent() {
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
-  const getTimeColor = () => {
-    if (timeLeft > 120) return 'text-green-400';
-    if (timeLeft > 60) return 'text-yellow-400';
-    return 'text-red-400';
-  };
-
   const handleSubmit = async () => {
-    console.log('📤 REVISION - Submitting Phase 3 for AI evaluation...');
+    if (isEvaluating) return;
     setIsEvaluating(true);
-    
     try {
-      // Call real AI API for revision evaluation
       const response = await fetch('/api/evaluate-revision', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           originalContent,
           revisedContent,
           feedback: aiFeedback,
         }),
       });
-      
       const data = await response.json();
       const revisionScore = data.score || 75;
-      console.log('✅ REVISION - AI evaluation complete, score:', revisionScore);
-      
       router.push(
         `/ranked/results?trait=${trait}&promptId=${promptId}&promptType=${promptType}&originalContent=${encodeURIComponent(originalContent)}&revisedContent=${encodeURIComponent(revisedContent)}&wordCount=${wordCount}&revisedWordCount=${wordCountRevised}&aiScores=${aiScores}&writingScore=${yourScore}&feedbackScore=${feedbackScore}&revisionScore=${Math.round(revisionScore)}`
       );
     } catch (error) {
-      console.error('❌ REVISION - AI evaluation failed, using fallback');
       const changeAmount = Math.abs(wordCountRevised - parseInt(wordCount));
       const hasSignificantChanges = changeAmount > 10;
-      const revisionScore = hasSignificantChanges 
-        ? Math.min(85 + Math.random() * 10, 95)
-        : 60 + Math.random() * 15;
-      
+      const revisionScore = hasSignificantChanges ? Math.min(85 + Math.random() * 10, 95) : 60 + Math.random() * 15;
       router.push(
         `/ranked/results?trait=${trait}&promptId=${promptId}&promptType=${promptType}&originalContent=${encodeURIComponent(originalContent)}&revisedContent=${encodeURIComponent(revisedContent)}&wordCount=${wordCount}&revisedWordCount=${wordCountRevised}&aiScores=${aiScores}&writingScore=${yourScore}&feedbackScore=${feedbackScore}&revisionScore=${Math.round(revisionScore)}`
       );
@@ -149,210 +121,179 @@ function RankedRevisionContent() {
     }
   };
 
-  const hasRevised = revisedContent !== originalContent;
+  const hasRevised = revisedContent.trim() !== originalContent.trim();
+  const countdownColor = timeLeft > 120 ? 'text-emerald-200' : timeLeft > 60 ? 'text-yellow-300' : 'text-red-300';
+
+  const peerStrengths = peerFeedback.strengths || peerFeedback.clarity || '';
+  const peerImprovements = peerFeedback.improvements || peerFeedback.organization || '';
+  const peerEngagement = peerFeedback.engagement || '';
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
-      {/* Revision Tips Modal */}
-      <WritingTipsModal 
+    <div className="min-h-screen bg-[#0c141d] text-white">
+      <WritingTipsModal
         isOpen={showTipsModal}
         onClose={() => setShowTipsModal(false)}
         promptType={promptType || 'narrative'}
       />
 
-      {/* Floating Tips Button */}
-      <button
-        onClick={() => setShowTipsModal(true)}
-        className="fixed bottom-8 right-8 z-40 group"
-        title="Revision Tips"
-      >
-        <div className="relative">
-          <div className="w-16 h-16 bg-gradient-to-br from-emerald-500 to-teal-500 rounded-full flex items-center justify-center shadow-2xl hover:scale-110 transition-all duration-200 border-2 border-white/20">
-            <span className="text-2xl">✏️</span>
+      <header className="sticky top-0 z-20 border-b border-white/10 bg-[#0c141d]/90 backdrop-blur">
+        <div className="mx-auto flex max-w-6xl flex-col gap-4 px-6 py-5 lg:flex-row lg:items-center lg:justify-between">
+          <div className="flex items-center gap-4">
+            <div className="flex h-14 w-14 items-center justify-center rounded-2xl border border-white/10 bg-[#141e27] text-xl font-semibold">
+              {formatTime(timeLeft)}
+            </div>
+            <div>
+              <div className="text-xs uppercase tracking-[0.3em] text-white/50">Phase 3 · Revision</div>
+              <p className={`text-sm font-semibold ${countdownColor}`}>Strengthen your draft using the feedback cues.</p>
+            </div>
+            <div className="rounded-full border border-emerald-200/30 bg-emerald-400/10 px-3 py-1 text-xs font-semibold text-emerald-200">
+              Trait focus: {trait || 'all'}
+            </div>
           </div>
-          <div className="absolute -top-1 -right-1 w-5 h-5 bg-yellow-400 rounded-full flex items-center justify-center animate-pulse">
-            <span className="text-xs">✨</span>
-          </div>
-          <div className="absolute -bottom-12 right-0 bg-black/80 text-white text-xs px-3 py-1 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
-            Revision Tips
+          <div className="flex items-center gap-3 text-sm">
+            <button
+              onClick={() => setShowTipsModal(true)}
+              className="rounded-full border border-white/15 bg-white/5 px-4 py-2 font-semibold text-white transition hover:bg-white/10"
+            >
+              Revision tips
+            </button>
+            <div className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-white/60">
+              <span className="font-semibold text-white">{wordCountRevised}</span> words
+              {hasRevised && (
+                <span className="ml-2 text-emerald-200">({wordCountRevised - parseInt(wordCount)})</span>
+              )}
+            </div>
+            <button
+              onClick={handleSubmit}
+              disabled={isEvaluating}
+              className={`rounded-full px-6 py-2 font-semibold transition ${
+                isEvaluating ? 'bg-white/5 text-white/40 cursor-not-allowed' : 'bg-emerald-400 text-[#0c141d] hover:bg-emerald-300'
+              }`}
+            >
+              {isEvaluating ? 'Scoring...' : 'Submit revision'}
+            </button>
           </div>
         </div>
-      </button>
-
-      <header className="border-b border-white/10 bg-black/30 backdrop-blur-sm sticky top-0 z-10">
-        <div className="container mx-auto px-6 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-4">
-              <div className={`text-3xl font-bold ${getTimeColor()}`}>
-                {formatTime(timeLeft)}
-              </div>
-              <div className="text-white/60">
-                {timeLeft > 0 ? 'Time remaining' : 'Time\'s up!'}
-              </div>
-              <div className="px-3 py-1 bg-emerald-500/20 border border-emerald-400/30 rounded-full">
-                <span className="text-emerald-400 text-sm font-semibold">✏️ PHASE 3: REVISION</span>
-              </div>
-            </div>
-
-            <div className="flex items-center space-x-6">
-              <div className="text-white/60">
-                <span className="font-semibold text-white">{wordCountRevised}</span> words
-                {hasRevised && (
-                  <span className="ml-2 text-emerald-400">
-                    ({wordCountRevised > parseInt(wordCount) ? '+' : ''}{wordCountRevised - parseInt(wordCount)})
-                  </span>
-                )}
-              </div>
-              <button
-                onClick={handleSubmit}
-                disabled={isEvaluating}
-                className={`px-6 py-2 font-semibold rounded-lg transition-all ${
-                  isEvaluating
-                    ? 'bg-gray-600 text-gray-400 cursor-not-allowed'
-                    : 'bg-emerald-500 hover:bg-emerald-600 text-white'
-                }`}
-              >
-                {isEvaluating ? 'Evaluating...' : 'Submit Revision'}
-              </button>
-            </div>
-          </div>
-
-          <div className="mt-4 w-full bg-white/10 rounded-full h-2 overflow-hidden">
-            <div 
-              className={`h-full transition-all duration-1000 ${
-                timeLeft > 120 ? 'bg-green-400' : timeLeft > 60 ? 'bg-yellow-400' : 'bg-red-400'
-              }`}
-              style={{ width: `${(timeLeft / 240) * 100}%` }}
-            />
-          </div>
+        <div className="mx-auto h-1.5 max-w-6xl rounded-full bg-white/10">
+          <div
+            className={`h-full rounded-full ${timeLeft > 120 ? 'bg-emerald-400' : timeLeft > 60 ? 'bg-yellow-400' : 'bg-red-400'}`}
+            style={{ width: `${(timeLeft / 240) * 100}%` }}
+          />
         </div>
       </header>
 
-      <main className="container mx-auto px-6 py-6">
-        <div className="mb-6 bg-gradient-to-r from-emerald-500/20 to-blue-500/20 border border-emerald-400/30 rounded-xl p-6">
-          <h1 className="text-2xl font-bold text-white mb-2">Revise Your Writing</h1>
-          <p className="text-white/80">
-            Use the feedback from your peer and AI to improve your writing. Make meaningful changes!
-          </p>
-        </div>
+      <main className="mx-auto max-w-6xl px-6 py-12">
+        <div className="grid gap-8 lg:grid-cols-[1.05fr,1.35fr]">
+          <aside className="space-y-6">
+            <div className="rounded-3xl border border-white/10 bg-[#141e27] p-7">
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="text-xs uppercase tracking-[0.3em] text-white/50">Feedback console</div>
+                  <p className="mt-2 text-xs text-white/50">Blend AI suggestions with peer notes to unlock maximum LP.</p>
+                </div>
+                <button
+                  onClick={() => setShowFeedback(prev => !prev)}
+                  className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-white/60 lg:hidden"
+                >
+                  {showFeedback ? 'Hide' : 'Show'}
+                </button>
+              </div>
+            </div>
 
-        <div className="grid lg:grid-cols-3 gap-4 max-w-7xl mx-auto">
-          {/* Left sidebar - Feedback */}
-          <div className="lg:col-span-1 space-y-4">
-            <button
-              onClick={() => setShowFeedback(!showFeedback)}
-              className="w-full lg:hidden px-4 py-2 bg-white/10 text-white rounded-lg"
-            >
-              {showFeedback ? 'Hide' : 'Show'} Feedback
-            </button>
-
-            <div className={`space-y-4 ${showFeedback ? 'block' : 'hidden lg:block'}`}>
-              {/* AI Feedback */}
-              <div className="bg-gradient-to-br from-purple-500/20 to-blue-500/20 backdrop-blur-sm rounded-xl p-4 border border-purple-400/30 sticky top-24">
-                <h3 className="text-white font-bold mb-3 flex items-center space-x-2">
-                  <span>🤖</span>
-                  <span>AI Feedback</span>
-                </h3>
-                
-                <div className="space-y-3">
+            <div className={`${showFeedback ? 'space-y-6' : 'hidden lg:block space-y-6'}`}>
+              <section className="rounded-3xl border border-white/10 bg-[#141e27] p-7">
+                <header className="flex items-center gap-3 text-sm font-semibold text-white">
+                  <span className="flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 bg-[#0c141d]">🤖</span>
+                  <span>AI feedback</span>
+                </header>
+                <div className="mt-5 space-y-4 text-sm text-white/70">
                   <div>
-                    <div className="text-emerald-400 text-sm font-semibold mb-2">✨ Strengths</div>
+                    <div className="text-xs uppercase text-emerald-200">Strengths</div>
                     {loadingFeedback ? (
-                    <div className="text-white/60 text-sm">Loading AI feedback...</div>
-                  ) : (
-                    <ul className="space-y-1">
-                      {aiFeedback.strengths.map((strength, i) => (
-                        <li key={i} className="text-white/80 text-sm leading-relaxed">
-                          • {strength}
-                        </li>
-                      ))}
-                    </ul>
-                  )}
-                  </div>
-
-                  <div>
-                    <div className="text-yellow-400 text-sm font-semibold mb-2">💡 Suggestions</div>
-                    {loadingFeedback ? (
-                      <div className="text-white/60 text-sm">Loading AI feedback...</div>
+                      <p className="mt-2 text-white/40">Loading...</p>
                     ) : (
-                      <ul className="space-y-1">
-                        {aiFeedback.improvements.map((improvement, i) => (
-                          <li key={i} className="text-white/80 text-sm leading-relaxed">
-                            • {improvement}
-                          </li>
+                      <ul className="mt-2 space-y-1">
+                        {aiFeedback.strengths.map((item, index) => (
+                          <li key={index} className="leading-relaxed">- {item}</li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+                  <div>
+                    <div className="text-xs uppercase text-yellow-300">Suggestions</div>
+                    {loadingFeedback ? (
+                      <p className="mt-2 text-white/40">Loading...</p>
+                    ) : (
+                      <ul className="mt-2 space-y-1">
+                        {aiFeedback.improvements.map((item, index) => (
+                          <li key={index} className="leading-relaxed">- {item}</li>
                         ))}
                       </ul>
                     )}
                   </div>
                 </div>
-              </div>
+              </section>
 
-              {/* Peer Feedback - MOCK */}
-              <div className="bg-gradient-to-br from-blue-500/20 to-cyan-500/20 backdrop-blur-sm rounded-xl p-4 border border-blue-400/30">
-                <h3 className="text-white font-bold mb-3 flex items-center space-x-2">
-                  <span>👥</span>
-                  <span>Peer Feedback</span>
-                </h3>
-                
-                <div className="space-y-3">
-                  <div>
-                    <div className="text-emerald-400 text-xs font-semibold mb-1">Strengths noted:</div>
-                    <p className="text-white/80 text-sm leading-relaxed break-words">
-                      Your story has a great sense of mystery and adventure. The lighthouse setting is really interesting and makes me want to know more. The golden light is a nice detail that adds magic to the scene.
-                    </p>
-                  </div>
-
-                  <div>
-                    <div className="text-yellow-400 text-xs font-semibold mb-1">Suggestions:</div>
-                    <p className="text-white/80 text-sm leading-relaxed break-words">
-                      Try adding more description about what Sarah is feeling - is she scared, excited, or curious? Also, what does the inside of the lighthouse look like? Adding more sensory details would help readers feel like they&apos;re there with Sarah.
-                    </p>
-                  </div>
-
-                  <div>
-                    <div className="text-blue-400 text-xs font-semibold mb-1">Organization:</div>
-                    <p className="text-white/80 text-sm leading-relaxed break-words">
-                      The story flows well from the ordinary to the mysterious. Good job building up to the discovery!
-                    </p>
-                  </div>
+              <section className="rounded-3xl border border-white/10 bg-[#141e27] p-7 text-sm text-white/70">
+                <header className="flex items-center gap-3 font-semibold text-white">
+                  <span className="flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 bg-[#0c141d]">👥</span>
+                  <span>Peer notes</span>
+                </header>
+                <div className="mt-5 space-y-4">
+                  {peerStrengths && (
+                    <div>
+                      <div className="text-xs uppercase text-emerald-200">Strengths noticed</div>
+                      <p className="mt-2 leading-relaxed text-white/70">{peerStrengths}</p>
+                    </div>
+                  )}
+                  {peerImprovements && (
+                    <div>
+                      <div className="text-xs uppercase text-yellow-300">Improve this</div>
+                      <p className="mt-2 leading-relaxed text-white/70">{peerImprovements}</p>
+                    </div>
+                  )}
+                  {peerEngagement && (
+                    <div>
+                      <div className="text-xs uppercase text-blue-300">Engagement</div>
+                      <p className="mt-2 leading-relaxed text-white/70">{peerEngagement}</p>
+                    </div>
+                  )}
+                  {!peerStrengths && !peerImprovements && !peerEngagement && (
+                    <p className="text-white/40">Peer feedback not available for this round.</p>
+                  )}
                 </div>
-              </div>
+              </section>
             </div>
-          </div>
+          </aside>
 
-          {/* Right side - Editor */}
-          <div className="lg:col-span-2 space-y-4">
-            {/* Original Writing */}
-            <div className="bg-white/5 backdrop-blur-sm rounded-xl p-4 border border-white/10">
-              <h3 className="text-white font-bold mb-3 flex items-center justify-between">
-                <span>📄 Your Original Writing</span>
-                <span className="text-white/60 text-sm">{wordCount} words</span>
-              </h3>
-              <div className="bg-white/10 rounded-lg p-4 max-h-[200px] overflow-y-auto">
-                <p className="text-white/80 text-sm leading-relaxed font-serif whitespace-pre-wrap">
-                  {originalContent}
-                </p>
+          <section className="space-y-8">
+            <article className="rounded-3xl border border-white/10 bg-[#141e27] p-7">
+              <header className="flex items-center justify-between text-sm text-white/60">
+                <span>Original draft</span>
+                <span>{wordCount} words</span>
+              </header>
+              <div className="mt-4 max-h-[200px] overflow-y-auto rounded-2xl border border-white/10 bg-white/5 p-4 text-sm leading-relaxed text-white/80 whitespace-pre-wrap">
+                {originalContent || 'Original content not found.'}
               </div>
-            </div>
+            </article>
 
-            {/* Revision Editor */}
-            <div className="bg-white rounded-xl p-6 shadow-2xl min-h-[500px]">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-gray-800 font-bold text-lg">✏️ Your Revision</h3>
-                {hasRevised && (
-                  <span className="text-emerald-600 text-sm font-semibold animate-pulse">
-                    Changes detected!
-                  </span>
+            <article className="rounded-3xl border border-white/10 bg-white p-7 text-[#1b1f24] shadow-xl">
+              <header className="flex items-center justify-between">
+                <div className="text-lg font-semibold">Your revision</div>
+                {hasRevised ? (
+                  <span className="text-sm font-semibold text-emerald-600">Changes detected</span>
+                ) : (
+                  <span className="text-sm text-[#1b1f24]/50">Make edits to improve your score</span>
                 )}
-              </div>
+              </header>
               <textarea
                 value={revisedContent}
                 onChange={(e) => setRevisedContent(e.target.value)}
-                placeholder="Revise your writing based on the feedback..."
-                className="w-full h-full min-h-[450px] text-lg leading-relaxed resize-none focus:outline-none text-gray-800 font-serif"
+                placeholder="Revise your writing using the feedback provided..."
+                className="mt-4 h-[420px] w-full resize-none bg-transparent text-base leading-relaxed focus:outline-none"
               />
-            </div>
-          </div>
+            </article>
+          </section>
         </div>
       </main>
     </div>
@@ -362,8 +303,8 @@ function RankedRevisionContent() {
 export default function RankedRevisionPage() {
   return (
     <Suspense fallback={
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center">
-        <div className="text-white text-xl">Loading revision phase...</div>
+      <div className="min-h-screen bg-[#0c141d] flex items-center justify-center text-white/60 text-sm">
+        Loading revision phase...
       </div>
     }>
       <RankedRevisionContent />

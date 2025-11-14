@@ -18,19 +18,19 @@ export default function RankedPage() {
 
   if (loading || !userProfile) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center">
-        <div className="text-white text-xl">Loading...</div>
+      <div className="min-h-screen bg-[#0c141d] flex items-center justify-center">
+        <div className="text-white/70 text-sm">Loading ranked setup...</div>
       </div>
     );
   }
 
   const traits = [
-    { id: 'all', name: 'All Traits', icon: '✨', color: 'from-purple-400 to-purple-600' },
-    { id: 'content', name: 'Content', icon: '📚', color: 'from-blue-400 to-blue-600' },
-    { id: 'organization', name: 'Organization', icon: '🗂️', color: 'from-purple-400 to-purple-600' },
-    { id: 'grammar', name: 'Grammar', icon: '✏️', color: 'from-green-400 to-green-600' },
-    { id: 'vocabulary', name: 'Vocabulary', icon: '📖', color: 'from-yellow-400 to-yellow-600' },
-    { id: 'mechanics', name: 'Mechanics', icon: '⚙️', color: 'from-red-400 to-red-600' },
+    { id: 'all', name: 'All traits', icon: '✨' },
+    { id: 'content', name: 'Content', icon: '📚' },
+    { id: 'organization', name: 'Organization', icon: '🗂️' },
+    { id: 'grammar', name: 'Grammar', icon: '✏️' },
+    { id: 'vocabulary', name: 'Vocabulary', icon: '📖' },
+    { id: 'mechanics', name: 'Mechanics', icon: '⚙️' },
   ];
 
   const handleStartMatch = () => {
@@ -38,180 +38,226 @@ export default function RankedPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
-      {/* Header */}
-      <header className="border-b border-white/10 bg-black/20 backdrop-blur-sm">
-        <div className="container mx-auto px-6 py-4">
-          <nav className="flex items-center justify-between">
-            <div className="flex items-center space-x-8">
-              <Link href="/dashboard" className="flex items-center space-x-2">
-                <div className="w-8 h-8 bg-gradient-to-br from-yellow-400 to-orange-500 rounded-lg flex items-center justify-center">
-                  <span className="text-xl">✍️</span>
-                </div>
-                <span className="text-xl font-bold text-white">Writing Arena</span>
-              </Link>
+    <div className="min-h-screen bg-[#0c141d] text-white">
+      <header className="border-b border-white/10">
+        <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-6">
+          <Link href="/dashboard" className="flex items-center gap-3">
+            <div className="flex h-11 w-11 items-center justify-center rounded-lg bg-emerald-400/20 text-xl text-emerald-200">
+              ✶
             </div>
-
-            <Link 
-              href="/dashboard"
-              className="flex items-center space-x-2 text-white/60 hover:text-white transition-colors"
-            >
-              <span>←</span>
-              <span>Back to Dashboard</span>
-            </Link>
-          </nav>
+            <span className="text-xl font-semibold tracking-wide">Ranked Arena</span>
+          </Link>
+          <Link
+            href="/dashboard"
+            className="rounded-full border border-white/15 bg-white/5 px-4 py-2 text-sm font-semibold text-white transition hover:bg-white/10"
+          >
+            Back to dashboard
+          </Link>
         </div>
       </header>
 
-      {/* Main Content */}
-      <main className="min-h-[calc(100vh-80px)] flex items-center justify-center px-4 py-6">
-        <div className="w-full max-w-7xl">
-          <div className="grid lg:grid-cols-5 gap-6 items-start">
-            {/* Left Column - Title & Explanation */}
-            <div className="lg:col-span-2">
-              <div className="lg:sticky lg:top-24">
-                <div className="flex items-center space-x-3 mb-3">
-                  <div className="flex items-center justify-center w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg text-3xl shadow-lg">
-                    🏆
-                  </div>
-                  <h1 className="text-2xl md:text-3xl font-bold text-white">Ranked Match</h1>
+      <main className="mx-auto max-w-6xl px-6 py-14 space-y-10">
+        <section className="rounded-3xl border border-white/10 bg-[#141e27] p-8">
+          <div className="flex flex-col gap-8 lg:flex-row lg:items-start lg:justify-between">
+            <div className="space-y-6 lg:w-2/3">
+              <div className="flex items-center gap-3">
+                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-emerald-400/20 text-2xl text-emerald-200">
+                  🏆
                 </div>
-                
-                <p className="text-white/70 text-sm mb-4 leading-relaxed">
-                  Compete in skill-matched battles where your rank is on the line. Climb from Bronze to Grandmaster through consistent performance.
-                </p>
-
-                {/* Current Rank Display */}
-                <div className="bg-gradient-to-br from-amber-500 to-orange-600 rounded-lg p-4 mb-4 shadow-lg">
-                  <div className="flex items-center justify-between mb-2">
-                    <div>
-                      <div className="text-white/80 text-[10px] mb-1">Current Rank</div>
-                      <div className="text-2xl font-bold text-white">{userProfile.currentRank}</div>
-                    </div>
-                    <div className="text-4xl">🥈</div>
-                  </div>
-                  <div className="bg-white/20 rounded-full h-1.5 overflow-hidden mb-1">
-                    <div className="bg-white h-full rounded-full" style={{ width: `${(userProfile.rankLP % 100)}%` }}></div>
-                  </div>
-                  <div className="text-white/90 text-[10px]">{100 - (userProfile.rankLP % 100)} LP to next tier</div>
+                <div>
+                  <div className="text-xs uppercase tracking-[0.3em] text-white/50">Ranked briefing</div>
+                  <h1 className="mt-2 text-3xl font-semibold">Hold your position</h1>
                 </div>
-
-                {/* Match Info */}
-                <div className="space-y-2 mb-4">
-                  <div className="flex items-start space-x-2">
-                    <div className="text-lg">⚔️</div>
-                    <div>
-                      <div className="text-white font-semibold text-sm">Skill-Based Matching</div>
-                      <div className="text-white/60 text-xs">Matched with similar rank players</div>
+              </div>
+              <p className="text-sm text-white/60">
+                Queue into a three-phase battle where LP is on the line. Performance across draft, feedback, and revision decides your climb.
+              </p>
+              <div className="grid gap-4 sm:grid-cols-3">
+                {[{
+                  title: 'Matchmaking',
+                  subtitle: 'Tier-weighted',
+                  note: 'Queues within your LP band',
+                  icon: '⚖️'
+                }, {
+                  title: 'Risk/Reward',
+                  subtitle: '± LP swings',
+                  note: 'Wins +15~30 / losses -10~20',
+                  icon: '📈'
+                }, {
+                  title: 'Rewards',
+                  subtitle: '2x payout',
+                  note: 'Boosted XP and points',
+                  icon: '💎'
+                }].map(card => (
+                  <div key={card.title} className="rounded-2xl border border-white/10 bg-white/5 px-4 py-4">
+                    <div className="flex items-center justify-between">
+                      <div className="text-xs uppercase text-white/40">{card.title}</div>
+                      <span className="text-lg">{card.icon}</span>
                     </div>
+                    <div className="mt-2 text-sm font-semibold">{card.subtitle}</div>
+                    <p className="mt-1 text-xs text-white/50">{card.note}</p>
                   </div>
-                  <div className="flex items-start space-x-2">
-                    <div className="text-lg">📈</div>
-                    <div>
-                      <div className="text-white font-semibold text-sm">Rank Impact</div>
-                      <div className="text-white/60 text-xs">Win: +15-30 LP | Loss: -10-20 LP</div>
-                    </div>
-                  </div>
-                  <div className="flex items-start space-x-2">
-                    <div className="text-lg">💎</div>
-                    <div>
-                      <div className="text-white font-semibold text-sm">Double Rewards</div>
-                      <div className="text-white/60 text-xs">2x XP and points</div>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-3">
-                  <div className="flex items-start space-x-2">
-                    <span className="text-yellow-400">⚠️</span>
-                    <div className="text-white/80 text-xs">
-                      <span className="font-semibold text-yellow-400">Notice:</span> Your rank is affected. Play your best!
-                    </div>
-                  </div>
-                </div>
+                ))}
               </div>
             </div>
 
-            {/* Right Column - Selection Process */}
-            <div className="lg:col-span-3">
-              {/* Trait Selection */}
-              <div className="bg-white/5 backdrop-blur-sm rounded-xl p-5 border border-white/10 mb-4">
-                <div className="mb-4">
-                  <h2 className="text-lg font-bold text-white mb-1">Choose Your Focus</h2>
-                  <p className="text-white/60 text-xs">Select which trait to compete on</p>
-                </div>
-
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                  {traits.map((trait) => {
-                    const isDisabled = trait.id !== 'all';
-                    return (
-                      <button
-                        key={trait.id}
-                        onClick={() => !isDisabled && setSelectedTrait(trait.id)}
-                        disabled={isDisabled}
-                        className={`group p-3 rounded-lg transition-all duration-200 text-center border-2 ${
-                          selectedTrait === trait.id
-                            ? 'border-purple-400 bg-purple-500/20 scale-105'
-                            : isDisabled
-                            ? 'border-white/5 bg-white/5 opacity-40 cursor-not-allowed'
-                            : 'border-white/10 bg-white/5 hover:bg-white/10 hover:scale-105'
-                        }`}
-                      >
-                        <div className={`w-10 h-10 bg-gradient-to-br ${trait.color} rounded-lg flex items-center justify-center text-xl mx-auto mb-1 ${!isDisabled && 'group-hover:scale-110'} transition-transform`}>
-                          {trait.icon}
-                        </div>
-                        <div className={`text-xs font-semibold ${isDisabled ? 'text-white/30' : 'text-white'}`}>
-                          {trait.name}
-                        </div>
-                        {selectedTrait === trait.id && (
-                          <div className="text-purple-400 text-[10px] mt-0.5">✓ Selected</div>
-                        )}
-                        {isDisabled && (
-                          <div className="text-white/20 text-[10px] mt-0.5">Coming Soon</div>
-                        )}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-
-              {/* Rank Tiers Info */}
-              <div className="bg-white/5 backdrop-blur-sm rounded-xl p-4 border border-white/10 mb-4">
-                <h3 className="text-white font-semibold text-sm mb-3">Rank Tiers</h3>
-                <div className="grid grid-cols-7 gap-1.5 text-center">
-                  {[
-                    { name: 'Bronze', emoji: '🥉', color: 'text-orange-400' },
-                    { name: 'Silver', emoji: '🥈', color: 'text-gray-300' },
-                    { name: 'Gold', emoji: '🥇', color: 'text-yellow-400' },
-                    { name: 'Platinum', emoji: '💎', color: 'text-cyan-400' },
-                    { name: 'Diamond', emoji: '💠', color: 'text-blue-400' },
-                    { name: 'Master', emoji: '⭐', color: 'text-purple-400' },
-                    { name: 'Grand', emoji: '👑', color: 'text-yellow-300' },
-                  ].map((tier) => (
-                    <div key={tier.name} className="bg-white/5 rounded-lg p-1.5 border border-white/10">
-                      <div className="text-xl mb-0.5">{tier.emoji}</div>
-                      <div className={`text-[10px] font-semibold ${tier.color}`}>{tier.name}</div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Start Button */}
-              <div className="text-center">
-                <button
-                  onClick={handleStartMatch}
-                  className="group w-full px-6 py-4 bg-gradient-to-r from-blue-500 to-purple-600 text-white font-bold text-lg rounded-xl hover:scale-105 transition-all duration-200 shadow-2xl hover:shadow-purple-500/50"
-                >
-                  <div className="flex items-center justify-center space-x-2">
-                    <span>Start Ranked Match</span>
-                    <span className="group-hover:translate-x-1 transition-transform">→</span>
+            <div className="flex flex-col gap-6 rounded-3xl border border-white/10 bg-white/5 p-6 lg:w-1/3">
+              <div>
+                <div className="text-xs uppercase tracking-[0.3em] text-white/50">Current rank</div>
+                <div className="mt-2 flex items-center justify-between">
+                  <div>
+                    <div className="text-2xl font-semibold">{userProfile.currentRank}</div>
+                    <p className="mt-1 text-xs text-white/50">{100 - (userProfile.rankLP % 100)} LP until promotion</p>
                   </div>
-                </button>
-                <p className="text-white/50 text-xs mt-2">Finding skill-matched opponents...</p>
+                  <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#141e27] text-2xl">🥈</div>
+                </div>
+              </div>
+              <div className="space-y-3">
+                <div className="flex items-center justify-between text-xs text-white/50">
+                  <span>LP progress</span>
+                  <span>{userProfile.rankLP % 100} / 100</span>
+                </div>
+                <div className="h-2 rounded-full bg-white/10">
+                  <div
+                    className="h-full rounded-full bg-emerald-400"
+                    style={{ width: `${userProfile.rankLP % 100}%` }}
+                  />
+                </div>
+                <div className="rounded-2xl border border-amber-400/40 bg-amber-500/10 px-4 py-3 text-xs text-amber-200">
+                  Rank at stake. Queue prepared to avoid steep LP swings.
+                </div>
+              </div>
+              <button
+                onClick={handleStartMatch}
+                className="mt-auto w-full rounded-full bg-emerald-400 px-6 py-3 text-sm font-semibold text-[#0c141c] transition hover:bg-emerald-300"
+              >
+                Start ranked match
+              </button>
+              <p className="text-center text-[11px] text-white/50">Searching for opponents in your tier...</p>
+            </div>
+          </div>
+        </section>
+
+        <section className="grid gap-8 lg:grid-cols-[1.4fr,1fr]">
+          <div className="space-y-8">
+            <div className="rounded-3xl border border-white/10 bg-[#141e27] p-7">
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="text-xs uppercase tracking-[0.3em] text-white/50">Trait focus</div>
+                  <h2 className="mt-2 text-xl font-semibold">Choose emphasis</h2>
+                  <p className="mt-2 text-xs text-white/50">All traits queue is active during this playtest. Solo focus queues arrive soon.</p>
+                </div>
+                <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-emerald-400/20 text-lg text-emerald-200">
+                  🎯
+                </div>
+              </div>
+              <div className="mt-6 grid gap-3 sm:grid-cols-3">
+                {traits.map(trait => {
+                  const disabled = trait.id !== 'all';
+                  const selected = selectedTrait === trait.id;
+                  return (
+                    <button
+                      key={trait.id}
+                      onClick={() => !disabled && setSelectedTrait(trait.id)}
+                      disabled={disabled}
+                      className={`rounded-2xl border px-4 py-4 text-left transition ${
+                        selected
+                          ? 'border-emerald-300 bg-emerald-400/15'
+                          : disabled
+                          ? 'cursor-not-allowed border-white/10 bg-white/5 opacity-40'
+                          : 'border-white/10 bg-white/5 hover:border-emerald-200/40 hover:bg-white/10'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between text-xs text-white/50">
+                        <span className="text-lg text-white">{trait.icon}</span>
+                        {selected && <span className="text-[10px] text-emerald-200">Selected</span>}
+                        {disabled && !selected && <span className="text-[10px]">Soon</span>}
+                      </div>
+                      <div className="mt-3 text-sm font-semibold text-white">{trait.name}</div>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div className="rounded-3xl border border-white/10 bg-[#141e27] p-7">
+              <div className="text-xs uppercase tracking-[0.3em] text-white/50">Phase timeline</div>
+              <div className="mt-6 space-y-6">
+                {[{
+                  phase: 'Phase 1 · Draft',
+                  description: '4 minutes to respond to the prompt. Push clarity while managing speed.'
+                }, {
+                  phase: 'Phase 2 · Feedback',
+                  description: 'Score a peer submission. Precision ratings amplify LP gains.'
+                }, {
+                  phase: 'Phase 3 · Revision',
+                  description: 'Refine your draft using insight from feedback before the final tally.'
+                }].map((item, index) => (
+                  <div key={item.phase} className="flex gap-4">
+                    <div className="flex flex-col items-center">
+                      <div className="flex h-9 w-9 items-center justify-center rounded-full border border-emerald-300 text-sm text-emerald-200">
+                        {index + 1}
+                      </div>
+                      {index < 2 && <div className="mt-2 h-full w-px flex-1 bg-white/10" />}
+                    </div>
+                    <div className="rounded-2xl border border-white/10 bg-white/5 px-5 py-4">
+                      <div className="text-sm font-semibold text-white">{item.phase}</div>
+                      <p className="mt-2 text-xs text-white/50">{item.description}</p>
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
           </div>
-        </div>
+
+          <aside className="space-y-8">
+            <div className="rounded-3xl border border-white/10 bg-[#141e27] p-7">
+              <div className="text-xs uppercase tracking-[0.3em] text-white/50">Queue checklist</div>
+              <ul className="mt-4 space-y-3 text-xs text-white/60">
+                <li className="flex items-center justify-between rounded-2xl border border-white/10 bg-white/5 px-4 py-3">
+                  <span>Warm-up drill complete</span>
+                  <span className="text-emerald-200 font-semibold">Ready</span>
+                </li>
+                <li className="flex items-center justify-between rounded-2xl border border-white/10 bg-white/5 px-4 py-3">
+                  <span>Focus mode enabled</span>
+                  <span className="text-white/40">Check</span>
+                </li>
+                <li className="flex items-center justify-between rounded-2xl border border-white/10 bg-white/5 px-4 py-3">
+                  <span>Feedback mindset</span>
+                  <span className="text-emerald-200 font-semibold">On</span>
+                </li>
+                <li className="flex items-center justify-between rounded-2xl border border-white/10 bg-white/5 px-4 py-3">
+                  <span>Playlist locked</span>
+                  <span className="text-white/40">Optional</span>
+                </li>
+              </ul>
+            </div>
+
+            <div className="rounded-3xl border border-white/10 bg-[#141e27] p-7">
+              <div className="text-xs uppercase tracking-[0.3em] text-white/50">Rank ladder</div>
+              <p className="mt-3 text-xs text-white/60">Seven tiers chronicle your climb. Finish splits to earn seasonal ornaments.</p>
+              <div className="mt-6 grid gap-3">
+                {[
+                  { name: 'Bronze', emoji: '🥉' },
+                  { name: 'Silver', emoji: '🥈' },
+                  { name: 'Gold', emoji: '🥇' },
+                  { name: 'Platinum', emoji: '💎' },
+                  { name: 'Diamond', emoji: '💠' },
+                  { name: 'Master', emoji: '⭐' },
+                  { name: 'Grandmaster', emoji: '👑' },
+                ].map(tier => (
+                  <div key={tier.name} className="flex items-center justify-between rounded-2xl border border-white/10 bg-white/5 px-4 py-3">
+                    <div className="flex items-center gap-3">
+                      <span className="text-lg">{tier.emoji}</span>
+                      <span className="text-sm font-semibold text-white">{tier.name}</span>
+                    </div>
+                    <span className="text-[10px] text-white/40">LP 100</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </aside>
+        </section>
       </main>
     </div>
   );

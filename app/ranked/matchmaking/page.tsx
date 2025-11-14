@@ -18,7 +18,8 @@ function RankedMatchmakingContent() {
   const userRank = userProfile?.currentRank || 'Silver III';
   const userName = userProfile?.displayName || 'You';
   const userId = user?.uid || 'temp-user';
-
+  const queueKey = userId.slice(0, 6).toUpperCase();
+ 
   const [players, setPlayers] = useState<Array<{
     userId: string;
     name: string;
@@ -38,6 +39,17 @@ function RankedMatchmakingContent() {
   const [countdown, setCountdown] = useState<number | null>(null);
   const aiBackfillIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const hasJoinedQueueRef = useRef(false);
+
+  const humanCount = players.filter(player => !player.isAI).length;
+  const aiCount = players.filter(player => player.isAI).length;
+  const slots = Array.from({ length: 5 }, (_, index) => players[index]);
+  const traitLabel = trait === 'all' ? 'All traits' : trait;
+  const queueMessages = [
+    `queue ${queueKey} awaiting full party`,
+    `${humanCount} human teammate${humanCount === 1 ? '' : 's'} secured`,
+    `${aiCount > 0 ? aiCount : 'No'} AI on standby`,
+    `lp window ${userProfile?.rankLP ? userProfile.rankLP % 100 : 0}/100`
+  ];
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -158,116 +170,197 @@ function RankedMatchmakingContent() {
   }, [countdown, router, trait]);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
-      <header className="border-b border-white/10 bg-black/20 backdrop-blur-sm">
-        <div className="container mx-auto px-6 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-2">
-              <div className="w-8 h-8 bg-gradient-to-br from-yellow-400 to-orange-500 rounded-lg flex items-center justify-center">
-                <span className="text-xl">✍️</span>
-              </div>
-              <span className="text-xl font-bold text-white">Writing Arena</span>
+    <div className="min-h-screen bg-[#0c141d] text-white">
+      <header className="border-b border-white/10">
+        <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-6">
+          <Link href="/ranked" className="flex items-center gap-3">
+            <div className="flex h-11 w-11 items-center justify-center rounded-lg bg-emerald-400/20 text-xl text-emerald-200">
+              ✶
             </div>
-            <Link 
-              href="/ranked"
-              className="text-white/60 hover:text-white transition-colors text-sm"
-            >
-              ← Cancel
-            </Link>
-          </div>
+            <span className="text-xl font-semibold tracking-wide">Ranked matchmaking</span>
+          </Link>
+          <Link
+            href="/ranked"
+            className="rounded-full border border-white/15 bg-white/5 px-4 py-2 text-sm font-semibold text-white transition hover:bg-white/10"
+          >
+            Cancel search
+          </Link>
         </div>
       </header>
 
-      <main className="min-h-[calc(100vh-80px)] flex flex-col items-center justify-center px-4 py-8">
-        <div className="w-full max-w-4xl">
-          {countdown === null ? (
-            <>
-              <div className="text-center mb-12">
-                <div className="inline-block animate-spin text-6xl mb-6">🏆</div>
-                <h1 className="text-4xl font-bold text-white mb-3">
-                  Finding Ranked Match{searchingDots}
-                </h1>
-                <p className="text-white/60 text-lg">Matching with similar skill level</p>
+      <main className="mx-auto max-w-6xl px-6 py-16 space-y-12">
+        {countdown === null ? (
+          <>
+            <section className="grid gap-8 lg:grid-cols-[auto,1fr] lg:items-center">
+              <div className="flex flex-col items-center gap-4 rounded-3xl border border-white/10 bg-[#141e27] px-10 py-8 text-center lg:text-left">
+                <div className="flex h-20 w-20 items-center justify-center rounded-full border border-emerald-300 text-3xl text-emerald-200">🏆</div>
+                <div>
+                  <div className="text-xs uppercase tracking-[0.3em] text-white/50">Queue status</div>
+                  <h1 className="mt-3 text-3xl font-semibold">Queue {queueKey}{searchingDots}</h1>
+                  <p className="mt-2 text-sm text-white/60">Pairing teammates in your LP window while AI reserves stretch.</p>
+                </div>
               </div>
 
-              <div className="grid md:grid-cols-3 gap-4 mb-8">
-                {[...Array(5)].map((_, index) => {
-                  const player = players[index];
-                  return (
-                    <div
+              <div className="rounded-3xl border border-white/10 bg-[#141e27] p-8">
+                <dl className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 text-sm">
+                  <div className="space-y-2 border-b border-white/10 pb-3">
+                    <dt className="text-xs uppercase text-white/50">Trait pool</dt>
+                    <dd className="font-semibold">{traitLabel}</dd>
+                    <p className="text-xs text-white/50">Current queue configuration</p>
+                  </div>
+                  <div className="space-y-2 border-b border-white/10 pb-3">
+                    <dt className="text-xs uppercase text-white/50">Your rank</dt>
+                    <dd className="font-semibold">{userRank}</dd>
+                    <p className="text-xs text-white/50">{100 - (userProfile?.rankLP ? userProfile.rankLP % 100 : 0)} LP until promotion</p>
+                  </div>
+                  <div className="space-y-2 border-b border-white/10 pb-3">
+                    <dt className="text-xs uppercase text-white/50">Party fill</dt>
+                    <dd className="font-semibold">{players.length} / 5 slots</dd>
+                    <p className="text-xs text-white/50">{humanCount} human - {aiCount} AI</p>
+                  </div>
+                  <div className="space-y-2 border-b border-white/10 pb-3">
+                    <dt className="text-xs uppercase text-white/50">Next AI join</dt>
+                    <dd className="font-semibold">Every 5 seconds</dd>
+                    <p className="text-xs text-white/50">Backfill only if needed</p>
+                  </div>
+                </dl>
+
+                <div className="mt-6">
+                  <div className="text-xs uppercase tracking-[0.3em] text-white/50">Queue progress</div>
+                  <div className="mt-3 h-2 rounded-full bg-white/10">
+                    <div className="h-full rounded-full bg-emerald-400" style={{ width: `${(players.length / 5) * 100}%` }} />
+                  </div>
+                  <p className="mt-2 text-xs text-white/50">Countdown begins once all five slots are occupied.</p>
+                </div>
+
+                <div className="mt-6 grid gap-3 font-mono text-[11px] text-white/60">
+                  {queueMessages.map(message => (
+                    <div key={message} className="rounded-lg border border-white/5 bg-[#0c141d] px-3 py-2">{message}</div>
+                  ))}
+                </div>
+              </div>
+            </section>
+
+            <section className="grid gap-8 lg:grid-cols-[1.2fr,0.8fr]">
+              <div className="rounded-3xl border border-white/10 bg-[#141e27] p-8">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <div className="text-xs uppercase tracking-[0.3em] text-white/50">Lobby slots</div>
+                    <p className="mt-2 text-xs text-white/50">Rows update in real time as teammates lock in.</p>
+                  </div>
+                  <span className="rounded-full border border-white/10 px-3 py-1 text-[11px] text-white/40">Live</span>
+                </div>
+                <ol className="mt-6 space-y-3">
+                  {slots.map((player, index) => (
+                    <li
                       key={index}
-                      className={`relative bg-white/5 backdrop-blur-sm rounded-xl p-6 border-2 transition-all duration-500 ${
-                        player 
-                          ? player.isAI
-                            ? 'border-blue-400/30 scale-100 opacity-100'
-                            : 'border-purple-400/50 scale-100 opacity-100'
-                          : 'border-white/10 scale-95 opacity-50'
-                      }`}
+                      className="flex items-center gap-4 rounded-2xl border border-white/10 bg-white/5 px-5 py-4"
                     >
-                      {player ? (
-                        <div className="text-center animate-in fade-in zoom-in duration-300">
-                          <div className="text-5xl mb-3">{player.avatar}</div>
-                          <div className="text-white font-semibold mb-1">{player.name}</div>
-                          <div className={`text-xs flex items-center justify-center gap-1 ${player.isAI ? 'text-blue-400' : 'text-purple-400'}`}>
-                            {player.isAI && <span className="text-[10px]">🤖</span>}
-                            <span>{player.rank}</span>
-                          </div>
-                        </div>
-                      ) : (
-                        <div className="text-center">
-                          <div className="text-4xl text-white/20 mb-3">👤</div>
-                          <div className="text-white/40 text-sm">Searching...</div>
-                        </div>
-                      )}
-                      
-                      <div className="absolute top-2 right-2 w-6 h-6 bg-white/10 rounded-full flex items-center justify-center text-white/60 text-xs">
-                        {index + 1}
+                      <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-[#0c141d] text-2xl">
+                        {player ? player.avatar : '👤'}
                       </div>
-                    </div>
-                  );
-                })}
-              </div>
-
-              <div className="text-center">
-                <div className="inline-flex items-center space-x-2 px-4 py-2 bg-white/10 rounded-full border border-white/20">
-                  <span className="text-white/60">Party Size:</span>
-                  <span className="text-white font-bold">{players.length}/5</span>
-                </div>
-              </div>
-            </>
-          ) : (
-            <>
-              <div className="text-center">
-                <div className="inline-flex items-center justify-center w-32 h-32 bg-gradient-to-br from-purple-400 to-blue-500 rounded-full mb-6 shadow-2xl shadow-purple-500/50">
-                  <span className="text-6xl font-bold text-white">{countdown}</span>
-                </div>
-                <h1 className="text-5xl font-bold text-white mb-4">Ranked Match Found!</h1>
-                <p className="text-white/70 text-xl mb-8">Starting in {countdown}...</p>
-
-                <div className="bg-white/5 backdrop-blur-sm rounded-2xl p-6 border border-purple-400/30 max-w-2xl mx-auto">
-                  <h3 className="text-white font-bold mb-4">Your Ranked Party</h3>
-                  <div className="grid grid-cols-5 gap-3">
-                    {players.map((player, index) => (
-                      <div key={index} className="text-center">
-                        <div className="text-3xl mb-1">{player.avatar}</div>
-                        <div className="text-white text-xs font-semibold truncate">{player.name}</div>
-                        <div className={`text-[10px] ${player.isAI ? 'text-blue-400' : 'text-purple-400'}`}>
-                          {player.isAI && '🤖 '}
-                          {player.rank}
+                      <div className="flex-1">
+                        <div className="flex items-center justify-between">
+                          <span className={`text-sm font-semibold ${player ? 'text-white' : 'text-white/40'}`}>
+                            {player ? (player.isAI ? `${player.name} · AI` : player.name) : 'Searching...'}
+                          </span>
+                          <span className="text-[11px] text-white/40">Slot {index + 1}</span>
+                        </div>
+                        <div className="mt-1 text-[11px] text-white/50">
+                          {player ? (player.isAI ? 'Reserve operator' : player.rank) : 'Matching within LP window'}
                         </div>
                       </div>
-                    ))}
-                  </div>
-                  <div className="mt-4 pt-4 border-t border-white/10 text-center">
-                    <div className="text-white/60 text-xs">
-                      {players.filter(p => !p.isAI).length} Real Player{players.filter(p => !p.isAI).length !== 1 ? 's' : ''} • {players.filter(p => p.isAI).length} AI
+                    </li>
+                  ))}
+                </ol>
+              </div>
+
+              <aside className="space-y-8">
+                <div className="rounded-3xl border border-white/10 bg-[#141e27] p-8">
+                  <div className="text-xs uppercase tracking-[0.3em] text-white/50">Queue telemetry</div>
+                  <dl className="mt-5 space-y-4 text-sm">
+                    <div className="flex items-center justify-between border-b border-white/10 pb-3">
+                      <dt className="text-white/60">Median wait</dt>
+                      <dd className="text-emerald-200 font-semibold">18 seconds</dd>
+                    </div>
+                    <div className="flex items-center justify-between border-b border-white/10 pb-3">
+                      <dt className="text-white/60">Live humans</dt>
+                      <dd className="text-emerald-200 font-semibold">{humanCount}</dd>
+                    </div>
+                    <div className="flex items-center justify-between pb-3">
+                      <dt className="text-white/60">AI standby</dt>
+                      <dd className="text-white/40">{Math.max(0, 5 - humanCount)}</dd>
+                    </div>
+                  </dl>
+                  <Link
+                    href="/ranked"
+                    className="mt-6 inline-flex items-center justify-center rounded-full border border-white/15 bg-white/5 px-4 py-2 text-sm font-semibold text-white transition hover:bg-white/10"
+                  >
+                    Exit queue
+                  </Link>
+                </div>
+
+                <div className="rounded-3xl border border-white/10 bg-[#141e27] p-8 text-xs text-white/50">
+                  <div className="text-xs uppercase tracking-[0.3em] text-white/50">Briefing</div>
+                  <p className="mt-3">- Keep your draft space ready; countdown triggers instantly once all slots fill.</p>
+                  <p className="mt-3">- AI reserves only appear if humans are unavailable. Expect a mix when queue is quiet.</p>
+                  <p className="mt-3">- Cancel now if you need a break; leaving during countdown costs LP.</p>
+                </div>
+              </aside>
+            </section>
+          </>
+        ) : (
+          <section className="grid gap-8 lg:grid-cols-[1fr,1.15fr]">
+            <div className="rounded-3xl border border-white/10 bg-[#141e27] p-10 text-center">
+              <div className="flex h-28 w-28 items-center justify-center rounded-full border-4 border-emerald-300 bg-emerald-400/20 text-5xl font-semibold text-emerald-200">
+                {countdown}
+              </div>
+              <div className="mt-6">
+                <div className="text-xs uppercase tracking-[0.3em] text-white/50">Match secured</div>
+                <h2 className="mt-3 text-4xl font-semibold">Prompt loading</h2>
+                <p className="mt-2 text-sm text-white/60">Draft phase opens the moment this timer reaches zero.</p>
+              </div>
+              <div className="mt-6 w-full rounded-2xl border border-white/10 bg-white/5 p-6 text-left text-xs text-white/60">
+                <div className="text-white/50">Final checks</div>
+                <ul className="mt-3 space-y-2">
+                  <li>- Prompt drawn from ranked pool</li>
+                  <li>- AI reserves synced to your party</li>
+                  <li>- LP adjustments active</li>
+                </ul>
+              </div>
+            </div>
+
+            <div className="rounded-3xl border border-white/10 bg-[#141e27] p-8">
+              <div className="text-xs uppercase tracking-[0.3em] text-white/50">Party roster</div>
+              <div className="mt-6 grid gap-4 sm:grid-cols-2">
+                {players.map((player, index) => (
+                  <div key={index} className="rounded-2xl border border-white/10 bg-white/5 px-4 py-5">
+                    <div className="flex items-center gap-3">
+                      <div className="flex h-12 w-12 items-center justify_center rounded-xl bg-[#0c141d] text-2xl">
+                        {player.avatar}
+                      </div>
+                      <div>
+                        <div className="text-sm font-semibold text-white">{player.name}</div>
+                        <div className={`text-[11px] ${player.isAI ? 'text-emerald-200' : 'text-white/60'}`}>
+                          {player.isAI ? 'AI support' : player.rank}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="mt-4 flex items-center justify-between text-[11px] text-white/40">
+                      <span>Slot {index + 1}</span>
+                      <span>{player.isAI ? 'Backup ready' : 'Human teammate'}</span>
                     </div>
                   </div>
-                </div>
+                ))}
               </div>
-            </>
-          )}
-        </div>
+              <div className="mt-6 flex flex-wrap items-center justify-center gap-4 text-xs text-white/40">
+                <span>{humanCount} real teammates</span>
+                <span className="h-1 w-1 rounded-full bg-white/20" />
+                <span>{aiCount} AI reserves</span>
+              </div>
+            </div>
+          </section>
+        )}
       </main>
     </div>
   );
@@ -276,8 +369,8 @@ function RankedMatchmakingContent() {
 export default function RankedMatchmakingPage() {
   return (
     <Suspense fallback={
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center">
-        <div className="text-white text-xl">Loading...</div>
+      <div className="min-h-screen bg-[#0c141d] flex items-center justify-center text-white/60 text-sm">
+        Loading ranked matchmaking...
       </div>
     }>
       <RankedMatchmakingContent />
