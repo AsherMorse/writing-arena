@@ -170,10 +170,54 @@ function parseBatchRankings(claudeResponse: string, writings: WritingSubmission[
 function generateMockRankings(writings: WritingSubmission[]): any {
   // Fallback: generate rankings based on word count and some randomness
   const rankings = writings.map((writing, index) => {
-    // Base score on word count (more words = generally more developed)
-    const wordCountScore = Math.min(writing.wordCount / 2, 40);
-    const randomFactor = Math.random() * 30;
-    const score = Math.round(Math.min(50 + wordCountScore + randomFactor, 95));
+    // Check if submission is empty
+    const isEmpty = !writing.content || writing.content.trim().length === 0 || writing.wordCount === 0;
+    
+    let score = 0;
+    let strengths: string[] = [];
+    let improvements: string[] = [];
+    let traitFeedback: any = {};
+    
+    if (isEmpty) {
+      // Empty submission gets 0
+      score = 0;
+      strengths = [];
+      improvements = [
+        'Submit your writing to receive a score',
+        'Try to write at least 50 words',
+        'Remember to address the prompt directly',
+      ];
+      traitFeedback = {
+        content: 'No content submitted.',
+        organization: 'No content submitted.',
+        grammar: 'No content submitted.',
+        vocabulary: 'No content submitted.',
+        mechanics: 'No content submitted.',
+      };
+    } else {
+      // Base score on word count (more words = generally more developed)
+      const wordCountScore = Math.min(writing.wordCount / 2, 40);
+      const randomFactor = Math.random() * 30;
+      score = Math.round(Math.min(50 + wordCountScore + randomFactor, 95));
+      
+      strengths = [
+        'Clear attempt to address the prompt',
+        'Some descriptive details included',
+        'Organized structure',
+      ];
+      improvements = [
+        'Try expanding sentences with because/but/so',
+        'Add more specific details',
+        'Use stronger transitions',
+      ];
+      traitFeedback = {
+        content: 'Ideas are present and relevant to the prompt.',
+        organization: 'Writing has a clear structure.',
+        grammar: 'Sentences are generally well-constructed.',
+        vocabulary: 'Word choice is appropriate.',
+        mechanics: 'Spelling and punctuation are mostly correct.',
+      };
+    }
     
     return {
       playerId: writing.playerId,
@@ -181,23 +225,9 @@ function generateMockRankings(writings: WritingSubmission[]): any {
       isAI: writing.isAI,
       score,
       rank: 0, // Will be set after sorting
-      strengths: [
-        'Clear attempt to address the prompt',
-        'Some descriptive details included',
-        'Organized structure',
-      ],
-      improvements: [
-        'Try expanding sentences with because/but/so',
-        'Add more specific details',
-        'Use stronger transitions',
-      ],
-      traitFeedback: {
-        content: 'Ideas are present and relevant to the prompt.',
-        organization: 'Writing has a clear structure.',
-        grammar: 'Sentences are generally well-constructed.',
-        vocabulary: 'Word choice is appropriate.',
-        mechanics: 'Spelling and punctuation are mostly correct.',
-      },
+      strengths,
+      improvements,
+      traitFeedback,
     };
   });
   

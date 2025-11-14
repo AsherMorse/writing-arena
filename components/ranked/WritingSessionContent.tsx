@@ -487,7 +487,9 @@ export default function WritingSessionContent() {
         });
       } catch (fallbackError) {
         console.error('❌ SESSION - Even fallback failed:', fallbackError);
-        const yourScore = Math.min(Math.max(60 + (wordCount / 5) + Math.random() * 15, 40), 100);
+        // Check if submission is empty
+        const isEmpty = !writingContent || writingContent.trim().length === 0 || wordCount === 0;
+        const yourScore = isEmpty ? 0 : Math.min(Math.max(60 + (wordCount / 5) + Math.random() * 15, 40), 100);
         sessionStorage.setItem(`${matchId}-phase1-score`, yourScore.toString());
         await submitPhase(matchId, user.uid, 1, Math.round(yourScore)).catch(console.error);
       }

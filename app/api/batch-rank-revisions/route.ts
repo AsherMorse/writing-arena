@@ -143,15 +143,48 @@ function parseBatchRevisionRankings(claudeResponse: string, revisionSubmissions:
 
 function generateMockRevisionRankings(revisionSubmissions: RevisionSubmission[]): any {
   const rankings = revisionSubmissions.map((submission, index) => {
-    // Score based on amount of change and word count difference
-    const originalWords = submission.originalContent.split(/\s+/).length;
-    const revisedWords = submission.revisedContent.split(/\s+/).length;
-    const wordDifference = Math.abs(revisedWords - originalWords);
-    const hasSignificantChanges = wordDifference > 10;
+    // Check if revision is empty or unchanged
+    const isEmpty = !submission.revisedContent || submission.revisedContent.trim().length === 0;
     
-    const baseScore = hasSignificantChanges ? 75 : 60;
-    const changeBonus = Math.min(wordDifference, 20);
-    const score = Math.round(Math.min(baseScore + changeBonus + Math.random() * 15, 95));
+    let score = 0;
+    let improvements: string[] = [];
+    let strengths: string[] = [];
+    let suggestions: string[] = [];
+    
+    if (isEmpty) {
+      // Empty revision gets 0
+      score = 0;
+      improvements = [];
+      strengths = [];
+      suggestions = [
+        'Submit a revision to receive a score',
+        'Apply the feedback you received',
+        'Try to expand and improve your writing',
+      ];
+    } else {
+      // Score based on amount of change and word count difference
+      const originalWords = submission.originalContent.split(/\s+/).length;
+      const revisedWords = submission.revisedContent.split(/\s+/).length;
+      const wordDifference = Math.abs(revisedWords - originalWords);
+      const hasSignificantChanges = wordDifference > 10;
+      
+      const baseScore = hasSignificantChanges ? 75 : 60;
+      const changeBonus = Math.min(wordDifference, 20);
+      score = Math.round(Math.min(baseScore + changeBonus + Math.random() * 15, 95));
+      
+      improvements = [
+        'Added more descriptive details',
+        'Improved sentence variety',
+      ];
+      strengths = [
+        'Applied feedback effectively',
+        'Made meaningful changes',
+      ];
+      suggestions = [
+        'Could combine more short sentences',
+        'Try adding more transitional phrases',
+      ];
+    }
     
     return {
       playerId: submission.playerId,
@@ -159,18 +192,9 @@ function generateMockRevisionRankings(revisionSubmissions: RevisionSubmission[])
       isAI: submission.isAI,
       score,
       rank: 0, // Will be set after sorting
-      improvements: [
-        'Added more descriptive details',
-        'Improved sentence variety',
-      ],
-      strengths: [
-        'Applied feedback effectively',
-        'Made meaningful changes',
-      ],
-      suggestions: [
-        'Could combine more short sentences',
-        'Try adding more transitional phrases',
-      ],
+      improvements,
+      strengths,
+      suggestions,
       originalContent: submission.originalContent,
       revisedContent: submission.revisedContent,
       wordCount: submission.wordCount,

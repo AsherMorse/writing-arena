@@ -146,11 +146,36 @@ function generateMockFeedbackRankings(feedbackSubmissions: FeedbackSubmission[])
   const rankings = feedbackSubmissions.map((submission, index) => {
     // Score based on completeness and length of responses
     const totalLength = Object.values(submission.responses).join('').length;
-    const isComplete = totalLength > 200;
+    const isEmpty = totalLength === 0;
     
-    const baseScore = isComplete ? 70 : 50;
-    const lengthBonus = Math.min(totalLength / 20, 20);
-    const score = Math.round(Math.min(baseScore + lengthBonus + Math.random() * 15, 95));
+    let score = 0;
+    let strengths: string[] = [];
+    let improvements: string[] = [];
+    
+    if (isEmpty) {
+      // Empty feedback gets 0
+      score = 0;
+      strengths = [];
+      improvements = [
+        'Provide feedback to receive a score',
+        'Answer all feedback questions',
+        'Be specific and constructive',
+      ];
+    } else {
+      const isComplete = totalLength > 200;
+      const baseScore = isComplete ? 70 : 50;
+      const lengthBonus = Math.min(totalLength / 20, 20);
+      score = Math.round(Math.min(baseScore + lengthBonus + Math.random() * 15, 95));
+      
+      strengths = [
+        'Provided feedback on multiple aspects',
+        'Constructive approach',
+      ];
+      improvements = [
+        'Could be more specific with examples',
+        'Try referencing Writing Revolution strategies',
+      ];
+    }
     
     return {
       playerId: submission.playerId,
@@ -158,14 +183,8 @@ function generateMockFeedbackRankings(feedbackSubmissions: FeedbackSubmission[])
       isAI: submission.isAI,
       score,
       rank: 0, // Will be set after sorting
-      strengths: [
-        'Provided feedback on multiple aspects',
-        'Constructive approach',
-      ],
-      improvements: [
-        'Could be more specific with examples',
-        'Try referencing Writing Revolution strategies',
-      ],
+      strengths,
+      improvements,
       responses: submission.responses,
     };
   });
