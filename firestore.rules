@@ -346,6 +346,18 @@ service cloud.firestore {
     // WRITING ARENA SPECIFIC COLLECTIONS
     // ============================================================================
     
+    // AI Students - persistent AI opponents
+    match /aiStudents/{studentId} {
+      // Anyone authenticated can read AI students (for matchmaking)
+      allow read: if isAuthenticated();
+      
+      // Allow writes from authenticated users (for seeding and updates)
+      allow create, update: if isAuthenticated();
+      
+      // No deleting AI students
+      allow delete: if false;
+    }
+    
     // Writing Arena User Profiles (separate from Pitch Rise userProfiles)
     match /users/{userId} {
       // Anyone can read user profiles (for displaying opponents in matches)
