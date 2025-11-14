@@ -242,12 +242,24 @@ export async function updateUserStatsAfterSession(
   isWin?: boolean,
   wordCount?: number
 ) {
+  console.log('💾 FIRESTORE - Updating user stats:', { uid, xpEarned, pointsEarned, lpChange, isWin, wordCount });
+  
   const userRef = doc(db, 'users', uid);
   const userSnap = await getDoc(userRef);
   
-  if (!userSnap.exists()) return;
+  if (!userSnap.exists()) {
+    console.error('❌ FIRESTORE - User profile not found in users collection:', uid);
+    return;
+  }
   
   const userData = userSnap.data() as UserProfile;
+  console.log('📖 FIRESTORE - Current user data:', {
+    currentLP: userData.rankLP,
+    currentXP: userData.totalXP,
+    currentPoints: userData.totalPoints,
+  });
+  
+  const newLP = Math.max(0, userData.rankLP + (lpChange || 0));
   
   const updates: any = {
     totalXP: userData.totalXP + xpEarned,
@@ -262,10 +274,19 @@ export async function updateUserStatsAfterSession(
   }
   
   if (lpChange !== undefined) {
-    updates.rankLP = Math.max(0, userData.rankLP + lpChange);
+    updates.rankLP = newLP;
+    console.log(`📊 FIRESTORE - LP change: ${userData.rankLP} → ${newLP} (${lpChange > 0 ? '+' : ''}${lpChange})`);
   }
   
-  await updateDoc(userRef, updates);
+  console.log('💾 FIRESTORE - Applying updates:', updates);
+  
+  try {
+    await updateDoc(userRef, updates);
+    console.log('✅ FIRESTORE - User stats updated successfully');
+  } catch (error) {
+    console.error('❌ FIRESTORE - Error updating user stats:', error);
+    throw error;
+  }
 }
 
 // Get user's recent sessions
