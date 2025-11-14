@@ -75,7 +75,7 @@ export default function AuthPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#101820] text-white">
+    <div className="min-h-screen bg-[#0c141d] text-white">
       <header className="border-b border-white/10">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-6">
           <Link href="/" className="flex items-center gap-3">
@@ -85,7 +85,7 @@ export default function AuthPage() {
             <span className="text-xl font-semibold tracking-wide">Writing Arena</span>
           </Link>
           <Link
-            href="/auth"
+            href="/"
             className="rounded-full border border-white/15 bg-white/5 px-4 py-2 text-sm font-semibold text-white transition hover:bg-white/10"
           >
             Return home

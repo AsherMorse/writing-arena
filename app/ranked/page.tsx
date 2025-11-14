@@ -18,7 +18,7 @@ export default function RankedPage() {
 
   if (loading || !userProfile) {
     return (
-      <div className="min-h-screen bg-[#101820] flex items-center justify-center">
+      <div className="min-h-screen bg-[#0c141d] flex items-center justify-center">
         <div className="text-white/70 text-sm">Loading ranked setup...</div>
       </div>
     );
@@ -38,7 +38,7 @@ export default function RankedPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#101820] text-white">
+    <div className="min-h-screen bg-[#0c141d] text-white">
       <header className="border-b border-white/10">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-6">
           <Link href="/dashboard" className="flex items-center gap-3">

@@ -126,6 +126,21 @@ function QuickMatchResultsContent() {
   return (
     <div className="min-h-screen bg-[#0c141d] text-white">
       <main className="mx-auto flex max-w-6xl flex-col gap-12 px-6 py-16">
+        <section className="flex flex-col gap-4 sm:flex-row sm:justify-end">
+          <Link
+            href="/quick-match"
+            className="rounded-full border border-emerald-200/40 bg-emerald-400 px-8 py-3 text-center text-sm font-semibold text-[#0c141d] transition hover:bg-emerald-300"
+          >
+            Play again
+          </Link>
+          <Link
+            href="/dashboard"
+            className="rounded-full border border-white/15 bg-white/5 px-8 py-3 text-center text-sm font-semibold text-white transition hover:bg-white/10"
+          >
+            Return to dashboard
+          </Link>
+        </section>
+
         <section className="rounded-3xl border border-white/10 bg-[#141e27] p-8">
           <div className="flex flex-col gap-6 text-center">
             <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full border border-white/10 bg-[#0c141d] text-4xl">
@@ -234,21 +249,7 @@ function QuickMatchResultsContent() {
             {decodeURIComponent(content) || 'Draft content unavailable.'}
           </p>
         </section>
-
-        <section className="flex flex-col gap-4 sm:flex-row sm:justify-center">
-          <Link
-            href="/quick-match"
-            className="rounded-full border border-emerald-200/40 bg-emerald-400 px-8 py-3 text-center text-sm font-semibold text-[#0c141d] transition hover:bg-emerald-300"
-          >
-            Play again
-          </Link>
-          <Link
-            href="/dashboard"
-            className="rounded-full border border-white/15 bg-white/5 px-8 py-3 text-center text-sm font-semibold text-white transition hover:bg-white/10"
-          >
-            Return to dashboard
-          </Link>
-        </section>
+        <p className="text-center text-xs text-white/50">Review your scores, then decide if you want another run.</p>
       </main>
     </div>
   );

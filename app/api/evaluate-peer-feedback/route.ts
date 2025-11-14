@@ -1,8 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 export async function POST(request: NextRequest) {
+  let payload: { responses?: any; peerWriting?: string };
   try {
-    const { responses, peerWriting } = await request.json();
+    payload = await request.json();
+  } catch (error) {
+    console.error('Error parsing peer-feedback body:', error);
+    return NextResponse.json(generateMockFeedbackScore({}));
+  }
+
+  const responses = payload.responses || {};
+  const peerWriting = payload.peerWriting || '';
+
+  try {
 
     const apiKey = process.env.ANTHROPIC_API_KEY;
     
@@ -40,7 +50,6 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(evaluation);
   } catch (error) {
     console.error('Error evaluating peer feedback:', error);
-    const { responses } = await request.json();
     return NextResponse.json(generateMockFeedbackScore(responses));
   }
 }

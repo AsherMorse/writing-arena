@@ -54,7 +54,7 @@ export default function DashboardPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#101820] flex items-center justify-center">
+      <div className="min-h-screen bg-[#0c141d] flex items-center justify-center">
         <div className="text-center space-y-4">
           <div className="mx-auto h-14 w-14 rounded-full border border-white/10 flex items-center justify-center text-2xl text-emerald-300">✶</div>
           <h2 className="text-2xl font-semibold text-white">Preparing your dashboard</h2>
@@ -70,11 +70,11 @@ export default function DashboardPage() {
 
   if (!userProfile) {
     return (
-      <div className="min-h-screen bg-[#101820] flex items-center justify-center px-4">
+      <div className="min-h-screen bg-[#0c141d] flex items-center justify-center px-4">
         <div className="max-w-md text-center space-y-4 text-sm text-white/60">
           <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full border border-white/10 text-xl text-emerald-300">🙈</div>
           <div className="text-lg font-semibold text-white">Profile unavailable</div>
-          <p>We couldn't load your Writing Arena profile. Try signing out and back in, or contact support if it keeps happening.</p>
+          <p>We couldn’t load your Writing Arena profile. Try signing out and back in, or contact support if it keeps happening.</p>
           <button
             onClick={signOut}
             className="inline-flex items-center justify-center rounded-full border border-white/10 bg-white/5 px-5 py-2 text-sm font-semibold text-white transition hover:bg-white/10"
@@ -87,7 +87,7 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#101820] text-white">
+    <div className="min-h-screen bg-[#0c141d] text-white">
       {showMatchModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4">
           <div className="w-full max-w-4xl rounded-3xl bg-[#141e27] p-10 shadow-xl border border-white/10 relative">
@@ -134,7 +134,7 @@ export default function DashboardPage() {
         </div>
       )}
 
-      <header className="sticky top-0 z-40 border-b border-white/10 bg-[#101820]/95 backdrop-blur">
+      <header className="sticky top-0 z-40 border-b border-white/10 bg-[#0c141d]/95 backdrop-blur">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4">
           <div className="flex items-center gap-4">
             <Link href="/" className="flex items-center gap-3">
@@ -177,10 +177,10 @@ export default function DashboardPage() {
               <div className="mt-6 grid gap-4 sm:grid-cols-3">
                 <button
                   onClick={() => router.push('/ranked')}
-                  className="rounded-xl border border-emerald-400/40 bg-emerald-500 px-4 py-3 text-left text-sm font-semibold text-[#101820] transition hover:bg-emerald-400"
+                  className="rounded-xl border border-emerald-400/40 bg-emerald-500 px-4 py-3 text-left text-sm font-semibold text-[#0c141d] transition hover:bg-emerald-400"
                 >
                   Join Ranked Queue
-                  <div className="mt-1 text-xs font-normal text-[#101820]/80">Recommended for today</div>
+                  <div className="mt-1 text-xs font-normal text-[#0c141d]/80">Recommended for today</div>
                 </button>
                 <button
                   onClick={() => router.push('/quick-match')}
@@ -202,7 +202,7 @@ export default function DashboardPage() {
             <div className="rounded-3xl border border-white/10 bg-[#141e27] p-8">
               <div className="flex items-center justify-between">
                 <div>
-                  <div className="text-xs uppercase tracking-[0.3em] text-white/50">Today's objectives</div>
+                  <div className="text-xs uppercase tracking-[0.3em] text-white/50">Today&apos;s objectives</div>
                   <h2 className="mt-2 text-2xl font-semibold">Stay focused before queueing</h2>
                 </div>
                 <span className="rounded-full border border-white/10 px-3 py-1 text-xs text-white/50">Match prep</span>

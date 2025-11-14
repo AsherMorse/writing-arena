@@ -235,7 +235,7 @@ function RankedMatchmakingContent() {
 
                 <div className="mt-6 grid gap-3 font-mono text-[11px] text-white/60">
                   {queueMessages.map(message => (
-                    <div key={message} className="rounded-lg border border-white/5 bg-[#101820] px-3 py-2">{message}</div>
+                    <div key={message} className="rounded-lg border border-white/5 bg-[#0c141d] px-3 py-2">{message}</div>
                   ))}
                 </div>
               </div>
@@ -369,7 +369,7 @@ function RankedMatchmakingContent() {
 export default function RankedMatchmakingPage() {
   return (
     <Suspense fallback={
-      <div className="min-h-screen bg-[#101820] flex items-center justify-center text-white/60 text-sm">
+      <div className="min-h-screen bg-[#0c141d] flex items-center justify-center text-white/60 text-sm">
         Loading ranked matchmaking...
       </div>
     }>

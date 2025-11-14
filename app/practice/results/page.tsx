@@ -89,6 +89,9 @@ function PracticeResultsContent() {
     return 'text-orange-200';
   };
 
+  const traitScores = (feedback?.traits ?? {}) as Record<string, number>;
+  const traitNotes = (feedback?.specificFeedback ?? {}) as Record<string, string>;
+
   if (isAnalyzing || !feedback) {
     return (
       <div className="min-h-screen bg-[#0c141d] text-white">
@@ -109,6 +112,21 @@ function PracticeResultsContent() {
   return (
     <div className="min-h-screen bg-[#0c141d] text-white">
       <main className="mx-auto flex max-w-6xl flex-col gap-12 px-6 py-16">
+        <section className="flex flex-col gap-4 sm:flex-row sm:justify-end">
+          <Link
+            href="/practice"
+            className="rounded-full border border-emerald-200/40 bg-emerald-400 px-8 py-3 text-center text-sm font-semibold text-[#0c141d] transition hover:bg-emerald-300"
+          >
+            Practice again
+          </Link>
+          <Link
+            href="/dashboard"
+            className="rounded-full border border-white/15 bg-white/5 px-8 py-3 text-center text-sm font-semibold text-white transition hover:bg-white/10"
+          >
+            Return to dashboard
+          </Link>
+        </section>
+
         <section className="rounded-3xl border border-white/10 bg-[#141e27] p-8">
           <div className="grid gap-6 sm:grid-cols-3 text-center">
             <div>
@@ -135,7 +153,7 @@ function PracticeResultsContent() {
               <h2 className="text-lg font-semibold">Trait breakdown</h2>
               <p className="mt-1 text-xs text-white/50">Each trait scored on a 0–100 scale.</p>
               <div className="mt-6 space-y-5">
-                {Object.entries(feedback.traits).map(([key, score]) => (
+                {Object.entries(traitScores).map(([key, score]) => (
                   <div key={key}>
                     <div className="flex items-center justify-between">
                       <span className="capitalize text-sm text-white/70">{key}</span>
@@ -147,7 +165,7 @@ function PracticeResultsContent() {
                         style={{ width: `${Math.min(score, 100)}%` }}
                       />
                     </div>
-                    <p className="mt-2 text-xs text-white/50">{feedback.specificFeedback[key]}</p>
+                    <p className="mt-2 text-xs text-white/50">{traitNotes[key]}</p>
                   </div>
                 ))}
               </div>
@@ -211,21 +229,6 @@ function PracticeResultsContent() {
           <p className="mt-4 whitespace-pre-wrap text-sm leading-relaxed text-white/70">
             {decodeURIComponent(content) || 'Draft unavailable.'}
           </p>
-        </section>
-
-        <section className="flex flex-col gap-4 sm:flex-row sm:justify-center">
-          <Link
-            href="/practice"
-            className="rounded-full border border-emerald-200/40 bg-emerald-400 px-8 py-3 text-center text-sm font-semibold text-[#0c141d] transition hover:bg-emerald-300"
-          >
-            Practice again
-          </Link>
-          <Link
-            href="/dashboard"
-            className="rounded-full border border-white/15 bg-white/5 px-8 py-3 text-center text-sm font-semibold text-white transition hover:bg-white/10"
-          >
-            Return to dashboard
-          </Link>
         </section>
       </main>
     </div>
