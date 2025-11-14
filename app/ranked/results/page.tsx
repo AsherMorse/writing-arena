@@ -65,7 +65,7 @@ const MOCK_PHASE_FEEDBACK = {
 
 function RankedResultsContent() {
   const searchParams = useSearchParams();
-  const { user } = useAuth();
+  const { user, refreshProfile } = useAuth();
   const matchId = searchParams.get('matchId') || '';
   const trait = searchParams.get('trait');
   const promptType = searchParams.get('promptType');
@@ -308,6 +308,11 @@ function RankedResultsContent() {
               wordCount
             );
             console.log('✅ RESULTS - Profile updated with LP change:', lpChange);
+            
+            // Refresh the profile in AuthContext so dashboard shows updated LP
+            console.log('🔄 RESULTS - Refreshing profile in AuthContext...');
+            await refreshProfile();
+            console.log('✅ RESULTS - Profile refreshed, new LP should be visible');
             
             // Update AI students' ranks and stats
             console.log('🤖 RESULTS - Updating AI student ranks...');
