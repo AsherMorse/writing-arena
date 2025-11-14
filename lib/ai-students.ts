@@ -172,8 +172,8 @@ function getAdjacentRankTiers(rankTier: string): string[] {
   return result;
 }
 
-// Helper: Promote rank
-function promoteRank(currentRank: string): string {
+// Helper: Promote rank (exported for use in other modules)
+export function promoteRank(currentRank: string): string {
   const [tier, division] = currentRank.split(' ');
   const divisionNum = ['I', 'II', 'III', 'IV'].indexOf(division);
   
@@ -191,8 +191,8 @@ function promoteRank(currentRank: string): string {
   }
 }
 
-// Helper: Demote rank
-function demoteRank(currentRank: string): string {
+// Helper: Demote rank (exported for use in other modules)
+export function demoteRank(currentRank: string): string {
   const [tier, division] = currentRank.split(' ');
   const divisionNum = ['I', 'II', 'III', 'IV'].indexOf(division);
   

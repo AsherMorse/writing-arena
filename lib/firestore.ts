@@ -9,6 +9,7 @@ import {
   serverTimestamp,
   Timestamp 
 } from 'firebase/firestore';
+import { promoteRank, demoteRank } from './ai-students';
 
 // User Profile Interface
 export interface UserProfile {
@@ -256,6 +257,7 @@ export async function updateUserStatsAfterSession(
   
   const userData = userSnap.data() as UserProfile;
   console.log('📖 FIRESTORE - Current user data:', {
+    currentRank: userData.currentRank,
     currentLP: userData.rankLP,
     currentXP: userData.totalXP,
     currentPoints: userData.totalPoints,
@@ -278,6 +280,21 @@ export async function updateUserStatsAfterSession(
   if (lpChange !== undefined) {
     updates.rankLP = newLP;
     console.log(`📊 FIRESTORE - LP change: ${userData.rankLP} → ${newLP} (${lpChange > 0 ? '+' : ''}${lpChange})`);
+    
+    // Check for rank up/down (every 100 LP)
+    if (newLP >= 100 && userData.rankLP < 100) {
+      // Rank up!
+      const newRank = promoteRank(userData.currentRank);
+      updates.currentRank = newRank;
+      updates.rankLP = newLP - 100;
+      console.log('⬆️ FIRESTORE - Rank up!', userData.displayName, ':', userData.currentRank, '→', newRank);
+    } else if (newLP < 0 && userData.rankLP >= 0) {
+      // Rank down
+      const newRank = demoteRank(userData.currentRank);
+      updates.currentRank = newRank;
+      updates.rankLP = 100 + newLP;
+      console.log('⬇️ FIRESTORE - Rank down!', userData.displayName, ':', userData.currentRank, '→', newRank);
+    }
   }
   
   console.log('💾 FIRESTORE - Applying updates:', updates);
