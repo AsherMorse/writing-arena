@@ -43,6 +43,7 @@ export default function MatchmakingContent() {
   const [currentTipIndex, setCurrentTipIndex] = useState(0);
   const [selectedAIStudents, setSelectedAIStudents] = useState<any[]>([]);
   const finalPlayersRef = useRef<any[]>([]);
+  const [queueSnapshot, setQueueSnapshot] = useState<QueueEntry[]>([]);
 
   // Writing Revolution concepts carousel
   const writingConcepts = [
@@ -133,6 +134,9 @@ export default function MatchmakingContent() {
         unsubscribeQueue = listenToQueue(trait, userId, (queuePlayers: QueueEntry[]) => {
           console.log('📥 MATCHMAKING - Queue update, players found:', queuePlayers.length);
           
+          // Save queue snapshot for match coordination
+          setQueueSnapshot(queuePlayers);
+          
           // If party is locked (countdown started), ignore queue updates
           if (partyLockedRef.current) {
             console.log('🔒 MATCHMAKING - Party locked, ignoring queue update');
@@ -178,19 +182,14 @@ export default function MatchmakingContent() {
           console.log('✅ MATCHMAKING - Loaded', aiStudents.length, 'AI students:', aiStudents.map(s => s.displayName).join(', '));
           setSelectedAIStudents(aiStudents);
           
-          // Add AI students gradually (one every 5 seconds)
-          let aiIndex = 0;
-          aiBackfillIntervalRef.current = setInterval(() => {
+          // Wait longer before adding first AI student (give real players time to join)
+          setTimeout(() => {
+            let aiIndex = 0;
+            
+            // Add first AI student
             setPlayers(prev => {
-              // Check if party is already full or we've added all AI students
-              if (prev.length >= 5 || aiIndex >= aiStudents.length) {
-                console.log('🎮 MATCHMAKING - Party full (', prev.length, '/5), stopping AI backfill');
-                if (aiBackfillIntervalRef.current) {
-                  clearInterval(aiBackfillIntervalRef.current);
-                }
-                return prev;
-              }
-
+              if (prev.length >= 5 || aiIndex >= aiStudents.length) return prev;
+              
               const aiStudent = aiStudents[aiIndex];
               console.log('🤖 MATCHMAKING - Adding AI student:', aiStudent.displayName, '(party size:', prev.length + 1, ')');
               
@@ -205,7 +204,42 @@ export default function MatchmakingContent() {
               aiIndex++;
               return [...prev, aiPlayer];
             });
-          }, 5000); // Every 5 seconds
+            
+            // Continue adding AI students gradually (one every 10 seconds)
+            aiBackfillIntervalRef.current = setInterval(() => {
+              setPlayers(prev => {
+                // Check if party is already full or we've added all AI students
+                if (prev.length >= 5 || aiIndex >= aiStudents.length) {
+                  console.log('🎮 MATCHMAKING - Party full (', prev.length, '/5), stopping AI backfill');
+                  if (aiBackfillIntervalRef.current) {
+                    clearInterval(aiBackfillIntervalRef.current);
+                  }
+                  return prev;
+                }
+                
+                // Check if we have 2+ real players - if so, slow down AI backfill
+                const realPlayerCount = prev.filter(p => !p.isAI).length;
+                if (realPlayerCount >= 2 && prev.length < 4) {
+                  console.log('👥 MATCHMAKING - Multiple real players detected, prioritizing real player matching');
+                  return prev; // Skip this AI addition cycle
+                }
+
+                const aiStudent = aiStudents[aiIndex];
+                console.log('🤖 MATCHMAKING - Adding AI student:', aiStudent.displayName, '(party size:', prev.length + 1, ')');
+                
+                const aiPlayer = {
+                  userId: aiStudent.id,
+                  name: aiStudent.displayName,
+                  avatar: aiStudent.avatar,
+                  rank: aiStudent.currentRank,
+                  isAI: true,
+                };
+                
+                aiIndex++;
+                return [...prev, aiPlayer];
+              });
+            }, 10000); // Every 10 seconds
+          }, 15000); // Wait 15 seconds before adding first AI
         };
         
         fetchAndAddAIStudents();
@@ -271,7 +305,28 @@ export default function MatchmakingContent() {
       console.log('🚀 MATCHMAKING - Starting match!');
       // Get a truly random prompt from the library
       const randomPrompt = getRandomPrompt();
-      const matchId = `match-${userId}-${Date.now()}`;
+      
+      // If multiple real players, coordinate matchId (use earliest player's ID as leader)
+      let matchId: string;
+      const realPlayersInQueue = queueSnapshot.filter(p => finalPlayersRef.current.some(fp => fp.userId === p.userId));
+      
+      if (realPlayersInQueue.length >= 2) {
+        // Sort by join time and use earliest player as leader
+        const sortedPlayers = [...realPlayersInQueue].sort((a, b) => {
+          const aTime = a.joinedAt?.toMillis() || 0;
+          const bTime = b.joinedAt?.toMillis() || 0;
+          return aTime - bTime;
+        });
+        const leaderId = sortedPlayers[0].userId;
+        const leaderJoinTime = sortedPlayers[0].joinedAt?.toMillis() || Date.now();
+        matchId = `match-${leaderId}-${leaderJoinTime}`;
+        console.log('👥 MATCHMAKING - Multi-player match, leader:', leaderId, 'matchId:', matchId);
+      } else {
+        // Single player match
+        matchId = `match-${userId}-${Date.now()}`;
+        console.log('👤 MATCHMAKING - Single player match, matchId:', matchId);
+      }
+      
       console.log('📝 MATCHMAKING - Selected prompt:', randomPrompt.id, randomPrompt.title);
       console.log('🎮 MATCHMAKING - Match ID:', matchId);
       
@@ -288,7 +343,7 @@ export default function MatchmakingContent() {
       
       router.push(`/ranked/session?trait=${trait}&promptId=${randomPrompt.id}&matchId=${matchId}`);
     }
-  }, [countdown, router, trait, userId, players, selectedAIStudents]);
+  }, [countdown, router, trait, userId, players, selectedAIStudents, queueSnapshot]);
 
   return (
     <div className="min-h-screen bg-[#0c141d] text-white">
