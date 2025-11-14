@@ -471,12 +471,6 @@ export default function WritingSessionContent() {
           </div>
 
           <div className="space-y-6">
-            <div className="rounded-3xl border border-white/10 bg-[#141e27] p-6 text-xs text-white/50">
-              <div className="flex items-center justify-between">
-                <span>Prompt context</span>
-                <span>{trait ? trait : 'All traits'}</span>
-              </div>
-            </div>
             <div className="relative rounded-3xl border border-white/10 bg-white p-6 text-[#1b1f24] shadow-xl">
               <div className="flex items-center justify-between text-xs text-[#1b1f24]/60">
                 <span>Draft in progress</span>
