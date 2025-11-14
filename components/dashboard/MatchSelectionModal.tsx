@@ -18,18 +18,21 @@ export default function MatchSelectionModal({ isOpen, onClose }: MatchSelectionM
       icon: '⚡',
       summary: 'Jump into a four minute duel with instant party fill.',
       route: '/quick-match',
+      disabled: true,
     },
     {
       label: 'Ranked',
       icon: '🏆',
       summary: 'Fight for leaderboard glory with three competitive phases.',
       route: '/ranked',
+      disabled: false,
     },
     {
       label: 'Practice',
       icon: '📝',
       summary: 'Solo training with guided prompts and instant AI feedback.',
       route: '/practice',
+      disabled: true,
     },
   ];
 
@@ -56,21 +59,43 @@ export default function MatchSelectionModal({ isOpen, onClose }: MatchSelectionM
             <button
               key={option.label}
               onClick={() => {
-                onClose();
-                router.push(option.route);
+                if (!option.disabled) {
+                  onClose();
+                  router.push(option.route);
+                }
               }}
-              className="group rounded-2xl bg-[#192430] p-7 border border-white/10 text-left transition hover:border-emerald-300/40"
+              disabled={option.disabled}
+              className={`group rounded-2xl p-7 border text-left transition relative ${
+                option.disabled
+                  ? 'bg-[#192430]/40 border-white/5 cursor-not-allowed opacity-60'
+                  : 'bg-[#192430] border-white/10 hover:border-emerald-300/40'
+              }`}
             >
+              {option.disabled && (
+                <div className="absolute top-3 right-3 px-2 py-1 bg-amber-500/20 border border-amber-400/30 rounded-full">
+                  <span className="text-[10px] uppercase tracking-wider text-amber-300 font-semibold">
+                    Coming Soon
+                  </span>
+                </div>
+              )}
               <div className="space-y-5">
-                <div className="flex items-center justify-between text-xs uppercase tracking-[0.3em] text-emerald-200/70">
+                <div className={`flex items-center justify-between text-xs uppercase tracking-[0.3em] ${
+                  option.disabled ? 'text-white/30' : 'text-emerald-200/70'
+                }`}>
                   {option.label}
-                  <span className="text-base text-emerald-200">{option.icon}</span>
+                  <span className={`text-base ${option.disabled ? 'text-white/30' : 'text-emerald-200'}`}>
+                    {option.icon}
+                  </span>
                 </div>
-                <p className="text-base text-white/80">{option.summary}</p>
-                <div className="flex items-center justify-between pt-2 text-sm text-emerald-200">
-                  Enter
-                  <span className="transition group-hover:translate-x-1">→</span>
-                </div>
+                <p className={`text-base ${option.disabled ? 'text-white/40' : 'text-white/80'}`}>
+                  {option.summary}
+                </p>
+                {!option.disabled && (
+                  <div className="flex items-center justify-between pt-2 text-sm text-emerald-200">
+                    Enter
+                    <span className="transition group-hover:translate-x-1">→</span>
+                  </div>
+                )}
               </div>
             </button>
           ))}

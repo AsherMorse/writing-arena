@@ -45,7 +45,7 @@ export default function PeerFeedbackContent() {
   const aiScores = searchParams.get('aiScores') || '';
   const yourScore = searchParams.get('yourScore') || '75';
 
-  const [timeLeft, setTimeLeft] = useState(180); // 3 minutes for peer feedback
+  const [timeLeft, setTimeLeft] = useState(60); // 1 minute for peer feedback
   const [currentPeer, setCurrentPeer] = useState<any>(null);
   const [loadingPeer, setLoadingPeer] = useState(true);
   const [showTipsModal, setShowTipsModal] = useState(false);
@@ -199,8 +199,8 @@ export default function PeerFeedbackContent() {
   };
 
   const getTimeColor = () => {
-    if (timeLeft > 120) return 'text-green-400';
-    if (timeLeft > 60) return 'text-yellow-400';
+    if (timeLeft > 30) return 'text-green-400';
+    if (timeLeft > 15) return 'text-yellow-400';
     return 'text-red-400';
   };
 
@@ -388,25 +388,17 @@ export default function PeerFeedbackContent() {
               </div>
             </div>
 
-            <button
-              onClick={handleSubmit}
-              disabled={!isFormComplete() || isEvaluating}
-              className={`px-6 py-2 font-semibold rounded-lg transition-all ${
-                isFormComplete() && !isEvaluating
-                  ? 'bg-blue-500 hover:bg-blue-600 text-white'
-                  : 'bg-gray-600 text-gray-400 cursor-not-allowed'
-              }`}
-            >
-              {isEvaluating ? 'Evaluating...' : isFormComplete() ? 'Submit Feedback' : 'Complete All Questions'}
-            </button>
+            <div className="px-6 py-2 text-white/60 text-sm">
+              ⏱️ Submit automatically at 0:00
+            </div>
           </div>
 
           <div className="mt-4 w-full bg-white/10 rounded-full h-2 overflow-hidden">
             <div 
               className={`h-full transition-all duration-1000 ${
-                timeLeft > 120 ? 'bg-green-400' : timeLeft > 60 ? 'bg-yellow-400' : 'bg-red-400'
+                timeLeft > 30 ? 'bg-green-400' : timeLeft > 15 ? 'bg-yellow-400' : 'bg-red-400'
               }`}
-              style={{ width: `${(timeLeft / 180) * 100}%` }}
+              style={{ width: `${(timeLeft / 60) * 100}%` }}
             />
           </div>
         </div>

@@ -25,7 +25,7 @@ export default function WritingSessionContent() {
     return selectedPrompt;
   });
 
-  const [timeLeft, setTimeLeft] = useState(240);
+  const [timeLeft, setTimeLeft] = useState(120); // 2 minutes for Phase 1
   const [writingContent, setWritingContent] = useState('');
   const [wordCount, setWordCount] = useState(0);
   const [showPasteWarning, setShowPasteWarning] = useState(false);
@@ -97,11 +97,11 @@ export default function WritingSessionContent() {
             isAI: p.isAI || !p.isYou
           })),
           1,
-          240
+          120 // 2 minutes
         );
         
-        // Simulate AI submissions (they finish randomly)
-        simulateAISubmissions(matchId, 1, Math.random() * 120000 + 60000); // 1-3 min
+        // Simulate AI submissions (they finish randomly within 2-min window)
+        simulateAISubmissions(matchId, 1, Math.random() * 60000 + 60000); // 1-2 min
         
         setMatchInitialized(true);
       } catch (error) {
@@ -215,8 +215,8 @@ export default function WritingSessionContent() {
   useEffect(() => {
     const interval = setInterval(() => {
       setAiWordCounts(prev => prev.map(count => {
-        const increase = Math.floor(Math.random() * 5) + 2;
-        return Math.min(count + increase, 250);
+        const increase = Math.floor(Math.random() * 3) + 1; // Slower for 2-min session
+        return Math.min(count + increase, 100); // Max 100 words for 2-min
       }));
     }, 2000);
     return () => clearInterval(interval);
@@ -229,8 +229,8 @@ export default function WritingSessionContent() {
   };
 
   const getTimeColor = () => {
-    if (timeLeft > 120) return 'text-green-400';
-    if (timeLeft > 60) return 'text-yellow-400';
+    if (timeLeft > 60) return 'text-green-400';
+    if (timeLeft > 30) return 'text-yellow-400';
     return 'text-red-400';
   };
 
@@ -424,18 +424,12 @@ export default function WritingSessionContent() {
             >
               Writing tips
             </button>
-            <button
-              onClick={handleSubmit}
-              className="rounded-full bg-emerald-400 px-6 py-2 font-semibold text-[#0c141d] transition hover:bg-emerald-300"
-            >
-              Submit draft
-            </button>
           </div>
         </div>
         <div className="mx-auto h-1.5 max-w-6xl rounded-full bg-white/10">
           <div
-            className={`h-full rounded-full ${timeLeft > 120 ? 'bg-emerald-400' : timeLeft > 60 ? 'bg-yellow-400' : 'bg-red-400'}`}
-            style={{ width: `${(timeLeft / 240) * 100}%` }}
+            className={`h-full rounded-full ${timeLeft > 60 ? 'bg-emerald-400' : timeLeft > 30 ? 'bg-yellow-400' : 'bg-red-400'}`}
+            style={{ width: `${(timeLeft / 120) * 100}%` }}
           />
         </div>
       </header>
@@ -459,13 +453,13 @@ export default function WritingSessionContent() {
             <div className="rounded-3xl border border-white/10 bg-[#141e27] p-6 space-y-4 text-sm text-white/60">
               <div className="text-xs uppercase tracking-[0.3em] text-white/50">Phase reminders</div>
               <div className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-xs text-white/60">
-                Hit 180 words to secure a consistency bonus and keep sentences active.
+                Aim for 60+ words in 2 minutes. Quality over quantity—focus on clarity.
               </div>
               <div className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-xs text-white/60">
-                Focus on organization: outline intro, evidence, and closing before expanding.
+                Start with your main idea, then add one supporting detail quickly.
               </div>
               <div className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-xs text-white/60">
-                Leave two minutes for a final pass; mechanical errors reduce LP gains.
+                Save 20 seconds for a quick proofread—catch obvious mistakes.
               </div>
             </div>
           </div>
@@ -522,7 +516,7 @@ export default function WritingSessionContent() {
                     <div className="h-1.5 rounded-full bg-white/10">
                       <div
                         className={`${member.isYou ? 'bg-emerald-300' : 'bg-white/40'} h-full rounded-full`}
-                        style={{ width: `${Math.min((member.wordCount / 220) * 100, 100)}%` }}
+                        style={{ width: `${Math.min((member.wordCount / 100) * 100, 100)}%` }}
                       />
                     </div>
                     <div className="text-[10px] uppercase text-white/40">Slot {index + 1}</div>

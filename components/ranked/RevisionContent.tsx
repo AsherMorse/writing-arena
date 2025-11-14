@@ -36,7 +36,7 @@ export default function RevisionContent() {
   const feedbackScore = searchParams.get('feedbackScore') || '80';
   const peerFeedbackRaw = searchParams.get('peerFeedback') || '{}';
   
-  const [timeLeft, setTimeLeft] = useState(240); // 4 minutes for revision
+  const [timeLeft, setTimeLeft] = useState(60); // 1 minute for revision
   const [revisedContent, setRevisedContent] = useState(originalContent);
   const [wordCountRevised, setWordCountRevised] = useState(0);
   const [showFeedback, setShowFeedback] = useState(true);
@@ -220,8 +220,8 @@ export default function RevisionContent() {
   };
 
   const getTimeColor = () => {
-    if (timeLeft > 120) return 'text-green-400';
-    if (timeLeft > 60) return 'text-yellow-400';
+    if (timeLeft > 30) return 'text-green-400';
+    if (timeLeft > 15) return 'text-yellow-400';
     return 'text-red-400';
   };
 
@@ -424,26 +424,18 @@ export default function RevisionContent() {
                   </span>
                 )}
               </div>
-              <button
-                onClick={handleSubmit}
-                disabled={isEvaluating}
-                className={`px-6 py-2 font-semibold rounded-lg transition-all ${
-                  isEvaluating
-                    ? 'bg-gray-600 text-gray-400 cursor-not-allowed'
-                    : 'bg-emerald-500 hover:bg-emerald-600 text-white'
-                }`}
-              >
-                {isEvaluating ? 'Evaluating...' : 'Submit Revision'}
-              </button>
+              <div className="px-6 py-2 text-white/60 text-sm">
+                ⏱️ Submit automatically at 0:00
+              </div>
             </div>
           </div>
 
           <div className="mt-4 w-full bg-white/10 rounded-full h-2 overflow-hidden">
             <div 
               className={`h-full transition-all duration-1000 ${
-                timeLeft > 120 ? 'bg-green-400' : timeLeft > 60 ? 'bg-yellow-400' : 'bg-red-400'
+                timeLeft > 30 ? 'bg-green-400' : timeLeft > 15 ? 'bg-yellow-400' : 'bg-red-400'
               }`}
-              style={{ width: `${(timeLeft / 240) * 100}%` }}
+              style={{ width: `${(timeLeft / 60) * 100}%` }}
             />
           </div>
         </div>
