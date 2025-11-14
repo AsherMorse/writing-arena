@@ -196,7 +196,7 @@ function RankedSessionContent() {
   }, [matchInitialized, hasSubmitted, matchId]);
 
   useEffect(() => {
-    if (timeLeft > 0 && !hasSubmitted) {
+    if (timeLeft > 0) {
       const timer = setInterval(() => {
         setTimeLeft((prev) => prev - 1);
       }, 1000);
