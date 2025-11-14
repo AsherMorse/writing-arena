@@ -17,14 +17,11 @@ function PracticeResultsContent() {
   const [feedback, setFeedback] = useState<any>(null);
 
   useEffect(() => {
-    // Call API to analyze writing
     const analyzeWriting = async () => {
       try {
         const response = await fetch('/api/analyze-writing', {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             content: decodeURIComponent(content),
             trait,
@@ -32,106 +29,80 @@ function PracticeResultsContent() {
           }),
         });
 
-        if (!response.ok) {
-          throw new Error('Failed to analyze writing');
-        }
+        const data = await response.ok ? await response.json() : null;
+        if (!data) throw new Error('analysis failed');
 
-        const data = await response.json();
-        
-        // MOCK: Skip Firebase calls for now
         if (user) {
-          console.log('Mock: Would save practice session:', {
+          console.log('Mock practice session save', {
             userId: user.uid,
-            mode: 'practice',
             score: data.overallScore,
             xpEarned: data.xpEarned,
-            wordCount
+            wordCount,
           });
         }
-        
-        // Simulate loading time for better UX
+
         setTimeout(() => {
           setFeedback(data);
           setIsAnalyzing(false);
-        }, 2000);
+        }, 1200);
       } catch (error) {
-        console.error('Error analyzing writing:', error);
-        // Fallback to mock feedback
+        console.error('Practice analysis error:', error);
         setTimeout(() => {
-          const mockFeedback = generateMockFeedback(trait, wordCount);
-          setFeedback(mockFeedback);
+          setFeedback(generateMockFeedback(wordCount));
           setIsAnalyzing(false);
-        }, 2000);
+        }, 1200);
       }
     };
 
     analyzeWriting();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [trait, promptType, content, wordCount]);
+  }, [trait, promptType, content, wordCount, user]);
 
-  const generateMockFeedback = (focusTrait: string | null, words: number) => {
-    const baseScore = Math.min(100, Math.max(40, 60 + (words / 10)));
-    
+  const generateMockFeedback = (words: number) => {
+    const base = Math.min(100, Math.max(45, 60 + words / 8));
     return {
-      overallScore: Math.round(baseScore),
-      xpEarned: Math.round(baseScore * 1.5),
+      overallScore: Math.round(base),
+      xpEarned: Math.round(base * 1.2),
       traits: {
-        content: Math.round(baseScore + Math.random() * 10 - 5),
-        organization: Math.round(baseScore + Math.random() * 10 - 5),
-        grammar: Math.round(baseScore + Math.random() * 10 - 5),
-        vocabulary: Math.round(baseScore + Math.random() * 10 - 5),
-        mechanics: Math.round(baseScore + Math.random() * 10 - 5),
+        content: Math.round(base + Math.random() * 10 - 5),
+        organization: Math.round(base + Math.random() * 10 - 5),
+        grammar: Math.round(base + Math.random() * 10 - 5),
+        vocabulary: Math.round(base + Math.random() * 10 - 5),
+        mechanics: Math.round(base + Math.random() * 10 - 5),
       },
-      strengths: [
-        'Strong opening that captures attention',
-        'Good use of descriptive details',
-        'Clear progression of ideas',
-      ],
-      improvements: [
-        'Try adding more transitional phrases between paragraphs',
-        'Vary your sentence structure for better flow',
-        'Consider expanding on your main points with specific examples',
-      ],
+      strengths: ['Clear main idea anchored your draft.', 'Specific examples made the message concrete.', 'Paragraph order helped readers follow.' ],
+      improvements: ['Add transitions to smooth shifts between ideas.', 'Vary sentence openings to avoid repetition.', 'Double-check punctuation on compound sentences.'],
       specificFeedback: {
-        content: 'Your ideas are relevant and address the prompt well. Consider adding more specific examples to support your main points.',
-        organization: 'Good logical flow overall. Transitions could be smoother between some paragraphs.',
-        grammar: 'Sentence variety is good. Watch for a few minor punctuation issues.',
-        vocabulary: 'Solid word choice. Try incorporating more precise verbs to strengthen your writing.',
-        mechanics: 'Generally clean writing with good spelling and punctuation. Check capitalization in a few spots.',
+        content: 'Stay focused on the prompt; add one more supporting detail next time.',
+        organization: 'Consider transition words like furthermore or however to guide readers.',
+        grammar: 'Watch comma placement in longer sentences.',
+        vocabulary: 'Swap general verbs for precise action words.',
+        mechanics: 'Proofread for capitalization and ending punctuation.',
       },
-      nextSteps: [
-        'Practice writing transitions between paragraphs',
-        'Try the descriptive prompt type to expand vocabulary skills',
-        'Focus on varying sentence beginnings in your next session',
-      ]
+      nextSteps: ['Practice a descriptive prompt to stretch vocabulary.', 'Rewrite one paragraph using sentence combining.', 'Use because/but/so to expand key ideas.'],
     };
   };
 
-  const getScoreColor = (score: number) => {
-    if (score >= 90) return 'text-green-400';
-    if (score >= 75) return 'text-blue-400';
-    if (score >= 60) return 'text-yellow-400';
-    return 'text-orange-400';
+  const scoreTone = (score: number) => {
+    if (score >= 90) return 'text-emerald-200';
+    if (score >= 75) return 'text-blue-200';
+    if (score >= 60) return 'text-yellow-200';
+    return 'text-orange-200';
   };
 
-  const getScoreGradient = (score: number) => {
-    if (score >= 90) return 'from-green-400 to-emerald-500';
-    if (score >= 75) return 'from-blue-400 to-blue-500';
-    if (score >= 60) return 'from-yellow-400 to-yellow-500';
-    return 'from-orange-400 to-orange-500';
-  };
+  const traitScores = (feedback?.traits ?? {}) as Record<string, number>;
+  const traitNotes = (feedback?.specificFeedback ?? {}) as Record<string, string>;
 
-  if (isAnalyzing) {
+  if (isAnalyzing || !feedback) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-green-900 to-slate-900 flex items-center justify-center">
-        <div className="text-center">
-          <div className="inline-block animate-spin text-7xl mb-6">🤖</div>
-          <h2 className="text-3xl font-bold text-white mb-3">Analyzing Your Writing...</h2>
-          <p className="text-white/60 text-lg mb-6">AI is reading your work and preparing feedback</p>
-          <div className="flex justify-center space-x-2">
-            <div className="w-3 h-3 bg-green-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
-            <div className="w-3 h-3 bg-green-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
-            <div className="w-3 h-3 bg-green-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
+      <div className="min-h-screen bg-[#0c141d] text-white">
+        <div className="mx-auto flex min-h-screen max-w-4xl flex-col items-center justify-center gap-4 px-6 text-center">
+          <div className="flex h-16 w-16 items-center justify-center rounded-full border border-white/10 bg-[#141e27] text-3xl">🤖</div>
+          <h2 className="text-2xl font-semibold">Reading your draft</h2>
+          <p className="text-sm text-white/60">AI is evaluating your response and preparing feedback.</p>
+          <div className="flex gap-2">
+            {[0, 150, 300].map(delay => (
+              <span key={delay} className="h-2 w-2 animate-bounce rounded-full bg-emerald-300" style={{ animationDelay: `${delay}ms` }} />
+            ))}
           </div>
         </div>
       </div>
@@ -139,231 +110,126 @@ function PracticeResultsContent() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-green-900 to-slate-900">
-      {/* Header */}
-      <header className="border-b border-white/10 bg-black/20 backdrop-blur-sm">
-        <div className="container mx-auto px-6 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-2">
-              <div className="w-8 h-8 bg-gradient-to-br from-yellow-400 to-orange-500 rounded-lg flex items-center justify-center">
-                <span className="text-xl">✍️</span>
-              </div>
-              <span className="text-xl font-bold text-white">Writing Arena</span>
-            </div>
-            <Link 
-              href="/dashboard"
-              className="flex items-center space-x-2 text-white/60 hover:text-white transition-colors"
-            >
-              <span>Back to Dashboard</span>
-            </Link>
-          </div>
-        </div>
-      </header>
+    <div className="min-h-screen bg-[#0c141d] text-white">
+      <main className="mx-auto flex max-w-6xl flex-col gap-12 px-6 py-16">
+        <section className="flex flex-col gap-4 sm:flex-row sm:justify-end">
+          <Link
+            href="/practice"
+            className="rounded-full border border-emerald-200/40 bg-emerald-400 px-8 py-3 text-center text-sm font-semibold text-[#0c141d] transition hover:bg-emerald-300"
+          >
+            Practice again
+          </Link>
+          <Link
+            href="/dashboard"
+            className="rounded-full border border-white/15 bg-white/5 px-8 py-3 text-center text-sm font-semibold text-white transition hover:bg-white/10"
+          >
+            Return to dashboard
+          </Link>
+        </section>
 
-      {/* Main Content */}
-      <main className="container mx-auto px-6 py-12 max-w-6xl">
-        {/* Celebration Header */}
-        <div className="text-center mb-12">
-          <div className="text-7xl mb-4 animate-bounce">🎉</div>
-          <h1 className="text-5xl font-bold text-white mb-3">Great Work!</h1>
-          <p className="text-xl text-white/70">Here&apos;s your detailed feedback</p>
-        </div>
-
-        {/* Score Card */}
-        <div className="bg-gradient-to-br from-green-600 to-teal-600 rounded-3xl p-8 mb-8 relative overflow-hidden">
-          {/* Decorative elements */}
-          <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full -mr-32 -mt-32"></div>
-          <div className="absolute bottom-0 left-0 w-48 h-48 bg-white/5 rounded-full -ml-24 -mb-24"></div>
-          
-          <div className="relative z-10 grid md:grid-cols-3 gap-8">
-            <div className="text-center">
-              <div className="text-white/80 mb-2">Overall Score</div>
-              <div className={`text-6xl font-bold text-white mb-2`}>
-                {feedback?.overallScore}
-              </div>
-              <div className="text-white/60">out of 100</div>
+        <section className="rounded-3xl border border-white/10 bg-[#141e27] p-8">
+          <div className="grid gap-6 sm:grid-cols-3 text-center">
+            <div>
+              <div className="text-xs uppercase tracking-[0.3em] text-white/50">Overall score</div>
+              <div className={`mt-3 text-5xl font-semibold ${scoreTone(feedback.overallScore)}`}>{feedback.overallScore}</div>
+              <p className="mt-1 text-xs text-white/50">out of 100</p>
             </div>
-            <div className="text-center">
-              <div className="text-white/80 mb-2">XP Earned</div>
-              <div className="text-6xl font-bold text-yellow-300 mb-2">
-                +{feedback?.xpEarned}
-              </div>
-              <div className="text-white/60">experience points</div>
+            <div>
+              <div className="text-xs uppercase tracking-[0.3em] text-white/50">XP earned</div>
+              <div className="mt-3 text-5xl font-semibold text-emerald-200">+{feedback.xpEarned}</div>
+              <p className="mt-1 text-xs text-white/50">Keep the streak alive</p>
             </div>
-            <div className="text-center">
-              <div className="text-white/80 mb-2">Words Written</div>
-              <div className="text-6xl font-bold text-white mb-2">
-                {wordCount}
-              </div>
-              <div className="text-white/60">total words</div>
+            <div>
+              <div className="text-xs uppercase tracking-[0.3em] text-white/50">Words typed</div>
+              <div className="mt-3 text-5xl font-semibold text-white">{wordCount}</div>
+              <p className="mt-1 text-xs text-white/50">Goal: 150 words</p>
             </div>
           </div>
-        </div>
+        </section>
 
-        <div className="grid lg:grid-cols-3 gap-8">
-          {/* Left Column - Trait Scores */}
-          <div className="lg:col-span-2 space-y-6">
-            {/* Trait Breakdown */}
-            <div className="bg-white/5 backdrop-blur-sm rounded-2xl p-8 border border-white/10">
-              <h2 className="text-2xl font-bold text-white mb-6">Trait Scores</h2>
-              
-              <div className="space-y-6">
-                {[
-                  { name: 'Content', key: 'content', icon: '📚', color: 'blue' },
-                  { name: 'Organization', key: 'organization', icon: '🗂️', color: 'purple' },
-                  { name: 'Grammar', key: 'grammar', icon: '✏️', color: 'green' },
-                  { name: 'Vocabulary', key: 'vocabulary', icon: '📖', color: 'yellow' },
-                  { name: 'Mechanics', key: 'mechanics', icon: '⚙️', color: 'red' },
-                ].map((trait) => {
-                  const score = feedback?.traits[trait.key] || 0;
-                  return (
-                    <div key={trait.key}>
-                      <div className="flex items-center justify-between mb-2">
-                        <div className="flex items-center space-x-3">
-                          <span className="text-2xl">{trait.icon}</span>
-                          <span className="text-white font-semibold">{trait.name}</span>
-                        </div>
-                        <span className={`text-2xl font-bold ${getScoreColor(score)}`}>
-                          {score}
-                        </span>
-                      </div>
-                      <div className="w-full bg-white/10 rounded-full h-3 overflow-hidden">
-                        <div 
-                          className={`h-full bg-gradient-to-r ${getScoreGradient(score)} transition-all duration-1000`}
-                          style={{ width: `${score}%` }}
-                        />
-                      </div>
-                      <p className="text-white/60 text-sm mt-2">
-                        {feedback?.specificFeedback[trait.key]}
-                      </p>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-
-            {/* Detailed Feedback */}
-            <div className="grid md:grid-cols-2 gap-6">
-              {/* Strengths */}
-              <div className="bg-white/5 backdrop-blur-sm rounded-2xl p-6 border border-green-500/30">
-                <div className="flex items-center space-x-2 mb-4">
-                  <span className="text-2xl">💪</span>
-                  <h3 className="text-xl font-bold text-white">Strengths</h3>
-                </div>
-                <div className="space-y-3">
-                  {feedback?.strengths.map((strength: string, index: number) => (
-                    <div key={index} className="flex items-start space-x-2">
-                      <span className="text-green-400 mt-1">✓</span>
-                      <span className="text-white/80 text-sm">{strength}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Areas for Improvement */}
-              <div className="bg-white/5 backdrop-blur-sm rounded-2xl p-6 border border-yellow-500/30">
-                <div className="flex items-center space-x-2 mb-4">
-                  <span className="text-2xl">🎯</span>
-                  <h3 className="text-xl font-bold text-white">Growth Areas</h3>
-                </div>
-                <div className="space-y-3">
-                  {feedback?.improvements.map((improvement: string, index: number) => (
-                    <div key={index} className="flex items-start space-x-2">
-                      <span className="text-yellow-400 mt-1">→</span>
-                      <span className="text-white/80 text-sm">{improvement}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Right Column - Next Steps */}
+        <section className="grid gap-8 lg:grid-cols-[1.4fr,0.8fr]">
           <div className="space-y-6">
-            {/* Next Steps */}
-            <div className="bg-white/5 backdrop-blur-sm rounded-2xl p-6 border border-white/10">
-              <div className="flex items-center space-x-2 mb-4">
-                <span className="text-2xl">🚀</span>
-                <h3 className="text-xl font-bold text-white">Next Steps</h3>
-              </div>
-              <div className="space-y-3">
-                {feedback?.nextSteps.map((step: string, index: number) => (
-                  <div key={index} className="bg-white/5 rounded-lg p-3 border border-white/10">
-                    <div className="flex items-start space-x-2">
-                      <span className="text-blue-400 font-bold">{index + 1}.</span>
-                      <span className="text-white/80 text-sm">{step}</span>
+            <div className="rounded-3xl border border-white/10 bg-[#141e27] p-8">
+              <h2 className="text-lg font-semibold">Trait breakdown</h2>
+              <p className="mt-1 text-xs text-white/50">Each trait scored on a 0–100 scale.</p>
+              <div className="mt-6 space-y-5">
+                {Object.entries(traitScores).map(([key, score]) => (
+                  <div key={key}>
+                    <div className="flex items-center justify-between">
+                      <span className="capitalize text-sm text-white/70">{key}</span>
+                      <span className={`text-sm font-semibold ${scoreTone(score)}`}>{score}</span>
                     </div>
+                    <div className="mt-2 h-1.5 rounded-full bg-white/10">
+                      <div
+                        className="h-full rounded-full bg-emerald-400"
+                        style={{ width: `${Math.min(score, 100)}%` }}
+                      />
+                    </div>
+                    <p className="mt-2 text-xs text-white/50">{traitNotes[key]}</p>
                   </div>
                 ))}
               </div>
             </div>
 
-            {/* The Writing Revolution Principles */}
-            <div className="bg-gradient-to-br from-blue-600 to-indigo-600 rounded-2xl p-6 border border-blue-400/30">
-              <div className="flex items-center space-x-2 mb-4">
-                <span className="text-2xl">📚</span>
-                <h3 className="text-xl font-bold text-white">Writing Revolution Tips</h3>
+            <div className="grid gap-6 sm:grid-cols-2">
+              <div className="rounded-3xl border border-emerald-300/30 bg-emerald-400/10 p-6">
+                <div className="flex items-center gap-2 text-sm font-semibold text-emerald-200">
+                  <span>✅</span>
+                  <span>Strengths</span>
+                </div>
+                <ul className="mt-4 space-y-2 text-xs text-white/70">
+                  {feedback.strengths.map((item: string) => (
+                    <li key={item} className="flex gap-2">
+                      <span className="text-emerald-300">-</span>
+                      <span>{item}</span>
+                    </li>
+                  ))}
+                </ul>
               </div>
-              <div className="space-y-4">
-                <div>
-                  <div className="text-yellow-300 font-semibold text-sm mb-2">✍️ Sentence Expansion</div>
-                  <p className="text-white/90 text-sm leading-relaxed">
-                    Use <span className="font-semibold text-yellow-200">because, but, so</span> to expand simple sentences and show deeper thinking.
-                  </p>
+              <div className="rounded-3xl border border-yellow-300/30 bg-yellow-400/10 p-6">
+                <div className="flex items-center gap-2 text-sm font-semibold text-yellow-200">
+                  <span>🎯</span>
+                  <span>Growth areas</span>
                 </div>
-                <div>
-                  <div className="text-yellow-300 font-semibold text-sm mb-2">🔗 Sentence Combining</div>
-                  <p className="text-white/90 text-sm leading-relaxed">
-                    Join related short sentences with conjunctions (FANBOYS: for, and, nor, but, or, yet, so).
-                  </p>
-                </div>
-                <div>
-                  <div className="text-yellow-300 font-semibold text-sm mb-2">📝 SPO Structure</div>
-                  <p className="text-white/90 text-sm leading-relaxed">
-                    Single Paragraph Outline: <span className="font-semibold text-yellow-200">Topic sentence</span> + <span className="font-semibold text-yellow-200">Supporting details</span> + <span className="font-semibold text-yellow-200">Conclusion</span>
-                  </p>
-                </div>
-                <div>
-                  <div className="text-yellow-300 font-semibold text-sm mb-2">🎯 Appositives</div>
-                  <p className="text-white/90 text-sm leading-relaxed">
-                    Add description without new sentences. Example: &quot;The lighthouse, <span className="font-semibold text-yellow-200">an ancient stone tower</span>, stood on the cliff.&quot;
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            {/* Actions */}
-            <div className="space-y-3">
-              <Link
-                href="/practice"
-                className="block w-full px-6 py-4 bg-gradient-to-r from-green-500 to-teal-500 text-white font-semibold rounded-xl hover:scale-105 transition-all duration-200 text-center"
-              >
-                Practice Again 🔄
-              </Link>
-              <Link
-                href="/dashboard"
-                className="block w-full px-6 py-4 bg-white/10 backdrop-blur-sm text-white font-semibold rounded-xl hover:bg-white/20 transition-all border border-white/20 text-center"
-              >
-                Back to Dashboard
-              </Link>
-            </div>
-
-            {/* Character Progress Hint */}
-            <div className="bg-gradient-to-br from-purple-600 to-pink-600 rounded-2xl p-6">
-              <div className="text-center">
-                <div className="text-4xl mb-3">🌿</div>
-                <div className="text-white font-semibold mb-2">Character Update</div>
-                <p className="text-white/90 text-sm mb-3">
-                  You&apos;re getting closer to Young Oak!
-                </p>
-                <div className="bg-white/20 rounded-full h-2 overflow-hidden">
-                  <div className="bg-white h-full rounded-full" style={{ width: '73%' }}></div>
-                </div>
-                <p className="text-white/70 text-xs mt-2">73% to next level</p>
+                <ul className="mt-4 space-y-2 text-xs text-white/70">
+                  {feedback.improvements.map((item: string) => (
+                    <li key={item} className="flex gap-2">
+                      <span className="text-yellow-200">-</span>
+                      <span>{item}</span>
+                    </li>
+                  ))}
+                </ul>
               </div>
             </div>
           </div>
-        </div>
+
+          <aside className="space-y-6">
+            <div className="rounded-3xl border border-white/10 bg-[#141e27] p-7 text-sm">
+              <h3 className="text-sm font-semibold text-white">Next steps</h3>
+              <p className="mt-1 text-xs text-white/50">Keep momentum with targeted drills.</p>
+              <ul className="mt-4 space-y-3 text-xs text-white/70">
+                {feedback.nextSteps.map((step: string) => (
+                  <li key={step} className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3">{step}</li>
+                ))}
+              </ul>
+            </div>
+            <div className="rounded-3xl border border-white/10 bg-[#141e27] p-7 text-xs text-white/60">
+              <div className="text-white/50">Draft recap</div>
+              <div className="mt-3 space-y-2">
+                <div className="flex justify-between"><span>Trait lane</span><span className="text-white/80 capitalize">{trait || 'all'}</span></div>
+                <div className="flex justify-between"><span>Prompt type</span><span className="text-white/80 capitalize">{promptType}</span></div>
+                <div className="flex justify-between"><span>Words typed</span><span className="text-white/80">{wordCount}</span></div>
+              </div>
+            </div>
+          </aside>
+        </section>
+
+        <section className="rounded-3xl border border-white/10 bg-[#141e27] p-8">
+          <div className="text-xs uppercase tracking-[0.3em] text-white/50">Your draft</div>
+          <p className="mt-4 whitespace-pre-wrap text-sm leading-relaxed text-white/70">
+            {decodeURIComponent(content) || 'Draft unavailable.'}
+          </p>
+        </section>
       </main>
     </div>
   );
@@ -372,8 +238,8 @@ function PracticeResultsContent() {
 export default function PracticeResultsPage() {
   return (
     <Suspense fallback={
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-green-900 to-slate-900 flex items-center justify-center">
-        <div className="text-white text-xl">Loading results...</div>
+      <div className="min-h-screen bg-[#0c141d] flex items-center justify-center text-white/60 text-sm">
+        Loading practice results...
       </div>
     }>
       <PracticeResultsContent />

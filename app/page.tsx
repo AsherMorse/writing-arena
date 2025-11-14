@@ -2,147 +2,185 @@
 
 import Link from 'next/link';
 
+const modes = [
+  {
+    label: 'Quick Match',
+    headline: 'Four-minute duels',
+    copy: 'Drop into a lightning round with auto-filled parties and instant scoring.',
+    cta: 'Preview queue',
+    href: '/quick-match',
+    emoji: '⚡',
+  },
+  {
+    label: 'Ranked Circuit',
+    headline: 'Climb the ladder',
+    copy: 'Face skill-matched rivals across draft, feedback, and revision phases.',
+    cta: 'View dossier',
+    href: '/ranked',
+    emoji: '🏆',
+  },
+  {
+    label: 'Solo Training',
+    headline: 'Calibrate traits',
+    copy: 'Run focused drills with Claude guidance and track your deltas over time.',
+    cta: 'Open practice',
+    href: '/practice',
+    emoji: '🛠️',
+  },
+];
+
+const stagePipeline = [
+  { id: '01', title: 'Join arena', detail: 'Create a free profile and choose your writer avatar.' },
+  { id: '02', title: 'Select mode', detail: 'Queue for quick, ranked, or solo to sharpen specific traits.' },
+  { id: '03', title: 'Compete & learn', detail: 'Use AI feedback, phase scores, and streaks to level up.' },
+];
+
 export default function LandingPage() {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900">
-      {/* Header */}
-      <header className="container mx-auto px-6 py-8">
-        <nav className="flex items-center justify-between">
-          <div className="flex items-center space-x-2">
-            <div className="w-10 h-10 bg-gradient-to-br from-yellow-400 to-orange-500 rounded-lg flex items-center justify-center">
-              <span className="text-2xl">✍️</span>
-            </div>
-            <span className="text-2xl font-bold text-white">Writing Arena</span>
-          </div>
-          <Link 
-            href="/auth"
-            className="px-6 py-2 bg-white/10 backdrop-blur-sm text-white rounded-lg hover:bg-white/20 transition-all duration-200 border border-white/20"
-          >
-            Sign In
+    <div className="min-h-screen bg-[#0c141d] text-white">
+      <header className="border-b border-white/10">
+        <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-6">
+          <Link href="/" className="flex items-center gap-3">
+            <div className="flex h-11 w-11 items-center justify-center rounded-lg bg-emerald-400/20 text-xl text-emerald-200">✶</div>
+            <span className="text-xl font-semibold tracking-wide">Writing Arena</span>
           </Link>
-        </nav>
+          <div className="flex items-center gap-3 text-sm">
+            <Link href="/auth" className="rounded-full border border-white/15 bg-white/5 px-5 py-2 font-semibold text-white transition hover:bg-white/10">
+              Sign in
+            </Link>
+          </div>
+        </div>
       </header>
 
-      {/* Hero Section */}
-      <main className="container mx-auto px-6 py-20">
-        <div className="max-w-4xl mx-auto text-center">
-          {/* Badge */}
-          <div className="inline-flex items-center px-4 py-2 bg-white/10 backdrop-blur-sm rounded-full mb-8 border border-white/20">
-            <span className="text-sm text-white/90">🎮 Competitive Writing Platform for Grades 1-12</span>
-          </div>
-
-          {/* Main Heading */}
-          <h1 className="text-6xl md:text-7xl font-bold text-white mb-6 leading-tight">
-            Level Up Your
-            <br />
-            <span className="bg-gradient-to-r from-yellow-400 via-orange-400 to-pink-500 text-transparent bg-clip-text">
-              Writing Skills
-            </span>
-          </h1>
-
-          {/* Subheading */}
-          <p className="text-xl md:text-2xl text-white/80 mb-12 max-w-2xl mx-auto leading-relaxed">
-            Compete in 4-minute writing matches. Battle with AI-powered feedback. 
-            Rise through the ranks from Seedling to Legendary Writer.
-          </p>
-
-          {/* CTA Buttons */}
-          <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
-            <Link 
-              href="/auth"
-              className="px-8 py-4 bg-gradient-to-r from-orange-500 to-pink-500 text-white text-lg font-semibold rounded-xl hover:shadow-2xl hover:scale-105 transition-all duration-200 w-full sm:w-auto text-center"
-            >
-              Start Writing Now
-            </Link>
-            <button className="px-8 py-4 bg-white/10 backdrop-blur-sm text-white text-lg font-semibold rounded-xl hover:bg-white/20 transition-all duration-200 border border-white/20 w-full sm:w-auto">
-              Watch Demo
-            </button>
-          </div>
-
-          {/* Stats */}
-          <div className="grid grid-cols-3 gap-8 mt-20 max-w-2xl mx-auto">
-            <div className="text-center">
-              <div className="text-4xl font-bold text-white mb-2">4min</div>
-              <div className="text-white/60 text-sm">Match Duration</div>
+      <main className="mx-auto max-w-6xl px-6 py-16 space-y-16">
+        <section className="grid gap-12 lg:grid-cols-[1.1fr,0.9fr] lg:items-center">
+          <div className="space-y-8">
+            <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-1 text-xs uppercase tracking-[0.3em] text-emerald-200/80">
+              Competitive writing platform
             </div>
-            <div className="text-center">
-              <div className="text-4xl font-bold text-white mb-2">5</div>
-              <div className="text-white/60 text-sm">Writing Traits</div>
+            <div>
+              <h1 className="text-4xl font-semibold md:text-5xl">Build writing instincts under pressure</h1>
+              <p className="mt-4 text-base text-white/60 md:text-lg">
+                Writing Arena blends live competition with Claude-powered coaching. Sprint through four-minute drafts, provide peer feedback, and evolve your writer tree from Seedling to Redwood.
+              </p>
             </div>
-            <div className="text-center">
-              <div className="text-4xl font-bold text-white mb-2">6</div>
-              <div className="text-white/60 text-sm">Mastery Levels</div>
+            <div className="flex flex-col gap-3 sm:flex-row">
+              <Link href="/auth" className="rounded-full bg-emerald-400 px-8 py-3 text-center text-sm font-semibold text-[#0c141d] transition hover:bg-emerald-300">
+                Enter the arena
+              </Link>
+              <Link href="/ranked" className="rounded-full border border-white/15 bg-white/5 px-8 py-3 text-center text-sm font-semibold text-white transition hover:bg-white/10">
+                Explore ranked circuit
+              </Link>
+            </div>
+            <div className="flex flex-wrap items-center gap-4 rounded-2xl border border-white/10 bg-white/5 px-5 py-4 text-xs text-white/60">
+              <div>Avg match: <span className="text-white font-semibold">4 minutes</span></div>
+              <div className="h-1 w-1 rounded-full bg-white/30" />
+              <div>Traits tracked: <span className="text-white font-semibold">5</span></div>
+              <div className="h-1 w-1 rounded-full bg-white/30" />
+              <div>Mastery tiers: <span className="text-white font-semibold">6</span></div>
             </div>
           </div>
-        </div>
 
-        {/* Features Grid */}
-        <div className="grid md:grid-cols-3 gap-8 mt-32 max-w-6xl mx-auto">
-          {/* Feature 1 */}
-          <div className="bg-white/5 backdrop-blur-sm rounded-2xl p-8 border border-white/10 hover:bg-white/10 transition-all duration-200">
-            <div className="w-12 h-12 bg-gradient-to-br from-blue-400 to-purple-500 rounded-lg flex items-center justify-center mb-4">
-              <span className="text-2xl">⚔️</span>
+          <div className="space-y-6">
+            <div className="rounded-3xl border border-white/10 bg-[#141e27] p-6">
+              <div className="text-xs uppercase tracking-[0.3em] text-white/50">How it works</div>
+              <ol className="mt-6 space-y-4">
+                {stagePipeline.map(stage => (
+                  <li key={stage.id} className="flex items-start gap-4">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-full border border-emerald-300 text-sm font-semibold text-emerald-200">
+                      {stage.id}
+                    </div>
+                    <div>
+                      <div className="text-sm font-semibold text-white">{stage.title}</div>
+                      <p className="text-xs text-white/60">{stage.detail}</p>
+                    </div>
+                  </li>
+                ))}
+              </ol>
             </div>
-            <h3 className="text-xl font-semibold text-white mb-3">Competitive Matches</h3>
-            <p className="text-white/70 leading-relaxed">
-              Join writing battles against real players and AI opponents. Earn points, climb ranks, and become a writing champion.
-            </p>
-          </div>
 
-          {/* Feature 2 */}
-          <div className="bg-white/5 backdrop-blur-sm rounded-2xl p-8 border border-white/10 hover:bg-white/10 transition-all duration-200">
-            <div className="w-12 h-12 bg-gradient-to-br from-green-400 to-emerald-500 rounded-lg flex items-center justify-center mb-4">
-              <span className="text-2xl">🤖</span>
+            <div className="rounded-3xl border border-white/10 bg-[#141e27] p-6 space-y-4">
+              <div className="text-xs uppercase tracking-[0.3em] text-white/50">Rank path</div>
+              <div className="flex flex-wrap gap-3 text-sm">
+                {['🌱 Seedling', '🌿 Sapling', '🌳 Young Oak', '🌲 Mature Oak', '🌴 Ancient Oak', '🏔️ Legendary Redwood'].map(stage => (
+                  <div key={stage} className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-white/60">
+                    {stage}
+                  </div>
+                ))}
+              </div>
             </div>
-            <h3 className="text-xl font-semibold text-white mb-3">AI-Powered Feedback</h3>
-            <p className="text-white/70 leading-relaxed">
-              Get instant, personalized feedback from Claude AI. Learn what works and level up your writing traits.
-            </p>
           </div>
+        </section>
 
-          {/* Feature 3 */}
-          <div className="bg-white/5 backdrop-blur-sm rounded-2xl p-8 border border-white/10 hover:bg-white/10 transition-all duration-200">
-            <div className="w-12 h-12 bg-gradient-to-br from-yellow-400 to-orange-500 rounded-lg flex items-center justify-center mb-4">
-              <span className="text-2xl">🌳</span>
+        <section className="space-y-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <div className="text-xs uppercase tracking-[0.3em] text-white/50">Choose your lane</div>
+              <h2 className="mt-2 text-2xl font-semibold">Game modes built for different reps</h2>
             </div>
-            <h3 className="text-xl font-semibold text-white mb-3">Character Evolution</h3>
-            <p className="text-white/70 leading-relaxed">
-              Watch your writer character grow from a tiny Seedling to a Legendary Redwood as you master writing skills.
-            </p>
           </div>
-        </div>
-
-        {/* Character Showcase */}
-        <div className="mt-32 text-center">
-          <h2 className="text-4xl font-bold text-white mb-4">Your Writing Journey</h2>
-          <p className="text-xl text-white/70 mb-12">Progress through 6 mastery levels</p>
-          
-          <div className="flex flex-wrap justify-center gap-6 max-w-5xl mx-auto">
-            {[
-              { emoji: '🌱', name: 'Seedling', level: 'Emerging' },
-              { emoji: '🌿', name: 'Sapling', level: 'Developing' },
-              { emoji: '🌳', name: 'Young Oak', level: 'Approaching' },
-              { emoji: '🌲', name: 'Mature Oak', level: 'Proficient' },
-              { emoji: '🌴', name: 'Ancient Oak', level: 'Advanced' },
-              { emoji: '🏔️', name: 'Legendary Redwood', level: 'Expert' },
-            ].map((stage, index) => (
-              <div 
-                key={index}
-                className="bg-white/5 backdrop-blur-sm rounded-xl p-6 border border-white/10 hover:bg-white/10 transition-all duration-200 w-40"
-              >
-                <div className="text-4xl mb-2">{stage.emoji}</div>
-                <div className="text-white font-semibold mb-1">{stage.name}</div>
-                <div className="text-white/60 text-sm">{stage.level}</div>
+          <div className="grid gap-6 lg:grid-cols-3">
+            {modes.map(mode => (
+              <div key={mode.label} className="group flex flex-col gap-6 rounded-3xl border border-white/10 bg-[#141e27] p-6 transition hover:border-emerald-200/40">
+                <div className="flex items-center justify-between text-xs uppercase tracking-[0.3em] text-white/50">
+                  {mode.label}
+                  <span className="text-lg">{mode.emoji}</span>
+                </div>
+                <div>
+                  <div className="text-xl font-semibold">{mode.headline}</div>
+                  <p className="mt-2 text-sm text-white/60">{mode.copy}</p>
+                </div>
+                <Link href={mode.href} className="inline-flex w-max items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-xs font-semibold text-white transition group-hover:border-emerald-200/40 group-hover:text-emerald-200">
+                  {mode.cta}
+                  <span>→</span>
+                </Link>
               </div>
             ))}
           </div>
-        </div>
+        </section>
+
+        <section className="grid gap-8 rounded-3xl border border-white/10 bg-[#141e27] p-10 lg:grid-cols-[0.8fr,1.2fr]">
+          <div className="space-y-4">
+            <div className="text-xs uppercase tracking-[0.3em] text-white/50">Why writers stay</div>
+            <p className="text-sm text-white/60">
+              Every match ends with AI breakdowns, trait deltas, and next-step suggestions. Streaks unlock avatar evolutions, seasonal titles, and access to ranked scrims. The faster you loop, the sharper you get.
+            </p>
+            <Link href="/auth" className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-4 py-2 text-xs font-semibold text-white transition hover:bg-white/10">
+              Try the demo account
+              <span>↗</span>
+            </Link>
+          </div>
+          <div className="grid gap-4 md:grid-cols-2">
+            {[{
+              title: 'Claude-powered critiques',
+              detail: 'Phase-by-phase commentary that highlights strengths, gaps, and suggested drills.'
+            }, {
+              title: 'Live trait analytics',
+              detail: 'Momentum graphs track how your content, organization, grammar, vocabulary, and mechanics evolve.'
+            }, {
+              title: 'Seasonal ladders',
+              detail: 'Ranked splits reset each term with new rewards and calibrated LP adjustments.'
+            }, {
+              title: 'Party backfill AI',
+              detail: 'Queue at any hour—synthetic teammates keep matches flowing while humans join.'
+            }].map(card => (
+              <div key={card.title} className="rounded-2xl border border-white/10 bg-white/5 px-5 py-4">
+                <div className="text-sm font-semibold text-white">{card.title}</div>
+                <p className="mt-2 text-xs text-white/60">{card.detail}</p>
+              </div>
+            ))}
+          </div>
+        </section>
       </main>
 
-      {/* Footer */}
-      <footer className="container mx-auto px-6 py-12 mt-32 border-t border-white/10">
-        <div className="text-center text-white/60">
-          <p>© 2025 Writing Arena. Transform writing through competition and AI feedback.</p>
+      <footer className="border-t border-white/10">
+        <div className="mx-auto flex max-w-6xl flex-col gap-4 px-6 py-10 text-sm text-white/50 md:flex-row md:items-center md:justify-between">
+          <span>© 2025 Writing Arena. Match, iterate, and grow.</span>
+          <div className="flex items-center gap-4">
+            <Link href="/ranked" className="hover:text-white">Ranked</Link>
+            <Link href="/quick-match" className="hover:text-white">Quick Match</Link>
+            <Link href="/practice" className="hover:text-white">Practice</Link>
+          </div>
         </div>
       </footer>
     </div>

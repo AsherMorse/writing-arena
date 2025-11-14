@@ -9,23 +9,21 @@ function MatchmakingContent() {
   const searchParams = useSearchParams();
   const trait = searchParams.get('trait');
 
-  const [players, setPlayers] = useState<Array<{name: string, avatar: string, isAI: boolean}>>([
-    { name: 'You', avatar: '🌿', isAI: false }
+  const [players, setPlayers] = useState<Array<{ name: string; avatar: string; isAI: boolean }>>([
+    { name: 'You', avatar: '🌿', isAI: false },
   ]);
   const [searchingDots, setSearchingDots] = useState('');
   const [countdown, setCountdown] = useState<number | null>(null);
 
-  // Animate dots
   useEffect(() => {
     const interval = setInterval(() => {
-      setSearchingDots(prev => prev.length >= 3 ? '' : prev + '.');
+      setSearchingDots(prev => (prev.length >= 3 ? '' : prev + '.'));
     }, 500);
     return () => clearInterval(interval);
   }, []);
 
-  // Simulate matchmaking
   useEffect(() => {
-    const aiPlayers = [
+    const aiRoster = [
       { name: 'WriteBot', avatar: '🤖', isAI: true },
       { name: 'PenPal AI', avatar: '✍️', isAI: true },
       { name: 'WordSmith', avatar: '📝', isAI: true },
@@ -33,148 +31,145 @@ function MatchmakingContent() {
       { name: 'InkWizard', avatar: '🧙', isAI: true },
     ];
 
-    // Add players one by one
     const timeouts: NodeJS.Timeout[] = [];
-    
-    [1000, 1800, 2400, 3200].forEach((delay, index) => {
-      const timeout = setTimeout(() => {
-        setPlayers(prev => [...prev, aiPlayers[index]]);
-      }, delay);
-      timeouts.push(timeout);
+    [900, 1600, 2200, 2800].forEach((delay, index) => {
+      timeouts.push(
+        setTimeout(() => {
+          setPlayers(prev => [...prev, aiRoster[index]]);
+        }, delay)
+      );
     });
 
-    // Start countdown
-    const countdownTimeout = setTimeout(() => {
-      setCountdown(3);
-    }, 4000);
-    timeouts.push(countdownTimeout);
+    timeouts.push(
+      setTimeout(() => {
+        setCountdown(3);
+      }, 3200)
+    );
 
     return () => timeouts.forEach(clearTimeout);
   }, []);
 
-  // Countdown timer
   useEffect(() => {
     if (countdown === null) return;
-    
     if (countdown > 0) {
       const timer = setTimeout(() => setCountdown(countdown - 1), 1000);
       return () => clearTimeout(timer);
-    } else {
-      // Navigate to match
-      const randomPromptType = ['narrative', 'descriptive', 'informational', 'argumentative'][Math.floor(Math.random() * 4)];
-      router.push(`/quick-match/session?trait=${trait}&promptType=${randomPromptType}`);
     }
+    const randomPromptType = ['narrative', 'descriptive', 'informational', 'argumentative'][Math.floor(Math.random() * 4)];
+    router.push(`/quick-match/session?trait=${trait}&promptType=${randomPromptType}`);
   }, [countdown, router, trait]);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-orange-900 to-slate-900">
-      {/* Header */}
-      <header className="border-b border-white/10 bg-black/20 backdrop-blur-sm">
-        <div className="container mx-auto px-6 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-2">
-              <div className="w-8 h-8 bg-gradient-to-br from-yellow-400 to-orange-500 rounded-lg flex items-center justify-center">
-                <span className="text-xl">✍️</span>
-              </div>
-              <span className="text-xl font-bold text-white">Writing Arena</span>
-            </div>
-            <Link 
-              href="/quick-match"
-              className="text-white/60 hover:text-white transition-colors text-sm"
-            >
-              ← Cancel
-            </Link>
+    <div className="min-h-screen bg-[#0c141d] text-white">
+      <header className="border-b border-white/10">
+        <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-6">
+          <div className="flex items-center gap-3">
+            <div className="flex h-11 w-11 items-center justify-center rounded-lg bg-emerald-400/20 text-xl text-emerald-200">✶</div>
+            <span className="text-xl font-semibold tracking-wide">Quick match queue</span>
           </div>
+          <Link
+            href="/quick-match"
+            className="rounded-full border border-white/15 bg-white/5 px-4 py-2 text-sm font-semibold text-white transition hover:bg-white/10"
+          >
+            Cancel search
+          </Link>
         </div>
       </header>
 
-      {/* Main Content */}
-      <main className="min-h-[calc(100vh-80px)] flex flex-col items-center justify-center px-4 py-8">
-        <div className="w-full max-w-4xl">
-          {countdown === null ? (
-            <>
-              {/* Searching Animation */}
-              <div className="text-center mb-12">
-                <div className="inline-block animate-spin text-6xl mb-6">⚡</div>
-                <h1 className="text-4xl font-bold text-white mb-3">
-                  Finding Players{searchingDots}
-                </h1>
-                <p className="text-white/60 text-lg">Building your writing party</p>
+      <main className="mx-auto max-w-6xl px-6 py-14">
+        {countdown === null ? (
+          <div className="grid gap-8 lg:grid-cols-[1.25fr,0.75fr]">
+            <section className="rounded-3xl border border-white/10 bg-[#141e27] p-8">
+              <header className="flex items-center justify-between">
+                <div>
+                  <div className="text-xs uppercase tracking-[0.3em] text-white/50">Assembling party</div>
+                  <h1 className="mt-2 text-3xl font-semibold">Finding teammates{searchingDots}</h1>
+                  <p className="mt-2 text-sm text-white/60">AI backfill keeps the lobby full so your warmup launches fast.</p>
+                </div>
+                <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-white/50">Trait focus: {trait || 'all'}</span>
+              </header>
+              <div className="mt-6 rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-xs text-white/60">
+                Queue stats: average wait <span className="font-semibold text-white">8 seconds</span>, party size target <span className="font-semibold text-white">6</span>.
               </div>
-
-              {/* Player Grid */}
-              <div className="grid md:grid-cols-3 gap-4 mb-8">
+              <div className="mt-6 grid gap-3 text-sm">
                 {[...Array(6)].map((_, index) => {
                   const player = players[index];
+                  const filled = Boolean(player);
                   return (
                     <div
                       key={index}
-                      className={`relative bg-white/5 backdrop-blur-sm rounded-xl p-6 border-2 transition-all duration-500 ${
-                        player 
-                          ? 'border-orange-400/50 scale-100 opacity-100' 
-                          : 'border-white/10 scale-95 opacity-50'
+                      className={`flex items-center justify-between rounded-2xl border px-4 py-3 transition ${
+                        filled ? 'border-emerald-300/40 bg-emerald-400/10' : 'border-white/10 bg-white/5'
                       }`}
                     >
-                      {player ? (
-                        <div className="text-center animate-in fade-in zoom-in duration-300">
-                          <div className="text-5xl mb-3">{player.avatar}</div>
-                          <div className="text-white font-semibold mb-1">{player.name}</div>
-                          {player.isAI ? (
-                            <div className="text-orange-400 text-xs">AI Player</div>
-                          ) : (
-                            <div className="text-green-400 text-xs">You</div>
-                          )}
+                      <div className="flex items-center gap-3">
+                        <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#0c141d] text-lg">
+                          {player ? player.avatar : '…'}
+                        </span>
+                        <div>
+                          <div className={`text-sm font-semibold ${player ? 'text-white' : 'text-white/40'}`}>
+                            {player ? player.name : `Searching slot ${index + 1}`}
+                          </div>
+                          <div className="text-[11px] uppercase text-white/40">
+                            {player ? (player.isAI ? 'AI support' : 'You') : 'Pending'}
+                          </div>
                         </div>
-                      ) : (
-                        <div className="text-center">
-                          <div className="text-4xl text-white/20 mb-3">👤</div>
-                          <div className="text-white/40 text-sm">Searching...</div>
-                        </div>
-                      )}
-                      
-                      {/* Player position indicator */}
-                      <div className="absolute top-2 right-2 w-6 h-6 bg-white/10 rounded-full flex items-center justify-center text-white/60 text-xs">
-                        {index + 1}
                       </div>
+                      <span className="text-[10px] text-white/40">#{index + 1}</span>
                     </div>
                   );
                 })}
               </div>
+              <div className="mt-6 h-1.5 rounded-full bg-white/10">
+                <div
+                  className="h-full rounded-full bg-emerald-400"
+                  style={{ width: `${(players.length / 6) * 100}%` }}
+                />
+              </div>
+            </section>
 
-              {/* Party Size */}
-              <div className="text-center">
-                <div className="inline-flex items-center space-x-2 px-4 py-2 bg-white/10 rounded-full border border-white/20">
-                  <span className="text-white/60">Party Size:</span>
-                  <span className="text-white font-bold">{players.length}/6</span>
+            <aside className="space-y-6">
+              <div className="rounded-3xl border border-white/10 bg-[#141e27] p-7 text-sm text-white/60">
+                <div className="text-xs uppercase tracking-[0.3em] text-white/50">Queue feed</div>
+                <div className="mt-5 space-y-3">
+                  <div className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3">0s · You joined the lobby.</div>
+                  <div className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3">2s · Searching for human teammates.</div>
+                  <div className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3">AI reserves engage automatically if seats remain open.</div>
                 </div>
               </div>
-            </>
-          ) : (
-            <>
-              {/* Match Found - Countdown */}
-              <div className="text-center">
-                <div className="inline-flex items-center justify-center w-32 h-32 bg-gradient-to-br from-green-400 to-emerald-500 rounded-full mb-6 shadow-2xl shadow-green-500/50">
-                  <span className="text-6xl font-bold text-white">{countdown}</span>
-                </div>
-                <h1 className="text-5xl font-bold text-white mb-4">Match Found!</h1>
-                <p className="text-white/70 text-xl mb-8">Starting battle in {countdown}...</p>
 
-                {/* Final Party */}
-                <div className="bg-white/5 backdrop-blur-sm rounded-2xl p-6 border border-green-400/30 max-w-2xl mx-auto">
-                  <h3 className="text-white font-bold mb-4">Your Writing Party</h3>
-                  <div className="grid grid-cols-6 gap-3">
-                    {players.map((player, index) => (
-                      <div key={index} className="text-center">
-                        <div className="text-3xl mb-1">{player.avatar}</div>
-                        <div className="text-white text-xs font-semibold truncate">{player.name}</div>
-                      </div>
-                    ))}
+              <div className="rounded-3xl border border-white/10 bg-[#141e27] p-7 text-xs text-white/60">
+                <div className="text-xs uppercase tracking-[0.3em] text-white/50">Next steps</div>
+                <p className="mt-3">- Keep your editor ready. Match begins as soon as countdown hits zero.</p>
+                <p className="mt-3">- Trait focus influences prompt hints but not opponent difficulty.</p>
+                <p className="mt-3">- Cancel now if you need a break—leaving mid-match forfeits points.</p>
+              </div>
+            </aside>
+          </div>
+        ) : (
+          <section className="mx-auto flex max-w-3xl flex-col items-center gap-8 rounded-3xl border border-white/10 bg-[#141e27] px-10 py-14 text-center">
+            <div className="flex h-28 w-28 items-center justify-center rounded-full border-4 border-emerald-300 bg-emerald-400/20 text-5xl font-semibold text-emerald-200">
+              {countdown}
+            </div>
+            <div>
+              <div className="text-xs uppercase tracking-[0.3em] text-white/50">Match secured</div>
+              <h2 className="mt-3 text-4xl font-semibold">Lobby locked</h2>
+              <p className="mt-2 text-sm text-white/60">Prompt is loading. Draft phase launches immediately.</p>
+            </div>
+            <div className="w-full rounded-2xl border border-white/10 bg-white/5 p-6">
+              <div className="text-xs uppercase tracking-[0.3em] text-white/50">Party roster</div>
+              <div className="mt-4 grid grid-cols-3 gap-4 text-sm">
+                {players.map((player, index) => (
+                  <div key={index} className="rounded-2xl border border-white/10 bg-[#0c141d] px-4 py-4">
+                    <div className="text-2xl">{player.avatar}</div>
+                    <div className="mt-2 font-semibold text-white">{player.name}</div>
+                    <div className="text-[11px] text-white/50">{player.isAI ? 'AI support' : 'You'}</div>
                   </div>
-                </div>
+                ))}
               </div>
-            </>
-          )}
-        </div>
+            </div>
+          </section>
+        )}
       </main>
     </div>
   );
@@ -183,8 +178,8 @@ function MatchmakingContent() {
 export default function MatchmakingPage() {
   return (
     <Suspense fallback={
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-orange-900 to-slate-900 flex items-center justify-center">
-        <div className="text-white text-xl">Loading...</div>
+      <div className="min-h-screen bg-[#0c141d] flex items-center justify-center text-white/60 text-sm">
+        Loading quick match queue...
       </div>
     }>
       <MatchmakingContent />

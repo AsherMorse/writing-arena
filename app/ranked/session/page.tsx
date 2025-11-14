@@ -73,6 +73,14 @@ function RankedSessionContent() {
 
   const [aiWordCounts, setAiWordCounts] = useState<number[]>([0, 0, 0, 0]);
 
+  const membersWithCounts = [
+    { ...partyMembers[0], wordCount },
+    ...aiWordCounts.map((count, index) => ({
+      ...partyMembers[index + 1],
+      wordCount: count,
+    })),
+  ];
+
   // Initialize match state on mount
   useEffect(() => {
     if (!user || !userProfile || matchInitialized) return;
@@ -382,174 +390,165 @@ function RankedSessionContent() {
       />
     );
   }
-
+ 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
-      {/* Writing Tips Modal */}
-      <WritingTipsModal 
+    <div className="min-h-screen bg-[#0c141d] text-white">
+      <WritingTipsModal
         isOpen={showTipsModal}
         onClose={() => setShowTipsModal(false)}
         promptType={prompt.type}
       />
 
-      {/* Floating Tips Button */}
-      <button
-        onClick={() => setShowTipsModal(true)}
-        className="fixed bottom-8 right-8 z-40 group"
-        title="Writing Tips"
-      >
-        <div className="relative">
-          <div className="w-16 h-16 bg-gradient-to-br from-emerald-500 to-teal-500 rounded-full flex items-center justify-center shadow-2xl hover:scale-110 transition-all duration-200 border-2 border-white/20">
-            <span className="text-2xl">💡</span>
+      <header className="sticky top-0 z-20 border-b border-white/10 bg-[#0c141d]/90 backdrop-blur">
+        <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
+          <div className="flex items-center gap-4">
+            <div className="flex h-14 w-14 items-center justify-center rounded-2xl border border-white/10 bg-[#141e27] text-xl font-semibold">
+              {formatTime(timeLeft)}
+            </div>
+            <div>
+              <div className="text-xs uppercase tracking-[0.3em] text-white/50">Phase 1 · Draft</div>
+              <div className={`text-sm font-semibold ${timeLeft > 0 ? getTimeColor() : 'text-red-400'}`}>
+                {timeLeft > 0 ? 'Time remaining' : 'Time expired'}
+              </div>
+            </div>
+            <div className="rounded-full border border-emerald-300/30 bg-emerald-400/10 px-3 py-1 text-xs font-semibold text-emerald-200">
+              Ranked circuit
+            </div>
           </div>
-          <div className="absolute -top-1 -right-1 w-5 h-5 bg-yellow-400 rounded-full flex items-center justify-center animate-pulse">
-            <span className="text-xs">✨</span>
-          </div>
-          <div className="absolute -bottom-12 right-0 bg-black/80 text-white text-xs px-3 py-1 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
-            Writing Tips
+          <div className="flex items-center gap-3 text-sm">
+            <div className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-white/60">
+              <span className="font-semibold text-white">{wordCount}</span> words
+            </div>
+            <button
+              onClick={() => setShowTipsModal(true)}
+              className="rounded-full border border-white/15 bg-white/5 px-4 py-2 font-semibold text-white transition hover:bg-white/10"
+            >
+              Writing tips
+            </button>
+            <button
+              onClick={handleSubmit}
+              className="rounded-full bg-emerald-400 px-6 py-2 font-semibold text-[#0c141d] transition hover:bg-emerald-300"
+            >
+              Submit draft
+            </button>
           </div>
         </div>
-      </button>
-
-      <header className="border-b border-white/10 bg-black/30 backdrop-blur-sm sticky top-0 z-10">
-        <div className="container mx-auto px-6 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-4">
-              <div className={`text-3xl font-bold ${getTimeColor()}`}>
-                {formatTime(timeLeft)}
-              </div>
-              <div className="text-white/60">
-                {timeLeft > 0 ? 'Time remaining' : 'Time\'s up!'}
-              </div>
-              <div className="px-3 py-1 bg-purple-500/20 border border-purple-400/30 rounded-full">
-                <span className="text-purple-400 text-sm font-semibold">🏆 RANKED</span>
-              </div>
-            </div>
-
-            <div className="flex items-center space-x-6">
-              <div className="text-white/60">
-                <span className="font-semibold text-white">{wordCount}</span> words
-              </div>
-              <button
-                onClick={handleSubmit}
-                className="px-6 py-2 bg-purple-500 hover:bg-purple-600 text-white font-semibold rounded-lg transition-all"
-              >
-                Finish Early
-              </button>
-            </div>
-          </div>
-
-          <div className="mt-4 w-full bg-white/10 rounded-full h-2 overflow-hidden">
-            <div 
-              className={`h-full transition-all duration-1000 ${
-                timeLeft > 120 ? 'bg-green-400' : timeLeft > 60 ? 'bg-yellow-400' : 'bg-red-400'
-              }`}
-              style={{ width: `${(timeLeft / 240) * 100}%` }}
-            />
-          </div>
+        <div className="mx-auto h-1.5 max-w-6xl rounded-full bg-white/10">
+          <div
+            className={`h-full rounded-full ${timeLeft > 120 ? 'bg-emerald-400' : timeLeft > 60 ? 'bg-yellow-400' : 'bg-red-400'}`}
+            style={{ width: `${(timeLeft / 240) * 100}%` }}
+          />
         </div>
       </header>
 
-      <main className="container mx-auto px-6 py-6">
-        <div className="grid lg:grid-cols-4 gap-4 max-w-7xl mx-auto">
-          <div className="lg:col-span-1">
-            <div className="bg-white/5 backdrop-blur-sm rounded-xl p-4 border border-white/10 sticky top-24">
-              <h3 className="text-white font-bold mb-4 flex items-center space-x-2">
-                <span>🏆</span>
-                <span>Ranked Party</span>
-              </h3>
-              
-              <div className="space-y-3">
-                <div className="bg-gradient-to-r from-purple-500/20 to-blue-500/20 border border-purple-400/30 rounded-lg p-3">
-                  <div className="flex items-center justify-between mb-2">
-                    <div className="flex items-center space-x-2">
-                      <span className="text-2xl">🌿</span>
-                      <div>
-                        <div className="text-white font-semibold text-sm">You</div>
-                        <div className="text-purple-400 text-xs">Silver III</div>
-                      </div>
-                    </div>
-                    <div className="text-right">
-                      <div className="text-white font-bold">{wordCount}</div>
-                      <div className="text-white/60 text-xs">words</div>
-                    </div>
+      <main className="mx-auto max-w-6xl px-6 py-10">
+        <div className="grid gap-6 lg:grid-cols-[0.9fr,1.4fr,0.7fr]">
+          <div className="space-y-6">
+            <div className="rounded-3xl border border-white/10 bg-[#141e27] p-6">
+              <div className="flex items-start gap-4">
+                <div className="text-5xl">{prompt.image}</div>
+                <div className="flex-1 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <h2 className="text-xl font-semibold">{prompt.title}</h2>
+                    <span className="text-[11px] uppercase text-white/40">{prompt.type}</span>
                   </div>
-                  <div className="w-full bg-white/10 rounded-full h-1.5 overflow-hidden">
-                    <div 
-                      className="h-full bg-gradient-to-r from-purple-400 to-blue-500 transition-all duration-500"
-                      style={{ width: `${Math.min((wordCount / 200) * 100, 100)}%` }}
-                    />
-                  </div>
+                  <p className="text-sm text-white/70 leading-relaxed">{prompt.description}</p>
                 </div>
+              </div>
+            </div>
 
-                {aiWordCounts.map((count, index) => {
-                  const member = partyMembers[index + 1];
-                  return (
-                    <div key={index} className="bg-white/5 border border-white/10 rounded-lg p-3">
-                      <div className="flex items-center justify-between mb-2">
-                        <div className="flex items-center space-x-2">
-                          <span className="text-xl">{member.avatar}</span>
-                          <div>
-                            <div className="text-white text-sm">{member.name}</div>
-                            <div className="text-white/60 text-xs">{member.rank}</div>
-                          </div>
-                        </div>
-                        <div className="text-right">
-                          <div className="text-white font-bold text-sm">{count}</div>
-                          <div className="text-white/60 text-xs">words</div>
-                        </div>
-                      </div>
-                      <div className="w-full bg-white/10 rounded-full h-1.5 overflow-hidden">
-                        <div 
-                          className="h-full bg-purple-400 transition-all duration-500"
-                          style={{ width: `${Math.min((count / 200) * 100, 100)}%` }}
-                        />
-                      </div>
-                    </div>
-                  );
-                })}
+            <div className="rounded-3xl border border-white/10 bg-[#141e27] p-6 space-y-4 text-sm text-white/60">
+              <div className="text-xs uppercase tracking-[0.3em] text-white/50">Phase reminders</div>
+              <div className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-xs text-white/60">
+                Hit 180 words to secure a consistency bonus and keep sentences active.
+              </div>
+              <div className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-xs text-white/60">
+                Focus on organization: outline intro, evidence, and closing before expanding.
+              </div>
+              <div className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-xs text-white/60">
+                Leave two minutes for a final pass; mechanical errors reduce LP gains.
               </div>
             </div>
           </div>
 
-          <div className="lg:col-span-3">
-            <div className="bg-white/5 backdrop-blur-sm rounded-xl p-6 border border-white/10 mb-4">
-              <div className="flex items-start space-x-4">
-                <div className="text-5xl">{prompt.image}</div>
-                <div className="flex-1">
-                  <div className="flex items-center justify-between mb-2">
-                    <h2 className="text-2xl font-bold text-white">{prompt.title}</h2>
-                    <span className="text-white/40 text-xs uppercase tracking-wide">{prompt.type}</span>
-                  </div>
-                  <p className="text-white/80 leading-relaxed">{prompt.description}</p>
-                </div>
+          <div className="space-y-6">
+            <div className="rounded-3xl border border-white/10 bg-[#141e27] p-6 text-xs text-white/50">
+              <div className="flex items-center justify-between">
+                <span>Prompt context</span>
+                <span>{trait ? trait : 'All traits'}</span>
               </div>
             </div>
-
-            <div className="bg-white rounded-xl p-6 shadow-2xl min-h-[500px] relative">
+            <div className="relative rounded-3xl border border-white/10 bg-white p-6 text-[#1b1f24] shadow-xl">
+              <div className="flex items-center justify-between text-xs text-[#1b1f24]/60">
+                <span>Draft in progress</span>
+                <span>{wordCount} words</span>
+              </div>
               <textarea
                 value={writingContent}
                 onChange={(e) => setWritingContent(e.target.value)}
                 onPaste={handlePaste}
                 onCut={handleCut}
                 placeholder="Start writing your response..."
-                className="w-full h-full min-h-[450px] text-lg leading-relaxed resize-none focus:outline-none text-gray-800 font-serif"
+                className="mt-4 h-[420px] w-full resize-none bg-transparent text-base leading-relaxed focus:outline-none"
                 autoFocus
               />
-              
               {showPasteWarning && (
-                <div className="absolute top-4 right-4 bg-red-500 text-white px-4 py-3 rounded-lg shadow-lg animate-in fade-in slide-in-from-top duration-200 border-2 border-red-600">
-                  <div className="flex items-center space-x-2">
-                    <span className="text-xl">🚫</span>
-                    <div>
-                      <div className="font-bold">Paste Not Allowed</div>
-                      <div className="text-sm text-white/90">Type your own work</div>
-                    </div>
-                  </div>
+                <div className="absolute inset-x-0 top-6 mx-auto w-max rounded-full border border-red-500/40 bg-red-500/15 px-4 py-2 text-xs font-semibold text-red-200 shadow-lg">
+                  Paste disabled during ranked drafts
                 </div>
               )}
             </div>
           </div>
+
+          <aside className="space-y-6">
+            <div className="rounded-3xl border border-white/10 bg-[#141e27] p-6">
+              <div className="text-xs uppercase tracking-[0.3em] text-white/50">Squad tracker</div>
+              <div className="mt-5 space-y-4">
+                {membersWithCounts.map((member, index) => (
+                  <div key={member.name} className="space-y-2 rounded-2xl border border-white/10 bg-white/5 px-4 py-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#0c141d] text-xl">
+                          {member.avatar}
+                        </div>
+                        <div>
+                          <div className={`text-sm font-semibold ${member.isYou ? 'text-white' : 'text-white/80'}`}>{member.name}</div>
+                          <div className="text-[11px] text-white/50">{member.rank}</div>
+                        </div>
+                      </div>
+                      <div className="text-right text-sm font-semibold text-white">
+                        {member.wordCount}
+                        <span className="ml-1 text-xs text-white/50">w</span>
+                      </div>
+                    </div>
+                    <div className="h-1.5 rounded-full bg-white/10">
+                      <div
+                        className={`${member.isYou ? 'bg-emerald-300' : 'bg-white/40'} h-full rounded-full`}
+                        style={{ width: `${Math.min((member.wordCount / 220) * 100, 100)}%` }}
+                      />
+                    </div>
+                    <div className="text-[10px] uppercase text-white/40">Slot {index + 1}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="rounded-3xl border border-white/10 bg-[#141e27] p-6 space-y-3 text-sm text-white/60">
+              <div className="flex items-center justify-between">
+                <span>Submissions received</span>
+                <span className="font-semibold text-white">{playersReady} / {partyMembers.length}</span>
+              </div>
+              <div className="h-1.5 rounded-full bg-white/10">
+                <div
+                  className="h-full rounded-full bg-emerald-400"
+                  style={{ width: `${(playersReady / partyMembers.length) * 100}%` }}
+                />
+              </div>
+              <div className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-xs text-white/50">
+                Stay until all teammates submit. Leaving early forfeits LP and streak bonuses.
+              </div>
+            </div>
+          </aside>
         </div>
       </main>
     </div>
@@ -559,8 +558,8 @@ function RankedSessionContent() {
 export default function RankedSessionPage() {
   return (
     <Suspense fallback={
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center">
-        <div className="text-white text-xl">Loading session...</div>
+      <div className="min-h-screen bg-[#0c141d] flex items-center justify-center text-white/60 text-sm">
+        Loading ranked session...
       </div>
     }>
       <RankedSessionContent />

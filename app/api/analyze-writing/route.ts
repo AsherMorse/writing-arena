@@ -1,8 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 export async function POST(request: NextRequest) {
+  let payload: { content?: string; trait?: string | null; promptType?: string | null };
   try {
-    const { content, trait, promptType } = await request.json();
+    payload = await request.json();
+  } catch (error) {
+    console.error('Error parsing analyze-writing body:', error);
+    return NextResponse.json(generateMockFeedback(null, 0));
+  }
+
+  const content = payload.content || '';
+  const trait = payload.trait || null;
+  const promptType = payload.promptType || null;
+
+  try {
 
     // Check if API key is configured
     const apiKey = process.env.ANTHROPIC_API_KEY;
@@ -42,8 +53,6 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(feedback);
   } catch (error) {
     console.error('Error analyzing writing:', error);
-    // Fallback to mock feedback on error
-    const { content, trait } = await request.json();
     return NextResponse.json(generateMockFeedback(trait, content.split(/\s+/).length));
   }
 }
