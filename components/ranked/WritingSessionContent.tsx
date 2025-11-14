@@ -476,7 +476,7 @@ export default function WritingSessionContent() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm">
           <div className="rounded-3xl border border-emerald-400/30 bg-[#141e27] p-12 shadow-2xl text-center max-w-md mx-4">
             <div className="text-6xl mb-6 animate-bounce">🏆</div>
-            <h2 className="text-3xl font-bold text-white mb-3">Time's Up!</h2>
+            <h2 className="text-3xl font-bold text-white mb-3">Time&apos;s Up!</h2>
             <p className="text-white/70 text-lg mb-6">
               Reviewing and ranking all submissions...
             </p>

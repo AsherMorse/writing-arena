@@ -292,7 +292,7 @@ export default function MatchmakingContent() {
       
       setCountdown(3);
     }
-  }, [players.length, countdown, userId, user]);
+  }, [players, countdown, userId, user]);
 
   // Countdown and start match
   useEffect(() => {

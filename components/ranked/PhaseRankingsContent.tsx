@@ -354,7 +354,7 @@ export default function PhaseRankingsContent() {
           yourRank <= 3 ? 'bg-gradient-to-r from-green-600 to-emerald-600' :
           'bg-gradient-to-r from-blue-600 to-purple-600'
         }`}>
-          <div className="text-white/90 text-xs mb-1">You're currently in</div>
+          <div className="text-white/90 text-xs mb-1">You&apos;re currently in</div>
           <div className="text-3xl font-bold text-white mb-1">
             {getMedalEmoji(yourRank)} Place
           </div>
