@@ -39,6 +39,7 @@ export default function MatchmakingContent() {
   const [countdown, setCountdown] = useState<number | null>(null);
   const aiBackfillIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const hasJoinedQueueRef = useRef(false);
+  const partyLockedRef = useRef(false); // Lock party once full
   const [currentTipIndex, setCurrentTipIndex] = useState(0);
   const [selectedAIStudents, setSelectedAIStudents] = useState<any[]>([]);
   const finalPlayersRef = useRef<any[]>([]);
@@ -132,6 +133,12 @@ export default function MatchmakingContent() {
         unsubscribeQueue = listenToQueue(trait, userId, (queuePlayers: QueueEntry[]) => {
           console.log('📥 MATCHMAKING - Queue update, players found:', queuePlayers.length);
           
+          // If party is locked (countdown started), ignore queue updates
+          if (partyLockedRef.current) {
+            console.log('🔒 MATCHMAKING - Party locked, ignoring queue update');
+            return;
+          }
+          
           // Convert queue entries to player format
           const realPlayers = queuePlayers.map(p => ({
             userId: p.userId,
@@ -141,7 +148,21 @@ export default function MatchmakingContent() {
             isAI: false,
           }));
 
-          setPlayers(realPlayers);
+          // Merge real players with existing AI players (don't replace!)
+          setPlayers(prev => {
+            // If party is full, don't update
+            if (prev.length >= 5) {
+              console.log('🛑 MATCHMAKING - Party full, ignoring queue update');
+              return prev;
+            }
+            
+            // Keep existing AI players
+            const existingAI = prev.filter(p => p.isAI);
+            // Combine real players + AI players (up to 5 total)
+            const merged = [...realPlayers, ...existingAI].slice(0, 5);
+            console.log('🔄 MATCHMAKING - Merged party:', merged.length, 'players (', realPlayers.length, 'real +', existingAI.length, 'AI)');
+            return merged;
+          });
         });
 
         // Fetch AI students from database and add them gradually
@@ -161,8 +182,9 @@ export default function MatchmakingContent() {
           let aiIndex = 0;
           aiBackfillIntervalRef.current = setInterval(() => {
             setPlayers(prev => {
+              // Check if party is already full or we've added all AI students
               if (prev.length >= 5 || aiIndex >= aiStudents.length) {
-                console.log('🎮 MATCHMAKING - Party full, stopping AI backfill');
+                console.log('🎮 MATCHMAKING - Party full (', prev.length, '/5), stopping AI backfill');
                 if (aiBackfillIntervalRef.current) {
                   clearInterval(aiBackfillIntervalRef.current);
                 }
@@ -170,7 +192,7 @@ export default function MatchmakingContent() {
               }
 
               const aiStudent = aiStudents[aiIndex];
-              console.log('🤖 MATCHMAKING - Adding AI student:', aiStudent.displayName);
+              console.log('🤖 MATCHMAKING - Adding AI student:', aiStudent.displayName, '(party size:', prev.length + 1, ')');
               
               const aiPlayer = {
                 userId: aiStudent.id,
@@ -214,9 +236,12 @@ export default function MatchmakingContent() {
 
   // Start match when 5 players
   useEffect(() => {
-    if (players.length >= 5 && countdown === null) {
+    if (players.length >= 5 && countdown === null && !partyLockedRef.current) {
       console.log('🎉 MATCHMAKING - Party full! Starting countdown...');
       console.log('💾 MATCHMAKING - Saving final party:', players.map(p => p.name).join(', '));
+      
+      // Lock the party - no more updates allowed
+      partyLockedRef.current = true;
       
       // Save current players array to ref BEFORE leaving queue
       finalPlayersRef.current = [...players];
@@ -226,7 +251,7 @@ export default function MatchmakingContent() {
         clearInterval(aiBackfillIntervalRef.current);
       }
       
-      // Leave queue (this will trigger a queue update that might reset players state)
+      // Leave queue (this will trigger a queue update but it will be ignored)
       if (user) {
         leaveQueue(userId).catch(err => console.error('Error leaving queue:', err));
       }
