@@ -208,6 +208,18 @@ export default function PeerFeedbackContent() {
     return Object.values(responses).every(response => response.trim().length > 10);
   };
 
+  const handlePaste = (e: React.ClipboardEvent) => {
+    e.preventDefault();
+  };
+
+  const handleCopy = (e: React.ClipboardEvent) => {
+    e.preventDefault();
+  };
+
+  const handleCut = (e: React.ClipboardEvent) => {
+    e.preventDefault();
+  };
+
   const handleSubmit = async () => {
     console.log('📤 PEER FEEDBACK - Submitting for batch ranking...');
     setIsEvaluating(true);
@@ -450,8 +462,15 @@ export default function PeerFeedbackContent() {
                   <textarea
                     value={responses.clarity}
                     onChange={(e) => setResponses({...responses, clarity: e.target.value})}
+                    onPaste={handlePaste}
+                    onCopy={handleCopy}
+                    onCut={handleCut}
                     placeholder="Explain what the writing is about and whether it's easy to understand..."
                     className="w-full p-3 rounded-lg bg-white/10 text-white placeholder-white/40 border border-white/20 focus:border-blue-400 focus:outline-none min-h-[80px]"
+                    data-gramm="false"
+                    data-gramm_editor="false"
+                    data-enable-grammarly="false"
+                    spellCheck="true"
                   />
                   <div className="text-white/40 text-xs mt-1">
                     {responses.clarity.length}/50 characters minimum

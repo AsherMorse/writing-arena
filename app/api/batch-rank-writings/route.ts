@@ -82,11 +82,17 @@ Evaluate each submission on the following criteria (The Writing Revolution princ
 - Vocabulary: Word choice, precision
 - Mechanics: Spelling, punctuation, capitalization
 
-For each writer, provide:
+For each writer, provide HIGHLY SPECIFIC, POINTED feedback:
 1. Overall score (0-100)
-2. 3 specific strengths
-3. 3 specific areas for improvement
-4. Brief feedback for each trait
+2. 3 SPECIFIC strengths - QUOTE exact phrases/sentences that work well
+3. 3 SPECIFIC improvements - QUOTE what needs fixing and give CONCRETE revisions
+4. Brief but SPECIFIC feedback for each trait - reference actual text
+
+CRITICAL: All feedback must quote the student's actual writing. 
+- Good: "The phrase 'lighthouse stood sentinel' uses strong imagery"
+- Bad: "Good use of descriptive language"
+- Good: "Change 'got the better' to 'consumed her thoughts' for stronger vocabulary"
+- Bad: "Could improve word choice"
 
 Then rank them from best to worst based on overall quality.
 

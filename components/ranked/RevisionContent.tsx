@@ -358,6 +358,18 @@ export default function RevisionContent() {
     }
   };
 
+  const handlePaste = (e: React.ClipboardEvent) => {
+    e.preventDefault();
+  };
+
+  const handleCopy = (e: React.ClipboardEvent) => {
+    e.preventDefault();
+  };
+
+  const handleCut = (e: React.ClipboardEvent) => {
+    e.preventDefault();
+  };
+
   const hasRevised = revisedContent !== originalContent;
 
   return (
@@ -585,8 +597,15 @@ export default function RevisionContent() {
               <textarea
                 value={revisedContent}
                 onChange={(e) => setRevisedContent(e.target.value)}
+                onPaste={handlePaste}
+                onCopy={handleCopy}
+                onCut={handleCut}
                 placeholder="Revise your writing based on the feedback..."
                 className="w-full h-full min-h-[450px] text-lg leading-relaxed resize-none focus:outline-none text-gray-800 font-serif"
+                data-gramm="false"
+                data-gramm_editor="false"
+                data-enable-grammarly="false"
+                spellCheck="true"
               />
             </div>
           </div>

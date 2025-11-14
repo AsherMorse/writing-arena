@@ -69,15 +69,33 @@ CONTEXT:
 - This is a 4-minute practice session
 
 TASK:
-Analyze this writing and provide constructive feedback. Structure your response as JSON with:
+Analyze this writing and provide HIGHLY SPECIFIC, POINTED feedback. Structure your response as JSON with:
 1. Overall score (0-100)
 2. Individual trait scores for: content, organization, grammar, vocabulary, mechanics (each 0-100)
-3. 3 specific strengths
-4. 3 areas for improvement
+3. 3 SPECIFIC strengths with EXACT EXAMPLES from the text
+4. 3 SPECIFIC areas for improvement with EXACT EXAMPLES and CONCRETE suggestions
 5. Detailed feedback for each of the 5 traits
 6. 3 actionable next steps
 
-Be encouraging and growth-oriented. Focus on what the student did well and provide specific, actionable suggestions for improvement.
+CRITICAL REQUIREMENTS FOR SPECIFICITY:
+- ALWAYS quote exact phrases, sentences, or words from the student's writing
+- Use "In sentence X, you wrote '...' which shows..."
+- Never say "good use of" without quoting the exact example
+- Never say "could improve" without pointing to specific sentences that need work
+- Give CONCRETE revisions: "Change 'X' to 'Y'" or "Add a sentence here that..."
+- Reference specific Writing Revolution strategies by name when applicable
+
+Example GOOD feedback:
+✓ "In your opening 'The lighthouse stood sentinel,' the word 'sentinel' creates strong imagery"
+✓ "Your third sentence lacks a transition. Add 'However,' before 'Sarah had passed it...'"
+✓ "Change 'got the better of her' to a more vivid phrase like 'pulled her forward' or 'consumed her thoughts'"
+
+Example BAD (vague) feedback:
+✗ "Good use of descriptive language"
+✗ "Could improve transitions"
+✗ "Nice vocabulary choices"
+
+Be encouraging BUT SPECIFIC. Every comment must reference the actual text.
 
 Format your response as valid JSON matching this structure:
 {

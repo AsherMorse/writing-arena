@@ -80,7 +80,7 @@ export default function ResultsContent() {
   
   const [isAnalyzing, setIsAnalyzing] = useState(true);
   const [results, setResults] = useState<any>(null);
-  const [expandedPhase, setExpandedPhase] = useState<string | null>(null);
+  const [expandedPhase, setExpandedPhase] = useState<string | null>('writing'); // Default to showing Phase 1 feedback
   const [realFeedback, setRealFeedback] = useState<any>({
     writing: null,
     feedback: null,

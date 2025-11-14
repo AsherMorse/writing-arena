@@ -68,20 +68,29 @@ STUDENT'S PEER FEEDBACK:
 5. Engagement feedback: ${responses.engagement}
 
 TASK:
-Evaluate the quality of this peer feedback based on:
-- Specificity (are comments specific or vague?)
-- Constructiveness (are suggestions helpful and actionable?)
-- Completeness (did they address all aspects?)
-- Accuracy (do their observations match the writing?)
-- Writing Revolution principles (do they reference specific strategies?)
+Evaluate this peer feedback with EMPHASIS ON SPECIFICITY. 
 
-Provide a score 0-100 for the feedback quality.
+HIGH SCORES (80-100) require:
+- Quotes SPECIFIC phrases/sentences from the peer's writing
+- Points to EXACT locations that need improvement
+- Gives CONCRETE revision suggestions ("Change X to Y", "Add a sentence after...")
+- References specific Writing Revolution strategies by name
+- Provides ACTIONABLE advice, not general observations
+
+LOW SCORES (below 70) for:
+- Vague comments like "good writing" or "nice job"
+- No quotes or examples from the text
+- General suggestions like "add more details" without saying where
+- No reference to specific sentences or words
+- Generic advice that could apply to any writing
+
+Provide a score 0-100 and SPECIFIC feedback about their feedback.
 
 Return JSON:
 {
   "score": 85,
-  "strengths": ["what they did well in giving feedback"],
-  "improvements": ["how they could improve their feedback skills"]
+  "strengths": ["SPECIFIC examples of what they did well - quote their feedback"],
+  "improvements": ["SPECIFIC ways to improve - show them what specific feedback looks like"]
 }`;
 }
 

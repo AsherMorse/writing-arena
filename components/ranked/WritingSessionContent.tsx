@@ -486,10 +486,15 @@ export default function WritingSessionContent() {
                 value={writingContent}
                 onChange={(e) => setWritingContent(e.target.value)}
                 onPaste={handlePaste}
+                onCopy={handleCut}
                 onCut={handleCut}
                 placeholder="Start writing your response..."
                 className="mt-4 h-[420px] w-full resize-none bg-transparent text-base leading-relaxed focus:outline-none"
                 autoFocus
+                data-gramm="false"
+                data-gramm_editor="false"
+                data-enable-grammarly="false"
+                spellCheck="true"
               />
               {showPasteWarning && (
                 <div className="absolute inset-x-0 top-6 mx-auto w-max rounded-full border border-red-500/40 bg-red-500/15 px-4 py-2 text-xs font-semibold text-red-200 shadow-lg">
