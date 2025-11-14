@@ -84,35 +84,33 @@ export default function RevisionContent() {
     fetchPeerFeedback();
   }, [user, matchId]);
 
-  // Fetch real AI feedback on component mount
+  // Load AI feedback from Phase 1 rankings (already generated)
   useEffect(() => {
-    const fetchAIFeedback = async () => {
-      console.log('🤖 REVISION - Fetching AI feedback...');
-      try {
-        const response = await fetch('/api/generate-feedback', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            content: originalContent,
-            promptType: promptType || 'narrative',
-          }),
-        });
+    console.log('🤖 REVISION - Loading feedback from Phase 1...');
+    try {
+      const storedFeedback = sessionStorage.getItem(`${matchId}-phase1-feedback`);
+      
+      if (storedFeedback) {
+        const feedback = JSON.parse(storedFeedback);
+        console.log('✅ REVISION - Found Phase 1 feedback:', feedback);
         
-        const data = await response.json();
-        console.log('✅ REVISION - AI feedback received');
-        setAiFeedback(data);
-      } catch (error) {
-        console.error('❌ REVISION - Failed to fetch AI feedback, using mock');
+        // Format feedback for display
+        setAiFeedback({
+          strengths: feedback.strengths || [],
+          improvements: feedback.improvements || [],
+          score: feedback.score || 75,
+        });
+      } else {
+        console.warn('⚠️ REVISION - No Phase 1 feedback found, using mock');
         setAiFeedback(MOCK_AI_FEEDBACK);
-      } finally {
-        setLoadingFeedback(false);
       }
-    };
-
-    fetchAIFeedback();
-  }, [originalContent, promptType]);
+    } catch (error) {
+      console.error('❌ REVISION - Failed to load feedback, using mock');
+      setAiFeedback(MOCK_AI_FEEDBACK);
+    } finally {
+      setLoadingFeedback(false);
+    }
+  }, [matchId]);
 
   // Generate AI revisions when phase starts
   useEffect(() => {
@@ -135,23 +133,24 @@ export default function RevisionContent() {
         const aiPlayers = players.filter((p: any) => p.isAI);
         const phase1Writings = matchState.aiWritings?.phase1 || [];
         
+        // Get Phase 1 rankings to use the feedback that was already generated
+        const phase1Rankings = matchState.rankings?.phase1 || [];
+        
         // Generate revisions for each AI player
         const aiRevisionPromises = aiPlayers.map(async (aiPlayer: any) => {
           // Get AI's original writing
           const aiWriting = phase1Writings.find((w: any) => w.playerId === aiPlayer.userId);
           if (!aiWriting) return null;
           
-          // Generate AI feedback for this AI (they got feedback too)
-          const feedbackResponse = await fetch('/api/generate-feedback', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              content: aiWriting.content,
-              promptType: promptType || 'narrative',
-            }),
-          });
+          // Get AI's feedback from Phase 1 rankings (already generated)
+          const aiRanking = phase1Rankings.find((r: any) => r.playerId === aiPlayer.userId);
+          const feedbackData = {
+            strengths: aiRanking?.strengths || ['Good attempt at addressing the prompt'],
+            improvements: aiRanking?.improvements || ['Could add more detail'],
+            score: aiRanking?.score || 70,
+          };
           
-          const feedbackData = await feedbackResponse.json();
+          console.log(`🤖 Using Phase 1 feedback for ${aiPlayer.displayName}:`, feedbackData);
           
           // Generate revision
           const revisionResponse = await fetch('/api/generate-ai-revision', {

@@ -25,12 +25,44 @@ export default function WritingSessionContent() {
     return selectedPrompt;
   });
 
-  const [timeLeft, setTimeLeft] = useState(120); // 2 minutes for Phase 1
-  const [writingContent, setWritingContent] = useState('');
+  // Restore session state from sessionStorage if exists
+  const [sessionStartTime] = useState(() => {
+    const stored = sessionStorage.getItem(`${matchId}-startTime`);
+    if (stored) {
+      return parseInt(stored);
+    }
+    const now = Date.now();
+    sessionStorage.setItem(`${matchId}-startTime`, now.toString());
+    return now;
+  });
+
+  const [timeLeft, setTimeLeft] = useState(() => {
+    // Calculate remaining time based on session start time
+    const elapsed = Math.floor((Date.now() - sessionStartTime) / 1000);
+    const remaining = Math.max(0, 120 - elapsed);
+    console.log('⏱️ SESSION - Time calculation:', { elapsed, remaining });
+    return remaining;
+  });
+
+  const [writingContent, setWritingContent] = useState(() => {
+    const stored = sessionStorage.getItem(`${matchId}-content`);
+    return stored || '';
+  });
+
   const [wordCount, setWordCount] = useState(0);
   const [showPasteWarning, setShowPasteWarning] = useState(false);
   const [showTipsModal, setShowTipsModal] = useState(false);
-  const [hasSubmitted, setHasSubmitted] = useState(false);
+  const [showRestoredNotice, setShowRestoredNotice] = useState(() => {
+    // Show notice if content was restored
+    const stored = sessionStorage.getItem(`${matchId}-content`);
+    return stored && stored.length > 0;
+  });
+  
+  const [hasSubmitted, setHasSubmitted] = useState(() => {
+    const stored = sessionStorage.getItem(`${matchId}-submitted`);
+    return stored === 'true';
+  });
+  
   const [playersReady, setPlayersReady] = useState(0);
   const [matchInitialized, setMatchInitialized] = useState(false);
   const [aiWritingsGenerated, setAiWritingsGenerated] = useState(false);
@@ -80,13 +112,26 @@ export default function WritingSessionContent() {
     })),
   ];
 
-  // Initialize match state on mount
+  // Initialize match state on mount (or restore if exists)
   useEffect(() => {
     if (!user || !userProfile || matchInitialized) return;
     
     const initMatch = async () => {
-      console.log('🎮 SESSION - Initializing match state');
+      console.log('🎮 SESSION - Initializing/restoring match state');
       try {
+        // Check if match already exists in Firestore
+        const matchRef = doc(db, 'matchStates', matchId);
+        const matchSnap = await getDoc(matchRef);
+        
+        if (matchSnap.exists()) {
+          console.log('✅ SESSION - Match state found, restoring...');
+          setMatchInitialized(true);
+          setAiWritingsGenerated(true); // AI writings were already generated
+          return;
+        }
+        
+        // Create new match state
+        console.log('🆕 SESSION - Creating new match state');
         await createMatchState(
           matchId,
           partyMembers.map((p: any) => ({
@@ -112,15 +157,34 @@ export default function WritingSessionContent() {
     initMatch();
   }, [user, userProfile, matchId, matchInitialized, partyMembers]);
 
-  // Generate AI writings when match initializes
+  // Generate AI writings when match initializes (or restore if exists)
   useEffect(() => {
     if (!matchInitialized || aiWritingsGenerated || !user) return;
     
     const generateAIWritings = async () => {
-      console.log('🤖 SESSION - Generating AI writings...');
-      setAiWritingsGenerated(true);
+      console.log('🤖 SESSION - Checking for existing AI writings...');
       
       try {
+        // Check if AI writings already exist
+        const matchRef = doc(db, 'matchStates', matchId);
+        const matchDoc = await getDoc(matchRef);
+        
+        if (matchDoc.exists()) {
+          const matchState = matchDoc.data();
+          const existingWritings = matchState?.aiWritings?.phase1;
+          
+          if (existingWritings && existingWritings.length > 0) {
+            console.log('✅ SESSION - Found existing AI writings, restoring...');
+            setAiWordCounts(existingWritings.map((w: any) => w.wordCount));
+            setAiWritingsGenerated(true);
+            return;
+          }
+        }
+        
+        // Generate new AI writings
+        console.log('🤖 SESSION - Generating new AI writings...');
+        setAiWritingsGenerated(true);
+        
         // Get AI players (all except "You")
         const aiPlayers = partyMembers.filter((p: any) => !p.isYou);
         
@@ -154,7 +218,6 @@ export default function WritingSessionContent() {
         
         // Store AI writings in Firestore
         const { updateDoc } = await import('firebase/firestore');
-        const matchRef = doc(db, 'matchStates', matchId);
         await updateDoc(matchRef, {
           'aiWritings.phase1': aiWritings,
         });
@@ -166,7 +229,8 @@ export default function WritingSessionContent() {
       } catch (error) {
         console.error('❌ SESSION - Failed to generate AI writings:', error);
         // Continue with fallback word counts
-        setAiWordCounts([95, 103, 87, 112]);
+        setAiWordCounts([40, 55, 48, 62]);
+        setAiWritingsGenerated(true);
       }
     };
     
@@ -207,10 +271,20 @@ export default function WritingSessionContent() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [timeLeft, hasSubmitted]);
 
+  // Hide restored notice after 3 seconds
   useEffect(() => {
+    if (showRestoredNotice) {
+      const timer = setTimeout(() => setShowRestoredNotice(false), 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [showRestoredNotice]);
+
+  // Persist writing content to sessionStorage
+  useEffect(() => {
+    sessionStorage.setItem(`${matchId}-content`, writingContent);
     const words = writingContent.trim().split(/\s+/).filter(word => word.length > 0);
     setWordCount(words.length);
-  }, [writingContent]);
+  }, [writingContent, matchId]);
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -246,6 +320,7 @@ export default function WritingSessionContent() {
     
     console.log('📤 SESSION - Submitting for batch ranking...');
     setHasSubmitted(true);
+    sessionStorage.setItem(`${matchId}-submitted`, 'true');
     
     try {
       // Get AI writings from Firestore
@@ -487,6 +562,11 @@ export default function WritingSessionContent() {
               {showPasteWarning && (
                 <div className="absolute inset-x-0 top-6 mx-auto w-max rounded-full border border-red-500/40 bg-red-500/15 px-4 py-2 text-xs font-semibold text-red-200 shadow-lg">
                   Paste disabled during ranked drafts
+                </div>
+              )}
+              {showRestoredNotice && (
+                <div className="absolute inset-x-0 top-6 mx-auto w-max rounded-full border border-emerald-500/40 bg-emerald-500/15 px-4 py-2 text-xs font-semibold text-emerald-200 shadow-lg animate-in fade-in slide-in-from-top">
+                  ✓ Session restored - your progress was saved
                 </div>
               )}
             </div>
