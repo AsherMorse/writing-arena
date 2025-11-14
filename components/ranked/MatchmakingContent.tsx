@@ -41,6 +41,7 @@ export default function MatchmakingContent() {
   const hasJoinedQueueRef = useRef(false);
   const [currentTipIndex, setCurrentTipIndex] = useState(0);
   const [selectedAIStudents, setSelectedAIStudents] = useState<any[]>([]);
+  const finalPlayersRef = useRef<any[]>([]);
 
   // Writing Revolution concepts carousel
   const writingConcepts = [
@@ -215,13 +216,17 @@ export default function MatchmakingContent() {
   useEffect(() => {
     if (players.length >= 5 && countdown === null) {
       console.log('🎉 MATCHMAKING - Party full! Starting countdown...');
+      console.log('💾 MATCHMAKING - Saving final party:', players.map(p => p.name).join(', '));
+      
+      // Save current players array to ref BEFORE leaving queue
+      finalPlayersRef.current = [...players];
       
       // Stop AI backfill
       if (aiBackfillIntervalRef.current) {
         clearInterval(aiBackfillIntervalRef.current);
       }
       
-      // Leave queue
+      // Leave queue (this will trigger a queue update that might reset players state)
       if (user) {
         leaveQueue(userId).catch(err => console.error('Error leaving queue:', err));
       }
@@ -251,8 +256,10 @@ export default function MatchmakingContent() {
         console.log('💾 MATCHMAKING - Saved', selectedAIStudents.length, 'AI students for match');
       }
       
-      // Save all players for the match
-      sessionStorage.setItem(`${matchId}-players`, JSON.stringify(players));
+      // Save all players for the match - use ref to get the saved party (not current state which might be empty)
+      const playersToSave = finalPlayersRef.current.length > 0 ? finalPlayersRef.current : players;
+      sessionStorage.setItem(`${matchId}-players`, JSON.stringify(playersToSave));
+      console.log('💾 MATCHMAKING - Saved', playersToSave.length, 'players:', playersToSave.map(p => p.name).join(', '));
       
       router.push(`/ranked/session?trait=${trait}&promptId=${randomPrompt.id}&matchId=${matchId}`);
     }
