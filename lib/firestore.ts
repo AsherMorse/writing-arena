@@ -213,11 +213,13 @@ export async function getUserProfile(uid: string): Promise<UserProfile | null> {
 
 // Update user profile
 export async function updateUserProfile(uid: string, updates: Partial<UserProfile>) {
+  console.log('💾 FIRESTORE - Updating user profile:', uid, updates);
   const userRef = doc(db, 'users', uid);
   await updateDoc(userRef, {
     ...updates,
     updatedAt: serverTimestamp(),
   });
+  console.log('✅ FIRESTORE - Profile updated successfully');
 }
 
 // Save writing session

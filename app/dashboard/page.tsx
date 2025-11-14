@@ -4,11 +4,13 @@ import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
+import ProfileSettingsModal from '@/components/ProfileSettingsModal';
 
 export default function DashboardPage() {
-  const { user, userProfile, loading, signOut } = useAuth();
+  const { user, userProfile, loading } = useAuth();
   const router = useRouter();
   const [showMatchModal, setShowMatchModal] = useState(true);
+  const [showProfileModal, setShowProfileModal] = useState(false);
 
   useEffect(() => {
     if (!loading && !user) {
@@ -74,14 +76,15 @@ export default function DashboardPage() {
         <div className="max-w-md text-center space-y-4 text-sm text-white/60">
           <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full border border-white/10 text-xl text-emerald-300">🙈</div>
           <div className="text-lg font-semibold text-white">Profile unavailable</div>
-          <p>We couldn’t load your Writing Arena profile. Try signing out and back in, or contact support if it keeps happening.</p>
+          <p>We couldn&apos;t load your Writing Arena profile. Try signing out and back in, or contact support if it keeps happening.</p>
           <button
-            onClick={signOut}
+            onClick={() => setShowProfileModal(true)}
             className="inline-flex items-center justify-center rounded-full border border-white/10 bg-white/5 px-5 py-2 text-sm font-semibold text-white transition hover:bg-white/10"
           >
-            Sign out
+            Open Settings
           </button>
         </div>
+        <ProfileSettingsModal isOpen={showProfileModal} onClose={() => setShowProfileModal(false)} />
       </div>
     );
   }
@@ -152,8 +155,9 @@ export default function DashboardPage() {
                 <div className="text-white/50 text-xs">Level {userProfile.characterLevel} • Sapling</div>
               </div>
               <button
-                onClick={signOut}
-                className="flex h-10 w-10 items-center justify-center rounded-full bg-emerald-400/20 text-lg text-emerald-200 transition hover:bg-emerald-400/30"
+                onClick={() => setShowProfileModal(true)}
+                className="flex h-10 w-10 items-center justify-center rounded-full bg-emerald-400/20 text-lg text-emerald-200 transition hover:bg-emerald-400/30 hover:scale-110"
+                title="Profile Settings"
               >
                 {userProfile.avatar}
               </button>
@@ -336,6 +340,9 @@ export default function DashboardPage() {
           </aside>
         </section>
       </main>
+
+      {/* Profile Settings Modal */}
+      <ProfileSettingsModal isOpen={showProfileModal} onClose={() => setShowProfileModal(false)} />
     </div>
   );
 }
