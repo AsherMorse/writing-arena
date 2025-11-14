@@ -334,7 +334,7 @@ export default function PeerFeedbackContent() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
+    <div className="min-h-screen bg-[#0c141d] text-white">
       {/* Peer Feedback Tips Modal - using 'informational' type for evaluation guidance */}
       <WritingTipsModal 
         isOpen={showTipsModal}

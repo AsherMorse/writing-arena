@@ -393,7 +393,7 @@ export default function ResultsContent() {
 
   if (isAnalyzing) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center">
+      <div className="min-h-screen bg-[#0c141d] text-white flex items-center justify-center">
         <div className="text-center">
           <div className="inline-block animate-spin text-7xl mb-6">🏆</div>
           <h2 className="text-3xl font-bold text-white mb-3">Analyzing Complete Battle...</h2>
@@ -416,23 +416,21 @@ export default function ResultsContent() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
-      <header className="border-b border-white/10 bg-black/20 backdrop-blur-sm">
-        <div className="container mx-auto px-6 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-2">
-              <div className="w-8 h-8 bg-gradient-to-br from-yellow-400 to-orange-500 rounded-lg flex items-center justify-center">
-                <span className="text-xl">✍️</span>
-              </div>
-              <span className="text-xl font-bold text-white">Writing Arena</span>
+    <div className="min-h-screen bg-[#0c141d] text-white">
+      <header className="border-b border-white/10">
+        <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-6">
+          <Link href="/dashboard" className="flex items-center gap-3">
+            <div className="flex h-11 w-11 items-center justify-center rounded-lg bg-emerald-400/20 text-xl text-emerald-200">
+              ✶
             </div>
-            <Link 
-              href="/dashboard"
-              className="text-white/60 hover:text-white transition-colors"
-            >
-              Back to Dashboard
-            </Link>
-          </div>
+            <span className="text-xl font-semibold tracking-wide">Match Results</span>
+          </Link>
+          <Link 
+            href="/dashboard"
+            className="rounded-full border border-white/15 bg-white/5 px-4 py-2 text-sm font-semibold text-white transition hover:bg-white/10"
+          >
+            Back to Dashboard
+          </Link>
         </div>
       </header>
 
@@ -453,7 +451,7 @@ export default function ResultsContent() {
         </div>
 
         {/* Phase Breakdown - Clickable */}
-        <div className="bg-gradient-to-r from-purple-600 to-blue-600 rounded-2xl p-8 mb-8 shadow-2xl">
+        <div className="rounded-3xl border border-white/10 bg-[#141e27] p-8 mb-8">
           <h2 className="text-2xl font-bold text-white mb-2 text-center">Your Performance</h2>
           <p className="text-white/80 text-center mb-6 text-sm">Click on each phase to review detailed feedback</p>
           
@@ -609,7 +607,7 @@ export default function ResultsContent() {
         </div>
 
         {/* LP Change Banner */}
-        <div className={`rounded-2xl p-6 mb-8 text-center shadow-2xl ${
+        <div className={`rounded-3xl border border-white/10 p-8 mb-8 text-center ${
           results.lpChange > 0 
             ? 'bg-gradient-to-r from-green-600 to-emerald-600' 
             : 'bg-gradient-to-r from-red-600 to-orange-600'
@@ -624,7 +622,7 @@ export default function ResultsContent() {
         </div>
 
         {/* Rewards */}
-        <div className="bg-gradient-to-r from-indigo-600 to-purple-600 rounded-2xl p-8 mb-8 shadow-2xl">
+        <div className="rounded-3xl border border-white/10 bg-[#141e27] p-8 mb-8">
           <h2 className="text-2xl font-bold text-white mb-6 text-center">Match Rewards</h2>
           <div className="grid md:grid-cols-3 gap-6">
             <div className="text-center">
@@ -649,7 +647,7 @@ export default function ResultsContent() {
         </div>
 
         {/* Rankings with Phase Breakdown */}
-        <div className="bg-white/5 backdrop-blur-sm rounded-2xl p-8 border border-white/10 mb-8">
+        <div className="rounded-3xl border border-white/10 bg-[#141e27] p-8 mb-8">
           <h2 className="text-2xl font-bold text-white mb-6 flex items-center space-x-2">
             <span>🏆</span>
             <span>Final Rankings</span>

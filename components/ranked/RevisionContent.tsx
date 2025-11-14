@@ -361,7 +361,7 @@ export default function RevisionContent() {
   const hasRevised = revisedContent !== originalContent;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
+    <div className="min-h-screen bg-[#0c141d] text-white">
       {/* Revision Tips Modal */}
       <WritingTipsModal 
         isOpen={showTipsModal}

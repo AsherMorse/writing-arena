@@ -221,7 +221,7 @@ export default function PhaseRankingsContent() {
   };
   
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center py-6 px-4">
+    <div className="min-h-screen bg-[#0c141d] text-white flex items-center justify-center py-6 px-4">
       <div className="max-w-5xl w-full">
         {/* Header */}
         <div className="text-center mb-4">
