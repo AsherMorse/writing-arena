@@ -259,27 +259,25 @@ export default function MatchmakingContent() {
   }, [countdown, router, trait, userId, players, selectedAIStudents]);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
-      <header className="border-b border-white/10 bg-black/20 backdrop-blur-sm">
-        <div className="container mx-auto px-6 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-2">
-              <div className="w-8 h-8 bg-gradient-to-br from-yellow-400 to-orange-500 rounded-lg flex items-center justify-center">
-                <span className="text-xl">✍️</span>
-              </div>
-              <span className="text-xl font-bold text-white">Writing Arena</span>
+    <div className="min-h-screen bg-[#0c141d] text-white">
+      <header className="border-b border-white/10">
+        <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-6">
+          <Link href="/ranked" className="flex items-center gap-3">
+            <div className="flex h-11 w-11 items-center justify-center rounded-lg bg-emerald-400/20 text-xl text-emerald-200">
+              ✶
             </div>
-            <Link 
-              href="/ranked"
-              className="text-white/60 hover:text-white transition-colors text-sm"
-            >
-              ← Cancel
-            </Link>
-          </div>
+            <span className="text-xl font-semibold tracking-wide">Matchmaking</span>
+          </Link>
+          <Link 
+            href="/ranked"
+            className="rounded-full border border-white/15 bg-white/5 px-4 py-2 text-sm font-semibold text-white transition hover:bg-white/10"
+          >
+            ← Cancel
+          </Link>
         </div>
       </header>
 
-      <main className="min-h-[calc(100vh-80px)] flex flex-col items-center justify-center px-4 py-8">
+      <main className="mx-auto max-w-6xl px-6 py-14 flex flex-col items-center justify-center min-h-[calc(100vh-120px)]">
         <div className="w-full max-w-4xl">
           {countdown === null ? (
             <>
@@ -293,7 +291,7 @@ export default function MatchmakingContent() {
 
               {/* Writing Revolution Concepts Carousel */}
               <div className="mb-8 max-w-3xl mx-auto">
-                <div className="bg-gradient-to-br from-emerald-500/20 to-teal-500/20 backdrop-blur-sm rounded-2xl p-6 border-2 border-emerald-400/30 relative overflow-hidden">
+                <div className="rounded-3xl border border-emerald-400/30 bg-emerald-500/10 p-8 relative overflow-hidden">
                   <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent animate-pulse"></div>
                   
                   <div className="relative z-10">
@@ -340,18 +338,18 @@ export default function MatchmakingContent() {
                 </div>
               </div>
 
-              <div className="grid md:grid-cols-3 gap-4 mb-8">
+              <div className="grid grid-cols-5 gap-4 mb-8">
                 {[...Array(5)].map((_, index) => {
                   const player = players[index];
                   return (
                     <div
                       key={index}
-                      className={`relative bg-white/5 backdrop-blur-sm rounded-xl p-6 border-2 transition-all duration-500 ${
+                      className={`relative rounded-3xl border p-6 transition-all duration-500 ${
                         player 
                           ? player.isAI
-                            ? 'border-blue-400/30 scale-100 opacity-100'
-                            : 'border-purple-400/50 scale-100 opacity-100'
-                          : 'border-white/10 scale-95 opacity-50'
+                            ? 'border-emerald-400/30 bg-emerald-500/10 scale-100 opacity-100'
+                            : 'border-purple-400/50 bg-purple-500/10 scale-100 opacity-100'
+                          : 'border-white/10 bg-[#141e27] scale-95 opacity-50'
                       }`}
                     >
                       {player ? (
@@ -379,22 +377,22 @@ export default function MatchmakingContent() {
               </div>
 
               <div className="text-center">
-                <div className="inline-flex items-center space-x-2 px-4 py-2 bg-white/10 rounded-full border border-white/20">
-                  <span className="text-white/60">Party Size:</span>
-                  <span className="text-white font-bold">{players.length}/5</span>
+                <div className="inline-flex items-center gap-3 rounded-full border border-white/10 bg-white/5 px-6 py-3">
+                  <span className="text-white/60 text-sm">Party Size:</span>
+                  <span className="text-white font-bold text-lg">{players.length}/5</span>
                 </div>
               </div>
             </>
           ) : (
             <>
               <div className="text-center">
-                <div className="inline-flex items-center justify-center w-32 h-32 bg-gradient-to-br from-purple-400 to-blue-500 rounded-full mb-6 shadow-2xl shadow-purple-500/50">
-                  <span className="text-6xl font-bold text-white">{countdown}</span>
+                <div className="inline-flex items-center justify-center w-32 h-32 rounded-full mb-6 border-4 border-emerald-400/30 bg-emerald-500/20">
+                  <span className="text-6xl font-bold text-emerald-200">{countdown}</span>
                 </div>
-                <h1 className="text-5xl font-bold text-white mb-4">Ranked Match Found!</h1>
-                <p className="text-white/70 text-xl mb-8">Starting in {countdown}...</p>
+                <h1 className="text-4xl font-bold text-white mb-4">Ranked Match Found!</h1>
+                <p className="text-white/60 text-lg mb-8">Starting in {countdown}...</p>
 
-                <div className="bg-white/5 backdrop-blur-sm rounded-2xl p-6 border border-purple-400/30 max-w-2xl mx-auto">
+                <div className="rounded-3xl border border-white/10 bg-[#141e27] p-8 max-w-2xl mx-auto">
                   <h3 className="text-white font-bold mb-4">Your Ranked Party</h3>
                   <div className="grid grid-cols-5 gap-3">
                     {players.map((player, index) => (
