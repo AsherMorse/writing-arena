@@ -37,7 +37,7 @@ export async function POST(request: NextRequest) {
         messages: [
           {
             role: 'user',
-            content: generatePrompt(content, trait, promptType),
+            content: generatePrompt(content, trait || 'all', promptType || 'narrative'),
           },
         ],
       }),
@@ -48,7 +48,7 @@ export async function POST(request: NextRequest) {
     }
 
     const data = await response.json();
-    const feedback = parseClaudioFeedback(data.content[0].text, trait, content.split(/\s+/).length);
+    const feedback = parseClaudioFeedback(data.content[0].text, trait || 'all', content.split(/\s+/).length);
 
     return NextResponse.json(feedback);
   } catch (error) {
