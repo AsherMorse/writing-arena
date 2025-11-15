@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
 import { 
   User,
   createUserWithEmailAndPassword,
@@ -41,7 +41,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const refreshProfile = async () => {
+  const refreshProfile = useCallback(async () => {
     console.log('🔄 REFRESH PROFILE - Called for user:', user?.uid);
     if (user) {
       const profile = await getUserProfile(user.uid);
@@ -55,7 +55,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } else {
       console.log('🔄 REFRESH PROFILE - No user, skipping');
     }
-  };
+  }, [user]);
 
   useEffect(() => {
     // If auth is not initialized, set loading to false immediately

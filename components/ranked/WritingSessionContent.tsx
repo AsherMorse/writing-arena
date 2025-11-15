@@ -6,7 +6,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { getPromptById, getRandomPrompt } from '@/lib/utils/prompts';
 import WritingTipsModal from '@/components/shared/WritingTipsModal';
 import WaitingForPlayers from '@/components/shared/WaitingForPlayers';
-import { createMatchState, submitPhase, listenToMatchState, areAllPlayersReady, simulateAISubmissions } from '@/lib/services/match-sync';
+import { createMatchState, submitPhase, listenToMatchState, areAllPlayersReady, simulateAISubmissions, clearAISubmissionTimers } from '@/lib/services/match-sync';
 import { db } from '@/lib/config/firebase';
 import { doc, getDoc } from 'firebase/firestore';
 export default function WritingSessionContent() {
@@ -18,6 +18,8 @@ export default function WritingSessionContent() {
   const scheduleStorageKey = `${matchId}-ai-submission-schedule`;
   const isLeader = searchParams.get('isLeader') === 'true';
   const { user, userProfile } = useAuth();
+  const fallbackUserId = user?.uid || 'temp-user';
+  const fallbackDisplayName = userProfile?.displayName || 'You';
 
   type PartyMember = {
     name: string;
@@ -83,6 +85,7 @@ export default function WritingSessionContent() {
   const aiProgressIntervalsRef = useRef<NodeJS.Timeout[]>([]);
   const aiScheduleRef = useRef<Record<string, { submitAt: number; finalWords: number }>>({});
   const hasAutoProceededRef = useRef(false);
+  const navigatedToPhase1Ref = useRef(false);
 
   const userRank = userProfile?.currentRank || 'Silver III';
   const userAvatar = typeof userProfile?.avatar === 'string' ? userProfile.avatar : '🌿';
@@ -111,7 +114,7 @@ export default function WritingSessionContent() {
     // Fallback to default party
     console.log('⚠️ SESSION - Using fallback party members');
     return [
-      { name: 'You', avatar: userAvatar, rank: userRank, userId: user?.uid, wordCount: 0, isYou: true, isAI: false },
+      { name: 'You', avatar: userAvatar, rank: userRank, userId: fallbackUserId, wordCount: 0, isYou: true, isAI: false },
       { name: 'ProWriter99', avatar: '🎯', rank: 'Silver II', userId: 'ai-fallback-1', wordCount: 0, isYou: false, isAI: true },
       { name: 'WordMaster', avatar: '📖', rank: 'Silver III', userId: 'ai-fallback-2', wordCount: 0, isYou: false, isAI: true },
       { name: 'EliteScribe', avatar: '✨', rank: 'Silver II', userId: 'ai-fallback-3', wordCount: 0, isYou: false, isAI: true },
@@ -122,6 +125,11 @@ export default function WritingSessionContent() {
   const otherMembers = partyMembers.slice(1);
   const [aiWordCounts, setAiWordCounts] = useState<number[]>(otherMembers.map(() => 0));
 
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    navigatedToPhase1Ref.current = sessionStorage.getItem(`${matchId}-phase1-complete`) === 'true';
+  }, [matchId]);
+
   const membersWithCounts = [
     { ...partyMembers[0], wordCount },
     ...otherMembers.map((member, index) => ({
@@ -129,6 +137,10 @@ export default function WritingSessionContent() {
       wordCount: member.isAI ? (aiWordCounts[index] || 0) : member.wordCount || 0,
     })),
   ];
+  const selfMember = partyMembers.find(member => member.isYou) || partyMembers[0];
+  const selfPlayerId = selfMember?.userId || fallbackUserId;
+  const selfPlayerName = selfMember?.name || fallbackDisplayName;
+  const selfPlayerRank = selfMember?.rank || userRank;
 
   const clearAiProgressIntervals = () => {
     aiProgressIntervalsRef.current.forEach(interval => clearInterval(interval));
@@ -271,18 +283,18 @@ export default function WritingSessionContent() {
             if (attempts >= maxAttempts) {
               console.warn('⚠️ SESSION - Timeout waiting for leader, creating match anyway...');
               // Fallback: create match ourselves
-              await createMatchState(
-                matchId,
-                partyMembers.map((p: any) => ({
-                  userId: p.userId || (p.isYou ? user.uid : `ai-${p.name}`),
-                  displayName: p.name,
-                  avatar: p.avatar,
-                  rank: p.rank,
-                  isAI: p.isAI || !p.isYou
-                })),
-                1,
-                120
-              );
+        await createMatchState(
+          matchId,
+          partyMembers.map((p: any) => ({
+            userId: p.userId || (p.isYou ? selfPlayerId : `ai-${p.name}`),
+            displayName: p.name,
+            avatar: p.avatar,
+            rank: p.rank,
+            isAI: p.isAI || !p.isYou
+          })),
+          1,
+          120
+        );
               setMatchInitialized(true);
               return;
             }
@@ -300,14 +312,14 @@ export default function WritingSessionContent() {
         await createMatchState(
           matchId,
           partyMembers.map((p: any) => ({
-            userId: p.userId || (p.isYou ? user.uid : `ai-${p.name}`),
+            userId: p.userId || (p.isYou ? selfPlayerId : `ai-${p.name}`),
             displayName: p.name,
             avatar: p.avatar,
             rank: p.rank,
             isAI: p.isAI || !p.isYou
           })),
           1,
-          120 // 2 minutes
+          120
         );
         
         // Simulate AI submissions (they finish randomly within 2-min window)
@@ -319,11 +331,11 @@ export default function WritingSessionContent() {
     };
     
     initMatch();
-  }, [user, userProfile, matchId, matchInitialized, partyMembers, isLeader]);
+  }, [user, userProfile, matchId, matchInitialized, partyMembers, isLeader, selfPlayerId]);
 
   // Generate AI writings when match initializes (or restore if exists)
   useEffect(() => {
-    if (!matchInitialized || aiWritingsGenerated || !user) return;
+    if (!matchInitialized || aiWritingsGenerated) return;
     
     const generateAIWritings = async () => {
       console.log('🤖 SESSION - Checking for existing AI writings...');
@@ -405,22 +417,25 @@ export default function WritingSessionContent() {
     };
     
     generateAIWritings();
-  }, [matchInitialized, aiWritingsGenerated, user, matchId, partyMembers, prompt]);
+  }, [matchInitialized, aiWritingsGenerated, matchId, partyMembers, prompt]);
 
   // Listen for match state updates
   useEffect(() => {
     if (!matchInitialized) return;
     
     const unsubscribe = listenToMatchState(matchId, (matchState) => {
+      if ((matchState as any)?.phase && (matchState as any).phase > 1) {
+        return;
+      }
       const ready = areAllPlayersReady(matchState, 1, true);
       let submittedIds = matchState.submissions?.phase1 || [];
-      if (hasSubmitted && user?.uid && !submittedIds.includes(user.uid)) {
-        submittedIds = [...submittedIds, user.uid];
+      if (hasSubmitted && selfPlayerId && !submittedIds.includes(selfPlayerId)) {
+        submittedIds = [...submittedIds, selfPlayerId];
       }
       setSubmittedPlayerIds(submittedIds);
       setPlayersReady(submittedIds.length);
-      
-      if (ready && hasSubmitted) {
+
+      if (ready && hasSubmitted && !navigatedToPhase1Ref.current) {
         console.log('🎉 SESSION - All players ready, moving to rankings!');
         unsubscribe();
         proceedToRankings();
@@ -430,14 +445,15 @@ export default function WritingSessionContent() {
     
     return () => unsubscribe();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [matchInitialized, hasSubmitted, matchId, user?.uid]);
+  }, [matchInitialized, hasSubmitted, matchId, selfPlayerId]);
 
   useEffect(() => {
     if (
       !hasAutoProceededRef.current &&
       hasSubmitted &&
       partyMembers.length > 0 &&
-      playersReady >= partyMembers.length
+      playersReady >= partyMembers.length &&
+      !navigatedToPhase1Ref.current
     ) {
       hasAutoProceededRef.current = true;
       proceedToRankings();
@@ -495,6 +511,13 @@ export default function WritingSessionContent() {
   };
 
   const proceedToRankings = () => {
+    if (navigatedToPhase1Ref.current) {
+      return;
+    }
+    navigatedToPhase1Ref.current = true;
+    if (typeof window !== 'undefined') {
+      sessionStorage.setItem(`${matchId}-phase1-complete`, 'true');
+    }
     const encodedContent = encodeURIComponent(writingContent);
     const yourScore = sessionStorage.getItem(`${matchId}-phase1-score`) || '75';
     console.log('🚀 SESSION - Proceeding to rankings with score:', yourScore);
@@ -502,22 +525,19 @@ export default function WritingSessionContent() {
   };
 
   const handleSubmit = async () => {
-    if (hasSubmitted || !user) return;
+    if (hasSubmitted) return;
+    if (!selfPlayerId) return;
     
     console.log('📤 SESSION - Submitting for batch ranking...');
     setHasSubmitted(true);
-    if (user?.uid) {
-      setSubmittedPlayerIds(prev => {
-        if (prev.includes(user.uid)) {
-          return prev;
-        }
-        const next = [...prev, user.uid];
-        setPlayersReady(prevReady => Math.max(prevReady, next.length));
-        return next;
-      });
-    } else {
-      setPlayersReady(prev => Math.min(prev + 1, partyMembers.length));
-    }
+    setSubmittedPlayerIds(prev => {
+      if (prev.includes(selfPlayerId)) {
+        return prev;
+      }
+      const next = [...prev, selfPlayerId];
+      setPlayersReady(prevReady => Math.max(prevReady, next.length));
+      return next;
+    });
     sessionStorage.setItem(`${matchId}-submitted`, 'true');
     
     try {
@@ -536,12 +556,12 @@ export default function WritingSessionContent() {
       // Prepare all writings for batch ranking
       const allWritings = [
         {
-          playerId: user.uid,
-          playerName: userProfile?.displayName || 'You',
+          playerId: selfPlayerId,
+          playerName: selfPlayerName,
           content: writingContent,
           wordCount: wordCount,
           isAI: false,
-          rank: userRank,
+          rank: selfPlayerRank,
         },
         ...aiWritings
       ];
@@ -566,7 +586,7 @@ export default function WritingSessionContent() {
       console.log('✅ SESSION - Batch ranking complete:', rankings.length, 'players ranked');
       
       // Find your ranking
-      const yourRanking = rankings.find((r: any) => r.playerId === user.uid);
+      const yourRanking = rankings.find((r: any) => r.playerId === selfPlayerId);
       if (!yourRanking) throw new Error('Your ranking not found');
       
       const yourScore = yourRanking.score;
@@ -586,7 +606,7 @@ export default function WritingSessionContent() {
       sessionStorage.setItem(`${matchId}-phase1-feedback`, JSON.stringify(yourRanking));
       
       // Submit to match state WITH full AI feedback
-      await submitPhase(matchId, user.uid, 1, Math.round(yourScore), {
+      await submitPhase(matchId, selfPlayerId, 1, Math.round(yourScore), {
         strengths: yourRanking.strengths || [],
         improvements: yourRanking.improvements || [],
         traitFeedback: yourRanking.traitFeedback || {},
@@ -626,7 +646,7 @@ export default function WritingSessionContent() {
         sessionStorage.setItem(`${matchId}-phase1-score`, yourScore.toString());
         sessionStorage.setItem(`${matchId}-phase1-feedback`, JSON.stringify(data));
         
-        await submitPhase(matchId, user.uid, 1, Math.round(yourScore), {
+        await submitPhase(matchId, selfPlayerId, 1, Math.round(yourScore), {
           strengths: data.strengths || [],
           improvements: data.improvements || [],
           nextSteps: data.nextSteps || [],
@@ -638,7 +658,7 @@ export default function WritingSessionContent() {
         const isEmpty = !writingContent || writingContent.trim().length === 0 || wordCount === 0;
         const yourScore = isEmpty ? 0 : Math.min(Math.max(60 + (wordCount / 5) + Math.random() * 15, 40), 100);
         sessionStorage.setItem(`${matchId}-phase1-score`, yourScore.toString());
-        await submitPhase(matchId, user.uid, 1, Math.round(yourScore)).catch(console.error);
+        await submitPhase(matchId, selfPlayerId, 1, Math.round(yourScore)).catch(console.error);
       }
     }
   };
@@ -668,6 +688,7 @@ export default function WritingSessionContent() {
     try {
       console.log('🐞 SESSION - Debug force end triggered');
       await handleSubmit();
+      clearAISubmissionTimers(matchId, 1);
 
       const matchRef = doc(db, 'matchStates', matchId);
       const matchDoc = await getDoc(matchRef);

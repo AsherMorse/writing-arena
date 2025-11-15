@@ -124,6 +124,16 @@ export function listenToMatchState(
   return unsubscribe;
 }
 
+const aiSubmissionTimers: Record<string, NodeJS.Timeout[]> = {};
+
+export function clearAISubmissionTimers(matchId: string, phase: 1 | 2 | 3) {
+  const key = `${matchId}-phase${phase}`;
+  if (aiSubmissionTimers[key]) {
+    aiSubmissionTimers[key].forEach(timeoutId => clearTimeout(timeoutId));
+    delete aiSubmissionTimers[key];
+  }
+}
+
 // Check if all players have submitted for a phase
 export function areAllPlayersReady(matchState: MatchState, phase: 1 | 2 | 3, includeAI: boolean = false): boolean {
   const phaseKey = `phase${phase}` as 'phase1' | 'phase2' | 'phase3';
@@ -163,6 +173,7 @@ export async function simulateAISubmissions(
   phase: 1 | 2 | 3,
   perPlayerDelays?: Record<string, number>
 ): Promise<void> {
+  clearAISubmissionTimers(matchId, phase);
   console.log('🤖 MATCH SYNC - Scheduling AI submissions for phase', phase);
   const matchRef = doc(db, 'matchStates', matchId);
   const matchSnap = await getDoc(matchRef);
@@ -176,6 +187,9 @@ export async function simulateAISubmissions(
   const minDelay = 30000;
   const maxDelay = 120000;
   
+  const key = `${matchId}-phase${phase}`;
+  aiSubmissionTimers[key] = [];
+
   aiPlayers.forEach((aiPlayer, index) => {
     const fallbackDelay = minDelay + Math.random() * (maxDelay - minDelay);
     const delay = Math.max(0, perPlayerDelays?.[aiPlayer.userId] ?? fallbackDelay);
@@ -186,7 +200,7 @@ export async function simulateAISubmissions(
       order: index + 1,
     });
     
-    setTimeout(async () => {
+    const timer = setTimeout(async () => {
       try {
         const aiScore = Math.round(60 + Math.random() * 30);
         await submitPhase(matchId, aiPlayer.userId, phase, aiScore);
@@ -195,6 +209,8 @@ export async function simulateAISubmissions(
         console.error('❌ MATCH SYNC - AI submission failed', { player: aiPlayer.displayName, error });
       }
     }, delay);
+
+    aiSubmissionTimers[key].push(timer);
   });
 }
 
