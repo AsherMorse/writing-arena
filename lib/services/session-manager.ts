@@ -314,10 +314,15 @@ export class SessionManager {
     else if (phase === 2) startTime = timing.phase2StartTime;
     else if (phase === 3) startTime = timing.phase3StartTime;
     
-    if (!startTime) return config.phaseDuration;
+    if (!startTime) {
+      console.log('⏱️ SESSION MANAGER - No start time yet, returning full duration:', config.phaseDuration);
+      return config.phaseDuration;
+    }
     
     const elapsed = Date.now() - startTime.toMillis();
     const remaining = config.phaseDuration - Math.floor(elapsed / 1000);
+    
+    console.log('⏱️ SESSION MANAGER - Time calculation:', { elapsed: Math.floor(elapsed / 1000), remaining, duration: config.phaseDuration });
     
     return Math.max(0, remaining);
   }

@@ -81,6 +81,23 @@ export default function WritingSessionContent() {
             setAiWritingsGenerated(true);
             return;
           }
+        } else {
+          // Create matchStates document for backward compatibility
+          console.log('📝 SESSION - Creating matchStates document for backward compatibility...');
+          const { setDoc } = await import('firebase/firestore');
+          await setDoc(matchRef, {
+            matchId: session.matchId,
+            sessionId: session.sessionId,
+            players: Object.values(session.players).map(p => ({
+              userId: p.userId,
+              displayName: p.displayName,
+              avatar: p.avatar,
+              rank: p.rank,
+              isAI: p.isAI,
+            })),
+            phase: 1,
+            createdAt: session.createdAt,
+          });
         }
         
         // Generate new AI writings
@@ -157,15 +174,26 @@ export default function WritingSessionContent() {
   }, [writingContent]);
 
   // Auto-submit when time runs out
+  // Add delay to prevent immediate submission on page load
+  const [sessionLoadTime] = useState(Date.now());
+  
   useEffect(() => {
-    if (timeRemaining === 0 && !hasSubmitted()) {
+    const sessionAge = Date.now() - sessionLoadTime;
+    
+    // Only auto-submit if:
+    // 1. Time is actually 0
+    // 2. User hasn't submitted
+    // 3. Session exists
+    // 4. Session has been loaded for at least 5 seconds (prevent immediate submit)
+    if (timeRemaining === 0 && !hasSubmitted() && session && sessionAge > 5000) {
+      console.log('⏰ SESSION - Time expired, auto-submitting...');
       setShowRankingModal(true);
       setTimeout(() => {
         handleSubmit();
       }, 500);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [timeRemaining, hasSubmitted]);
+  }, [timeRemaining, hasSubmitted, session]);
 
   // Navigate to next phase when all players ready
   useEffect(() => {
