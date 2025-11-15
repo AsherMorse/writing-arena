@@ -363,13 +363,15 @@ export default function MatchmakingContent() {
         console.log('👑 MATCHMAKING - I am leader, creating shared lobby...');
         
         // Convert players to proper format
-        const lobbyPlayers = playersToSave.map((p: any) => ({
-          userId: p.userId,
-          displayName: p.name === 'You' ? userName : p.name,
-          avatar: p.avatar,
-          rank: p.rank,
-          isAI: p.isAI
-        }));
+        const lobbyPlayers = playersToSave
+          .filter((p: any) => p && (p.userId || p.isYou)) // Filter out invalid players
+          .map((p: any) => ({
+            userId: p.userId || (p.isYou ? userId : `ai-${p.name}`),
+            displayName: p.name === 'You' ? userName : p.name,
+            avatar: p.avatar || '🤖',
+            rank: p.rank || 'Silver III',
+            isAI: p.isAI || false,
+          }));
         
         // NEW: Create session using new architecture
         console.log('👑 MATCHMAKING - Creating session as leader...');
@@ -435,13 +437,15 @@ export default function MatchmakingContent() {
             rank: userRank,
             isAI: false,
           },
-          ...selectedAIStudents.map(ai => ({
-            userId: ai.userId,
-            displayName: ai.displayName,
-            avatar: ai.avatar,
-            rank: ai.rank,
-            isAI: true,
-          }))
+          ...selectedAIStudents
+            .filter(ai => ai && ai.userId) // Filter out invalid AI students
+            .map(ai => ({
+              userId: ai.userId || ai.id || `ai-${ai.displayName}`, // Fallback to id or generated
+              displayName: ai.displayName || ai.name || 'AI Player',
+              avatar: ai.avatar || '🤖',
+              rank: ai.rank || 'Silver III',
+              isAI: true,
+            }))
         ];
         
         createSession({
