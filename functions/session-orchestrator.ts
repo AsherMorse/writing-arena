@@ -27,7 +27,6 @@ const db = admin.firestore();
 export const onPlayerSubmission = functions.firestore
   .document('sessions/{sessionId}')
   .onUpdate(async (change, context) => {
-    const before = change.before.data();
     const after = change.after.data();
     const sessionId = context.params.sessionId;
     
@@ -156,7 +155,7 @@ export const cleanupStaleConnections = functions.pubsub
       const sessionAge = now.seconds - session.createdAt.seconds;
       
       // Check each player's heartbeat
-      for (const [userId, player] of Object.entries(session.players as any)) {
+      for (const [userId, player] of Object.entries(session.players as Record<string, any>)) {
         if (player.isAI) continue; // Skip AI players
         
         const secondsSinceHeartbeat = now.seconds - player.lastHeartbeat.seconds;
@@ -239,14 +238,4 @@ export const getSessionStats = functions.https.onRequest(async (req, res) => {
   }
 });
 
-/**
- * Helper function to validate session state
- */
-function validateSessionState(session: any): boolean {
-  // Add validation logic here
-  // - Check required fields exist
-  // - Validate phase is 1, 2, or 3
-  // - Ensure players have valid data
-  return true;
-}
 

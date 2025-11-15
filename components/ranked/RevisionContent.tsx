@@ -212,7 +212,7 @@ export default function RevisionContent() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [timeRemaining, hasSubmitted]);
   
-  // CLIENT-SIDE PHASE COORDINATOR (Phase 3 → Results)
+  // PHASE COMPLETION MONITOR (Cloud Function primary, client fallback)
   useEffect(() => {
     if (!session || !hasSubmitted()) return;
     
@@ -220,15 +220,18 @@ export default function RevisionContent() {
     const realPlayers = allPlayers.filter((p: any) => !p.isAI);
     const submittedRealPlayers = realPlayers.filter((p: any) => p.phases.phase3?.submitted);
     
-    console.log('🔍 CLIENT COORDINATOR - Phase 3 submissions:', {
+    console.log('🔍 PHASE MONITOR - Phase 3 submissions:', {
       real: realPlayers.length,
       submitted: submittedRealPlayers.length,
     });
     
     if (submittedRealPlayers.length === realPlayers.length && session.state !== 'completed') {
-      console.log('🎉 CLIENT COORDINATOR - Phase 3 complete! Marking session as completed...');
+      console.log('⏱️ PHASE MONITOR - All submitted, waiting for Cloud Function...');
       
-      setTimeout(async () => {
+      // Fallback after 10 seconds
+      const fallbackTimer = setTimeout(async () => {
+        console.warn('⚠️ FALLBACK - Marking session completed client-side...');
+        
         try {
           const { updateDoc, doc } = await import('firebase/firestore');
           const { db } = await import('@/lib/config/firebase');
@@ -240,11 +243,13 @@ export default function RevisionContent() {
             updatedAt: Date.now(),
           });
           
-          console.log('✅ CLIENT COORDINATOR - Session marked as completed!');
+          console.log('✅ FALLBACK - Session marked completed');
         } catch (error) {
-          console.error('❌ CLIENT COORDINATOR - Completion failed:', error);
+          console.error('❌ FALLBACK - Completion failed:', error);
         }
-      }, 2000);
+      }, 10000);
+      
+      return () => clearTimeout(fallbackTimer);
     }
   }, [session, hasSubmitted]);
 

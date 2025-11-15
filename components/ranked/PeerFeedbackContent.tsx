@@ -193,7 +193,7 @@ export default function PeerFeedbackContent() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [timeRemaining, hasSubmitted]);
   
-  // CLIENT-SIDE PHASE COORDINATOR (Phase 2 → 3)
+  // PHASE TRANSITION MONITOR (Cloud Function primary, client fallback)
   useEffect(() => {
     if (!session || !hasSubmitted()) return;
     
@@ -201,15 +201,18 @@ export default function PeerFeedbackContent() {
     const realPlayers = allPlayers.filter((p: any) => !p.isAI);
     const submittedRealPlayers = realPlayers.filter((p: any) => p.phases.phase2?.submitted);
     
-    console.log('🔍 CLIENT COORDINATOR - Phase 2 submissions:', {
+    console.log('🔍 PHASE MONITOR - Phase 2 submissions:', {
       real: realPlayers.length,
       submitted: submittedRealPlayers.length,
     });
     
     if (submittedRealPlayers.length === realPlayers.length && !session.coordination.allPlayersReady) {
-      console.log('🎉 CLIENT COORDINATOR - Phase 2 complete! Transitioning to phase 3...');
+      console.log('⏱️ PHASE MONITOR - All submitted, waiting for Cloud Function...');
       
-      setTimeout(async () => {
+      // Fallback after 10 seconds
+      const fallbackTimer = setTimeout(async () => {
+        console.warn('⚠️ FALLBACK - Transitioning to phase 3 client-side...');
+        
         try {
           const { updateDoc, doc, serverTimestamp } = await import('firebase/firestore');
           const { db } = await import('@/lib/config/firebase');
@@ -222,11 +225,13 @@ export default function PeerFeedbackContent() {
             updatedAt: serverTimestamp(),
           });
           
-          console.log('✅ CLIENT COORDINATOR - Transitioned to phase 3!');
+          console.log('✅ FALLBACK - Client-side transition to phase 3 complete');
         } catch (error) {
-          console.error('❌ CLIENT COORDINATOR - Transition failed:', error);
+          console.error('❌ FALLBACK - Transition failed:', error);
         }
-      }, 2000);
+      }, 10000);
+      
+      return () => clearTimeout(fallbackTimer);
     }
   }, [session, hasSubmitted]);
 

@@ -240,32 +240,33 @@ export default function WritingSessionContent() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [timeRemaining, hasSubmitted, session]);
 
-  // CLIENT-SIDE PHASE COORDINATOR (until Cloud Functions deployed)
+  // PHASE TRANSITION MONITOR
+  // Cloud Functions handle transitions, but client-side fallback if Functions not responding
   useEffect(() => {
     if (!session || !hasSubmitted()) return;
     
-    // Check if all REAL players have submitted (not counting AI)
     const allPlayers = Object.values(session.players);
     const realPlayers = allPlayers.filter(p => !p.isAI);
     const submittedRealPlayers = realPlayers.filter(p => p.phases.phase1?.submitted);
     
-    console.log('🔍 CLIENT COORDINATOR - Phase 1 submissions:', {
+    console.log('🔍 PHASE MONITOR - Phase 1 submissions:', {
       real: realPlayers.length,
       submitted: submittedRealPlayers.length,
-      allSubmitted: submittedRealPlayers.length === realPlayers.length,
       coordFlag: session.coordination.allPlayersReady,
     });
     
-    // If all real players submitted, trigger phase transition
+    // If all real players submitted but Cloud Function hasn't transitioned after 10 seconds
     if (submittedRealPlayers.length === realPlayers.length && !session.coordination.allPlayersReady) {
-      console.log('🎉 CLIENT COORDINATOR - All real players submitted! Transitioning...');
+      console.log('⏱️ PHASE MONITOR - All submitted, waiting for Cloud Function to transition...');
       
-      const transitionPhase = async () => {
+      // Fallback: If Cloud Function doesn't respond in 10 seconds, do it client-side
+      const fallbackTimer = setTimeout(async () => {
+        console.warn('⚠️ FALLBACK - Cloud Function not responding, transitioning client-side...');
+        
         try {
           const { updateDoc, doc, serverTimestamp } = await import('firebase/firestore');
           const sessionRef = doc(db, 'sessions', session.sessionId);
           
-          // Set coordination flag and transition to phase 2
           await updateDoc(sessionRef, {
             'coordination.allPlayersReady': true,
             'coordination.readyCount': submittedRealPlayers.length,
@@ -274,14 +275,14 @@ export default function WritingSessionContent() {
             updatedAt: serverTimestamp(),
           });
           
-          console.log('✅ CLIENT COORDINATOR - Transitioned to phase 2!');
+          console.log('✅ FALLBACK - Client-side transition to phase 2 complete');
         } catch (error) {
-          console.error('❌ CLIENT COORDINATOR - Transition failed:', error);
+          console.error('❌ FALLBACK - Transition failed:', error);
         }
-      };
+      }, 10000); // 10 second timeout
       
-      // Wait 2 seconds to show "All players finished!" message
-      setTimeout(transitionPhase, 2000);
+      // Cleanup if component unmounts
+      return () => clearTimeout(fallbackTimer);
     }
   }, [session, hasSubmitted]);
 
