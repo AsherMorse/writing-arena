@@ -54,11 +54,18 @@ export default function WritingSessionContent() {
   // Calculate players list from session
   const players = session ? Object.values(session.players) : [];
   
+  // Debug logging
+  useEffect(() => {
+    if (session && players.length > 0) {
+      console.log('👥 SESSION - Players in session:', players.length, players.map(p => p.displayName));
+    }
+  }, [session, players]);
+  
   // Get submission tracking
   const { submitted, total } = submissionCount();
 
   // ALL HOOKS MUST BE CALLED BEFORE ANY CONDITIONAL RETURNS
-  
+
   // Generate AI writings once when session initializes
   useEffect(() => {
     if (!session || aiWritingsGenerated || !user || !prompt) return;
@@ -170,7 +177,7 @@ export default function WritingSessionContent() {
     }, 2000);
     return () => clearInterval(interval);
   }, []);
-
+      
   // Update word count when content changes
   useEffect(() => {
     const words = writingContent.trim().split(/\s+/).filter(word => word.length > 0);
@@ -180,7 +187,7 @@ export default function WritingSessionContent() {
   // Auto-submit when time runs out
   // Add delay to prevent immediate submission on page load
   const [sessionLoadTime] = useState(Date.now());
-  
+
   useEffect(() => {
     const sessionAge = Date.now() - sessionLoadTime;
     
@@ -408,19 +415,42 @@ export default function WritingSessionContent() {
  
   return (
     <div className="min-h-screen bg-[#0c141d] text-white">
-      {/* Ranking Modal */}
+      {/* Ranking Modal with Writing Tips */}
       {showRankingModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm">
-          <div className="rounded-3xl border border-emerald-400/30 bg-[#141e27] p-12 shadow-2xl text-center max-w-md mx-4">
+          <div className="rounded-3xl border border-emerald-400/30 bg-[#141e27] p-12 shadow-2xl text-center max-w-2xl mx-4">
             <div className="text-6xl mb-6 animate-bounce">🏆</div>
             <h2 className="text-3xl font-bold text-white mb-3">Time&apos;s Up!</h2>
             <p className="text-white/70 text-lg mb-6">
               Reviewing and ranking all submissions...
             </p>
-            <div className="flex items-center justify-center gap-2">
+            <div className="flex items-center justify-center gap-2 mb-8">
               <div className="w-2 h-2 bg-emerald-400 rounded-full animate-pulse" style={{ animationDelay: '0ms' }}></div>
               <div className="w-2 h-2 bg-emerald-400 rounded-full animate-pulse" style={{ animationDelay: '150ms' }}></div>
               <div className="w-2 h-2 bg-emerald-400 rounded-full animate-pulse" style={{ animationDelay: '300ms' }}></div>
+            </div>
+            
+            {/* Writing Tips While Waiting */}
+            <div className="border-t border-white/10 pt-6 space-y-4">
+              <div className="text-xs uppercase tracking-wider text-white/50 mb-4">💡 Writing Tips</div>
+              <div className="space-y-3 text-left max-h-48 overflow-y-auto">
+                <div className="bg-white/5 rounded-lg p-3 border border-white/10">
+                  <div className="text-white font-semibold text-sm mb-1">✨ Sentence Expansion</div>
+                  <p className="text-white/70 text-sm">Use <span className="text-emerald-300">because</span>, <span className="text-emerald-300">but</span>, or <span className="text-emerald-300">so</span> to show deeper thinking.</p>
+                </div>
+                <div className="bg-white/5 rounded-lg p-3 border border-white/10">
+                  <div className="text-white font-semibold text-sm mb-1">✨ Appositives</div>
+                  <p className="text-white/70 text-sm">Add description with commas: &quot;Sarah, a curious girl, opened the door.&quot;</p>
+                </div>
+                <div className="bg-white/5 rounded-lg p-3 border border-white/10">
+                  <div className="text-white font-semibold text-sm mb-1">✨ Show, Don&apos;t Tell</div>
+                  <p className="text-white/70 text-sm">Instead of &quot;I was scared&quot; → &quot;My hands trembled as I reached for the handle.&quot;</p>
+                </div>
+                <div className="bg-white/5 rounded-lg p-3 border border-white/10">
+                  <div className="text-white font-semibold text-sm mb-1">✨ Transition Words</div>
+                  <p className="text-white/70 text-sm">Connect ideas: First, Then, However, Therefore, For example</p>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -533,7 +563,7 @@ export default function WritingSessionContent() {
               </div>
               <div className="text-white/40 text-xs mt-2">
                 Write until the timer expires. Your work will be automatically submitted.
-              </div>
+                </div>
             </div>
           </div>
 

@@ -48,7 +48,7 @@ export default function PeerFeedbackContent() {
     submitPhase,
     hasSubmitted,
   } = useSession(sessionId);
-  
+
   const matchId = session?.matchId || '';
   const [currentPeer, setCurrentPeer] = useState<any>(null);
   const [loadingPeer, setLoadingPeer] = useState(true);

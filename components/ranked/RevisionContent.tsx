@@ -304,7 +304,7 @@ export default function RevisionContent() {
         revisedContent,
         wordCount: wordCountRevised,
         score: Math.round(revisionScore),
-      });
+        });
       
       router.push(
         `/ranked/results?matchId=${matchId}&trait=${trait}&promptId=${promptId}&promptType=${promptType}&originalContent=${encodeURIComponent(originalContent)}&revisedContent=${encodeURIComponent(revisedContent)}&wordCount=${wordCount}&revisedWordCount=${wordCountRevised}&aiScores=${aiScores}&writingScore=${yourScore}&feedbackScore=${feedbackScore}&revisionScore=${Math.round(revisionScore)}`
@@ -335,7 +335,7 @@ export default function RevisionContent() {
           revisedContent,
           wordCount: wordCountRevised,
           score: Math.round(revisionScore),
-        });
+          });
         
         router.push(
           `/ranked/results?matchId=${matchId}&trait=${trait}&promptId=${promptId}&promptType=${promptType}&originalContent=${encodeURIComponent(originalContent)}&revisedContent=${encodeURIComponent(revisedContent)}&wordCount=${wordCount}&revisedWordCount=${wordCountRevised}&aiScores=${aiScores}&writingScore=${yourScore}&feedbackScore=${feedbackScore}&revisionScore=${Math.round(revisionScore)}`

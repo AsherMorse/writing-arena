@@ -364,14 +364,16 @@ export default function MatchmakingContent() {
         
         // Convert players to proper format
         const lobbyPlayers = playersToSave
-          .filter((p: any) => p && (p.userId || p.isYou)) // Filter out invalid players
+          .filter((p: any) => p && (p.userId || p.isYou || p.id)) // Include AI with 'id'
           .map((p: any) => ({
-            userId: p.userId || (p.isYou ? userId : `ai-${p.name}`),
+            userId: p.userId || p.id || (p.isYou ? userId : `ai-${p.name}`),
             displayName: p.name === 'You' ? userName : p.name,
             avatar: p.avatar || '🤖',
-            rank: p.rank || 'Silver III',
+            rank: p.currentRank || p.rank || 'Silver III', // AI has currentRank
             isAI: p.isAI || false,
           }));
+        
+        console.log('👥 MATCHMAKING - Lobby with', lobbyPlayers.length, 'players:', lobbyPlayers.map(p => p.displayName).join(', '));
         
         // NEW: Create session using new architecture
         console.log('👑 MATCHMAKING - Creating session as leader with matchId:', matchId);
@@ -439,15 +441,17 @@ export default function MatchmakingContent() {
             isAI: false,
           },
           ...selectedAIStudents
-            .filter(ai => ai && ai.userId) // Filter out invalid AI students
+            .filter(ai => ai && (ai.userId || ai.id)) // AI students have 'id' not 'userId'
             .map(ai => ({
-              userId: ai.userId || ai.id || `ai-${ai.displayName}`, // Fallback to id or generated
+              userId: ai.id || ai.userId || `ai-${ai.displayName}`, // Use 'id' first (that's what AI students have)
               displayName: ai.displayName || ai.name || 'AI Player',
               avatar: ai.avatar || '🤖',
-              rank: ai.rank || 'Silver III',
+              rank: ai.currentRank || ai.rank || 'Silver III', // AI students have 'currentRank'
               isAI: true,
             }))
         ];
+        
+        console.log('👥 MATCHMAKING - Single player session with', singlePlayerPlayers.length, 'players:', singlePlayerPlayers.map(p => p.displayName).join(', '));
         
         createSession({
           mode: 'ranked',
