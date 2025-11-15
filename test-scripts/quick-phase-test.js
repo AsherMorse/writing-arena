@@ -1,9 +1,12 @@
 /**
  * Quick Phase Timing Test
  * Rapid test to verify phase durations are correct
+ * 
+ * Run from functions directory:
+ * cd functions && node ../test-scripts/quick-phase-test.js
  */
 
-const admin = require('firebase-admin');
+const admin = require('../functions/node_modules/firebase-admin');
 
 if (!admin.apps.length) {
   admin.initializeApp({ projectId: 'hour-college' });
