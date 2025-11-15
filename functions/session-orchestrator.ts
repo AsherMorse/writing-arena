@@ -86,33 +86,41 @@ async function transitionToNextPhase(
   
   if (currentPhase === 1) {
     nextPhase = 2;
+    const now = admin.firestore.Timestamp.now();
+    
     updates['config.phase'] = 2;
     updates['config.phaseDuration'] = 60; // Phase 2 is 1 minute
-    updates['timing.phase2StartTime'] = admin.firestore.FieldValue.serverTimestamp();
+    updates['timing.phase2StartTime'] = now; // Use Timestamp.now() instead of serverTimestamp()
     updates['coordination.allPlayersReady'] = false;
     updates['coordination.readyCount'] = 0;
     updates['state'] = 'active';
-    updates['updatedAt'] = admin.firestore.FieldValue.serverTimestamp();
+    updates['updatedAt'] = now;
     
     console.log('🔄 SESSION ORCHESTRATOR - Transitioning to phase 2 (60 seconds)...');
+    console.log('🕐 SESSION ORCHESTRATOR - Phase 2 start time set to:', now.toMillis());
     
   } else if (currentPhase === 2) {
     nextPhase = 3;
+    const now = admin.firestore.Timestamp.now();
+    
     updates['config.phase'] = 3;
     updates['config.phaseDuration'] = 60; // Phase 3 is 1 minute
-    updates['timing.phase3StartTime'] = admin.firestore.FieldValue.serverTimestamp();
+    updates['timing.phase3StartTime'] = now; // Use Timestamp.now() instead of serverTimestamp()
     updates['coordination.allPlayersReady'] = false;
     updates['coordination.readyCount'] = 0;
     updates['state'] = 'active';
-    updates['updatedAt'] = admin.firestore.FieldValue.serverTimestamp();
+    updates['updatedAt'] = now;
     
     console.log('🔄 SESSION ORCHESTRATOR - Transitioning to phase 3 (60 seconds)...');
+    console.log('🕐 SESSION ORCHESTRATOR - Phase 3 start time set to:', now.toMillis());
     
   } else if (currentPhase === 3) {
     // Session complete
+    const now = admin.firestore.Timestamp.now();
+    
     updates['state'] = 'completed';
     updates['coordination.allPlayersReady'] = true;
-    updates['updatedAt'] = admin.firestore.FieldValue.serverTimestamp();
+    updates['updatedAt'] = now;
     
     console.log('🎉 SESSION ORCHESTRATOR - Session completed!');
   }

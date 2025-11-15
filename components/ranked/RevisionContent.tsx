@@ -91,36 +91,42 @@ export default function RevisionContent() {
     fetchPeerFeedback();
   }, [user, matchId]);
 
-  // Load AI feedback from session player data (already generated in Phase 1)
+  // Generate REAL AI feedback for user's writing
   useEffect(() => {
-    if (!session || !user || !matchId) return;
+    if (!originalContent || !session || loadingFeedback === false) return;
     
-    console.log('🤖 REVISION - Loading feedback from Phase 1...');
-    try {
-      // eslint-disable-next-line no-unused-vars
-      const storedFeedback = null; // No more sessionStorage!
+    const generateRealFeedback = async () => {
+      console.log('🤖 REVISION - Generating REAL AI feedback for your writing...');
       
-      if (storedFeedback) {
-        const feedback = JSON.parse(storedFeedback);
-        console.log('✅ REVISION - Found Phase 1 feedback:', feedback);
+      try {
+        // Call the generate-feedback API with YOUR actual writing
+        const response = await fetch('/api/generate-feedback', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            content: originalContent,
+            promptType: session.config.promptType,
+          }),
+        });
         
-        // Format feedback for display
+        const feedback = await response.json();
+        console.log('✅ REVISION - Real AI feedback generated:', feedback);
+        
         setAiFeedback({
           strengths: feedback.strengths || [],
           improvements: feedback.improvements || [],
           score: feedback.score || 75,
         });
-      } else {
-        console.warn('⚠️ REVISION - No Phase 1 feedback found, using mock');
+      } catch (error) {
+        console.error('❌ REVISION - Failed to generate feedback:', error);
         setAiFeedback(MOCK_AI_FEEDBACK);
+      } finally {
+        setLoadingFeedback(false);
       }
-    } catch (error) {
-      console.error('❌ REVISION - Failed to load feedback, using mock');
-      setAiFeedback(MOCK_AI_FEEDBACK);
-    } finally {
-      setLoadingFeedback(false);
-    }
-  }, [matchId, session, user]);
+    };
+    
+    generateRealFeedback();
+  }, [originalContent, session, loadingFeedback]);
 
   // Generate AI revisions when phase starts
   useEffect(() => {
