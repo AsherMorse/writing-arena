@@ -53,19 +53,10 @@ export const onPlayerSubmission = functions.firestore
     const allSubmitted = submittedCount === realPlayers.length;
     
     if (allSubmitted && !after.coordination.allPlayersReady) {
-      console.log('✅ SESSION ORCHESTRATOR - All players submitted! Triggering transition...');
+      console.log('✅ SESSION ORCHESTRATOR - All players submitted! Transitioning immediately...');
       
-      // Update coordination
-      await change.after.ref.update({
-        'coordination.allPlayersReady': true,
-        'coordination.readyCount': submittedCount,
-        updatedAt: admin.firestore.FieldValue.serverTimestamp(),
-      });
-      
-      // Transition to next phase after a delay
-      setTimeout(async () => {
-        await transitionToNextPhase(sessionId, currentPhase);
-      }, 3000); // 3 second delay to show results
+      // Transition immediately (no delay)
+      await transitionToNextPhase(sessionId, currentPhase);
     }
   });
 
@@ -91,36 +82,47 @@ async function transitionToNextPhase(
   
   // Determine next phase
   let nextPhase: number | null = null;
-  let nextState: string = 'active';
   const updates: any = {};
   
   if (currentPhase === 1) {
     nextPhase = 2;
+    updates['config.phase'] = 2;
+    updates['config.phaseDuration'] = 60; // Phase 2 is 1 minute
     updates['timing.phase2StartTime'] = admin.firestore.FieldValue.serverTimestamp();
+    updates['coordination.allPlayersReady'] = false;
+    updates['coordination.readyCount'] = 0;
+    updates['state'] = 'active';
+    updates['updatedAt'] = admin.firestore.FieldValue.serverTimestamp();
+    
+    console.log('🔄 SESSION ORCHESTRATOR - Transitioning to phase 2 (60 seconds)...');
+    
   } else if (currentPhase === 2) {
     nextPhase = 3;
+    updates['config.phase'] = 3;
+    updates['config.phaseDuration'] = 60; // Phase 3 is 1 minute
     updates['timing.phase3StartTime'] = admin.firestore.FieldValue.serverTimestamp();
+    updates['coordination.allPlayersReady'] = false;
+    updates['coordination.readyCount'] = 0;
+    updates['state'] = 'active';
+    updates['updatedAt'] = admin.firestore.FieldValue.serverTimestamp();
+    
+    console.log('🔄 SESSION ORCHESTRATOR - Transitioning to phase 3 (60 seconds)...');
+    
   } else if (currentPhase === 3) {
     // Session complete
-    nextState = 'completed';
+    updates['state'] = 'completed';
+    updates['coordination.allPlayersReady'] = true;
+    updates['updatedAt'] = admin.firestore.FieldValue.serverTimestamp();
+    
     console.log('🎉 SESSION ORCHESTRATOR - Session completed!');
   }
   
+  await sessionRef.update(updates);
+  
   if (nextPhase) {
-    updates['config.phase'] = nextPhase;
-    updates['state'] = nextState;
-    updates['coordination.allPlayersReady'] = false;
-    updates['coordination.readyCount'] = 0;
-    updates['updatedAt'] = admin.firestore.FieldValue.serverTimestamp();
-    
-    await sessionRef.update(updates);
-    
     console.log(`✅ SESSION ORCHESTRATOR - Transitioned to phase ${nextPhase}`);
-  } else if (nextState === 'completed') {
-    updates['state'] = nextState;
-    updates['updatedAt'] = admin.firestore.FieldValue.serverTimestamp();
-    
-    await sessionRef.update(updates);
+  } else {
+    console.log('✅ SESSION ORCHESTRATOR - Session marked as completed');
   }
 }
 
