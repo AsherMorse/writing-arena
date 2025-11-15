@@ -379,15 +379,20 @@ export default function WritingSessionContent() {
     );
   }
   
-  const membersWithCounts = players.map((player, index) => ({
-    name: player.displayName,
-    avatar: player.avatar,
-    rank: player.rank,
-    userId: player.userId,
-    isYou: player.userId === user?.uid,
-    isAI: player.isAI,
-    wordCount: player.userId === user?.uid ? wordCount : (player.isAI && index > 0 ? aiWordCounts[index - 1] || 0 : 0),
-  }));
+  const membersWithCounts = players.map((player, index) => {
+    const isYou = player.userId === user?.uid;
+    const aiIndex = players.filter((p, i) => i < index && p.isAI).length;
+    
+    return {
+      name: player.displayName,
+      avatar: player.avatar,
+      rank: player.rank,
+      userId: player.userId,
+      isYou,
+      isAI: player.isAI,
+      wordCount: isYou ? wordCount : (player.isAI ? aiWordCounts[aiIndex] || 0 : 0),
+    };
+  });
 
   // Show waiting screen if user has submitted
   if (hasSubmitted()) {
@@ -520,13 +525,16 @@ export default function WritingSessionContent() {
               )}
             </div>
             
-            <button
-              onClick={handleSubmit}
-              disabled={hasSubmitted()}
-              className="w-full rounded-2xl border border-emerald-400/30 bg-emerald-400/10 px-6 py-4 text-lg font-semibold text-emerald-200 transition hover:bg-emerald-400/20 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {hasSubmitted() ? 'Submitted ✓' : 'Submit Draft'}
-            </button>
+            {/* No manual submit button - auto-submits when time expires */}
+            <div className="w-full rounded-2xl border border-white/10 bg-white/5 px-6 py-4 text-center">
+              <div className="text-white/60 text-sm mb-2">⏱️ Time-based submission</div>
+              <div className="text-white font-semibold">
+                {hasSubmitted() ? '✅ Submitted' : `Auto-submits in ${formatTime(timeRemaining)}`}
+              </div>
+              <div className="text-white/40 text-xs mt-2">
+                Write until the timer expires. Your work will be automatically submitted.
+              </div>
+            </div>
           </div>
 
           <aside className="space-y-6">
