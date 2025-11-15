@@ -155,6 +155,41 @@ export default function WritingSessionContent() {
         setAiWordCounts(aiWritings.map(w => w.wordCount));
         
         console.log('✅ SESSION - All AI writings generated and stored');
+        
+        // AUTO-SUBMIT AI PLAYERS (they've "finished writing")
+        // Submit each AI player's work to the session after a random delay (30-90 seconds)
+        aiPlayers.forEach((aiPlayer, index) => {
+          const delay = 30000 + Math.random() * 60000; // 30-90 seconds
+          
+          setTimeout(async () => {
+            try {
+              const aiWriting = aiWritings.find(w => w.playerId === aiPlayer.userId);
+              if (!aiWriting) return;
+              
+              console.log(`🤖 SESSION - Auto-submitting for AI player: ${aiPlayer.displayName}`);
+              
+              // Submit directly to sessions collection
+              const { updateDoc, doc, serverTimestamp } = await import('firebase/firestore');
+              const sessionRef = doc(db, 'sessions', session.sessionId);
+              
+              await updateDoc(sessionRef, {
+                [`players.${aiPlayer.userId}.phases.phase1`]: {
+                  submitted: true,
+                  submittedAt: serverTimestamp(),
+                  content: aiWriting.content,
+                  wordCount: aiWriting.wordCount,
+                  score: Math.round(60 + Math.random() * 30),
+                },
+                updatedAt: serverTimestamp(),
+              });
+              
+              console.log(`✅ SESSION - AI player ${aiPlayer.displayName} submitted`);
+            } catch (error) {
+              console.error(`❌ SESSION - Failed to auto-submit AI player ${aiPlayer.displayName}:`, error);
+            }
+          }, delay);
+        });
+        
       } catch (error) {
         console.error('❌ SESSION - Failed to generate AI writings:', error);
         // Continue with fallback word counts
@@ -403,12 +438,29 @@ export default function WritingSessionContent() {
 
   // Show waiting screen if user has submitted
   if (hasSubmitted()) {
+    // Convert session players to WaitingForPlayers format
+    const partyMembers = players.map(p => ({
+      name: p.displayName,
+      userId: p.userId,
+      avatar: p.avatar,
+      rank: p.rank,
+      isAI: p.isAI,
+      isYou: p.userId === user?.uid,
+    }));
+    
+    // Get list of players who have submitted
+    const submittedPlayerIds = players
+      .filter(p => p.phases.phase1?.submitted)
+      .map(p => p.userId);
+    
     return (
       <WaitingForPlayers 
         phase={1}
         playersReady={submitted}
         totalPlayers={total}
         timeRemaining={timeRemaining}
+        partyMembers={partyMembers}
+        submittedPlayerIds={submittedPlayerIds}
       />
     );
   }
@@ -600,21 +652,7 @@ export default function WritingSessionContent() {
               </div>
             </div>
 
-            <div className="rounded-3xl border border-white/10 bg-[#141e27] p-6 space-y-3 text-sm text-white/60">
-              <div className="flex items-center justify-between">
-                <span>Submissions received</span>
-                <span className="font-semibold text-white">{submitted} / {total}</span>
-              </div>
-              <div className="h-1.5 rounded-full bg-white/10">
-                <div
-                  className="h-full rounded-full bg-emerald-400"
-                  style={{ width: `${(submitted / total) * 100}%` }}
-                />
-              </div>
-              <div className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-xs text-white/50">
-                Stay until all teammates submit. Leaving early forfeits LP and streak bonuses.
-              </div>
-            </div>
+            {/* Removed useless submissions card per user feedback */}
           </aside>
         </div>
       </main>
