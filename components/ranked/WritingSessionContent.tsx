@@ -157,9 +157,9 @@ export default function WritingSessionContent() {
         console.log('✅ SESSION - All AI writings generated and stored');
         
         // AUTO-SUBMIT AI PLAYERS (they've "finished writing")
-        // Submit each AI player's work to the session after a random delay (30-90 seconds)
+        // Submit each AI player's work to the session after a short delay (5-15 seconds)
         aiPlayers.forEach((aiPlayer, index) => {
-          const delay = 30000 + Math.random() * 60000; // 30-90 seconds
+          const delay = 5000 + Math.random() * 10000; // 5-15 seconds
           
           setTimeout(async () => {
             try {
