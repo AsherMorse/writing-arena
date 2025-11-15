@@ -59,7 +59,8 @@ export default function SessionPage() {
   
   // Completed session
   if (sessionState === 'completed') {
-    return <ResultsContent />;
+    // Pass session data to ResultsContent
+    return <ResultsContent session={session} />;
   }
   
   // Phase-based rendering

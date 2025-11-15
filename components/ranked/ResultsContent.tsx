@@ -1,9 +1,9 @@
 'use client';
 
-import { useSearchParams } from 'next/navigation';
-import { useState, useEffect, Suspense } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useAuth } from '@/contexts/AuthContext';
+import { GameSession } from '@/lib/types/session';
 import { getAIFeedback } from '@/lib/services/match-sync';
 import { saveWritingSession, updateUserStatsAfterSession } from '@/lib/services/firestore';
 import { updateAIStudentAfterMatch } from '@/lib/services/ai-students';
@@ -63,20 +63,33 @@ const MOCK_PHASE_FEEDBACK = {
   }
 };
 
-export default function ResultsContent() {
-  const searchParams = useSearchParams();
+interface ResultsContentProps {
+  session?: GameSession; // Optional for backward compatibility
+}
+
+export default function ResultsContent({ session }: ResultsContentProps = {}) {
   const { user, refreshProfile } = useAuth();
-  const matchId = searchParams.get('matchId') || '';
-  const trait = searchParams.get('trait');
-  const promptType = searchParams.get('promptType');
-  const originalContent = searchParams.get('originalContent') || '';
-  const revisedContent = searchParams.get('revisedContent') || '';
-  const wordCount = parseInt(searchParams.get('wordCount') || '0');
-  const revisedWordCount = parseInt(searchParams.get('revisedWordCount') || '0');
-  const aiScoresParam = searchParams.get('aiScores') || '0,0,0,0';
-  const writingScore = parseFloat(searchParams.get('writingScore') || '75');
-  const feedbackScore = parseFloat(searchParams.get('feedbackScore') || '80');
-  const revisionScore = parseFloat(searchParams.get('revisionScore') || '78');
+  
+  // Extract data from session (new architecture) OR URL params (old architecture)
+  const matchId = session?.matchId || '';
+  const trait = session?.config.trait;
+  const promptType = session?.config.promptType;
+  
+  // Get user's data from session if available
+  const userPlayer = session && user ? session.players[user.uid] : null;
+  const originalContent = userPlayer?.phases.phase1?.content || '';
+  const revisedContent = (userPlayer?.phases.phase3 as any)?.revisedContent || '';
+  const wordCount = userPlayer?.phases.phase1?.wordCount || 0;
+  const revisedWordCount = userPlayer?.phases.phase3?.wordCount || 0;
+  const writingScore = userPlayer?.phases.phase1?.score || 75;
+  const feedbackScore = (userPlayer?.phases.phase2 as any)?.score || 80;
+  const revisionScore = userPlayer?.phases.phase3?.score || 78;
+  
+  console.log('📊 RESULTS - Session data:', {
+    hasSession: !!session,
+    matchId,
+    userScores: { writingScore, feedbackScore, revisionScore },
+  });
   
   const [isAnalyzing, setIsAnalyzing] = useState(true);
   const [results, setResults] = useState<any>(null);
@@ -158,9 +171,8 @@ export default function ResultsContent() {
         // Calculate composite score from all 3 phases
         const yourCompositeScore = (writingScore * 0.4) + (feedbackScore * 0.3) + (revisionScore * 0.3);
         
-        // Build AI players data from real rankings if available, otherwise use fallback
-        const aiScores = aiScoresParam.split(',').map(Number);
-        let aiPlayers: any[];
+        // Build AI players data from session or rankings
+        let aiPlayers: any[] = [];
         
         if (realPhase1Rankings.length > 0) {
           // Use real AI scores from batch rankings
@@ -179,7 +191,7 @@ export default function ResultsContent() {
               phase1: p1.score,
               phase2: p2?.score || Math.round(65 + Math.random() * 25),
               phase3: p3?.score || Math.round(70 + Math.random() * 20),
-              wordCount: aiScores[idx] || 95,
+              wordCount: 90 + Math.floor(Math.random() * 20),
             };
           });
         } else {
@@ -193,7 +205,7 @@ export default function ResultsContent() {
               phase1: Math.round(65 + Math.random() * 25),
               phase2: Math.round(70 + Math.random() * 20),
               phase3: Math.round(75 + Math.random() * 15),
-              wordCount: aiScores[0],
+              wordCount: 90,
             },
             {
               name: 'WordMaster',
@@ -202,7 +214,7 @@ export default function ResultsContent() {
               phase1: Math.round(60 + Math.random() * 30),
               phase2: Math.round(65 + Math.random() * 25),
               phase3: Math.round(70 + Math.random() * 20),
-              wordCount: aiScores[1],
+              wordCount: 95,
             },
             {
               name: 'EliteScribe',
@@ -211,7 +223,7 @@ export default function ResultsContent() {
               phase1: Math.round(70 + Math.random() * 20),
               phase2: Math.round(75 + Math.random() * 15),
               phase3: Math.round(65 + Math.random() * 25),
-              wordCount: aiScores[2],
+              wordCount: 88,
             },
             {
               name: 'PenChampion',
@@ -220,7 +232,7 @@ export default function ResultsContent() {
               phase1: Math.round(55 + Math.random() * 30),
               phase2: Math.round(60 + Math.random() * 25),
               phase3: Math.round(70 + Math.random() * 20),
-              wordCount: aiScores[3],
+              wordCount: 92,
             },
           ];
         }
@@ -389,7 +401,7 @@ export default function ResultsContent() {
 
     analyzeRankedMatch();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [wordCount, aiScoresParam, trait, promptType, writingScore, feedbackScore, revisionScore]);
+  }, [wordCount, trait, promptType, writingScore, feedbackScore, revisionScore, session, user]);
 
   if (isAnalyzing) {
     return (
