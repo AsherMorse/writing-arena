@@ -136,9 +136,13 @@ export default function WritingSessionContent() {
         const aiWritings = await Promise.all(aiWritingPromises);
         
         // Store AI writings in matchStates for backward compatibility
-        await updateDoc(matchRef, {
-          'aiWritings.phase1': aiWritings,
-        });
+        // Use setDoc with merge to create if doesn't exist
+        const { setDoc } = await import('firebase/firestore');
+        await setDoc(matchRef, {
+          aiWritings: {
+            phase1: aiWritings,
+          },
+        }, { merge: true });
         
         // Update AI word counts for UI
         setAiWordCounts(aiWritings.map(w => w.wordCount));
@@ -276,9 +280,12 @@ export default function WritingSessionContent() {
       
       // Store rankings in matchStates for backward compatibility
       const matchRef = doc(db, 'matchStates', session.matchId);
-      await updateDoc(matchRef, {
-        'rankings.phase1': rankings,
-      });
+      const { setDoc } = await import('firebase/firestore');
+      await setDoc(matchRef, {
+        rankings: {
+          phase1: rankings,
+        },
+      }, { merge: true });
       
       // NEW: Submit using session architecture
       await submitPhase(1, {
