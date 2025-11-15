@@ -1,10 +1,11 @@
 'use client';
 
-import { useRouter, useSearchParams } from 'next/navigation';
-import { useState, useEffect, Suspense } from 'react';
+import { useRouter, useParams } from 'next/navigation';
+import { useState, useEffect } from 'react';
 import WritingTipsModal from '@/components/shared/WritingTipsModal';
 import { useAuth } from '@/contexts/AuthContext';
-import { submitPhase, getPeerFeedbackResponses } from '@/lib/services/match-sync';
+import { useSession } from '@/lib/hooks/useSession';
+import { getPeerFeedbackResponses } from '@/lib/services/match-sync';
 
 // Mock AI feedback - will be replaced with real AI later
 const MOCK_AI_FEEDBACK = {
@@ -23,20 +24,32 @@ const MOCK_AI_FEEDBACK = {
 
 export default function RevisionContent() {
   const router = useRouter();
-  const searchParams = useSearchParams();
+  const params = useParams();
+  const sessionId = params?.sessionId as string;
   const { user } = useAuth();
-  const matchId = searchParams.get('matchId') || '';
-  const trait = searchParams.get('trait');
-  const promptId = searchParams.get('promptId');
-  const promptType = searchParams.get('promptType');
-  const originalContent = decodeURIComponent(searchParams.get('content') || '');
-  const wordCount = searchParams.get('wordCount') || '0';
-  const aiScores = searchParams.get('aiScores') || '';
-  const yourScore = searchParams.get('yourScore') || '75';
-  const feedbackScore = searchParams.get('feedbackScore') || '80';
-  const peerFeedbackRaw = searchParams.get('peerFeedback') || '{}';
   
-  const [timeLeft, setTimeLeft] = useState(60); // 1 minute for revision
+  // NEW: Use session hook
+  const {
+    session,
+    isReconnecting,
+    error,
+    timeRemaining,
+    submitPhase,
+    hasSubmitted,
+  } = useSession(sessionId);
+  
+  const matchId = session?.matchId || '';
+  const trait = session?.config.trait || 'all';
+  const promptId = session?.config.promptId || '';
+  const promptType = session?.config.promptType || 'narrative';
+  
+  // Get original content from session player data
+  const originalContent = user && session ? (session.players[user.uid]?.phases.phase1?.content || '') : '';
+  const yourScore = user && session ? (session.players[user.uid]?.phases.phase1?.score || 75) : 75;
+  const feedbackScore = user && session ? (session.players[user.uid]?.phases.phase2?.score || 80) : 80;
+  const wordCount = user && session ? (session.players[user.uid]?.phases.phase1?.wordCount || 0) : 0;
+  const aiScores = ''; // TODO: Extract from session data
+  
   const [revisedContent, setRevisedContent] = useState(originalContent);
   const [wordCountRevised, setWordCountRevised] = useState(0);
   const [showFeedback, setShowFeedback] = useState(true);
@@ -49,13 +62,6 @@ export default function RevisionContent() {
   const [loadingPeerFeedback, setLoadingPeerFeedback] = useState(true);
   const [aiRevisionsGenerated, setAiRevisionsGenerated] = useState(false);
   
-  // Parse peer feedback
-  let peerFeedback;
-  try {
-    peerFeedback = JSON.parse(decodeURIComponent(peerFeedbackRaw));
-  } catch {
-    peerFeedback = {};
-  }
 
   // Fetch real peer feedback from Phase 2
   useEffect(() => {
@@ -85,11 +91,14 @@ export default function RevisionContent() {
     fetchPeerFeedback();
   }, [user, matchId]);
 
-  // Load AI feedback from Phase 1 rankings (already generated)
+  // Load AI feedback from session player data (already generated in Phase 1)
   useEffect(() => {
+    if (!session || !user || !matchId) return;
+    
     console.log('🤖 REVISION - Loading feedback from Phase 1...');
     try {
-      const storedFeedback = sessionStorage.getItem(`${matchId}-phase1-feedback`);
+      // eslint-disable-next-line no-unused-vars
+      const storedFeedback = null; // No more sessionStorage!
       
       if (storedFeedback) {
         const feedback = JSON.parse(storedFeedback);
@@ -111,7 +120,7 @@ export default function RevisionContent() {
     } finally {
       setLoadingFeedback(false);
     }
-  }, [matchId]);
+  }, [matchId, session, user]);
 
   // Generate AI revisions when phase starts
   useEffect(() => {
@@ -194,22 +203,17 @@ export default function RevisionContent() {
     };
     
     generateAIRevisions();
-  }, [matchId, user, aiRevisionsGenerated, promptType]);
+  }, [matchId, user, aiRevisionsGenerated]);
 
   useEffect(() => {
-    if (timeLeft > 0) {
-      const timer = setInterval(() => {
-        setTimeLeft((prev) => prev - 1);
-      }, 1000);
-      return () => clearInterval(timer);
-    } else {
+    if (timeRemaining === 0 && !hasSubmitted()) {
       setShowRankingModal(true);
       setTimeout(() => {
         handleSubmit();
       }, 500);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [timeLeft]);
+  }, [timeRemaining, hasSubmitted]);
 
   useEffect(() => {
     const words = revisedContent.trim().split(/\s+/).filter(word => word.length > 0);
@@ -223,8 +227,8 @@ export default function RevisionContent() {
   };
 
   const getTimeColor = () => {
-    if (timeLeft > 30) return 'text-green-400';
-    if (timeLeft > 15) return 'text-yellow-400';
+    if (timeRemaining > 30) return 'text-green-400';
+    if (timeRemaining > 15) return 'text-yellow-400';
     return 'text-red-400';
   };
 
@@ -295,14 +299,12 @@ export default function RevisionContent() {
       // Save feedback to session storage
       sessionStorage.setItem(`${matchId}-phase3-feedback`, JSON.stringify(yourRanking));
       
-      // Submit to match state WITH full AI feedback
-      if (user) {
-        await submitPhase(matchId, user.uid, 3, Math.round(revisionScore), {
-          improvements: yourRanking.improvements || [],
-          strengths: yourRanking.strengths || [],
-          suggestions: yourRanking.suggestions || [],
-        });
-      }
+      // NEW: Submit using session architecture
+      await submitPhase(3, {
+        revisedContent,
+        wordCount: wordCountRevised,
+        score: Math.round(revisionScore),
+      });
       
       router.push(
         `/ranked/results?matchId=${matchId}&trait=${trait}&promptId=${promptId}&promptType=${promptType}&originalContent=${encodeURIComponent(originalContent)}&revisedContent=${encodeURIComponent(revisedContent)}&wordCount=${wordCount}&revisedWordCount=${wordCountRevised}&aiScores=${aiScores}&writingScore=${yourScore}&feedbackScore=${feedbackScore}&revisionScore=${Math.round(revisionScore)}`
@@ -329,28 +331,28 @@ export default function RevisionContent() {
         
         sessionStorage.setItem(`${matchId}-phase3-feedback`, JSON.stringify(data));
         
-        if (user) {
-          await submitPhase(matchId, user.uid, 3, Math.round(revisionScore), {
-            improvements: data.improvements || [],
-            strengths: data.strengths || [],
-            suggestions: data.suggestions || [],
-          });
-        }
+        await submitPhase(3, {
+          revisedContent,
+          wordCount: wordCountRevised,
+          score: Math.round(revisionScore),
+        });
         
         router.push(
           `/ranked/results?matchId=${matchId}&trait=${trait}&promptId=${promptId}&promptType=${promptType}&originalContent=${encodeURIComponent(originalContent)}&revisedContent=${encodeURIComponent(revisedContent)}&wordCount=${wordCount}&revisedWordCount=${wordCountRevised}&aiScores=${aiScores}&writingScore=${yourScore}&feedbackScore=${feedbackScore}&revisionScore=${Math.round(revisionScore)}`
         );
       } catch (fallbackError) {
         console.error('❌ REVISION - Even fallback failed:', fallbackError);
-        const changeAmount = Math.abs(wordCountRevised - parseInt(wordCount));
+        const changeAmount = Math.abs(wordCountRevised - wordCount);
         const hasSignificantChanges = changeAmount > 10;
         const revisionScore = hasSignificantChanges 
           ? Math.min(85 + Math.random() * 10, 95)
           : 60 + Math.random() * 15;
         
-        if (user) {
-          await submitPhase(matchId, user.uid, 3, Math.round(revisionScore)).catch(console.error);
-        }
+        await submitPhase(3, {
+          revisedContent,
+          wordCount: wordCountRevised,
+          score: Math.round(revisionScore),
+        }).catch(console.error);
         
         router.push(
           `/ranked/results?matchId=${matchId}&trait=${trait}&promptId=${promptId}&promptType=${promptType}&originalContent=${encodeURIComponent(originalContent)}&revisedContent=${encodeURIComponent(revisedContent)}&wordCount=${wordCount}&revisedWordCount=${wordCountRevised}&aiScores=${aiScores}&writingScore=${yourScore}&feedbackScore=${feedbackScore}&revisionScore=${Math.round(revisionScore)}`
@@ -426,10 +428,10 @@ export default function RevisionContent() {
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4">
               <div className={`text-3xl font-bold ${getTimeColor()}`}>
-                {formatTime(timeLeft)}
+                {formatTime(timeRemaining)}
               </div>
               <div className="text-white/60">
-                {timeLeft > 0 ? 'Time remaining' : 'Time\'s up!'}
+                {timeRemaining > 0 ? 'Time remaining' : 'Time\'s up!'}
               </div>
               <div className="px-3 py-1 bg-emerald-500/20 border border-emerald-400/30 rounded-full">
                 <span className="text-emerald-400 text-sm font-semibold">✏️ PHASE 3: REVISION</span>
@@ -441,7 +443,7 @@ export default function RevisionContent() {
                 <span className="font-semibold text-white">{wordCountRevised}</span> words
                 {hasRevised && (
                   <span className="ml-2 text-emerald-400">
-                    ({wordCountRevised > parseInt(wordCount) ? '+' : ''}{wordCountRevised - parseInt(wordCount)})
+                    ({wordCountRevised > wordCount ? '+' : ''}{wordCountRevised - wordCount})
                   </span>
                 )}
               </div>
@@ -454,9 +456,9 @@ export default function RevisionContent() {
           <div className="mt-4 w-full bg-white/10 rounded-full h-2 overflow-hidden">
             <div 
               className={`h-full transition-all duration-1000 ${
-                timeLeft > 30 ? 'bg-green-400' : timeLeft > 15 ? 'bg-yellow-400' : 'bg-red-400'
+                timeRemaining > 30 ? 'bg-green-400' : timeRemaining > 15 ? 'bg-yellow-400' : 'bg-red-400'
               }`}
-              style={{ width: `${(timeLeft / 60) * 100}%` }}
+              style={{ width: `${(timeRemaining / 60) * 100}%` }}
             />
           </div>
         </div>

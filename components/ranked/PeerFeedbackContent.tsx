@@ -1,10 +1,11 @@
 'use client';
 
-import { useRouter, useSearchParams } from 'next/navigation';
-import { useState, useEffect, Suspense } from 'react';
+import { useRouter, useParams } from 'next/navigation';
+import { useState, useEffect } from 'react';
 import WritingTipsModal from '@/components/shared/WritingTipsModal';
 import { useAuth } from '@/contexts/AuthContext';
-import { submitPhase, getAssignedPeer } from '@/lib/services/match-sync';
+import { useSession } from '@/lib/hooks/useSession';
+import { getAssignedPeer } from '@/lib/services/match-sync';
 
 // Mock peer writings - in reality, these would come from other players
 const MOCK_PEER_WRITINGS = [
@@ -34,18 +35,21 @@ I was standing in a forest I'd never seen before. There were trees everywhere an
 
 export default function PeerFeedbackContent() {
   const router = useRouter();
-  const searchParams = useSearchParams();
+  const params = useParams();
+  const sessionId = params?.sessionId as string;
   const { user } = useAuth();
-  const matchId = searchParams.get('matchId') || '';
-  const trait = searchParams.get('trait');
-  const promptId = searchParams.get('promptId');
-  const promptType = searchParams.get('promptType');
-  const content = searchParams.get('content') || '';
-  const wordCount = searchParams.get('wordCount') || '0';
-  const aiScores = searchParams.get('aiScores') || '';
-  const yourScore = searchParams.get('yourScore') || '75';
-
-  const [timeLeft, setTimeLeft] = useState(60); // 1 minute for peer feedback
+  
+  // NEW: Use session hook
+  const {
+    session,
+    isReconnecting,
+    error,
+    timeRemaining,
+    submitPhase,
+    hasSubmitted,
+  } = useSession(sessionId);
+  
+  const matchId = session?.matchId || '';
   const [currentPeer, setCurrentPeer] = useState<any>(null);
   const [loadingPeer, setLoadingPeer] = useState(true);
   const [showTipsModal, setShowTipsModal] = useState(false);
@@ -181,20 +185,16 @@ export default function PeerFeedbackContent() {
     loadPeerWriting();
   }, [user, matchId]);
 
+  // Auto-submit when time runs out
   useEffect(() => {
-    if (timeLeft > 0) {
-      const timer = setInterval(() => {
-        setTimeLeft((prev) => prev - 1);
-      }, 1000);
-      return () => clearInterval(timer);
-    } else {
+    if (timeRemaining === 0 && !hasSubmitted()) {
       setShowRankingModal(true);
       setTimeout(() => {
         handleSubmit();
       }, 500);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [timeLeft]);
+  }, [timeRemaining, hasSubmitted]);
 
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
@@ -203,8 +203,8 @@ export default function PeerFeedbackContent() {
   };
 
   const getTimeColor = () => {
-    if (timeLeft > 30) return 'text-green-400';
-    if (timeLeft > 15) return 'text-yellow-400';
+    if (timeRemaining > 30) return 'text-green-400';
+    if (timeRemaining > 15) return 'text-yellow-400';
     return 'text-red-400';
   };
 
@@ -286,21 +286,13 @@ export default function PeerFeedbackContent() {
         'rankings.phase2': rankings,
       });
       
-      // Save feedback to session storage
-      sessionStorage.setItem(`${matchId}-phase2-feedback`, JSON.stringify(yourRanking));
+      // NEW: Submit using session architecture
+      await submitPhase(2, {
+        responses,
+        score: Math.round(feedbackScore),
+      });
       
-      // Submit to match state WITH full AI feedback
-      if (user) {
-        await submitPhase(matchId, user.uid, 2, Math.round(feedbackScore), {
-          strengths: yourRanking.strengths || [],
-          improvements: yourRanking.improvements || [],
-        });
-      }
-      
-      // Route to phase 2 rankings screen, then to revision
-      router.push(
-        `/ranked/phase-rankings?phase=2&matchId=${matchId}&trait=${trait}&promptId=${promptId}&promptType=${promptType}&content=${content}&wordCount=${wordCount}&aiScores=${aiScores}&yourScore=${yourScore}&feedbackScore=${Math.round(feedbackScore)}&peerFeedback=${encodeURIComponent(JSON.stringify(responses))}`
-      );
+      console.log('✅ PEER FEEDBACK - Submission complete, phase will transition automatically!');
       
     } catch (error) {
       console.error('❌ PEER FEEDBACK - Batch ranking failed, using fallback:', error);
@@ -320,34 +312,35 @@ export default function PeerFeedbackContent() {
         const feedbackScore = data.score || 75;
         console.log('✅ PEER FEEDBACK - Fallback evaluation complete, score:', feedbackScore);
         
-        sessionStorage.setItem(`${matchId}-phase2-feedback`, JSON.stringify(data));
-        
-        if (user) {
-          await submitPhase(matchId, user.uid, 2, Math.round(feedbackScore), {
-            strengths: data.strengths || [],
-            improvements: data.improvements || [],
-          });
-        }
-        
-        router.push(
-          `/ranked/phase-rankings?phase=2&matchId=${matchId}&trait=${trait}&promptId=${promptId}&promptType=${promptType}&content=${content}&wordCount=${wordCount}&aiScores=${aiScores}&yourScore=${yourScore}&feedbackScore=${Math.round(feedbackScore)}&peerFeedback=${encodeURIComponent(JSON.stringify(responses))}`
-        );
+        await submitPhase(2, {
+          responses,
+          score: Math.round(feedbackScore),
+        });
       } catch (fallbackError) {
         console.error('❌ PEER FEEDBACK - Even fallback failed:', fallbackError);
         const feedbackQuality = isFormComplete() ? Math.random() * 20 + 75 : Math.random() * 30 + 50;
         
-        if (user) {
-          await submitPhase(matchId, user.uid, 2, Math.round(feedbackQuality)).catch(console.error);
-        }
-        
-        router.push(
-          `/ranked/phase-rankings?phase=2&matchId=${matchId}&trait=${trait}&promptId=${promptId}&promptType=${promptType}&content=${content}&wordCount=${wordCount}&aiScores=${aiScores}&yourScore=${yourScore}&feedbackScore=${Math.round(feedbackQuality)}&peerFeedback=${encodeURIComponent(JSON.stringify(responses))}`
-        );
+        await submitPhase(2, {
+          responses,
+          score: Math.round(feedbackQuality),
+        }).catch(console.error);
       }
     } finally {
       setIsEvaluating(false);
     }
   };
+
+  // Loading state
+  if (isReconnecting || !session) {
+    return (
+      <div className="min-h-screen bg-[#0c141d] text-white flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-white mx-auto mb-4"></div>
+          <p className="text-white text-xl">Loading feedback phase...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[#0c141d] text-white">
@@ -400,10 +393,10 @@ export default function PeerFeedbackContent() {
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4">
               <div className={`text-3xl font-bold ${getTimeColor()}`}>
-                {formatTime(timeLeft)}
+                {formatTime(timeRemaining)}
               </div>
               <div className="text-white/60">
-                {timeLeft > 0 ? 'Time remaining' : 'Time\'s up!'}
+                {timeRemaining > 0 ? 'Time remaining' : 'Time\'s up!'}
               </div>
               <div className="px-3 py-1 bg-blue-500/20 border border-blue-400/30 rounded-full">
                 <span className="text-blue-400 text-sm font-semibold">📝 PHASE 2: PEER FEEDBACK</span>
@@ -418,9 +411,9 @@ export default function PeerFeedbackContent() {
           <div className="mt-4 w-full bg-white/10 rounded-full h-2 overflow-hidden">
             <div 
               className={`h-full transition-all duration-1000 ${
-                timeLeft > 30 ? 'bg-green-400' : timeLeft > 15 ? 'bg-yellow-400' : 'bg-red-400'
+                timeRemaining > 30 ? 'bg-green-400' : timeRemaining > 15 ? 'bg-yellow-400' : 'bg-red-400'
               }`}
-              style={{ width: `${(timeLeft / 60) * 100}%` }}
+              style={{ width: `${(timeRemaining / 60) * 100}%` }}
             />
           </div>
         </div>

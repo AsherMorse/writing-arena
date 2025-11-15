@@ -7,12 +7,16 @@ import { useAuth } from '@/contexts/AuthContext';
 import { joinQueue, leaveQueue, listenToQueue, QueueEntry, createMatchLobby, listenToMatchLobby } from '@/lib/services/matchmaking-queue';
 import { getRandomPrompt } from '@/lib/utils/prompts';
 import { getRandomAIStudents } from '@/lib/services/ai-students';
+import { useCreateSession } from '@/lib/hooks/useSession';
 
 export default function MatchmakingContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const trait = searchParams.get('trait') || 'all';
   const { user, userProfile } = useAuth();
+  
+  // NEW: Session creation hook
+  const { createSession, isCreating } = useCreateSession();
 
   // Ensure avatar is a string (old profiles had it as an object)
   const userAvatar = typeof userProfile?.avatar === 'string' ? userProfile.avatar : '🌿';
@@ -367,27 +371,46 @@ export default function MatchmakingContent() {
           isAI: p.isAI
         }));
         
-        // Create shared lobby in Firestore
-        createMatchLobby(matchId, lobbyPlayers, trait, randomPrompt.id)
-          .then(() => {
-            console.log('✅ MATCHMAKING - Lobby created, navigating...');
-            router.push(`/ranked/session?trait=${trait}&promptId=${randomPrompt.id}&matchId=${matchId}&isLeader=true`);
+        // NEW: Create session using new architecture
+        console.log('👑 MATCHMAKING - Creating session as leader...');
+        createSession({
+          mode: 'ranked',
+          config: {
+            trait,
+            promptId: randomPrompt.id,
+            promptType: randomPrompt.type,
+            phase: 1,
+            phaseDuration: 120,
+          },
+          players: lobbyPlayers.map(p => ({
+            userId: p.userId,
+            displayName: 'name' in p ? p.name : p.userId,
+            avatar: p.avatar,
+            rank: p.rank,
+            isAI: p.isAI,
+          })),
+        })
+          .then((session) => {
+            console.log('✅ MATCHMAKING - Session created:', session.sessionId);
+            // Create lobby for backward compatibility
+            createMatchLobby(matchId, lobbyPlayers, trait, randomPrompt.id).catch(console.error);
+            router.push(`/session/${session.sessionId}`);
           })
           .catch(err => {
-            console.error('❌ MATCHMAKING - Failed to create lobby:', err);
-            // Navigate anyway
-            router.push(`/ranked/session?trait=${trait}&promptId=${randomPrompt.id}&matchId=${matchId}`);
+            console.error('❌ MATCHMAKING - Failed to create session:', err);
           });
       } else if (isMultiPlayer && !amILeader) {
-        console.log('👤 MATCHMAKING - I am follower, waiting for leader to create lobby...');
+        console.log('👤 MATCHMAKING - I am follower, waiting for leader to create session...');
         
-        // Listen for leader to create lobby
+        // Listen for leader to create lobby (contains sessionId)
         lobbyListenerRef.current = listenToMatchLobby(matchId, (lobbyData) => {
-          console.log('✅ MATCHMAKING - Leader created lobby, navigating...');
+          console.log('✅ MATCHMAKING - Leader created session, navigating...');
           if (lobbyListenerRef.current) {
             lobbyListenerRef.current();
             lobbyListenerRef.current = null;
           }
+          // TODO: Extract sessionId from lobby data once available
+          // For now, navigate to old route temporarily
           router.push(`/ranked/session?trait=${trait}&promptId=${randomPrompt.id}&matchId=${matchId}`);
         });
         
@@ -401,11 +424,47 @@ export default function MatchmakingContent() {
           }
         }, 10000);
       } else {
-        // Single player, navigate immediately
-        router.push(`/ranked/session?trait=${trait}&promptId=${randomPrompt.id}&matchId=${matchId}`);
+        // Single player with AI - create session immediately
+        console.log('🤖 MATCHMAKING - Creating single-player session...');
+        
+        const singlePlayerPlayers = [
+          {
+            userId,
+            displayName: userName,
+            avatar: userAvatar,
+            rank: userRank,
+            isAI: false,
+          },
+          ...selectedAIStudents.map(ai => ({
+            userId: ai.userId,
+            displayName: ai.displayName,
+            avatar: ai.avatar,
+            rank: ai.rank,
+            isAI: true,
+          }))
+        ];
+        
+        createSession({
+          mode: 'ranked',
+          config: {
+            trait,
+            promptId: randomPrompt.id,
+            promptType: randomPrompt.type,
+            phase: 1,
+            phaseDuration: 120,
+          },
+          players: singlePlayerPlayers,
+        })
+          .then((session) => {
+            console.log('✅ MATCHMAKING - Session created:', session.sessionId);
+            router.push(`/session/${session.sessionId}`);
+          })
+          .catch(err => {
+            console.error('❌ MATCHMAKING - Failed to create session:', err);
+          });
       }
     }
-  }, [countdown, router, trait, userId, userName, players, selectedAIStudents, queueSnapshot]);
+  }, [countdown, router, trait, userId, userName, players, selectedAIStudents, queueSnapshot, createSession, userAvatar, userRank]);
 
   return (
     <div className="min-h-screen bg-[#0c141d] text-white">

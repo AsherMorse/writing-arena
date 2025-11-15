@@ -73,6 +73,7 @@ export function useSession(sessionId: string | null) {
     return () => {
       sessionManager.leaveSession();
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sessionId, user, userProfile]);
   
   // Update time remaining every second

@@ -426,6 +426,47 @@ service cloud.firestore {
     }
     
     // ============================================================================
+    // SESSION ARCHITECTURE - Game Sessions with real-time sync
+    // ============================================================================
+    
+    // Helper to check if user is a player in the session
+    function isPlayerInSession() {
+      return request.auth.uid in resource.data.players;
+    }
+    
+    // Helper to check if user is only updating their own player data
+    function isOnlyUpdatingOwnPlayerData() {
+      let affectedKeys = request.resource.data.diff(resource.data).affectedKeys();
+      // Allow updates to own player path and updatedAt timestamp
+      return affectedKeys.hasOnly([
+        'players.' + request.auth.uid + '.status',
+        'players.' + request.auth.uid + '.lastHeartbeat',
+        'players.' + request.auth.uid + '.connectionId',
+        'players.' + request.auth.uid + '.phases',
+        'updatedAt'
+      ].toSet());
+    }
+    
+    // Game Sessions collection - robust multiplayer session management
+    match /sessions/{sessionId} {
+      // Read: Players in the session can read it
+      allow read: if isAuthenticated() && isPlayerInSession();
+      
+      // Create: Any authenticated user can create sessions (matchmaking)
+      allow create: if isAuthenticated();
+      
+      // Update: Players can update their own data (heartbeat, phase submission)
+      allow update: if isAuthenticated() && isPlayerInSession() && (
+        isOnlyUpdatingOwnPlayerData() ||
+        // Cloud Functions can update coordination fields
+        request.auth.token.firebase.sign_in_provider == 'custom'
+      );
+      
+      // Delete: No deleting sessions (keep history)
+      allow delete: if false;
+    }
+    
+    // ============================================================================
     // DEFAULT RULE - ALL OTHER COLLECTIONS (OTHER PLATFORMS)
     // This keeps existing behavior for shared collections
     // ============================================================================
