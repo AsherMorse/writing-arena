@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { generateTWRRevisionPrompt } from '@/lib/utils/twr-prompts';
 
 export async function POST(request: NextRequest) {
   let payload: { originalContent?: string; revisedContent?: string; feedback?: any };
@@ -35,7 +36,7 @@ export async function POST(request: NextRequest) {
         messages: [
           {
             role: 'user',
-            content: generateRevisionPrompt(originalContent, revisedContent, feedback),
+            content: generateTWRRevisionPrompt(originalContent, revisedContent, feedback),
           },
         ],
       }),

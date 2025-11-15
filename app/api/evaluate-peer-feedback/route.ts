@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { generateTWRPeerFeedbackPrompt } from '@/lib/utils/twr-prompts';
 
 export async function POST(request: NextRequest) {
   let payload: { responses?: any; peerWriting?: string };
@@ -34,7 +35,7 @@ export async function POST(request: NextRequest) {
         messages: [
           {
             role: 'user',
-            content: generatePeerFeedbackPrompt(responses, peerWriting),
+            content: generateTWRPeerFeedbackPrompt(responses, peerWriting),
           },
         ],
       }),

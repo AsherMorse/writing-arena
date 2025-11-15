@@ -197,7 +197,7 @@ export default function WaitingForPlayers({
                     <div className="truncate text-sm text-white/80">
                       {member.name || `Slot ${index + 1}`}
                     </div>
-                    <div className="text-[11px] text-white/40">{member.rank}</div>
+                    <div className="text-[11px] text-white/40">{'rank' in member ? member.rank : 'Silver III'}</div>
                   </div>
                 );
               })}

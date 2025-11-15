@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { generateTWRFeedbackPrompt } from '@/lib/utils/twr-prompts';
 
 export async function POST(request: NextRequest) {
   try {
@@ -24,7 +25,7 @@ export async function POST(request: NextRequest) {
         messages: [
           {
             role: 'user',
-            content: generateFeedbackPrompt(content, promptType),
+            content: generateTWRFeedbackPrompt(content, promptType),
           },
         ],
       }),

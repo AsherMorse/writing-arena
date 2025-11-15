@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { generateTWRWritingPrompt } from '@/lib/utils/twr-prompts';
 
 export async function POST(request: NextRequest) {
   let payload: { content?: string; trait?: string | null; promptType?: string | null };
@@ -37,7 +38,7 @@ export async function POST(request: NextRequest) {
         messages: [
           {
             role: 'user',
-            content: generatePrompt(content, trait || 'all', promptType || 'narrative'),
+            content: generateTWRWritingPrompt(content, trait || 'all', promptType || 'narrative'),
           },
         ],
       }),

@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { generateTWRBatchRankingPrompt } from '@/lib/utils/twr-prompts';
 
 interface WritingSubmission {
   playerId: string;
@@ -32,7 +33,7 @@ export async function POST(request: NextRequest) {
         messages: [
           {
             role: 'user',
-            content: generateBatchRankingPrompt(writings, prompt, promptType, trait),
+            content: generateTWRBatchRankingPrompt(writings, prompt, promptType, trait),
           },
         ],
       }),
