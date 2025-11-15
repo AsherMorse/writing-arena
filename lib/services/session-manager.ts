@@ -315,6 +315,14 @@ export class SessionManager {
     else if (phase === 2) startTime = timing.phase2StartTime;
     else if (phase === 3) startTime = timing.phase3StartTime;
     
+    console.log('🔍 TIMER DEBUG:', {
+      phase,
+      phase1Start: timing.phase1StartTime ? 'SET' : 'MISSING',
+      phase2Start: timing.phase2StartTime ? 'SET' : 'MISSING',
+      phase3Start: timing.phase3StartTime ? 'SET' : 'MISSING',
+      usingStart: startTime ? 'FOUND' : 'MISSING',
+    });
+    
     if (!startTime) {
       console.log('⏱️ SESSION MANAGER - No start time yet, returning full duration:', config.phaseDuration);
       return config.phaseDuration;
@@ -323,7 +331,14 @@ export class SessionManager {
     const elapsed = Date.now() - startTime.toMillis();
     const remaining = config.phaseDuration - Math.floor(elapsed / 1000);
     
-    console.log('⏱️ SESSION MANAGER - Time calculation:', { elapsed: Math.floor(elapsed / 1000), remaining, duration: config.phaseDuration });
+    console.log('⏱️ SESSION MANAGER - Time calculation:', { 
+      phase,
+      elapsed: Math.floor(elapsed / 1000), 
+      remaining, 
+      duration: config.phaseDuration,
+      startTimeMillis: startTime.toMillis(),
+      nowMillis: Date.now(),
+    });
     
     return Math.max(0, remaining);
   }
