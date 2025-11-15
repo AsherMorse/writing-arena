@@ -125,10 +125,21 @@ export function listenToMatchState(
 }
 
 // Check if all players have submitted for a phase
-export function areAllPlayersReady(matchState: MatchState, phase: 1 | 2 | 3): boolean {
+export function areAllPlayersReady(matchState: MatchState, phase: 1 | 2 | 3, includeAI: boolean = false): boolean {
   const phaseKey = `phase${phase}` as 'phase1' | 'phase2' | 'phase3';
   const submitted = matchState.submissions?.[phaseKey] || [];
   const totalPlayers = matchState.players?.length || 0;
+
+  if (includeAI) {
+    const ready = submitted.length >= totalPlayers;
+    console.log('🔍 MATCH SYNC - All players ready (include AI)?', {
+      phase,
+      totalPlayers,
+      submitted: submitted.length,
+      ready,
+    });
+    return ready;
+  }
   
   // AI players auto-submit after a delay, so only count real players
   const realPlayers = matchState.players?.filter(p => !p.isAI) || [];
@@ -150,26 +161,41 @@ export function areAllPlayersReady(matchState: MatchState, phase: 1 | 2 | 3): bo
 export async function simulateAISubmissions(
   matchId: string,
   phase: 1 | 2 | 3,
-  delay: number = 5000
+  perPlayerDelays?: Record<string, number>
 ): Promise<void> {
-  // Wait for delay, then submit for all AI players
-  setTimeout(async () => {
-    console.log('🤖 MATCH SYNC - Simulating AI submissions for phase', phase);
-    const matchRef = doc(db, 'matchStates', matchId);
-    const matchSnap = await getDoc(matchRef);
+  console.log('🤖 MATCH SYNC - Scheduling AI submissions for phase', phase);
+  const matchRef = doc(db, 'matchStates', matchId);
+  const matchSnap = await getDoc(matchRef);
+  
+  if (!matchSnap.exists()) {
+    return;
+  }
+
+  const matchState = matchSnap.data() as MatchState;
+  const aiPlayers = matchState.players.filter(p => p.isAI);
+  const minDelay = 30000;
+  const maxDelay = 120000;
+  
+  aiPlayers.forEach((aiPlayer, index) => {
+    const fallbackDelay = minDelay + Math.random() * (maxDelay - minDelay);
+    const delay = Math.max(0, perPlayerDelays?.[aiPlayer.userId] ?? fallbackDelay);
     
-    if (matchSnap.exists()) {
-      const matchState = matchSnap.data() as MatchState;
-      const aiPlayers = matchState.players.filter(p => p.isAI);
-      
-      for (const aiPlayer of aiPlayers) {
+    console.log('🤖 MATCH SYNC - AI submission scheduled', {
+      player: aiPlayer.displayName,
+      delay,
+      order: index + 1,
+    });
+    
+    setTimeout(async () => {
+      try {
         const aiScore = Math.round(60 + Math.random() * 30);
         await submitPhase(matchId, aiPlayer.userId, phase, aiScore);
+        console.log('✅ MATCH SYNC - AI submitted', aiPlayer.displayName);
+      } catch (error) {
+        console.error('❌ MATCH SYNC - AI submission failed', { player: aiPlayer.displayName, error });
       }
-      
-      console.log('✅ MATCH SYNC - AI submissions complete');
-    }
-  }, delay);
+    }, delay);
+  });
 }
 
 // Retrieve AI feedback for a specific user and phase

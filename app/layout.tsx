@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import { AuthProvider } from "@/contexts/AuthContext";
+import DebugMenu from "@/components/shared/DebugMenu";
 
 export const metadata: Metadata = {
   title: "Writing Arena - Competitive Writing Platform",
@@ -17,6 +18,7 @@ export default function RootLayout({
       <body className="antialiased" suppressHydrationWarning>
         <AuthProvider>
           {children}
+          <DebugMenu />
         </AuthProvider>
       </body>
     </html>

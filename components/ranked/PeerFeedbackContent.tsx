@@ -4,7 +4,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { useState, useEffect, Suspense } from 'react';
 import WritingTipsModal from '@/components/shared/WritingTipsModal';
 import { useAuth } from '@/contexts/AuthContext';
-import { submitPhase, getAssignedPeer } from '@/lib/services/match-sync';
+import { submitPhase, getAssignedPeer, listenToMatchState, simulateAISubmissions } from '@/lib/services/match-sync';
 
 // Mock peer writings - in reality, these would come from other players
 const MOCK_PEER_WRITINGS = [
@@ -52,6 +52,9 @@ export default function PeerFeedbackContent() {
   const [showRankingModal, setShowRankingModal] = useState(false);
   const [isEvaluating, setIsEvaluating] = useState(false);
   const [aiFeedbackGenerated, setAiFeedbackGenerated] = useState(false);
+  const [partyMembers, setPartyMembers] = useState<any[]>([]);
+  const [submittedPlayerIds, setSubmittedPlayerIds] = useState<string[]>([]);
+  const [isLeaderClient, setIsLeaderClient] = useState(false);
   
   // Feedback questions and responses
   const [responses, setResponses] = useState({
@@ -61,6 +64,39 @@ export default function PeerFeedbackContent() {
     organization: '',
     engagement: ''
   });
+
+  const getFallbackParty = () => ([
+    { name: 'You', avatar: '🌿', rank: 'Silver III', userId: user?.uid || 'you', isYou: true, isAI: false },
+    { name: 'ProWriter99', avatar: '🎯', rank: 'Silver II', userId: 'ai-fallback-1', isAI: true },
+    { name: 'WordMaster', avatar: '📖', rank: 'Silver III', userId: 'ai-fallback-2', isAI: true },
+    { name: 'EliteScribe', avatar: '✨', rank: 'Silver II', userId: 'ai-fallback-3', isAI: true },
+    { name: 'PenChampion', avatar: '🏅', rank: 'Silver IV', userId: 'ai-fallback-4', isAI: true },
+  ]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined' || !matchId) return;
+    try {
+      const stored = sessionStorage.getItem(`${matchId}-players`);
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          setPartyMembers(parsed);
+          return;
+        }
+      }
+    } catch (error) {
+      console.warn('⚠️ PEER FEEDBACK - Failed to load party members from storage', error);
+    }
+    setPartyMembers(getFallbackParty());
+  }, [matchId, user]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined' || !matchId) return;
+    const storedLeader = sessionStorage.getItem(`${matchId}-isLeader`);
+    if (storedLeader) {
+      setIsLeaderClient(storedLeader === 'true');
+    }
+  }, [matchId]);
 
   // Generate AI peer feedback when phase starts
   useEffect(() => {
@@ -82,6 +118,28 @@ export default function PeerFeedbackContent() {
         const players = matchState.players || [];
         const aiPlayers = players.filter((p: any) => p.isAI);
         const writings = matchState.aiWritings?.phase1 || [];
+
+        const existingFeedbacks = matchState?.aiFeedbacks?.phase2;
+        if (existingFeedbacks && existingFeedbacks.length > 0) {
+          if (isLeaderClient && typeof window !== 'undefined') {
+            const scheduleKey = `${matchId}-phase2-ai-scheduled`;
+            if (sessionStorage.getItem(scheduleKey) !== 'true') {
+              const delays: Record<string, number> = {};
+              aiPlayers.forEach((aiPlayer: any) => {
+                if (aiPlayer.userId) {
+                  delays[aiPlayer.userId] = 30000 + Math.random() * 90000;
+                }
+              });
+              if (Object.keys(delays).length > 0) {
+                simulateAISubmissions(matchId, 2, delays);
+                sessionStorage.setItem(scheduleKey, 'true');
+                console.log('🧠 PEER FEEDBACK - Scheduled AI submissions (existing feedback)');
+              }
+            }
+          }
+          console.log('✅ PEER FEEDBACK - AI feedback already exists, skipping regeneration');
+          return;
+        }
         
         // Generate feedback for each AI player
         const aiFeedbackPromises = aiPlayers.map(async (aiPlayer: any, idx: number) => {
@@ -134,6 +192,23 @@ export default function PeerFeedbackContent() {
         await updateDoc(matchRef, {
           'aiFeedbacks.phase2': aiFeedbacks,
         });
+
+        if (isLeaderClient && typeof window !== 'undefined') {
+          const scheduleKey = `${matchId}-phase2-ai-scheduled`;
+          if (sessionStorage.getItem(scheduleKey) !== 'true') {
+            const delays: Record<string, number> = {};
+            aiPlayers.forEach((aiPlayer: any) => {
+              if (aiPlayer.userId) {
+                delays[aiPlayer.userId] = 30000 + Math.random() * 90000;
+              }
+            });
+            if (Object.keys(delays).length > 0) {
+              simulateAISubmissions(matchId, 2, delays);
+              sessionStorage.setItem(scheduleKey, 'true');
+              console.log('🧠 PEER FEEDBACK - Scheduled AI submissions (new generation)');
+            }
+          }
+        }
         
         console.log('✅ PEER FEEDBACK - All AI feedback generated and stored');
       } catch (error) {
@@ -142,7 +217,7 @@ export default function PeerFeedbackContent() {
     };
     
     generateAIFeedback();
-  }, [matchId, user, aiFeedbackGenerated]);
+  }, [matchId, user, aiFeedbackGenerated, isLeaderClient]);
 
   // Load assigned peer's writing
   useEffect(() => {
@@ -180,6 +255,15 @@ export default function PeerFeedbackContent() {
     
     loadPeerWriting();
   }, [user, matchId]);
+
+  useEffect(() => {
+    if (!matchId) return;
+    const unsubscribe = listenToMatchState(matchId, (matchState) => {
+      const submissions = matchState.submissions?.phase2 || [];
+      setSubmittedPlayerIds(submissions);
+    });
+    return () => unsubscribe();
+  }, [matchId]);
 
   useEffect(() => {
     if (timeLeft > 0) {
@@ -224,9 +308,20 @@ export default function PeerFeedbackContent() {
     e.preventDefault();
   };
 
+  const displayedMembers = partyMembers.length > 0 ? partyMembers : getFallbackParty();
+  const totalParticipants = displayedMembers.length || 1;
+  const submissionsCount = submittedPlayerIds.length;
+  const submissionProgress = Math.min(100, (submissionsCount / totalParticipants) * 100);
+
   const handleSubmit = async () => {
     console.log('📤 PEER FEEDBACK - Submitting for batch ranking...');
     setIsEvaluating(true);
+    if (typeof window !== 'undefined' && matchId) {
+      sessionStorage.setItem(`${matchId}-phase2-submitted`, 'true');
+    }
+    if (user?.uid) {
+      setSubmittedPlayerIds(prev => (prev.includes(user.uid) ? prev : [...prev, user.uid]));
+    }
     
     try {
       // Get AI feedback submissions from Firestore
@@ -434,7 +529,7 @@ export default function PeerFeedbackContent() {
           </p>
         </div>
 
-        <div className="grid lg:grid-cols-2 gap-6">
+        <div className="grid gap-6 lg:grid-cols-[1.15fr,1.15fr,0.8fr]">
           {/* Left side - Peer's writing */}
           <div className="space-y-4">
             <div className="bg-white/5 backdrop-blur-sm rounded-xl p-6 border border-white/10">
@@ -463,7 +558,7 @@ export default function PeerFeedbackContent() {
             </div>
           </div>
 
-          {/* Right side - Feedback questions */}
+          {/* Feedback Form */}
           <div className="space-y-4">
             <div className="bg-white/5 backdrop-blur-sm rounded-xl p-6 border border-white/10">
               <h3 className="text-white font-bold text-lg mb-4">Provide Detailed Feedback</h3>
@@ -550,6 +645,60 @@ export default function PeerFeedbackContent() {
                     {responses.engagement.length}/50 characters minimum
                   </div>
                 </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Submission Tracker */}
+          <div className="space-y-4">
+            <div className="rounded-3xl border border-white/10 bg-[#141e27] p-6 space-y-5">
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <div className="text-xs uppercase tracking-[0.3em] text-white/50">
+                    Feedback submissions
+                  </div>
+                  <div className="mt-2 text-3xl font-semibold text-white">
+                    {submissionsCount}{' '}
+                    <span className="text-white/40 text-xl">/</span>{' '}
+                    <span className="text-white/60 text-2xl">
+                      {totalParticipants}
+                    </span>
+                  </div>
+                </div>
+              </div>
+              <div className="h-1.5 rounded-full bg-white/10">
+                <div
+                  className="h-full rounded-full bg-gradient-to-r from-blue-400 via-purple-400 to-emerald-400 transition-all duration-500"
+                  style={{ width: `${submissionProgress}%` }}
+                />
+              </div>
+              <div className="space-y-3 max-h-[420px] overflow-y-auto pr-1">
+                {displayedMembers.map((member, index) => {
+                  const submitted = member.userId
+                    ? submittedPlayerIds.includes(member.userId)
+                    : index < submissionsCount;
+                  return (
+                    <div
+                      key={`${member.userId || member.name || 'feedback'}-${index}`}
+                      className="flex items-center justify-between rounded-2xl border border-white/10 bg-white/5 px-3 py-2"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#0c141d] text-xl">
+                          {member.avatar || '👤'}
+                        </div>
+                        <div>
+                          <div className={`text-sm font-semibold ${member.isYou ? 'text-white' : 'text-white/80'}`}>
+                            {member.name || `Player ${index + 1}`}
+                          </div>
+                          <div className="text-[11px] text-white/40">{member.rank || (member.isAI ? 'Silver' : '')}</div>
+                        </div>
+                      </div>
+                      <span className={`text-xs font-semibold ${submitted ? 'text-emerald-300' : 'text-white/40'}`}>
+                        {submitted ? 'Submitted' : 'Waiting'}
+                      </span>
+                    </div>
+                  );
+                })}
               </div>
             </div>
           </div>

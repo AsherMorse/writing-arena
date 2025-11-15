@@ -1,7 +1,7 @@
 'use client';
 
 import { useRouter, useSearchParams } from 'next/navigation';
-import { useState, useEffect, Suspense } from 'react';
+import { useState, useEffect, Suspense, useRef } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { getPromptById, getRandomPrompt } from '@/lib/utils/prompts';
 import WritingTipsModal from '@/components/shared/WritingTipsModal';
@@ -15,8 +15,19 @@ export default function WritingSessionContent() {
   const trait = searchParams.get('trait');
   const promptId = searchParams.get('promptId');
   const matchId = searchParams.get('matchId') || `match-${Date.now()}`;
+  const scheduleStorageKey = `${matchId}-ai-submission-schedule`;
   const isLeader = searchParams.get('isLeader') === 'true';
   const { user, userProfile } = useAuth();
+
+  type PartyMember = {
+    name: string;
+    avatar: string;
+    rank: string;
+    userId?: string;
+    wordCount: number;
+    isYou: boolean;
+    isAI: boolean;
+  };
   
   // Get prompt from library by ID, or random if not found (memoized to prevent re-shuffling)
   const [prompt] = useState(() => {
@@ -66,14 +77,18 @@ export default function WritingSessionContent() {
   });
   
   const [playersReady, setPlayersReady] = useState(0);
+  const [submittedPlayerIds, setSubmittedPlayerIds] = useState<string[]>([]);
   const [matchInitialized, setMatchInitialized] = useState(false);
   const [aiWritingsGenerated, setAiWritingsGenerated] = useState(false);
+  const aiProgressIntervalsRef = useRef<NodeJS.Timeout[]>([]);
+  const aiScheduleRef = useRef<Record<string, { submitAt: number; finalWords: number }>>({});
+  const hasAutoProceededRef = useRef(false);
 
   const userRank = userProfile?.currentRank || 'Silver III';
   const userAvatar = typeof userProfile?.avatar === 'string' ? userProfile.avatar : '🌿';
 
   // Load party members from sessionStorage (set by matchmaking page)
-  const [partyMembers] = useState(() => {
+  const [partyMembers] = useState<PartyMember[]>(() => {
     const stored = sessionStorage.getItem(`${matchId}-players`);
     if (stored) {
       try {
@@ -104,15 +119,118 @@ export default function WritingSessionContent() {
     ];
   });
 
-  const [aiWordCounts, setAiWordCounts] = useState<number[]>([0, 0, 0, 0]);
+  const otherMembers = partyMembers.slice(1);
+  const [aiWordCounts, setAiWordCounts] = useState<number[]>(otherMembers.map(() => 0));
 
   const membersWithCounts = [
     { ...partyMembers[0], wordCount },
-    ...aiWordCounts.map((count, index) => ({
-      ...partyMembers[index + 1],
-      wordCount: count,
+    ...otherMembers.map((member, index) => ({
+      ...member,
+      wordCount: member.isAI ? (aiWordCounts[index] || 0) : member.wordCount || 0,
     })),
   ];
+
+  const clearAiProgressIntervals = () => {
+    aiProgressIntervalsRef.current.forEach(interval => clearInterval(interval));
+    aiProgressIntervalsRef.current = [];
+  };
+
+  const updateAiWordCountAtIndex = (index: number, value: number) => {
+    setAiWordCounts(prev => {
+      if (prev[index] === value) {
+        return prev;
+      }
+      const next = [...prev];
+      next[index] = value;
+      return next;
+    });
+  };
+
+  const scheduleAiWordProgress = (memberIndex: number, finalWords: number, submitAt: number) => {
+    const adjustedFinal = Number.isFinite(finalWords) && finalWords > 0 ? finalWords : 60;
+    const totalDuration = Math.max(submitAt - sessionStartTime, 1000);
+    const now = Date.now();
+
+    if (now >= submitAt) {
+      updateAiWordCountAtIndex(memberIndex, Math.round(adjustedFinal));
+      return;
+    }
+
+    const elapsedRatio = Math.max(0, Math.min(1, (now - sessionStartTime) / totalDuration));
+    updateAiWordCountAtIndex(memberIndex, Math.round(adjustedFinal * elapsedRatio));
+
+    const interval = setInterval(() => {
+      const current = Date.now();
+      if (current >= submitAt) {
+        updateAiWordCountAtIndex(memberIndex, Math.round(adjustedFinal));
+        clearInterval(interval);
+        return;
+      }
+
+      const ratio = Math.max(0, Math.min(1, (current - sessionStartTime) / totalDuration));
+      updateAiWordCountAtIndex(memberIndex, Math.round(adjustedFinal * ratio));
+    }, 1000);
+
+    aiProgressIntervalsRef.current.push(interval);
+  };
+
+  const initializeAiProgress = (aiWritingsData: any[], shouldScheduleSubmissions: boolean) => {
+    try {
+      const stored = sessionStorage.getItem(scheduleStorageKey);
+      let schedule: Record<string, { submitAt: number; finalWords: number }> = {};
+      if (stored) {
+        try {
+          schedule = JSON.parse(stored);
+        } catch {
+          schedule = {};
+        }
+      }
+      if (!schedule || typeof schedule !== 'object') {
+        schedule = {};
+      }
+
+      const newWordCounts = otherMembers.map(member => (member.isAI ? 0 : member.wordCount || 0));
+      setAiWordCounts(newWordCounts);
+      clearAiProgressIntervals();
+
+      const delaysForSimulation: Record<string, number> = {};
+
+      otherMembers.forEach((member, index) => {
+        if (!member.userId || !member.isAI) {
+          return;
+        }
+
+        const writing = aiWritingsData.find((w: any) => w.playerId === member.userId);
+        const finalWords = writing?.wordCount ?? 60;
+
+        if (!schedule[member.userId]) {
+          const delay = 30000 + Math.random() * 90000;
+          schedule[member.userId] = {
+            submitAt: sessionStartTime + delay,
+            finalWords,
+          };
+        } else {
+          schedule[member.userId].finalWords = finalWords;
+          if (!schedule[member.userId].submitAt) {
+            schedule[member.userId].submitAt = sessionStartTime + 30000;
+          }
+        }
+
+        const submitAt = schedule[member.userId].submitAt;
+        scheduleAiWordProgress(index, schedule[member.userId].finalWords, submitAt);
+        delaysForSimulation[member.userId] = Math.max(0, submitAt - Date.now());
+      });
+
+      sessionStorage.setItem(scheduleStorageKey, JSON.stringify(schedule));
+      aiScheduleRef.current = schedule;
+
+      if (shouldScheduleSubmissions && Object.keys(delaysForSimulation).length > 0) {
+        simulateAISubmissions(matchId, 1, delaysForSimulation);
+      }
+    } catch (error) {
+      console.error('❌ SESSION - Failed to initialize AI progress:', error);
+    }
+  };
 
   // Initialize match state on mount (or restore if exists)
   useEffect(() => {
@@ -165,7 +283,6 @@ export default function WritingSessionContent() {
                 1,
                 120
               );
-              simulateAISubmissions(matchId, 1, Math.random() * 60000 + 60000);
               setMatchInitialized(true);
               return;
             }
@@ -194,7 +311,6 @@ export default function WritingSessionContent() {
         );
         
         // Simulate AI submissions (they finish randomly within 2-min window)
-        simulateAISubmissions(matchId, 1, Math.random() * 60000 + 60000); // 1-2 min
         
         setMatchInitialized(true);
       } catch (error) {
@@ -223,7 +339,7 @@ export default function WritingSessionContent() {
           
           if (existingWritings && existingWritings.length > 0) {
             console.log('✅ SESSION - Found existing AI writings, restoring...');
-            setAiWordCounts(existingWritings.map((w: any) => w.wordCount));
+            initializeAiProgress(existingWritings, isLeader);
             setAiWritingsGenerated(true);
             return;
           }
@@ -271,13 +387,19 @@ export default function WritingSessionContent() {
         });
         
         // Update AI word counts for UI
-        setAiWordCounts(aiWritings.map(w => w.wordCount));
-        
+        initializeAiProgress(aiWritings, isLeader);
+        setAiWritingsGenerated(true);
         console.log('✅ SESSION - All AI writings generated and stored');
       } catch (error) {
         console.error('❌ SESSION - Failed to generate AI writings:', error);
-        // Continue with fallback word counts
-        setAiWordCounts([40, 55, 48, 62]);
+        const fallbackCounts = [40, 55, 48, 62];
+        const fallbackWritings = otherMembers
+          .filter(member => member.isAI)
+          .map((member, index) => ({
+            playerId: member.userId || `ai-fallback-${index}`,
+            wordCount: fallbackCounts[index] || 50,
+          }));
+        initializeAiProgress(fallbackWritings, isLeader);
         setAiWritingsGenerated(true);
       }
     };
@@ -290,21 +412,38 @@ export default function WritingSessionContent() {
     if (!matchInitialized) return;
     
     const unsubscribe = listenToMatchState(matchId, (matchState) => {
-      const ready = areAllPlayersReady(matchState, 1);
-      const submitted = matchState.submissions?.phase1?.length || 0;
-      setPlayersReady(submitted);
+      const ready = areAllPlayersReady(matchState, 1, true);
+      let submittedIds = matchState.submissions?.phase1 || [];
+      if (hasSubmitted && user?.uid && !submittedIds.includes(user.uid)) {
+        submittedIds = [...submittedIds, user.uid];
+      }
+      setSubmittedPlayerIds(submittedIds);
+      setPlayersReady(submittedIds.length);
       
-      // If all players ready and user has submitted, move to rankings
       if (ready && hasSubmitted) {
         console.log('🎉 SESSION - All players ready, moving to rankings!');
         unsubscribe();
         proceedToRankings();
+        hasAutoProceededRef.current = true;
       }
     });
     
     return () => unsubscribe();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [matchInitialized, hasSubmitted, matchId]);
+  }, [matchInitialized, hasSubmitted, matchId, user?.uid]);
+
+  useEffect(() => {
+    if (
+      !hasAutoProceededRef.current &&
+      hasSubmitted &&
+      partyMembers.length > 0 &&
+      playersReady >= partyMembers.length
+    ) {
+      hasAutoProceededRef.current = true;
+      proceedToRankings();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hasSubmitted, playersReady, partyMembers.length]);
 
   useEffect(() => {
     if (timeLeft > 0) {
@@ -338,13 +477,9 @@ export default function WritingSessionContent() {
   }, [writingContent, matchId]);
 
   useEffect(() => {
-    const interval = setInterval(() => {
-      setAiWordCounts(prev => prev.map(count => {
-        const increase = Math.floor(Math.random() * 3) + 1; // Slower for 2-min session
-        return Math.min(count + increase, 100); // Max 100 words for 2-min
-      }));
-    }, 2000);
-    return () => clearInterval(interval);
+    return () => {
+      clearAiProgressIntervals();
+    };
   }, []);
 
   const formatTime = (seconds: number) => {
@@ -371,6 +506,18 @@ export default function WritingSessionContent() {
     
     console.log('📤 SESSION - Submitting for batch ranking...');
     setHasSubmitted(true);
+    if (user?.uid) {
+      setSubmittedPlayerIds(prev => {
+        if (prev.includes(user.uid)) {
+          return prev;
+        }
+        const next = [...prev, user.uid];
+        setPlayersReady(prevReady => Math.max(prevReady, next.length));
+        return next;
+      });
+    } else {
+      setPlayersReady(prev => Math.min(prev + 1, partyMembers.length));
+    }
     sessionStorage.setItem(`${matchId}-submitted`, 'true');
     
     try {
@@ -449,7 +596,7 @@ export default function WritingSessionContent() {
       const updatedMatchDoc = await getDoc(doc(db, 'matchStates', matchId));
       if (updatedMatchDoc.exists()) {
         const updatedMatchState = updatedMatchDoc.data();
-        if (areAllPlayersReady(updatedMatchState as any, 1)) {
+        if (areAllPlayersReady(updatedMatchState as any, 1, true)) {
           console.log('🎉 SESSION - Was last player, proceeding immediately!');
           proceedToRankings();
         } else {
@@ -496,6 +643,89 @@ export default function WritingSessionContent() {
     }
   };
 
+  const handleDebugAutoWrite = async () => {
+    try {
+      console.log('🐞 SESSION - Debug auto write triggered');
+      const response = await fetch('/api/generate-ai-writing', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          prompt: prompt.description,
+          promptType: prompt.type,
+          rank: userRank,
+          playerName: userProfile?.displayName || 'You',
+        }),
+      });
+
+      const data = await response.json();
+      setWritingContent(data.content || '');
+    } catch (error) {
+      console.error('🐞 SESSION - Debug auto write failed:', error);
+    }
+  };
+
+  const handleDebugForceEndPhase = async () => {
+    try {
+      console.log('🐞 SESSION - Debug force end triggered');
+      await handleSubmit();
+
+      const matchRef = doc(db, 'matchStates', matchId);
+      const matchDoc = await getDoc(matchRef);
+      if (!matchDoc.exists()) return;
+
+      const matchState = matchDoc.data();
+      const submissions: string[] = matchState?.submissions?.phase1 || [];
+      const players: any[] = matchState?.players || [];
+      const pendingAI = players.filter(
+        (player: any) => player.isAI && !submissions.includes(player.userId)
+      );
+
+      for (const aiPlayer of pendingAI) {
+        const aiScore = Math.round(65 + Math.random() * 25);
+        await submitPhase(matchId, aiPlayer.userId, 1, aiScore).catch(console.error);
+        console.log('🐞 SESSION - Debug forced AI submission for', aiPlayer.displayName);
+      }
+
+      const updatedDoc = await getDoc(matchRef);
+      if (updatedDoc.exists()) {
+        const updatedState = updatedDoc.data() as any;
+        if (areAllPlayersReady(updatedState, 1, true)) {
+          proceedToRankings();
+        }
+      }
+    } catch (error) {
+      console.error('🐞 SESSION - Debug force end failed:', error);
+    }
+  };
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const detail = {
+      primary: { label: 'Auto Write Response', eventName: 'debug-phase-primary-action' },
+      secondary: { label: 'End Current Phase', eventName: 'debug-phase-secondary-action' },
+    };
+    window.dispatchEvent(new CustomEvent('debug-phase-actions', { detail }));
+    return () => {
+      window.dispatchEvent(new CustomEvent('debug-phase-actions', { detail: null }));
+    };
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const handlePrimary = () => {
+      handleDebugAutoWrite();
+    };
+    const handleSecondary = () => {
+      handleDebugForceEndPhase();
+    };
+    window.addEventListener('debug-phase-primary-action', handlePrimary);
+    window.addEventListener('debug-phase-secondary-action', handleSecondary);
+    return () => {
+      window.removeEventListener('debug-phase-primary-action', handlePrimary);
+      window.removeEventListener('debug-phase-secondary-action', handleSecondary);
+    };
+  }, [handleDebugAutoWrite, handleSubmit]);
+
   const handlePaste = (e: React.ClipboardEvent<HTMLTextAreaElement>) => {
     e.preventDefault();
     setShowPasteWarning(true);
@@ -514,6 +744,9 @@ export default function WritingSessionContent() {
         playersReady={playersReady}
         totalPlayers={partyMembers.length}
         timeRemaining={timeLeft}
+        partyMembers={partyMembers}
+        submittedPlayerIds={submittedPlayerIds}
+        matchId={matchId}
       />
     );
   }
@@ -612,9 +845,23 @@ export default function WritingSessionContent() {
 
           <div className="space-y-6">
             <div className="relative rounded-3xl border border-white/10 bg-white p-6 text-[#1b1f24] shadow-xl">
-              <div className="flex items-center justify-between text-xs text-[#1b1f24]/60">
+              <div className="flex flex-wrap items-center justify-between gap-3 text-xs text-[#1b1f24]/60">
                 <span>Draft in progress</span>
-                <span>{wordCount} words</span>
+                <div className="flex items-center gap-3">
+                  <span>{wordCount} words</span>
+                  <button
+                    type="button"
+                    onClick={handleSubmit}
+                    disabled={writingContent.trim().length === 0}
+                    className={`rounded-xl border px-4 py-2 text-[11px] font-semibold transition ${
+                      writingContent.trim().length === 0
+                        ? 'border-[#1b1f24]/10 bg-[#1b1f24]/5 text-[#1b1f24]/40 cursor-not-allowed'
+                        : 'border-emerald-400/50 bg-emerald-500/10 text-emerald-500 hover:border-emerald-300 hover:bg-emerald-500/20'
+                    }`}
+                  >
+                    Submit draft
+                  </button>
+                </div>
               </div>
               <textarea
                 value={writingContent}
@@ -648,7 +895,7 @@ export default function WritingSessionContent() {
               <div className="text-xs uppercase tracking-[0.3em] text-white/50">Squad tracker</div>
               <div className="mt-5 space-y-4">
                 {membersWithCounts.map((member, index) => (
-                  <div key={member.name} className="space-y-2 rounded-2xl border border-white/10 bg-white/5 px-4 py-3">
+                  <div key={`${member.userId || member.name}-${index}`} className="space-y-2 rounded-2xl border border-white/10 bg-white/5 px-4 py-3">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-3">
                         <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#0c141d] text-xl">
@@ -676,7 +923,7 @@ export default function WritingSessionContent() {
               </div>
             </div>
 
-            <div className="rounded-3xl border border-white/10 bg-[#141e27] p-6 space-y-3 text-sm text-white/60">
+            <div className="rounded-3xl border border-white/10 bg-[#141e27] p-6 space-y-4 text-sm text-white/60">
               <div className="flex items-center justify-between">
                 <span>Submissions received</span>
                 <span className="font-semibold text-white">{playersReady} / {partyMembers.length}</span>
@@ -689,6 +936,27 @@ export default function WritingSessionContent() {
               </div>
               <div className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-xs text-white/50">
                 Stay until all teammates submit. Leaving early forfeits LP and streak bonuses.
+              </div>
+              <div className="space-y-2 text-xs text-white/70">
+                {partyMembers.map((member, index) => {
+                  const isSubmitted = member.userId ? submittedPlayerIds.includes(member.userId) : false;
+                  return (
+                    <div
+                      key={`${member.userId || member.name}-${index}`}
+                      className="flex items-center justify-between rounded-2xl border border-white/5 bg-white/0 px-3 py-2"
+                    >
+                      <div className="flex items-center gap-2">
+                        <div className="flex h-7 w-7 items-center justify-center rounded-full bg-[#0c141d] text-base">
+                          {member.avatar}
+                        </div>
+                        <div className="text-white/80">{member.name}</div>
+                      </div>
+                      <div className={`text-xs font-semibold ${isSubmitted ? 'text-emerald-300' : 'text-white/40'}`}>
+                        {isSubmitted ? 'Submitted' : 'Waiting'}
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             </div>
           </aside>
