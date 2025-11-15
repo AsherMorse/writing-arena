@@ -512,7 +512,8 @@ export default function PeerFeedbackContent() {
                     onCopy={handleCopy}
                     onCut={handleCut}
                     placeholder="Explain what the writing is about and whether it's easy to understand..."
-                    className="w-full p-3 rounded-lg bg-white/10 text-white placeholder-white/40 border border-white/20 focus:border-blue-400 focus:outline-none min-h-[80px]"
+                    className="w-full p-3 rounded-lg bg-white/10 text-white placeholder-white/40 border border-white/20 focus:border-blue-400 focus:outline-none min-h-[80px] disabled:opacity-50 disabled:cursor-not-allowed"
+                    disabled={timeRemaining === 0}
                     data-gramm="false"
                     data-gramm_editor="false"
                     data-enable-grammarly="false"
@@ -531,7 +532,8 @@ export default function PeerFeedbackContent() {
                     value={responses.strengths}
                     onChange={(e) => setResponses({...responses, strengths: e.target.value})}
                     placeholder="Point out specific examples of what works well..."
-                    className="w-full p-3 rounded-lg bg-white/10 text-white placeholder-white/40 border border-white/20 focus:border-blue-400 focus:outline-none min-h-[80px]"
+                    className="w-full p-3 rounded-lg bg-white/10 text-white placeholder-white/40 border border-white/20 focus:border-blue-400 focus:outline-none min-h-[80px] disabled:opacity-50 disabled:cursor-not-allowed"
+                    disabled={timeRemaining === 0}
                   />
                   <div className="text-white/40 text-xs mt-1">
                     {responses.strengths.length}/50 characters minimum
@@ -546,7 +548,8 @@ export default function PeerFeedbackContent() {
                     value={responses.improvements}
                     onChange={(e) => setResponses({...responses, improvements: e.target.value})}
                     placeholder="Give constructive suggestions for improvement..."
-                    className="w-full p-3 rounded-lg bg-white/10 text-white placeholder-white/40 border border-white/20 focus:border-blue-400 focus:outline-none min-h-[80px]"
+                    className="w-full p-3 rounded-lg bg-white/10 text-white placeholder-white/40 border border-white/20 focus:border-blue-400 focus:outline-none min-h-[80px] disabled:opacity-50 disabled:cursor-not-allowed"
+                    disabled={timeRemaining === 0}
                   />
                   <div className="text-white/40 text-xs mt-1">
                     {responses.improvements.length}/50 characters minimum
@@ -561,7 +564,8 @@ export default function PeerFeedbackContent() {
                     value={responses.organization}
                     onChange={(e) => setResponses({...responses, organization: e.target.value})}
                     placeholder="Comment on the structure, flow, and logical order..."
-                    className="w-full p-3 rounded-lg bg-white/10 text-white placeholder-white/40 border border-white/20 focus:border-blue-400 focus:outline-none min-h-[80px]"
+                    className="w-full p-3 rounded-lg bg-white/10 text-white placeholder-white/40 border border-white/20 focus:border-blue-400 focus:outline-none min-h-[80px] disabled:opacity-50 disabled:cursor-not-allowed"
+                    disabled={timeRemaining === 0}
                   />
                   <div className="text-white/40 text-xs mt-1">
                     {responses.organization.length}/50 characters minimum
@@ -576,7 +580,8 @@ export default function PeerFeedbackContent() {
                     value={responses.engagement}
                     onChange={(e) => setResponses({...responses, engagement: e.target.value})}
                     placeholder="Describe how the writing makes you feel and why..."
-                    className="w-full p-3 rounded-lg bg-white/10 text-white placeholder-white/40 border border-white/20 focus:border-blue-400 focus:outline-none min-h-[80px]"
+                    className="w-full p-3 rounded-lg bg-white/10 text-white placeholder-white/40 border border-white/20 focus:border-blue-400 focus:outline-none min-h-[80px] disabled:opacity-50 disabled:cursor-not-allowed"
+                    disabled={timeRemaining === 0}
                   />
                   <div className="text-white/40 text-xs mt-1">
                     {responses.engagement.length}/50 characters minimum

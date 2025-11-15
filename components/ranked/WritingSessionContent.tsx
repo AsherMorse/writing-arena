@@ -590,8 +590,9 @@ export default function WritingSessionContent() {
                 onCopy={handleCut}
                 onCut={handleCut}
                 placeholder="Start writing your response..."
-                className="mt-4 h-[420px] w-full resize-none bg-transparent text-base leading-relaxed focus:outline-none"
+                className="mt-4 h-[420px] w-full resize-none bg-transparent text-base leading-relaxed focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed"
                 autoFocus
+                disabled={timeRemaining === 0}
                 data-gramm="false"
                 data-gramm_editor="false"
                 data-enable-grammarly="false"
