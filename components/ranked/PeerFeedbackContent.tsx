@@ -1,11 +1,11 @@
 'use client';
 
-import { useRouter, useSearchParams } from 'next/navigation';
-import { useState, useEffect, Suspense, useCallback, useRef } from 'react';
+import { useRouter, useParams } from 'next/navigation';
+import { useState, useEffect } from 'react';
 import WritingTipsModal from '@/components/shared/WritingTipsModal';
-import WaitingForPlayers from '@/components/shared/WaitingForPlayers';
 import { useAuth } from '@/contexts/AuthContext';
-import { submitPhase, getAssignedPeer, listenToMatchState, simulateAISubmissions } from '@/lib/services/match-sync';
+import { useSession } from '@/lib/hooks/useSession';
+import { getAssignedPeer } from '@/lib/services/match-sync';
 
 // Mock peer writings - in reality, these would come from other players
 const MOCK_PEER_WRITINGS = [
@@ -35,36 +35,27 @@ I was standing in a forest I'd never seen before. There were trees everywhere an
 
 export default function PeerFeedbackContent() {
   const router = useRouter();
-  const searchParams = useSearchParams();
-  const { user, userProfile } = useAuth();
-  const fallbackUserId = user?.uid || 'temp-user';
-  const fallbackDisplayName = userProfile?.displayName || 'You';
-  const matchId = searchParams.get('matchId') || '';
-  const trait = searchParams.get('trait');
-  const promptId = searchParams.get('promptId');
-  const promptType = searchParams.get('promptType');
-  const content = searchParams.get('content') || '';
-  const wordCount = searchParams.get('wordCount') || '0';
-  const aiScores = searchParams.get('aiScores') || '';
-  const yourScore = searchParams.get('yourScore') || '75';
-
-  const [timeLeft, setTimeLeft] = useState(60); // 1 minute for peer feedback
+  const params = useParams();
+  const sessionId = params?.sessionId as string;
+  const { user } = useAuth();
+  
+  // NEW: Use session hook
+  const {
+    session,
+    isReconnecting,
+    error,
+    timeRemaining,
+    submitPhase,
+    hasSubmitted,
+  } = useSession(sessionId);
+  
+  const matchId = session?.matchId || '';
   const [currentPeer, setCurrentPeer] = useState<any>(null);
   const [loadingPeer, setLoadingPeer] = useState(true);
   const [showTipsModal, setShowTipsModal] = useState(false);
   const [showRankingModal, setShowRankingModal] = useState(false);
   const [isEvaluating, setIsEvaluating] = useState(false);
   const [aiFeedbackGenerated, setAiFeedbackGenerated] = useState(false);
-  const [partyMembers, setPartyMembers] = useState<any[]>([]);
-  const [submittedPlayerIds, setSubmittedPlayerIds] = useState<string[]>([]);
-  const [isLeaderClient, setIsLeaderClient] = useState(false);
-  const [waitingForRankings, setWaitingForRankings] = useState(false);
-  const rankingUrlKey = matchId ? `${matchId}-phase2-ranking-url` : null;
-  const [pendingRankingUrl, setPendingRankingUrl] = useState<string | null>(null);
-  const phase2StartKey = matchId ? `${matchId}-phase2-startTime` : null;
-  const phase2ScheduleKey = matchId ? `${matchId}-phase2-ai-schedule` : null;
-  const [phase2StartTime, setPhase2StartTime] = useState(Date.now());
-  const aiScheduleRef = useRef<Record<string, number>>({});
   
   // Feedback questions and responses
   const [responses, setResponses] = useState({
@@ -75,310 +66,19 @@ export default function PeerFeedbackContent() {
     engagement: ''
   });
 
-  const getFallbackParty = () => ([
-    { name: 'You', avatar: '🌿', rank: 'Silver III', userId: fallbackUserId, isYou: true, isAI: false },
-    { name: 'ProWriter99', avatar: '🎯', rank: 'Silver II', userId: 'ai-fallback-1', isAI: true },
-    { name: 'WordMaster', avatar: '📖', rank: 'Silver III', userId: 'ai-fallback-2', isAI: true },
-    { name: 'EliteScribe', avatar: '✨', rank: 'Silver II', userId: 'ai-fallback-3', isAI: true },
-    { name: 'PenChampion', avatar: '🏅', rank: 'Silver IV', userId: 'ai-fallback-4', isAI: true },
-  ]);
-
-  useEffect(() => {
-    if (typeof window === 'undefined' || !matchId) return;
-    try {
-      const stored = sessionStorage.getItem(`${matchId}-players`);
-      if (stored) {
-        const parsed = JSON.parse(stored);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          setPartyMembers(parsed);
-          return;
-        }
-      }
-    } catch (error) {
-      console.warn('⚠️ PEER FEEDBACK - Failed to load party members from storage', error);
-    }
-    setPartyMembers(getFallbackParty());
-  }, [matchId, user]);
-
-  useEffect(() => {
-    if (typeof window === 'undefined' || !matchId) return;
-    const storedLeader = sessionStorage.getItem(`${matchId}-isLeader`);
-    if (storedLeader) {
-      setIsLeaderClient(storedLeader === 'true');
-    }
-  }, [matchId]);
-
-  useEffect(() => {
-    if (typeof window === 'undefined' || !matchId || !phase2StartKey) return;
-    const stored = sessionStorage.getItem(phase2StartKey);
-    if (stored) {
-      const parsed = parseInt(stored, 10);
-      if (!Number.isNaN(parsed)) {
-        setPhase2StartTime(parsed);
-        return;
-      }
-    }
-    const now = Date.now();
-    sessionStorage.setItem(phase2StartKey, now.toString());
-    setPhase2StartTime(now);
-  }, [matchId, phase2StartKey]);
-
-  const fallbackParty = getFallbackParty();
-  const resolvedMembers = partyMembers.length > 0 ? partyMembers : fallbackParty;
-  const selfMember = resolvedMembers.find(member => member.isYou) || resolvedMembers[0];
-  const selfPlayerId = selfMember?.userId || fallbackUserId;
-  const selfPlayerName = selfMember?.name || fallbackDisplayName;
-
-  useEffect(() => {
-    if (typeof window === 'undefined' || !rankingUrlKey) return;
-    const stored = sessionStorage.getItem(rankingUrlKey);
-    if (stored) {
-      setPendingRankingUrl(stored);
-    }
-  }, [rankingUrlKey]);
-
-  useEffect(() => {
-    if (typeof window === 'undefined' || !phase2ScheduleKey) return;
-    const storedSchedule = sessionStorage.getItem(phase2ScheduleKey);
-    if (storedSchedule) {
-      try {
-        const parsed = JSON.parse(storedSchedule);
-        if (parsed && typeof parsed === 'object') {
-          aiScheduleRef.current = parsed;
-        }
-      } catch (error) {
-        console.warn('[P2DB] Failed to parse phase2 AI schedule', error);
-      }
-    }
-  }, [phase2ScheduleKey]);
-
-  // Load assigned peer's writing
-  useEffect(() => {
-    const loadPeerWriting = async () => {
-      if (!matchId) {
-        setLoadingPeer(false);
-        return;
-      }
-      
-      console.log('👥 PEER FEEDBACK - Loading assigned peer writing...');
-      try {
-        const assignedPeer = await getAssignedPeer(matchId, selfPlayerId);
-        
-        if (assignedPeer) {
-          console.log('✅ PEER FEEDBACK - Loaded peer:', assignedPeer.displayName);
-          setCurrentPeer({
-            id: assignedPeer.userId,
-            author: assignedPeer.displayName,
-            avatar: '📝',
-            rank: 'Silver III',
-            content: assignedPeer.writing,
-            wordCount: assignedPeer.wordCount,
-          });
-        } else {
-          console.warn('⚠️ PEER FEEDBACK - No assigned peer found, using fallback');
-          setCurrentPeer(MOCK_PEER_WRITINGS[0]);
-        }
-      } catch (error) {
-        console.error('❌ PEER FEEDBACK - Error loading peer:', error);
-        setCurrentPeer(MOCK_PEER_WRITINGS[0]);
-      } finally {
-        setLoadingPeer(false);
-      }
-    };
-    
-    loadPeerWriting();
-  }, [matchId, selfPlayerId]);
-
-  useEffect(() => {
-    if (!matchId) return;
-    console.log('[P2DB] Listening to match state updates for Phase 2, matchId:', matchId);
-    const unsubscribe = listenToMatchState(matchId, (matchState) => {
-      let submissions = matchState.submissions?.phase2 || [];
-      const totalPlayers = matchState.players?.length || 0;
-      console.log('[P2DB] Match state update', {
-        phase: matchState.phase,
-        phase2Submitted: submissions.length,
-        totalPlayers,
-      });
-
-      const selfSubmittedFlag =
-        typeof window !== 'undefined' &&
-        sessionStorage.getItem(`${matchId}-phase2-submitted`) === 'true';
-
-      if (selfSubmittedFlag && selfPlayerId && !submissions.includes(selfPlayerId)) {
-        submissions = [...submissions, selfPlayerId];
-      }
-
-      setSubmittedPlayerIds(submissions);
-    });
-    return () => {
-      console.log('[P2DB] Stopped listening to match state updates for Phase 2, matchId:', matchId);
-      unsubscribe();
-    };
-  }, [matchId, selfPlayerId]);
-
-  useEffect(() => {
-    if (timeLeft > 0) {
-      const timer = setInterval(() => {
-        setTimeLeft((prev) => prev - 1);
-      }, 1000);
-      return () => clearInterval(timer);
-    } else {
-      setShowRankingModal(true);
-      setTimeout(() => {
-        handleSubmit();
-      }, 500);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [timeLeft]);
-
-  const formatTime = (seconds: number) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${mins}:${secs.toString().padStart(2, '0')}`;
-  };
-
-  const getTimeColor = () => {
-    if (timeLeft > 30) return 'text-green-400';
-    if (timeLeft > 15) return 'text-yellow-400';
-    return 'text-red-400';
-  };
-
-  const isFormComplete = () => {
-    return Object.values(responses).every(response => response.trim().length > 10);
-  };
-
-  const handlePaste = (e: React.ClipboardEvent) => {
-    e.preventDefault();
-  };
-
-  const handleCopy = (e: React.ClipboardEvent) => {
-    e.preventDefault();
-  };
-
-  const handleCut = (e: React.ClipboardEvent) => {
-    e.preventDefault();
-  };
-
-  const displayedMembers = resolvedMembers;
-  const totalParticipants = displayedMembers.length || 1;
-  const submissionsCount = submittedPlayerIds.length;
-  const submissionProgress = Math.min(100, (submissionsCount / totalParticipants) * 100);
-  const pendingCount = Math.max(totalParticipants - submissionsCount, 0);
-
-  useEffect(() => {
-    if (totalParticipants <= 0) return;
-    const everyoneSubmitted = submissionsCount >= totalParticipants;
-    if (!everyoneSubmitted) {
-      if (waitingForRankings) {
-        console.log('[P2DB] Still waiting for submissions', {
-          submissionsCount,
-          totalParticipants,
-          pendingRankingUrl,
-        });
-      }
-      return;
-    }
-
-    const urlToUse = pendingRankingUrl || (rankingUrlKey && typeof window !== 'undefined'
-      ? sessionStorage.getItem(rankingUrlKey)
-      : null);
-
-    if (!urlToUse) {
-      console.log('[P2DB] All submissions in but no ranking URL yet; waiting for generation');
-      return;
-    }
-
-    console.log('[P2DB] All submissions received, navigating to rankings');
-    setWaitingForRankings(false);
-    if (typeof window !== 'undefined') {
-      sessionStorage.removeItem(`${matchId}-phase2-waiting`);
-    }
-    router.push(urlToUse);
-  }, [
-    waitingForRankings,
-    pendingRankingUrl,
-    submissionsCount,
-    totalParticipants,
-    router,
-    matchId,
-    rankingUrlKey,
-  ]);
-
-  const buildRankingsUrl = (score: number, responsesPayload: typeof responses) =>
-    `/ranked/phase-rankings?phase=2&matchId=${matchId}&trait=${trait}&promptId=${promptId}&promptType=${promptType}` +
-    `&content=${content}&wordCount=${wordCount}&aiScores=${aiScores}&yourScore=${yourScore}` +
-    `&feedbackScore=${score}&peerFeedback=${encodeURIComponent(JSON.stringify(responsesPayload))}`;
-
-  const persistAiSchedule = useCallback((schedule: Record<string, number>) => {
-    if (typeof window === 'undefined' || !phase2ScheduleKey) return;
-    try {
-      sessionStorage.setItem(phase2ScheduleKey, JSON.stringify(schedule));
-    } catch (error) {
-      console.warn('[P2DB] Failed to persist phase2 AI schedule', error);
-    }
-  }, [phase2ScheduleKey]);
-
-  const scheduleAiSubmissions = useCallback((aiPlayers: any[]) => {
-    if (!isLeaderClient || !matchId || aiPlayers.length === 0) return;
-    const schedule = { ...aiScheduleRef.current };
-    let updated = false;
-    const delays: Record<string, number> = {};
-
-    aiPlayers.forEach((aiPlayer: any) => {
-      const userId = aiPlayer.userId;
-      if (!userId) return;
-      let submitAt = schedule[userId];
-      if (!submitAt) {
-        submitAt = phase2StartTime + 30000 + Math.random() * 30000;
-        schedule[userId] = submitAt;
-        updated = true;
-      }
-      delays[userId] = Math.max(0, submitAt - Date.now());
-    });
-
-    if (updated) {
-      aiScheduleRef.current = schedule;
-      persistAiSchedule(schedule);
-    }
-
-    if (Object.keys(delays).length > 0) {
-      simulateAISubmissions(matchId, 2, delays);
-      console.log('[P2DB] Scheduled AI submissions for phase 2', delays);
-    }
-  }, [isLeaderClient, matchId, phase2StartTime, persistAiSchedule]);
-
-  useEffect(() => {
-    if (!isLeaderClient || !matchId) return;
-    const schedule = { ...aiScheduleRef.current };
-    let updated = false;
-
-    resolvedMembers.forEach(member => {
-      if (member.isAI && member.userId) {
-        if (!schedule[member.userId]) {
-          const submitAt = phase2StartTime + 30000 + Math.random() * 30000;
-          schedule[member.userId] = submitAt;
-          updated = true;
-        }
-      }
-    });
-
-    if (updated) {
-      aiScheduleRef.current = schedule;
-      persistAiSchedule(schedule);
-    }
-  }, [isLeaderClient, matchId, resolvedMembers, phase2StartTime, persistAiSchedule]);
-
+  // Generate AI peer feedback when phase starts
   useEffect(() => {
     const generateAIFeedback = async () => {
-      if (!matchId || aiFeedbackGenerated) return;
+      if (!matchId || !user || aiFeedbackGenerated) return;
       
       console.log('🤖 PEER FEEDBACK - Generating AI peer feedback...');
+      setAiFeedbackGenerated(true);
       
       try {
         const { getDoc, doc, updateDoc } = await import('firebase/firestore');
         const { db } = await import('@/lib/config/firebase');
         
+        // Get match state to find AI players and their assigned peers
         const matchDoc = await getDoc(doc(db, 'matchStates', matchId));
         if (!matchDoc.exists()) return;
         
@@ -386,20 +86,15 @@ export default function PeerFeedbackContent() {
         const players = matchState.players || [];
         const aiPlayers = players.filter((p: any) => p.isAI);
         const writings = matchState.aiWritings?.phase1 || [];
-
-        const existingFeedbacks = matchState?.aiFeedbacks?.phase2;
-        if (existingFeedbacks && existingFeedbacks.length > 0) {
-          console.log('✅ PEER FEEDBACK - AI feedback already exists, skipping regeneration');
-          scheduleAiSubmissions(aiPlayers);
-          setAiFeedbackGenerated(true);
-          return;
-        }
         
-        const aiFeedbackPromises = aiPlayers.map(async (aiPlayer: any) => {
+        // Generate feedback for each AI player
+        const aiFeedbackPromises = aiPlayers.map(async (aiPlayer: any, idx: number) => {
+          // Get AI's assigned peer (round-robin)
           const aiIndex = players.findIndex((p: any) => p.userId === aiPlayer.userId);
           const peerIndex = (aiIndex + 1) % players.length;
           const peer = players[peerIndex];
           
+          // Get peer's writing
           let peerWriting = '';
           if (peer.isAI) {
             const aiWriting = writings.find((w: any) => w.playerId === peer.userId);
@@ -412,6 +107,7 @@ export default function PeerFeedbackContent() {
           
           if (!peerWriting) return null;
           
+          // Generate AI feedback
           const response = await fetch('/api/generate-ai-feedback', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -437,47 +133,100 @@ export default function PeerFeedbackContent() {
         
         const aiFeedbacks = (await Promise.all(aiFeedbackPromises)).filter(f => f !== null);
         
+        // Store AI feedback in Firestore
         const matchRef = doc(db, 'matchStates', matchId);
         await updateDoc(matchRef, {
           'aiFeedbacks.phase2': aiFeedbacks,
         });
-
-        scheduleAiSubmissions(aiPlayers);
+        
         console.log('✅ PEER FEEDBACK - All AI feedback generated and stored');
-        setAiFeedbackGenerated(true);
       } catch (error) {
         console.error('❌ PEER FEEDBACK - Failed to generate AI feedback:', error);
-        setAiFeedbackGenerated(false);
       }
     };
     
     generateAIFeedback();
-  }, [matchId, aiFeedbackGenerated, scheduleAiSubmissions]);
+  }, [matchId, user, aiFeedbackGenerated]);
 
-  const setRankingUrl = useCallback((url: string) => {
-    setPendingRankingUrl(url);
-    if (typeof window !== 'undefined' && rankingUrlKey) {
-      sessionStorage.setItem(rankingUrlKey, url);
-    }
-  }, [rankingUrlKey]);
+  // Load assigned peer's writing
+  useEffect(() => {
+    const loadPeerWriting = async () => {
+      if (!user || !matchId) {
+        setLoadingPeer(false);
+        return;
+      }
+      
+      console.log('👥 PEER FEEDBACK - Loading assigned peer writing...');
+      try {
+        const assignedPeer = await getAssignedPeer(matchId, user.uid);
+        
+        if (assignedPeer) {
+          console.log('✅ PEER FEEDBACK - Loaded peer:', assignedPeer.displayName);
+          setCurrentPeer({
+            id: assignedPeer.userId,
+            author: assignedPeer.displayName,
+            avatar: '📝',
+            rank: 'Silver III',
+            content: assignedPeer.writing,
+            wordCount: assignedPeer.wordCount,
+          });
+        } else {
+          console.warn('⚠️ PEER FEEDBACK - No assigned peer found, using fallback');
+          setCurrentPeer(MOCK_PEER_WRITINGS[0]);
+        }
+      } catch (error) {
+        console.error('❌ PEER FEEDBACK - Error loading peer:', error);
+        setCurrentPeer(MOCK_PEER_WRITINGS[0]);
+      } finally {
+        setLoadingPeer(false);
+      }
+    };
+    
+    loadPeerWriting();
+  }, [user, matchId]);
 
-  const enterWaitingState = useCallback(() => {
-    setWaitingForRankings(true);
-    if (typeof window !== 'undefined' && matchId) {
-      sessionStorage.setItem(`${matchId}-phase2-waiting`, 'true');
+  // Auto-submit when time runs out
+  useEffect(() => {
+    if (timeRemaining === 0 && !hasSubmitted()) {
+      setShowRankingModal(true);
+      setTimeout(() => {
+        handleSubmit();
+      }, 500);
     }
-  }, [matchId]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [timeRemaining, hasSubmitted]);
+
+  const formatTime = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
+  };
+
+  const getTimeColor = () => {
+    if (timeRemaining > 30) return 'text-green-400';
+    if (timeRemaining > 15) return 'text-yellow-400';
+    return 'text-red-400';
+  };
+
+  const isFormComplete = () => {
+    return Object.values(responses).every(response => response.trim().length > 10);
+  };
+
+  const handlePaste = (e: React.ClipboardEvent) => {
+    e.preventDefault();
+  };
+
+  const handleCopy = (e: React.ClipboardEvent) => {
+    e.preventDefault();
+  };
+
+  const handleCut = (e: React.ClipboardEvent) => {
+    e.preventDefault();
+  };
 
   const handleSubmit = async () => {
-    console.log('[P2DB] Submitting peer feedback');
+    console.log('📤 PEER FEEDBACK - Submitting for batch ranking...');
     setIsEvaluating(true);
-    if (typeof window !== 'undefined' && matchId) {
-      sessionStorage.setItem(`${matchId}-phase2-submitted`, 'true');
-    }
-    enterWaitingState();
-    if (selfPlayerId) {
-      setSubmittedPlayerIds(prev => (prev.includes(selfPlayerId) ? prev : [...prev, selfPlayerId]));
-    }
     
     try {
       // Get AI feedback submissions from Firestore
@@ -498,8 +247,8 @@ export default function PeerFeedbackContent() {
       // Prepare all feedback submissions for batch ranking
       const allFeedbackSubmissions = [
         {
-          playerId: selfPlayerId,
-          playerName: selfPlayerName,
+          playerId: user?.uid || '',
+          playerName: 'You',
           responses,
           peerWriting: currentPeer?.content || '',
           isAI: false,
@@ -524,7 +273,7 @@ export default function PeerFeedbackContent() {
       console.log('✅ PEER FEEDBACK - Batch ranking complete:', rankings.length, 'feedback ranked');
       
       // Find your ranking
-      const yourRanking = rankings.find((r: any) => r.playerId === selfPlayerId);
+      const yourRanking = rankings.find((r: any) => r.playerId === user?.uid);
       if (!yourRanking) throw new Error('Your ranking not found');
       
       const feedbackScore = yourRanking.score;
@@ -537,18 +286,13 @@ export default function PeerFeedbackContent() {
         'rankings.phase2': rankings,
       });
       
-      // Save feedback to session storage
-      sessionStorage.setItem(`${matchId}-phase2-feedback`, JSON.stringify(yourRanking));
-      
-      // Submit to match state WITH full AI feedback
-      await submitPhase(matchId, selfPlayerId, 2, Math.round(feedbackScore), {
-        strengths: yourRanking.strengths || [],
-        improvements: yourRanking.improvements || [],
+      // NEW: Submit using session architecture
+      await submitPhase(2, {
+        responses,
+        score: Math.round(feedbackScore),
       });
       
-      // Route to phase 2 rankings screen, then to revision
-      const rankingUrl = buildRankingsUrl(Math.round(feedbackScore), responses);
-      setRankingUrl(rankingUrl);
+      console.log('✅ PEER FEEDBACK - Submission complete, phase will transition automatically!');
       
     } catch (error) {
       console.error('❌ PEER FEEDBACK - Batch ranking failed, using fallback:', error);
@@ -568,123 +312,33 @@ export default function PeerFeedbackContent() {
         const feedbackScore = data.score || 75;
         console.log('✅ PEER FEEDBACK - Fallback evaluation complete, score:', feedbackScore);
         
-        sessionStorage.setItem(`${matchId}-phase2-feedback`, JSON.stringify(data));
-        
-        await submitPhase(matchId, selfPlayerId, 2, Math.round(feedbackScore), {
-          strengths: data.strengths || [],
-          improvements: data.improvements || [],
+        await submitPhase(2, {
+          responses,
+          score: Math.round(feedbackScore),
         });
-        
-        const rankingUrl = buildRankingsUrl(Math.round(feedbackScore), responses);
-        setRankingUrl(rankingUrl);
       } catch (fallbackError) {
         console.error('❌ PEER FEEDBACK - Even fallback failed:', fallbackError);
         const feedbackQuality = isFormComplete() ? Math.random() * 20 + 75 : Math.random() * 30 + 50;
         
-        await submitPhase(matchId, selfPlayerId, 2, Math.round(feedbackQuality)).catch(console.error);
-        
-        const rankingUrl = buildRankingsUrl(Math.round(feedbackQuality), responses);
-        setRankingUrl(rankingUrl);
+        await submitPhase(2, {
+          responses,
+          score: Math.round(feedbackQuality),
+        }).catch(console.error);
       }
     } finally {
       setIsEvaluating(false);
     }
   };
 
-  const handleDebugAutoFeedback = useCallback(async () => {
-    if (!currentPeer?.content) {
-      console.warn('🐞 PEER FEEDBACK - No peer content available for auto feedback');
-      return;
-    }
-    try {
-      console.log('🐞 PEER FEEDBACK - Debug auto feedback triggered (AI)');
-      const response = await fetch('/api/generate-ai-feedback', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          peerWriting: currentPeer.content,
-          rank: currentPeer.rank || userProfile?.currentRank || 'Silver III',
-          playerName: userProfile?.displayName || 'You',
-        }),
-      });
-      const data = await response.json();
-      const aiResponses = data.responses || {};
-      setResponses({
-        clarity: aiResponses.clarity || '',
-        strengths: aiResponses.strengths || '',
-        improvements: aiResponses.improvements || '',
-        organization: aiResponses.organization || '',
-        engagement: aiResponses.engagement || '',
-      });
-    } catch (error) {
-      console.error('🐞 PEER FEEDBACK - Debug auto feedback failed:', error);
-    }
-  }, [currentPeer, userProfile]);
-
-  const handleDebugForceEndPhase = useCallback(async () => {
-    try {
-      console.log('🐞 PEER FEEDBACK - Debug force end triggered');
-      await handleSubmit();
-
-      const { getDoc, doc } = await import('firebase/firestore');
-      const { db } = await import('@/lib/config/firebase');
-      const matchRef = doc(db, 'matchStates', matchId);
-      const matchSnap = await getDoc(matchRef);
-      if (!matchSnap.exists()) return;
-
-      const matchState = matchSnap.data();
-      const submissions: string[] = matchState?.submissions?.phase2 || [];
-      const players: any[] = matchState?.players || [];
-      const pendingAI = players.filter(
-        (player: any) => player.isAI && !submissions.includes(player.userId)
-      );
-
-      for (const aiPlayer of pendingAI) {
-        const aiScore = Math.round(70 + Math.random() * 20);
-        await submitPhase(matchId, aiPlayer.userId, 2, aiScore).catch(console.error);
-        console.log('🐞 PEER FEEDBACK - Debug forced AI submission for', aiPlayer.displayName);
-      }
-    } catch (error) {
-      console.error('🐞 PEER FEEDBACK - Debug force end failed:', error);
-    }
-  }, [handleSubmit, matchId]);
-
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-    const detail = {
-      primary: { label: 'Auto Feedback', eventName: 'debug-phase-primary-action' },
-      secondary: { label: 'End Current Phase', eventName: 'debug-phase-secondary-action' },
-    };
-    window.dispatchEvent(new CustomEvent('debug-phase-actions', { detail }));
-    return () => {
-      window.dispatchEvent(new CustomEvent('debug-phase-actions', { detail: null }));
-    };
-  }, []);
-
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-    window.addEventListener('debug-phase-primary-action', handleDebugAutoFeedback);
-    window.addEventListener('debug-phase-secondary-action', handleDebugForceEndPhase);
-    return () => {
-      window.removeEventListener('debug-phase-primary-action', handleDebugAutoFeedback);
-      window.removeEventListener('debug-phase-secondary-action', handleDebugForceEndPhase);
-    };
-  }, [handleDebugAutoFeedback, handleDebugForceEndPhase]);
-
-  const manualSubmitDisabled = !isFormComplete() || isEvaluating;
-
-  if (waitingForRankings) {
-    console.log('[P2DB] Rendering waiting screen', { submissionsCount, totalParticipants });
+  // Loading state
+  if (isReconnecting || !session) {
     return (
-      <WaitingForPlayers
-        phase={2}
-        playersReady={submissionsCount}
-        totalPlayers={totalParticipants}
-        timeRemaining={timeLeft}
-        partyMembers={displayedMembers}
-        submittedPlayerIds={submittedPlayerIds}
-        matchId={matchId}
-      />
+      <div className="min-h-screen bg-[#0c141d] text-white flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-white mx-auto mb-4"></div>
+          <p className="text-white text-xl">Loading feedback phase...</p>
+        </div>
+      </div>
     );
   }
 
@@ -739,10 +393,10 @@ export default function PeerFeedbackContent() {
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4">
               <div className={`text-3xl font-bold ${getTimeColor()}`}>
-                {formatTime(timeLeft)}
+                {formatTime(timeRemaining)}
               </div>
               <div className="text-white/60">
-                {timeLeft > 0 ? 'Time remaining' : 'Time\'s up!'}
+                {timeRemaining > 0 ? 'Time remaining' : 'Time\'s up!'}
               </div>
               <div className="px-3 py-1 bg-blue-500/20 border border-blue-400/30 rounded-full">
                 <span className="text-blue-400 text-sm font-semibold">📝 PHASE 2: PEER FEEDBACK</span>
@@ -757,9 +411,9 @@ export default function PeerFeedbackContent() {
           <div className="mt-4 w-full bg-white/10 rounded-full h-2 overflow-hidden">
             <div 
               className={`h-full transition-all duration-1000 ${
-                timeLeft > 30 ? 'bg-green-400' : timeLeft > 15 ? 'bg-yellow-400' : 'bg-red-400'
+                timeRemaining > 30 ? 'bg-green-400' : timeRemaining > 15 ? 'bg-yellow-400' : 'bg-red-400'
               }`}
-              style={{ width: `${(timeLeft / 60) * 100}%` }}
+              style={{ width: `${(timeRemaining / 60) * 100}%` }}
             />
           </div>
         </div>
@@ -773,7 +427,7 @@ export default function PeerFeedbackContent() {
           </p>
         </div>
 
-        <div className="grid gap-6 lg:grid-cols-[1.15fr,1.15fr,0.8fr]">
+        <div className="grid lg:grid-cols-2 gap-6">
           {/* Left side - Peer's writing */}
           <div className="space-y-4">
             <div className="bg-white/5 backdrop-blur-sm rounded-xl p-6 border border-white/10">
@@ -802,7 +456,7 @@ export default function PeerFeedbackContent() {
             </div>
           </div>
 
-          {/* Feedback Form */}
+          {/* Right side - Feedback questions */}
           <div className="space-y-4">
             <div className="bg-white/5 backdrop-blur-sm rounded-xl p-6 border border-white/10">
               <h3 className="text-white font-bold text-lg mb-4">Provide Detailed Feedback</h3>
@@ -889,97 +543,6 @@ export default function PeerFeedbackContent() {
                     {responses.engagement.length}/50 characters minimum
                   </div>
                 </div>
-              </div>
-              <div className="mt-6 flex flex-wrap items-center gap-4">
-                <button
-                  type="button"
-                  onClick={handleSubmit}
-                  disabled={manualSubmitDisabled}
-                  className={`rounded-2xl border px-6 py-3 text-sm font-semibold transition ${
-                    manualSubmitDisabled
-                      ? 'border-white/20 bg-white/10 text-white/40 cursor-not-allowed'
-                      : 'border-blue-400/40 bg-blue-500/10 text-blue-200 hover:border-blue-300 hover:bg-blue-500/20'
-                  }`}
-                >
-                  Submit Feedback
-                </button>
-                <p className="text-xs text-white/50">
-                  Submits immediately; you can’t edit after sending.
-                </p>
-              </div>
-            </div>
-          </div>
-
-          {/* Submission Tracker */}
-          <div className="space-y-4">
-            <div className="rounded-3xl border border-white/10 bg-[#141e27] p-6 space-y-5">
-              <div className="flex items-center justify-between gap-3">
-                <div>
-                  <div className="text-xs uppercase tracking-[0.3em] text-white/50">
-                    Feedback submissions
-                  </div>
-                  <div className="mt-2 text-3xl font-semibold text-white">
-                    {submissionsCount}{' '}
-                    <span className="text-white/40 text-xl">/</span>{' '}
-                    <span className="text-white/60 text-2xl">
-                      {totalParticipants}
-                    </span>
-                  </div>
-                </div>
-              </div>
-              <div className="h-1.5 rounded-full bg-white/10">
-                <div
-                  className="h-full rounded-full bg-gradient-to-r from-blue-400 via-purple-400 to-emerald-400 transition-all duration-500"
-                  style={{ width: `${submissionProgress}%` }}
-                />
-              </div>
-              <div className="space-y-3 max-h-[420px] overflow-y-auto pr-1">
-                {displayedMembers.map((member, index) => {
-                  const submitted = member.userId
-                    ? submittedPlayerIds.includes(member.userId)
-                    : index < submissionsCount;
-                  return (
-                    <div
-                      key={`${member.userId || member.name || 'feedback'}-${index}`}
-                      className="flex items-center justify-between rounded-2xl border border-white/10 bg-white/5 px-3 py-2"
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#0c141d] text-xl">
-                          {member.avatar || '👤'}
-                        </div>
-                        <div>
-                          <div className={`text-sm font-semibold ${member.isYou ? 'text-white' : 'text-white/80'}`}>
-                            {member.name || `Player ${index + 1}`}
-                          </div>
-                          <div className="text-[11px] text-white/40">{member.rank || (member.isAI ? 'Silver' : '')}</div>
-                        </div>
-                      </div>
-                      <span className={`text-xs font-semibold ${submitted ? 'text-emerald-300' : 'text-white/40'}`}>
-                        {submitted ? 'Submitted' : 'Waiting'}
-                      </span>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-
-            <div className="rounded-3xl border border-white/10 bg-[#141e27] p-6 space-y-4 text-sm text-white/60">
-              <div className="flex items-center justify-between">
-                <span>Submissions received</span>
-                <span className="font-semibold text-white">
-                  {submissionsCount} / {totalParticipants}
-                </span>
-              </div>
-              <div className="h-1.5 rounded-full bg-white/10">
-                <div
-                  className="h-full rounded-full bg-blue-400"
-                  style={{ width: `${submissionProgress}%` }}
-                />
-              </div>
-              <div className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-xs text-white/60">
-                {pendingCount > 0
-                  ? `Waiting on ${pendingCount} teammate${pendingCount === 1 ? '' : 's'} to finish feedback.`
-                  : 'Everyone is done—preparing rankings now!'}
               </div>
             </div>
           </div>
