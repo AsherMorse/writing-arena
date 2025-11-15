@@ -205,8 +205,19 @@ export default function RevisionContent() {
     generateAIRevisions();
   }, [matchId, user, aiRevisionsGenerated]);
 
+  // Auto-submit when time runs out
+  // Track when phase started to prevent immediate submission on phase load
+  const [phaseLoadTime] = useState(Date.now());
+  
   useEffect(() => {
-    if (timeRemaining === 0 && !hasSubmitted()) {
+    const phaseAge = Date.now() - phaseLoadTime;
+    
+    // Only auto-submit if:
+    // 1. Time is 0
+    // 2. Haven't submitted
+    // 3. Phase has been loaded for at least 3 seconds (prevent immediate submit on transition)
+    if (timeRemaining === 0 && !hasSubmitted() && phaseAge > 3000) {
+      console.log('⏰ PHASE 3 - Timer expired, auto-submitting...');
       handleSubmit();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
