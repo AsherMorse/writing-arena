@@ -216,11 +216,17 @@ export default function RevisionContent() {
   useEffect(() => {
     if (!session || !hasSubmitted()) return;
     
+    // IMPORTANT: Only check if we're still in Phase 3 and not completed
+    if (session.config.phase !== 3) return;
+    if (session.state === 'completed' as any) return;
+    
     const allPlayers = Object.values(session.players);
     const realPlayers = allPlayers.filter((p: any) => !p.isAI);
     const submittedRealPlayers = realPlayers.filter((p: any) => p.phases.phase3?.submitted);
     
     console.log('🔍 PHASE MONITOR - Phase 3 submissions:', {
+      currentPhase: session.config.phase,
+      state: session.state,
       real: realPlayers.length,
       submitted: submittedRealPlayers.length,
     });
@@ -230,7 +236,7 @@ export default function RevisionContent() {
       
       // Fallback after 10 seconds
       const fallbackTimer = setTimeout(async () => {
-        console.warn('⚠️ FALLBACK - Marking session completed client-side...');
+        console.warn('⚠️ FALLBACK - Cloud Function timeout, marking completed client-side...');
         
         try {
           const { updateDoc, doc } = await import('firebase/firestore');

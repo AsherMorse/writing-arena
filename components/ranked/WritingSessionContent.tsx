@@ -245,11 +245,15 @@ export default function WritingSessionContent() {
   useEffect(() => {
     if (!session || !hasSubmitted()) return;
     
+    // IMPORTANT: Only check if we're still in Phase 1
+    if (session.config.phase !== 1) return;
+    
     const allPlayers = Object.values(session.players);
     const realPlayers = allPlayers.filter(p => !p.isAI);
     const submittedRealPlayers = realPlayers.filter(p => p.phases.phase1?.submitted);
     
     console.log('🔍 PHASE MONITOR - Phase 1 submissions:', {
+      currentPhase: session.config.phase,
       real: realPlayers.length,
       submitted: submittedRealPlayers.length,
       coordFlag: session.coordination.allPlayersReady,
@@ -261,7 +265,7 @@ export default function WritingSessionContent() {
       
       // Fallback: If Cloud Function doesn't respond in 10 seconds, do it client-side
       const fallbackTimer = setTimeout(async () => {
-        console.warn('⚠️ FALLBACK - Cloud Function not responding, transitioning client-side...');
+        console.warn('⚠️ FALLBACK - Cloud Function timeout, transitioning client-side...');
         
         try {
           const { updateDoc, doc, serverTimestamp } = await import('firebase/firestore');
@@ -271,6 +275,7 @@ export default function WritingSessionContent() {
             'coordination.allPlayersReady': true,
             'coordination.readyCount': submittedRealPlayers.length,
             'config.phase': 2,
+            'config.phaseDuration': 60,
             'timing.phase2StartTime': serverTimestamp(),
             updatedAt: serverTimestamp(),
           });

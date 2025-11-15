@@ -197,13 +197,18 @@ export default function PeerFeedbackContent() {
   useEffect(() => {
     if (!session || !hasSubmitted()) return;
     
+    // IMPORTANT: Only check if we're still in Phase 2
+    if (session.config.phase !== 2) return;
+    
     const allPlayers = Object.values(session.players);
     const realPlayers = allPlayers.filter((p: any) => !p.isAI);
     const submittedRealPlayers = realPlayers.filter((p: any) => p.phases.phase2?.submitted);
     
     console.log('🔍 PHASE MONITOR - Phase 2 submissions:', {
+      currentPhase: session.config.phase,
       real: realPlayers.length,
       submitted: submittedRealPlayers.length,
+      coordFlag: session.coordination.allPlayersReady,
     });
     
     if (submittedRealPlayers.length === realPlayers.length && !session.coordination.allPlayersReady) {
@@ -211,7 +216,7 @@ export default function PeerFeedbackContent() {
       
       // Fallback after 10 seconds
       const fallbackTimer = setTimeout(async () => {
-        console.warn('⚠️ FALLBACK - Transitioning to phase 3 client-side...');
+        console.warn('⚠️ FALLBACK - Cloud Function timeout, transitioning to phase 3 client-side...');
         
         try {
           const { updateDoc, doc, serverTimestamp } = await import('firebase/firestore');
@@ -221,6 +226,7 @@ export default function PeerFeedbackContent() {
           await updateDoc(sessionRef, {
             'coordination.allPlayersReady': true,
             'config.phase': 3,
+            'config.phaseDuration': 60,
             'timing.phase3StartTime': serverTimestamp(),
             updatedAt: serverTimestamp(),
           });
