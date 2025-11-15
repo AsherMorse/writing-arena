@@ -8,6 +8,14 @@ import { joinQueue, leaveQueue, listenToQueue, QueueEntry, createMatchLobby, lis
 import { getRandomPrompt } from '@/lib/utils/prompts';
 import { getRandomAIStudents } from '@/lib/services/ai-students';
 
+type Player = {
+  userId: string;
+  name: string;
+  avatar: string;
+  rank: string;
+  isAI: boolean;
+};
+
 export default function MatchmakingContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -20,26 +28,24 @@ export default function MatchmakingContent() {
   const userName = userProfile?.displayName || 'You';
   const userId = user?.uid || 'temp-user';
 
-  const [players, setPlayers] = useState<Array<{
-    userId: string;
-    name: string;
-    avatar: string;
-    rank: string;
-    isAI: boolean;
-  }>>([
-    { 
-      userId: userId,
-      name: 'You', 
-      avatar: userAvatar, 
-      rank: userRank,
-      isAI: false
-    }
-  ]);
+  const buildSelfPlayer = (): Player => ({
+    userId: userId,
+    name: 'You',
+    avatar: userAvatar,
+    rank: userRank,
+    isAI: false,
+  });
+
+  const initialPlayer: Player = buildSelfPlayer();
+
+  const [players, setPlayers] = useState<Player[]>([initialPlayer]);
   const [searchingDots, setSearchingDots] = useState('');
   const [countdown, setCountdown] = useState<number | null>(null);
   const aiBackfillIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const hasJoinedQueueRef = useRef(false);
   const partyLockedRef = useRef(false); // Lock party once full
+  const realPlayersRef = useRef<Player[]>([initialPlayer]);
+  const aiPlayersRef = useRef<Player[]>([]);
   const [currentTipIndex, setCurrentTipIndex] = useState(0);
   const [selectedAIStudents, setSelectedAIStudents] = useState<any[]>([]);
   const finalPlayersRef = useRef<any[]>([]);
@@ -100,6 +106,40 @@ export default function MatchmakingContent() {
     },
   ];
 
+  const fallbackAIStudents = [
+    { id: 'ai-fallback-1', displayName: 'ProWriter99', avatar: '🎯', currentRank: 'Silver II' },
+    { id: 'ai-fallback-2', displayName: 'WordMaster', avatar: '📖', currentRank: 'Silver III' },
+    { id: 'ai-fallback-3', displayName: 'EliteScribe', avatar: '✨', currentRank: 'Silver II' },
+    { id: 'ai-fallback-4', displayName: 'PenChampion', avatar: '🏅', currentRank: 'Silver IV' },
+  ];
+
+  const syncPlayersState = () => {
+    const merged = [...realPlayersRef.current, ...aiPlayersRef.current].slice(0, 5);
+    aiPlayersRef.current = merged.filter(player => player.isAI);
+    setPlayers(merged);
+  };
+
+  const addAIPlayerToParty = (aiStudent: any) => {
+    const currentPartySize = realPlayersRef.current.length + aiPlayersRef.current.length;
+    if (currentPartySize >= 5) {
+      console.log('🛑 MATCHMAKING - Party already full, skipping AI add');
+      return false;
+    }
+
+    const aiPlayer: Player = {
+      userId: aiStudent.id,
+      name: aiStudent.displayName,
+      avatar: aiStudent.avatar,
+      rank: aiStudent.currentRank,
+      isAI: true,
+    };
+
+    aiPlayersRef.current = [...aiPlayersRef.current, aiPlayer];
+    console.log('🤖 MATCHMAKING - Adding AI student:', aiStudent.displayName, '(party size:', currentPartySize + 1, ')');
+    syncPlayersState();
+    return true;
+  };
+
   useEffect(() => {
     const interval = setInterval(() => {
       setSearchingDots(prev => prev.length >= 3 ? '' : prev + '.');
@@ -146,8 +186,7 @@ export default function MatchmakingContent() {
             return;
           }
           
-          // Convert queue entries to player format
-          const realPlayers = queuePlayers.map(p => ({
+          const rawRealPlayers = queuePlayers.map(p => ({
             userId: p.userId,
             name: p.userId === userId ? 'You' : p.displayName,
             avatar: p.avatar,
@@ -155,94 +194,96 @@ export default function MatchmakingContent() {
             isAI: false,
           }));
 
-          // Merge real players with existing AI players (don't replace!)
-          setPlayers(prev => {
-            // If party is full, don't update
-            if (prev.length >= 5) {
-              console.log('🛑 MATCHMAKING - Party full, ignoring queue update');
-              return prev;
+          const seen = new Set<string>();
+          const normalizedRealPlayers: Player[] = [];
+
+          rawRealPlayers.forEach(player => {
+            const normalizedPlayer = player.userId === userId ? buildSelfPlayer() : player;
+            if (!seen.has(normalizedPlayer.userId)) {
+              normalizedRealPlayers.push(normalizedPlayer);
+              seen.add(normalizedPlayer.userId);
             }
-            
-            // Keep existing AI players
-            const existingAI = prev.filter(p => p.isAI);
-            // Combine real players + AI players (up to 5 total)
-            const merged = [...realPlayers, ...existingAI].slice(0, 5);
-            console.log('🔄 MATCHMAKING - Merged party:', merged.length, 'players (', realPlayers.length, 'real +', existingAI.length, 'AI)');
-            return merged;
           });
+
+          if (!seen.has(userId)) {
+            normalizedRealPlayers.unshift(buildSelfPlayer());
+            seen.add(userId);
+          }
+
+          realPlayersRef.current = normalizedRealPlayers;
+          syncPlayersState();
+          const currentTotal = Math.min(5, realPlayersRef.current.length + aiPlayersRef.current.length);
+          console.log('🔄 MATCHMAKING - Merged party:', currentTotal, 'players (', realPlayersRef.current.length, 'real +', aiPlayersRef.current.length, 'AI)');
         });
 
         // Fetch AI students from database and add them gradually
         const fetchAndAddAIStudents = async () => {
           console.log('🤖 MATCHMAKING - Fetching AI students from database...');
           const aiStudents = await getRandomAIStudents(userRank, 4);
+          const aiPool = [...aiStudents];
           
-          if (aiStudents.length === 0) {
-            console.warn('⚠️ MATCHMAKING - No AI students found in database, using fallback');
+          if (aiPool.length < 4) {
+            console.warn('⚠️ MATCHMAKING - Not enough AI students found, supplementing with fallbacks');
+            fallbackAIStudents.forEach(fallback => {
+              if (aiPool.length < 4) {
+                aiPool.push(fallback as any);
+              }
+            });
+          }
+          
+          if (aiPool.length === 0) {
+            console.warn('⚠️ MATCHMAKING - No AI students available, skipping backfill');
             return;
           }
           
-          console.log('✅ MATCHMAKING - Loaded', aiStudents.length, 'AI students:', aiStudents.map(s => s.displayName).join(', '));
-          setSelectedAIStudents(aiStudents);
+          console.log('✅ MATCHMAKING - Prepared', aiPool.length, 'AI students:', aiPool.map(s => s.displayName).join(', '));
+          setSelectedAIStudents(aiPool);
           
           // Wait longer before adding first AI student (give real players time to join)
           setTimeout(() => {
             let aiIndex = 0;
             
             // Add first AI student
-            setPlayers(prev => {
-              if (prev.length >= 5 || aiIndex >= aiStudents.length) return prev;
-              
-              const aiStudent = aiStudents[aiIndex];
-              console.log('🤖 MATCHMAKING - Adding AI student:', aiStudent.displayName, '(party size:', prev.length + 1, ')');
-              
-              const aiPlayer = {
-                userId: aiStudent.id,
-                name: aiStudent.displayName,
-                avatar: aiStudent.avatar,
-                rank: aiStudent.currentRank,
-                isAI: true,
-              };
-              
+            if (aiIndex >= aiPool.length) {
+              console.log('⚠️ MATCHMAKING - No more AI available to add');
+              return;
+            }
+
+            if (addAIPlayerToParty(aiPool[aiIndex])) {
               aiIndex++;
-              return [...prev, aiPlayer];
-            });
+            }
             
             // Continue adding AI students gradually (one every 10 seconds)
             aiBackfillIntervalRef.current = setInterval(() => {
-              setPlayers(prev => {
-                // Check if party is already full or we've added all AI students
-                if (prev.length >= 5 || aiIndex >= aiStudents.length) {
-                  console.log('🎮 MATCHMAKING - Party full (', prev.length, '/5), stopping AI backfill');
-                  if (aiBackfillIntervalRef.current) {
-                    clearInterval(aiBackfillIntervalRef.current);
-                  }
-                  return prev;
-                }
-                
-                // Check if we have 2+ real players - if so, slow down AI backfill
-                const realPlayerCount = prev.filter(p => !p.isAI).length;
-                if (realPlayerCount >= 2 && prev.length < 4) {
-                  console.log('👥 MATCHMAKING - Multiple real players detected, prioritizing real player matching');
-                  return prev; // Skip this AI addition cycle
-                }
+              const currentPartySize = realPlayersRef.current.length + aiPlayersRef.current.length;
 
-                const aiStudent = aiStudents[aiIndex];
-                console.log('🤖 MATCHMAKING - Adding AI student:', aiStudent.displayName, '(party size:', prev.length + 1, ')');
-                
-                const aiPlayer = {
-                  userId: aiStudent.id,
-                  name: aiStudent.displayName,
-                  avatar: aiStudent.avatar,
-                  rank: aiStudent.currentRank,
-                  isAI: true,
-                };
-                
+              if (currentPartySize >= 5) {
+                console.log('🎮 MATCHMAKING - Party full (', currentPartySize, '/5), stopping AI backfill');
+                if (aiBackfillIntervalRef.current) {
+                  clearInterval(aiBackfillIntervalRef.current);
+                }
+                return;
+              }
+
+              if (aiIndex >= aiPool.length) {
+                console.log('⚠️ MATCHMAKING - Exhausted AI pool before party filled, stopping backfill');
+                if (aiBackfillIntervalRef.current) {
+                  clearInterval(aiBackfillIntervalRef.current);
+                }
+                return;
+              }
+              
+              const realPlayerCount = realPlayersRef.current.length;
+              if (realPlayerCount >= 2 && currentPartySize < 4) {
+                console.log('👥 MATCHMAKING - Multiple real players detected, prioritizing real player matching');
+                return;
+              }
+
+              if (addAIPlayerToParty(aiPool[aiIndex])) {
                 aiIndex++;
-                return [...prev, aiPlayer];
-              });
-            }, 10000); // Every 10 seconds
-          }, 15000); // Wait 15 seconds before adding first AI
+              }
+            }, 5000); // Every 5 seconds
+          }, 5000); // Wait 5 seconds before adding first AI
         };
         
         fetchAndAddAIStudents();
@@ -270,6 +311,46 @@ export default function MatchmakingContent() {
       }
     };
   }, [user, userProfile, userId, userName, userAvatar, userRank, trait]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const detail = {
+      primary: { label: 'Fill Lobby With AI', eventName: 'debug-fill-lobby-ai' },
+      secondary: { label: 'End Current Phase', eventName: 'debug-phase-secondary-action' },
+    };
+    window.dispatchEvent(new CustomEvent('debug-phase-actions', { detail }));
+    return () => {
+      window.dispatchEvent(new CustomEvent('debug-phase-actions', { detail: null }));
+    };
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const handleDebugFillLobby = () => {
+      console.log('🐞 MATCHMAKING - Debug fill lobby triggered');
+      const pool = selectedAIStudents.length > 0 ? selectedAIStudents : fallbackAIStudents;
+      let poolIndex = 0;
+
+      while (realPlayersRef.current.length + aiPlayersRef.current.length < 5 && poolIndex < pool.length) {
+        const aiStudent = pool[poolIndex];
+        if (!aiStudent) {
+          poolIndex++;
+          continue;
+        }
+        const added = addAIPlayerToParty(aiStudent);
+        poolIndex++;
+        if (!added) {
+          break;
+        }
+      }
+    };
+
+    window.addEventListener('debug-fill-lobby-ai', handleDebugFillLobby);
+    return () => {
+      window.removeEventListener('debug-fill-lobby-ai', handleDebugFillLobby);
+    };
+  }, [selectedAIStudents, addAIPlayerToParty]);
 
   // Start match when 5 players
   useEffect(() => {
@@ -338,21 +419,26 @@ export default function MatchmakingContent() {
         matchId = `match-${userId}-${Date.now()}`;
         amILeader = true;
         console.log('👤 MATCHMAKING - Single player match, matchId:', matchId);
+        setIsLeader(true);
+        setSharedMatchId(matchId);
       }
       
       console.log('📝 MATCHMAKING - Selected prompt:', randomPrompt.id, randomPrompt.title);
       console.log('🎮 MATCHMAKING - Match ID:', matchId);
       
-      // Save selected AI students to sessionStorage so session page can use them
-      if (selectedAIStudents.length > 0) {
-        sessionStorage.setItem(`${matchId}-ai-students`, JSON.stringify(selectedAIStudents));
-        console.log('💾 MATCHMAKING - Saved', selectedAIStudents.length, 'AI students for match');
-      }
-      
-      // Save all players for the match - use ref to get the saved party (not current state which might be empty)
       const playersToSave = finalPlayersRef.current.length > 0 ? finalPlayersRef.current : players;
-      sessionStorage.setItem(`${matchId}-players`, JSON.stringify(playersToSave));
-      console.log('💾 MATCHMAKING - Saved', playersToSave.length, 'players:', playersToSave.map(p => p.name).join(', '));
+      
+      if (typeof window !== 'undefined') {
+        if (selectedAIStudents.length > 0) {
+          sessionStorage.setItem(`${matchId}-ai-students`, JSON.stringify(selectedAIStudents));
+          console.log('💾 MATCHMAKING - Saved', selectedAIStudents.length, 'AI students for match');
+        }
+        
+        sessionStorage.setItem(`${matchId}-players`, JSON.stringify(playersToSave));
+        sessionStorage.setItem(`${matchId}-isLeader`, amILeader ? 'true' : 'false');
+        sessionStorage.setItem(`${matchId}-startTime`, Date.now().toString());
+        console.log('💾 MATCHMAKING - Saved', playersToSave.length, 'players:', playersToSave.map(p => p.name).join(', '));
+      }
       
       // If multi-player match, leader creates lobby and all navigate
       if (isMultiPlayer && amILeader) {
@@ -402,7 +488,7 @@ export default function MatchmakingContent() {
         }, 10000);
       } else {
         // Single player, navigate immediately
-        router.push(`/ranked/session?trait=${trait}&promptId=${randomPrompt.id}&matchId=${matchId}`);
+        router.push(`/ranked/session?trait=${trait}&promptId=${randomPrompt.id}&matchId=${matchId}&isLeader=true`);
       }
     }
   }, [countdown, router, trait, userId, userName, players, selectedAIStudents, queueSnapshot]);
