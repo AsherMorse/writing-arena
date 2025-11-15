@@ -50,7 +50,7 @@ export default function WritingSessionContent() {
   // Get prompt from session config (safe with optional chaining)
   const prompt = session ? getPromptById(session.config.promptId) : null;
   const trait = session?.config.trait || 'all';
-  
+
   // Calculate players list from session
   const players = session ? Object.values(session.players) : [];
   
@@ -240,12 +240,48 @@ export default function WritingSessionContent() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [timeRemaining, hasSubmitted, session]);
 
-  // Navigate to next phase when all players ready
+  // CLIENT-SIDE PHASE COORDINATOR (until Cloud Functions deployed)
   useEffect(() => {
-    if (session && session.coordination.allPlayersReady && hasSubmitted()) {
-      console.log('🎉 SESSION - All players ready, phase will transition automatically!');
-      // Phase transition happens automatically via Cloud Function
-      // Component will re-render with new phase
+    if (!session || !hasSubmitted()) return;
+    
+    // Check if all REAL players have submitted (not counting AI)
+    const allPlayers = Object.values(session.players);
+    const realPlayers = allPlayers.filter(p => !p.isAI);
+    const submittedRealPlayers = realPlayers.filter(p => p.phases.phase1?.submitted);
+    
+    console.log('🔍 CLIENT COORDINATOR - Phase 1 submissions:', {
+      real: realPlayers.length,
+      submitted: submittedRealPlayers.length,
+      allSubmitted: submittedRealPlayers.length === realPlayers.length,
+      coordFlag: session.coordination.allPlayersReady,
+    });
+    
+    // If all real players submitted, trigger phase transition
+    if (submittedRealPlayers.length === realPlayers.length && !session.coordination.allPlayersReady) {
+      console.log('🎉 CLIENT COORDINATOR - All real players submitted! Transitioning...');
+      
+      const transitionPhase = async () => {
+        try {
+          const { updateDoc, doc, serverTimestamp } = await import('firebase/firestore');
+          const sessionRef = doc(db, 'sessions', session.sessionId);
+          
+          // Set coordination flag and transition to phase 2
+          await updateDoc(sessionRef, {
+            'coordination.allPlayersReady': true,
+            'coordination.readyCount': submittedRealPlayers.length,
+            'config.phase': 2,
+            'timing.phase2StartTime': serverTimestamp(),
+            updatedAt: serverTimestamp(),
+          });
+          
+          console.log('✅ CLIENT COORDINATOR - Transitioned to phase 2!');
+        } catch (error) {
+          console.error('❌ CLIENT COORDINATOR - Transition failed:', error);
+        }
+      };
+      
+      // Wait 2 seconds to show "All players finished!" message
+      setTimeout(transitionPhase, 2000);
     }
   }, [session, hasSubmitted]);
 

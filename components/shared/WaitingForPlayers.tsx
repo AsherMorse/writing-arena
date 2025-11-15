@@ -91,7 +91,7 @@ export default function WaitingForPlayers({
     }, 6000);
     return () => clearInterval(interval);
   }, [writingTips.length]);
-  
+
   useEffect(() => {
     if (partyMembers.length > 0) {
       setDisplayMembers(partyMembers);

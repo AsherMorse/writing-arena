@@ -207,13 +207,46 @@ export default function RevisionContent() {
 
   useEffect(() => {
     if (timeRemaining === 0 && !hasSubmitted()) {
-      setShowRankingModal(true);
-      setTimeout(() => {
-        handleSubmit();
-      }, 500);
+      handleSubmit();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [timeRemaining, hasSubmitted]);
+  
+  // CLIENT-SIDE PHASE COORDINATOR (Phase 3 → Results)
+  useEffect(() => {
+    if (!session || !hasSubmitted()) return;
+    
+    const allPlayers = Object.values(session.players);
+    const realPlayers = allPlayers.filter((p: any) => !p.isAI);
+    const submittedRealPlayers = realPlayers.filter((p: any) => p.phases.phase3?.submitted);
+    
+    console.log('🔍 CLIENT COORDINATOR - Phase 3 submissions:', {
+      real: realPlayers.length,
+      submitted: submittedRealPlayers.length,
+    });
+    
+    if (submittedRealPlayers.length === realPlayers.length && session.state !== 'completed') {
+      console.log('🎉 CLIENT COORDINATOR - Phase 3 complete! Marking session as completed...');
+      
+      setTimeout(async () => {
+        try {
+          const { updateDoc, doc } = await import('firebase/firestore');
+          const { db } = await import('@/lib/config/firebase');
+          const sessionRef = doc(db, 'sessions', session.sessionId);
+          
+          await updateDoc(sessionRef, {
+            'coordination.allPlayersReady': true,
+            'state': 'completed',
+            updatedAt: Date.now(),
+          });
+          
+          console.log('✅ CLIENT COORDINATOR - Session marked as completed!');
+        } catch (error) {
+          console.error('❌ CLIENT COORDINATOR - Completion failed:', error);
+        }
+      }, 2000);
+    }
+  }, [session, hasSubmitted]);
 
   useEffect(() => {
     const words = revisedContent.trim().split(/\s+/).filter(word => word.length > 0);

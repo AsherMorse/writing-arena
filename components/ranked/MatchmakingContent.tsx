@@ -367,7 +367,7 @@ export default function MatchmakingContent() {
           .filter((p: any) => p && (p.userId || p.isYou || p.id)) // Include AI with 'id'
           .map((p: any) => ({
             userId: p.userId || p.id || (p.isYou ? userId : `ai-${p.name}`),
-            displayName: p.name === 'You' ? userName : p.name,
+          displayName: p.name === 'You' ? userName : p.name,
             avatar: p.avatar || '🤖',
             rank: p.currentRank || p.rank || 'Silver III', // AI has currentRank
             isAI: p.isAI || false,

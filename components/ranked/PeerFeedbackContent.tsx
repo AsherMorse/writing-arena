@@ -188,13 +188,47 @@ export default function PeerFeedbackContent() {
   // Auto-submit when time runs out
   useEffect(() => {
     if (timeRemaining === 0 && !hasSubmitted()) {
-      setShowRankingModal(true);
-      setTimeout(() => {
-        handleSubmit();
-      }, 500);
+      handleSubmit();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [timeRemaining, hasSubmitted]);
+  
+  // CLIENT-SIDE PHASE COORDINATOR (Phase 2 → 3)
+  useEffect(() => {
+    if (!session || !hasSubmitted()) return;
+    
+    const allPlayers = Object.values(session.players);
+    const realPlayers = allPlayers.filter((p: any) => !p.isAI);
+    const submittedRealPlayers = realPlayers.filter((p: any) => p.phases.phase2?.submitted);
+    
+    console.log('🔍 CLIENT COORDINATOR - Phase 2 submissions:', {
+      real: realPlayers.length,
+      submitted: submittedRealPlayers.length,
+    });
+    
+    if (submittedRealPlayers.length === realPlayers.length && !session.coordination.allPlayersReady) {
+      console.log('🎉 CLIENT COORDINATOR - Phase 2 complete! Transitioning to phase 3...');
+      
+      setTimeout(async () => {
+        try {
+          const { updateDoc, doc, serverTimestamp } = await import('firebase/firestore');
+          const { db } = await import('@/lib/config/firebase');
+          const sessionRef = doc(db, 'sessions', session.sessionId);
+          
+          await updateDoc(sessionRef, {
+            'coordination.allPlayersReady': true,
+            'config.phase': 3,
+            'timing.phase3StartTime': serverTimestamp(),
+            updatedAt: serverTimestamp(),
+          });
+          
+          console.log('✅ CLIENT COORDINATOR - Transitioned to phase 3!');
+        } catch (error) {
+          console.error('❌ CLIENT COORDINATOR - Transition failed:', error);
+        }
+      }, 2000);
+    }
+  }, [session, hasSubmitted]);
 
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
