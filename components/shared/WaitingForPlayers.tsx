@@ -211,10 +211,14 @@ export default function WaitingForPlayers({
             Phase {phase} • {phaseNames[phase]}
           </div>
           <h1 className="mt-3 text-3xl font-semibold text-white">
-            Waiting for teammates to finish
+            {playersReady === totalPlayers 
+              ? 'All players finished! Evaluating submissions...'
+              : 'Waiting for AI opponents to submit'}
           </h1>
           <p className="mt-2 text-sm text-white/60">
-            You&apos;re done! Relax while the rest wrap up their drafts.
+            {playersReady === totalPlayers
+              ? 'Ranking all submissions and preparing results...'
+              : `You're done! AI players will submit within 5-15 seconds.`}
           </p>
         </div>
         <div className="grid gap-6 lg:grid-cols-[1.1fr,0.9fr]">
