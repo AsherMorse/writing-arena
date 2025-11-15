@@ -212,6 +212,18 @@ export default function RevisionContent() {
   useEffect(() => {
     const phaseAge = Date.now() - phaseLoadTime;
     
+    console.log('🔍 PHASE 3 AUTO-SUBMIT CHECK:', {
+      timeRemaining,
+      hasSubmitted: hasSubmitted(),
+      phaseAge,
+      willSubmit: timeRemaining === 0 && !hasSubmitted() && phaseAge > 3000,
+      session: session ? {
+        phase: session.config.phase,
+        phaseDuration: session.config.phaseDuration,
+        phase3StartTime: session.timing.phase3StartTime ? 'SET' : 'MISSING',
+      } : 'NO SESSION',
+    });
+    
     // Only auto-submit if:
     // 1. Time is 0
     // 2. Haven't submitted

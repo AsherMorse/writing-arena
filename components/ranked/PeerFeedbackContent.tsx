@@ -192,6 +192,18 @@ export default function PeerFeedbackContent() {
   useEffect(() => {
     const phaseAge = Date.now() - phaseLoadTime;
     
+    console.log('🔍 PHASE 2 AUTO-SUBMIT CHECK:', {
+      timeRemaining,
+      hasSubmitted: hasSubmitted(),
+      phaseAge,
+      willSubmit: timeRemaining === 0 && !hasSubmitted() && phaseAge > 3000,
+      session: session ? {
+        phase: session.config.phase,
+        phaseDuration: session.config.phaseDuration,
+        phase2StartTime: session.timing.phase2StartTime ? 'SET' : 'MISSING',
+      } : 'NO SESSION',
+    });
+    
     // Only auto-submit if:
     // 1. Time is 0
     // 2. Haven't submitted
