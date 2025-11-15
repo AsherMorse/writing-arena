@@ -142,6 +142,7 @@ export interface CreateSessionOptions {
   mode: SessionMode;
   config: SessionConfig;
   players: Array<PlayerInfo & { userId: string }>;
+  matchId?: string; // Optional: Use existing matchId for backward compatibility
 }
 
 /**

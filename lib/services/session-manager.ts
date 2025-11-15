@@ -100,9 +100,10 @@ export class SessionManager {
    */
   async createSession(options: CreateSessionOptions): Promise<GameSession> {
     const sessionId = `session-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
-    const matchId = `match-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+    // Use provided matchId or generate new one
+    const matchId = options.matchId || `match-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
     
-    console.log('🎮 SESSION MANAGER - Creating new session:', sessionId);
+    console.log('🎮 SESSION MANAGER - Creating new session:', sessionId, 'with matchId:', matchId);
     
     // Build players map
     const players: { [userId: string]: SessionPlayer } = {};

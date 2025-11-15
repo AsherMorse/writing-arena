@@ -374,9 +374,10 @@ export default function MatchmakingContent() {
           }));
         
         // NEW: Create session using new architecture
-        console.log('👑 MATCHMAKING - Creating session as leader...');
+        console.log('👑 MATCHMAKING - Creating session as leader with matchId:', matchId);
         createSession({
           mode: 'ranked',
+          matchId, // Pass existing matchId for backward compatibility
           config: {
             trait,
             promptId: randomPrompt.id,
@@ -450,6 +451,7 @@ export default function MatchmakingContent() {
         
         createSession({
           mode: 'ranked',
+          matchId, // Pass existing matchId for backward compatibility
           config: {
             trait,
             promptId: randomPrompt.id,
@@ -460,7 +462,7 @@ export default function MatchmakingContent() {
           players: singlePlayerPlayers,
         })
           .then((session) => {
-            console.log('✅ MATCHMAKING - Session created:', session.sessionId);
+            console.log('✅ MATCHMAKING - Session created:', session.sessionId, 'with matchId:', session.matchId);
             router.push(`/session/${session.sessionId}`);
           })
           .catch(err => {
