@@ -47,6 +47,8 @@ export default function WritingSessionContent() {
   const [showRankingModal, setShowRankingModal] = useState(false);
   const [aiWritingsGenerated, setAiWritingsGenerated] = useState(false);
   const [aiWordCounts, setAiWordCounts] = useState<number[]>([0, 0, 0, 0]);
+  const [generatingAI, setGeneratingAI] = useState(false);
+  const [aiGenerationProgress, setAiGenerationProgress] = useState(0);
 
   // Get prompt from session config (safe with optional chaining)
   const prompt = session ? getPromptById(session.config.promptId) : null;
@@ -110,13 +112,17 @@ export default function WritingSessionContent() {
         
         // Generate new AI writings
         console.log('🤖 SESSION - Generating new AI writings...');
-        setAiWritingsGenerated(true);
         
         // Get AI players
         const aiPlayers = players.filter(p => p.isAI);
         
+        // Show loading state
+        setGeneratingAI(true);
+        console.log(`🎨 SESSION - Generating ${aiPlayers.length} AI writings...`);
+        setAiWritingsGenerated(true);
+        
         // Generate writing for each AI player in parallel
-        const aiWritingPromises = aiPlayers.map(async (aiPlayer) => {
+        const aiWritingPromises = aiPlayers.map(async (aiPlayer, index) => {
           const response = await fetch('/api/generate-ai-writing', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -130,6 +136,9 @@ export default function WritingSessionContent() {
           
           const data = await response.json();
           console.log(`✅ Generated writing for ${aiPlayer.displayName}:`, data.wordCount, 'words');
+          
+          // Update progress
+          setAiGenerationProgress(((index + 1) / aiPlayers.length) * 100);
           
           return {
             playerId: aiPlayer.userId,
@@ -154,6 +163,8 @@ export default function WritingSessionContent() {
         
         // Update AI word counts for UI
         setAiWordCounts(aiWritings.map(w => w.wordCount));
+        setGeneratingAI(false);
+        setAiGenerationProgress(100);
         
         console.log('✅ SESSION - All AI writings generated and stored');
         
@@ -203,16 +214,31 @@ export default function WritingSessionContent() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [session, aiWritingsGenerated, user, prompt]);
 
-  // Animate AI word counts
+  // Realistic AI word count progression
   useEffect(() => {
+    if (!session) return;
+    
+    const aiPlayers = players.filter(p => p.isAI);
+    const targetCounts = aiPlayers.map(() => 80 + Math.floor(Math.random() * 30)); // Target: 80-110 words
+    
     const interval = setInterval(() => {
-      setAiWordCounts(prev => prev.map(count => {
-        const increase = Math.floor(Math.random() * 3) + 1;
-        return Math.min(count + increase, 100);
+      setAiWordCounts(prev => prev.map((count, i) => {
+        const target = targetCounts[i] || 95;
+        const hasSubmitted = session.players[aiPlayers[i]?.userId]?.phases.phase1?.submitted;
+        
+        if (hasSubmitted) {
+          // Freeze at final count if submitted
+          return target;
+        }
+        
+        // Increment toward target at realistic pace (2-4 words per 2 seconds)
+        const increase = 2 + Math.floor(Math.random() * 3);
+        return Math.min(count + increase, target);
       }));
     }, 2000);
+    
     return () => clearInterval(interval);
-  }, []);
+  }, [session, players]);
       
   // Update word count when content changes
   useEffect(() => {

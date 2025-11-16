@@ -246,6 +246,8 @@ export default function WaitingForPlayers({
             <div className="grid grid-cols-5 gap-3">
               {membersToDisplay.map((member, index) => {
                 const isSubmitted = member.userId ? submittedSet.has(member.userId) : index < playersReady;
+                const isAI = 'isAI' in member ? member.isAI : false;
+                const showTyping = isAI && !isSubmitted;
                 return (
                   <div
                     key={`${member.userId || member.name || 'slot'}-${index}`}

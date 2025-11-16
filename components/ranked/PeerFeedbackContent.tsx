@@ -4,6 +4,7 @@ import { useRouter, useParams } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import WritingTipsModal from '@/components/shared/WritingTipsModal';
 import PhaseInstructions from '@/components/shared/PhaseInstructions';
+import FeedbackValidator from '@/components/shared/FeedbackValidator';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSession } from '@/lib/hooks/useSession';
 import { getAssignedPeer } from '@/lib/services/match-sync';
@@ -608,6 +609,9 @@ export default function PeerFeedbackContent() {
                   </div>
                 </div>
               </div>
+              
+              {/* Feedback Quality Validator */}
+              <FeedbackValidator responses={responses} />
             </div>
           </div>
         </div>
