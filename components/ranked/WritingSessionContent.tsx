@@ -335,6 +335,23 @@ export default function WritingSessionContent() {
     
     console.log('📤 SESSION - Submitting for batch ranking...');
     
+    // Check for empty submission
+    const isEmpty = !writingContent || writingContent.trim().length === 0 || wordCount === 0;
+    
+    if (isEmpty) {
+      console.warn('⚠️ SESSION - Empty submission detected, scoring as 0');
+      
+      // Submit with 0 score for empty content
+      await submitPhase(1, {
+        content: '',
+        wordCount: 0,
+        score: 0,
+      });
+      
+      console.log('✅ SESSION - Empty submission recorded');
+      return;
+    }
+    
     try {
       // Get AI writings from matchStates
       const matchDoc = await getDoc(doc(db, 'matchStates', session.matchId));

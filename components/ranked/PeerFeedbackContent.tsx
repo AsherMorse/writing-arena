@@ -293,6 +293,23 @@ export default function PeerFeedbackContent() {
     console.log('📤 PEER FEEDBACK - Submitting for batch ranking...');
     setIsEvaluating(true);
     
+    // Check if feedback is empty or incomplete
+    const totalChars = Object.values(responses).join('').length;
+    const isEmpty = totalChars < 50; // Less than 50 total characters = empty
+    
+    if (isEmpty) {
+      console.warn('⚠️ PEER FEEDBACK - Incomplete submission, scoring as 0');
+      
+      await submitPhase(2, {
+        responses,
+        score: 0,
+      });
+      
+      console.log('✅ PEER FEEDBACK - Empty submission recorded');
+      setIsEvaluating(false);
+      return;
+    }
+    
     try {
       // Get AI feedback submissions from Firestore
       const { getDoc, doc, updateDoc } = await import('firebase/firestore');

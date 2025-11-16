@@ -306,6 +306,24 @@ export default function RevisionContent() {
     console.log('📤 REVISION - Submitting for batch ranking...');
     setIsEvaluating(true);
     
+    // Check if revision is empty or unchanged
+    const isEmpty = !revisedContent || revisedContent.trim().length === 0 || wordCountRevised === 0;
+    const unchanged = revisedContent === originalContent;
+    
+    if (isEmpty || unchanged) {
+      console.warn('⚠️ REVISION - Empty or unchanged submission, scoring low');
+      
+      await submitPhase(3, {
+        revisedContent: revisedContent || originalContent,
+        wordCount: wordCountRevised,
+        score: isEmpty ? 0 : 40, // 0 for empty, 40 for unchanged
+      });
+      
+      console.log('✅ REVISION - Low-effort submission recorded');
+      setIsEvaluating(false);
+      return;
+    }
+    
     try {
       // Get AI revisions from Firestore
       const { getDoc, doc, updateDoc } = await import('firebase/firestore');
