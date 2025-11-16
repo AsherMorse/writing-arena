@@ -86,10 +86,16 @@ export default function ResultsContent({ session }: ResultsContentProps = {}) {
   const feedbackScore = (userPlayer?.phases.phase2 as any)?.score || 80;
   const revisionScore = userPlayer?.phases.phase3?.score || 78;
   
+  // Check for empty submissions
+  const hadEmptyWriting = wordCount === 0 || !originalContent;
+  const hadEmptyFeedback = feedbackScore === 0;
+  const hadEmptyRevision = revisionScore === 0 || revisedWordCount === 0;
+  
   console.log('📊 RESULTS - Session data:', {
     hasSession: !!session,
     matchId,
     userScores: { writingScore, feedbackScore, revisionScore },
+    emptySubmissions: { writing: hadEmptyWriting, feedback: hadEmptyFeedback, revision: hadEmptyRevision },
   });
   
   const [isAnalyzing, setIsAnalyzing] = useState(true);
