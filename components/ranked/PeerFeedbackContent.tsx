@@ -248,7 +248,7 @@ export default function PeerFeedbackContent() {
           await updateDoc(sessionRef, {
             'coordination.allPlayersReady': true,
             'config.phase': 3,
-            'config.phaseDuration': 60,
+            'config.phaseDuration': 90,
             'timing.phase3StartTime': serverTimestamp(),
             updatedAt: serverTimestamp(),
           });
