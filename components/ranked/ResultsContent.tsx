@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useAuth } from '@/contexts/AuthContext';
 import { GameSession } from '@/lib/types/session';
+import AnimatedScore from '@/components/shared/AnimatedScore';
 import { getAIFeedback } from '@/lib/services/match-sync';
 import { saveWritingSession, updateUserStatsAfterSession } from '@/lib/services/firestore';
 import { updateAIStudentAfterMatch } from '@/lib/services/ai-students';
