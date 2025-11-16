@@ -3,6 +3,7 @@
 import { useRouter, useParams } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import WritingTipsModal from '@/components/shared/WritingTipsModal';
+import PhaseInstructions from '@/components/shared/PhaseInstructions';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSession } from '@/lib/hooks/useSession';
 import { getPeerFeedbackResponses } from '@/lib/services/match-sync';
@@ -218,17 +219,13 @@ export default function RevisionContent() {
   useEffect(() => {
     const phaseAge = Date.now() - phaseLoadTime;
     
-    console.log('🔍 PHASE 3 AUTO-SUBMIT CHECK:', {
-      timeRemaining,
-      hasSubmitted: hasSubmitted(),
-      phaseAge,
-      willSubmit: timeRemaining === 0 && !hasSubmitted() && phaseAge > 3000,
-      session: session ? {
-        phase: session.config.phase,
-        phaseDuration: session.config.phaseDuration,
-        phase3StartTime: session.timing.phase3StartTime ? 'SET' : 'MISSING',
-      } : 'NO SESSION',
-    });
+    // Only log significant events
+    if (timeRemaining === 0 || (timeRemaining % 10 === 0 && timeRemaining <= 30)) {
+      console.log('🔍 PHASE 3 AUTO-SUBMIT CHECK:', {
+        timeRemaining,
+        willSubmit: timeRemaining === 0 && !hasSubmitted() && phaseAge > 3000,
+      });
+    }
     
     // Only auto-submit if:
     // 1. Time is 0

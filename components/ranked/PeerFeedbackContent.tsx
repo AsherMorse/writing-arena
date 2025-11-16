@@ -3,6 +3,7 @@
 import { useRouter, useParams } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import WritingTipsModal from '@/components/shared/WritingTipsModal';
+import PhaseInstructions from '@/components/shared/PhaseInstructions';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSession } from '@/lib/hooks/useSession';
 import { getAssignedPeer } from '@/lib/services/match-sync';
@@ -192,17 +193,13 @@ export default function PeerFeedbackContent() {
   useEffect(() => {
     const phaseAge = Date.now() - phaseLoadTime;
     
-    console.log('🔍 PHASE 2 AUTO-SUBMIT CHECK:', {
-      timeRemaining,
-      hasSubmitted: hasSubmitted(),
-      phaseAge,
-      willSubmit: timeRemaining === 0 && !hasSubmitted() && phaseAge > 3000,
-      session: session ? {
-        phase: session.config.phase,
-        phaseDuration: session.config.phaseDuration,
-        phase2StartTime: session.timing.phase2StartTime ? 'SET' : 'MISSING',
-      } : 'NO SESSION',
-    });
+    // Only log significant events
+    if (timeRemaining === 0 || (timeRemaining % 10 === 0 && timeRemaining <= 30)) {
+      console.log('🔍 PHASE 2 AUTO-SUBMIT CHECK:', {
+        timeRemaining,
+        willSubmit: timeRemaining === 0 && !hasSubmitted() && phaseAge > 3000,
+      });
+    }
     
     // Only auto-submit if:
     // 1. Time is 0
@@ -487,12 +484,7 @@ export default function PeerFeedbackContent() {
       </header>
 
       <main className="container mx-auto px-6 py-8 max-w-6xl">
-        <div className="mb-6 bg-gradient-to-r from-blue-500/20 to-purple-500/20 border border-blue-400/30 rounded-xl p-6">
-          <h1 className="text-2xl font-bold text-white mb-2">Evaluate Your Peer&apos;s Writing</h1>
-          <p className="text-white/80">
-            Your feedback will be scored on helpfulness and specificity. Be constructive and detailed!
-          </p>
-        </div>
+        <PhaseInstructions phase={2} />
 
         <div className="grid lg:grid-cols-2 gap-6">
           {/* Left side - Peer's writing */}

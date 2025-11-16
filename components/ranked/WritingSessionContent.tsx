@@ -7,6 +7,7 @@ import { useSession } from '@/lib/hooks/useSession';
 import { getPromptById } from '@/lib/utils/prompts';
 import WritingTipsModal from '@/components/shared/WritingTipsModal';
 import WaitingForPlayers from '@/components/shared/WaitingForPlayers';
+import PhaseInstructions from '@/components/shared/PhaseInstructions';
 import { db } from '@/lib/config/firebase';
 import { doc, getDoc, updateDoc } from 'firebase/firestore';
 
@@ -275,7 +276,7 @@ export default function WritingSessionContent() {
             'coordination.allPlayersReady': true,
             'coordination.readyCount': submittedRealPlayers.length,
             'config.phase': 2,
-            'config.phaseDuration': 60,
+            'config.phaseDuration': 90, // 1.5 minutes for peer feedback
             'timing.phase2StartTime': serverTimestamp(),
             updatedAt: serverTimestamp(),
           });
@@ -553,6 +554,8 @@ export default function WritingSessionContent() {
       </header>
 
       <main className="mx-auto max-w-6xl px-6 py-10">
+        <PhaseInstructions phase={1} />
+        
         <div className="grid gap-6 lg:grid-cols-[0.9fr,1.4fr,0.7fr]">
           <div className="space-y-6">
             <div className="rounded-3xl border border-white/10 bg-[#141e27] p-6">

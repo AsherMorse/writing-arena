@@ -89,14 +89,14 @@ async function transitionToNextPhase(
     const now = admin.firestore.Timestamp.now();
     
     updates['config.phase'] = 2;
-    updates['config.phaseDuration'] = 60; // Phase 2 is 1 minute
+    updates['config.phaseDuration'] = 90; // Phase 2 is 1.5 minutes (5 questions need time)
     updates['timing.phase2StartTime'] = now; // Use Timestamp.now() instead of serverTimestamp()
     updates['coordination.allPlayersReady'] = false;
     updates['coordination.readyCount'] = 0;
     updates['state'] = 'active';
     updates['updatedAt'] = now;
     
-    console.log('🔄 SESSION ORCHESTRATOR - Transitioning to phase 2 (60 seconds)...');
+    console.log('🔄 SESSION ORCHESTRATOR - Transitioning to phase 2 (90 seconds)...');
     console.log('🕐 SESSION ORCHESTRATOR - Phase 2 start time set to:', now.toMillis());
     
   } else if (currentPhase === 2) {
@@ -104,14 +104,14 @@ async function transitionToNextPhase(
     const now = admin.firestore.Timestamp.now();
     
     updates['config.phase'] = 3;
-    updates['config.phaseDuration'] = 60; // Phase 3 is 1 minute
+    updates['config.phaseDuration'] = 90; // Phase 3 is 1.5 minutes (matched to client)
     updates['timing.phase3StartTime'] = now; // Use Timestamp.now() instead of serverTimestamp()
     updates['coordination.allPlayersReady'] = false;
     updates['coordination.readyCount'] = 0;
     updates['state'] = 'active';
     updates['updatedAt'] = now;
     
-    console.log('🔄 SESSION ORCHESTRATOR - Transitioning to phase 3 (60 seconds)...');
+    console.log('🔄 SESSION ORCHESTRATOR - Transitioning to phase 3 (90 seconds)...');
     console.log('🕐 SESSION ORCHESTRATOR - Phase 3 start time set to:', now.toMillis());
     
   } else if (currentPhase === 3) {
