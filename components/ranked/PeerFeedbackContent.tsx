@@ -13,6 +13,8 @@ import { SCORING, getDefaultScore, clampScore } from '@/lib/constants/scoring';
 import { usePastePrevention } from '@/lib/hooks/usePastePrevention';
 import { retryWithBackoff } from '@/lib/utils/retry';
 import { isFormComplete } from '@/lib/utils/validation';
+import { LoadingState } from '@/components/shared/LoadingState';
+import { Modal } from '@/components/shared/Modal';
 
 // Mock peer writings - in reality, these would come from other players
 const MOCK_PEER_WRITINGS = [
@@ -431,35 +433,29 @@ export default function PeerFeedbackContent() {
 
   // Loading state
   if (isReconnecting || !session) {
-    return (
-      <div className="min-h-screen bg-[#0c141d] text-white flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-white mx-auto mb-4"></div>
-          <p className="text-white text-xl">Loading feedback phase...</p>
-        </div>
-      </div>
-    );
+    return <LoadingState message="Loading feedback phase..." variant={isReconnecting ? 'reconnecting' : 'default'} />;
   }
 
   return (
     <div className="min-h-screen bg-[#0c141d] text-white">
       {/* Ranking Modal */}
-      {showRankingModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm">
-          <div className="rounded-3xl border border-blue-400/30 bg-[#141e27] p-12 shadow-2xl text-center max-w-md mx-4">
-            <div className="text-6xl mb-6 animate-bounce">📊</div>
-            <h2 className="text-3xl font-bold text-white mb-3">Time&apos;s Up!</h2>
-            <p className="text-white/70 text-lg mb-6">
-              Evaluating feedback quality and ranking responses...
-            </p>
-            <div className="flex items-center justify-center gap-2">
-              <div className="w-2 h-2 bg-blue-400 rounded-full animate-pulse" style={{ animationDelay: '0ms' }}></div>
-              <div className="w-2 h-2 bg-blue-400 rounded-full animate-pulse" style={{ animationDelay: '150ms' }}></div>
-              <div className="w-2 h-2 bg-blue-400 rounded-full animate-pulse" style={{ animationDelay: '300ms' }}></div>
-            </div>
-          </div>
+      <Modal
+        isOpen={showRankingModal}
+        onClose={() => setShowRankingModal(false)}
+        variant="ranking"
+        showCloseButton={false}
+      >
+        <div className="text-6xl mb-6 animate-bounce">📊</div>
+        <h2 className="text-3xl font-bold text-white mb-3">Time&apos;s Up!</h2>
+        <p className="text-white/70 text-lg mb-6">
+          Evaluating feedback quality and ranking responses...
+        </p>
+        <div className="flex items-center justify-center gap-2">
+          <div className="w-2 h-2 bg-blue-400 rounded-full animate-pulse" style={{ animationDelay: '0ms' }}></div>
+          <div className="w-2 h-2 bg-blue-400 rounded-full animate-pulse" style={{ animationDelay: '150ms' }}></div>
+          <div className="w-2 h-2 bg-blue-400 rounded-full animate-pulse" style={{ animationDelay: '300ms' }}></div>
         </div>
-      )}
+      </Modal>
 
       {/* Peer Feedback Tips Modal - using 'informational' type for evaluation guidance */}
       <WritingTipsModal 

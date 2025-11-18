@@ -14,6 +14,7 @@ import { buildResultsURL } from '@/lib/utils/navigation';
 import { usePastePrevention } from '@/lib/hooks/usePastePrevention';
 import { LoadingState } from '@/components/shared/LoadingState';
 import { ErrorState } from '@/components/shared/ErrorState';
+import { Modal } from '@/components/shared/Modal';
 import { setSessionStorage } from '@/lib/utils/session-storage';
 
 // Mock AI feedback - will be replaced with real AI later
@@ -520,22 +521,23 @@ export default function RevisionContent() {
   return (
     <div className="min-h-screen bg-[#0c141d] text-white">
       {/* Ranking Modal */}
-      {showRankingModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm">
-          <div className="rounded-3xl border border-emerald-400/30 bg-[#141e27] p-12 shadow-2xl text-center max-w-md mx-4">
-            <div className="text-6xl mb-6 animate-bounce">✨</div>
-            <h2 className="text-3xl font-bold text-white mb-3">Time&apos;s Up!</h2>
-            <p className="text-white/70 text-lg mb-6">
-              Evaluating revisions and calculating final scores...
-            </p>
-            <div className="flex items-center justify-center gap-2">
-              <div className="w-2 h-2 bg-emerald-400 rounded-full animate-pulse" style={{ animationDelay: '0ms' }}></div>
-              <div className="w-2 h-2 bg-emerald-400 rounded-full animate-pulse" style={{ animationDelay: '150ms' }}></div>
-              <div className="w-2 h-2 bg-emerald-400 rounded-full animate-pulse" style={{ animationDelay: '300ms' }}></div>
-            </div>
-          </div>
+      <Modal
+        isOpen={showRankingModal}
+        onClose={() => setShowRankingModal(false)}
+        variant="tips"
+        showCloseButton={false}
+      >
+        <div className="text-6xl mb-6 animate-bounce">✨</div>
+        <h2 className="text-3xl font-bold text-white mb-3">Time&apos;s Up!</h2>
+        <p className="text-white/70 text-lg mb-6">
+          Evaluating revisions and calculating final scores...
+        </p>
+        <div className="flex items-center justify-center gap-2">
+          <div className="w-2 h-2 bg-emerald-400 rounded-full animate-pulse" style={{ animationDelay: '0ms' }}></div>
+          <div className="w-2 h-2 bg-emerald-400 rounded-full animate-pulse" style={{ animationDelay: '150ms' }}></div>
+          <div className="w-2 h-2 bg-emerald-400 rounded-full animate-pulse" style={{ animationDelay: '300ms' }}></div>
         </div>
-      )}
+      </Modal>
 
       {/* Revision Tips Modal */}
       <WritingTipsModal 

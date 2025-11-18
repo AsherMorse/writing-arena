@@ -17,6 +17,7 @@ import { usePastePrevention } from '@/lib/hooks/usePastePrevention';
 import { useModals } from '@/lib/hooks/useModals';
 import { LoadingState } from '@/components/shared/LoadingState';
 import { ErrorState } from '@/components/shared/ErrorState';
+import { useDebounce } from '@/lib/hooks/useDebounce';
 
 /**
  * WritingSessionContent - Migrated to new session architecture
@@ -261,10 +262,11 @@ export default function WritingSessionContent() {
     return () => clearInterval(interval);
   }, [session, sessionPlayers, players]);
       
-  // Update word count when content changes
+  // Update word count when content changes (debounced for performance)
+  const debouncedContent = useDebounce(writingContent, 300);
   useEffect(() => {
-    setWordCount(countWords(writingContent));
-  }, [writingContent]);
+    setWordCount(countWords(debouncedContent));
+  }, [debouncedContent]);
 
   // Auto-submit when time runs out
   // Add delay to prevent immediate submission on page load
