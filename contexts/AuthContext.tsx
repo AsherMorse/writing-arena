@@ -12,7 +12,8 @@ import {
   GoogleAuthProvider
 } from 'firebase/auth';
 import { auth } from '@/lib/config/firebase';
-import { createUserProfile, getUserProfile, UserProfile } from '@/lib/services/firestore';
+import { createUserProfile, getUserProfile } from '@/lib/services/firestore';
+import { UserProfile } from '@/lib/types';
 
 interface AuthContextType {
   user: User | null;

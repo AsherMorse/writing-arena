@@ -73,6 +73,9 @@ export default function WritingSessionContent() {
     allPlayers,
   } = useSessionData(session);
   
+  // Get createdAt from session directly (not exposed by hook)
+  const sessionCreatedAt = session?.createdAt;
+  
   const prompt = sessionConfig ? getPromptById(sessionConfig.promptId) : null;
   const trait = sessionConfig?.trait || 'all';
 

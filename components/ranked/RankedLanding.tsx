@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
-import { UserProfile } from '@/lib/services/firestore';
+import { UserProfile } from '@/lib/types';
 import Card from '@/components/ui/Card';
 
 interface RankedLandingProps {
