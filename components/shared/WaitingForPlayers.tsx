@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useCarousel } from '@/lib/hooks/useCarousel';
 
 interface WaitingForPlayersProps {
   phase: 1 | 2 | 3;
@@ -28,7 +29,6 @@ export default function WaitingForPlayers({
   submittedPlayerIds = [],
   matchId,
 }: WaitingForPlayersProps) {
-  const [currentTipIndex, setCurrentTipIndex] = useState(0);
   const [displayMembers, setDisplayMembers] = useState(partyMembers);
   const submittedSet = new Set(submittedPlayerIds);
   
@@ -84,13 +84,14 @@ export default function WaitingForPlayers({
     },
   ];
 
-  // Rotate writing tips every 6 seconds
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setCurrentTipIndex((prev) => (prev + 1) % writingTips.length);
-    }, 6000);
-    return () => clearInterval(interval);
-  }, [writingTips.length]);
+  // Rotate writing tips every 6 seconds using carousel hook
+  const { currentIndex: currentTipIndex, goTo } = useCarousel({
+    items: writingTips,
+    interval: 6000,
+    autoPlay: true,
+  });
+  
+  const currentTip = writingTips[currentTipIndex];
 
   useEffect(() => {
     if (partyMembers.length > 0) {
@@ -193,14 +194,12 @@ export default function WaitingForPlayers({
     },
   ];
 
-  // Rotate concepts every 6 seconds
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setCurrentTipIndex(prev => (prev + 1) % writingConcepts.length);
-    }, 6000);
-    
-    return () => clearInterval(interval);
-  }, [writingConcepts.length]);
+  // Rotate concepts every 6 seconds using carousel hook
+  const { currentIndex: currentConceptIndex, goTo: goToConcept } = useCarousel({
+    items: writingConcepts,
+    interval: 6000,
+    autoPlay: true,
+  });
   
   return (
     <div className="min-h-screen bg-[#0c141d] text-white flex items-center justify-center py-10 px-6">
@@ -302,27 +301,27 @@ export default function WaitingForPlayers({
                 Writing revolution tip
               </div>
               <div className="flex items-center gap-3">
-                <div className="text-3xl">{writingConcepts[currentTipIndex].icon}</div>
-                <h3 className="text-xl font-semibold">{writingConcepts[currentTipIndex].name}</h3>
+                <div className="text-3xl">{writingConcepts[currentConceptIndex].icon}</div>
+                <h3 className="text-xl font-semibold">{writingConcepts[currentConceptIndex].name}</h3>
               </div>
               <p className="text-sm text-white/80 leading-relaxed">
-                {writingConcepts[currentTipIndex].tip}
+                {writingConcepts[currentConceptIndex].tip}
               </p>
               <div className="rounded-2xl border border-white/15 bg-white/5 px-4 py-3 text-sm text-white/70">
                 <div className="text-emerald-300 text-xs uppercase tracking-[0.2em] mb-1">
                   Example
                 </div>
                 <p className="text-white/90 italic text-sm">
-                  {writingConcepts[currentTipIndex].example}
+                  {writingConcepts[currentConceptIndex].example}
                 </p>
               </div>
               <div className="flex flex-wrap items-center gap-2 pt-2">
                 {writingConcepts.map((_, index) => (
                   <button
                     key={index}
-                    onClick={() => setCurrentTipIndex(index)}
+                          onClick={() => goToConcept(index)}
                     className={`h-1.5 rounded-full transition-all ${
-                      index === currentTipIndex
+                      index === currentConceptIndex
                         ? 'w-8 bg-emerald-400'
                         : 'w-3 bg-white/30 hover:bg-white/50'
                     }`}
@@ -331,7 +330,7 @@ export default function WaitingForPlayers({
                 ))}
               </div>
               <div className="text-xs text-white/50">
-                Tip {currentTipIndex + 1} of {writingConcepts.length} • The Writing Revolution
+                Tip {currentConceptIndex + 1} of {writingConcepts.length} • The Writing Revolution
               </div>
             </div>
           </div>

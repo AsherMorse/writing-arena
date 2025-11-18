@@ -13,6 +13,7 @@ import { LoadingState } from '@/components/shared/LoadingState';
 import { getMedalEmoji } from '@/lib/utils/rank-utils';
 import { rankPlayers, getPlayerRank } from '@/lib/utils/ranking-utils';
 import { getSessionStorage, setSessionStorage } from '@/lib/utils/session-storage';
+import { useExpanded } from '@/lib/hooks/useExpanded';
 
 // Mock feedback based on The Writing Revolution concepts
 const MOCK_PHASE_FEEDBACK = {
@@ -105,7 +106,8 @@ export default function ResultsContent({ session }: ResultsContentProps = {}) {
   
   const [isAnalyzing, setIsAnalyzing] = useState(true);
   const [results, setResults] = useState<any>(null);
-  const [expandedPhase, setExpandedPhase] = useState<string | null>('writing'); // Default to showing Phase 1 feedback
+  // Use expanded hook for phase sections
+  const { expanded: expandedPhase, toggle: togglePhase, isExpanded } = useExpanded<string>('writing'); // Default to showing Phase 1 feedback
   const [realFeedback, setRealFeedback] = useState<any>({
     writing: null,
     feedback: null,
@@ -454,46 +456,46 @@ export default function ResultsContent({ session }: ResultsContentProps = {}) {
           
           <div className="grid md:grid-cols-4 gap-4 mb-6">
             <button
-              onClick={() => setExpandedPhase(expandedPhase === 'writing' ? null : 'writing')}
+              onClick={() => togglePhase('writing')}
               className={`bg-white/10 backdrop-blur-sm rounded-xl p-4 text-center hover:bg-white/20 transition-all cursor-pointer border-2 ${
-                expandedPhase === 'writing' ? 'border-purple-400 scale-105' : 'border-transparent'
+                isExpanded('writing') ? 'border-purple-400 scale-105' : 'border-transparent'
               }`}
             >
               <div className="text-purple-300 text-sm mb-2">📝 Phase 1</div>
               <div className="text-white text-xs mb-2">Writing</div>
               <div className="text-4xl font-bold text-white">{results.phases.writing}</div>
               <div className="text-white/60 text-xs mt-1">40% weight</div>
-              {expandedPhase === 'writing' && (
+              {isExpanded('writing') && (
                 <div className="text-purple-300 text-xs mt-2">▼ Click to close</div>
               )}
             </button>
             
             <button
-              onClick={() => setExpandedPhase(expandedPhase === 'feedback' ? null : 'feedback')}
+              onClick={() => togglePhase('feedback')}
               className={`bg-white/10 backdrop-blur-sm rounded-xl p-4 text-center hover:bg-white/20 transition-all cursor-pointer border-2 ${
-                expandedPhase === 'feedback' ? 'border-blue-400 scale-105' : 'border-transparent'
+                isExpanded('feedback') ? 'border-blue-400 scale-105' : 'border-transparent'
               }`}
             >
               <div className="text-blue-300 text-sm mb-2">🔍 Phase 2</div>
               <div className="text-white text-xs mb-2">Peer Feedback</div>
               <div className="text-4xl font-bold text-white">{results.phases.feedback}</div>
               <div className="text-white/60 text-xs mt-1">30% weight</div>
-              {expandedPhase === 'feedback' && (
+              {isExpanded('feedback') && (
                 <div className="text-blue-300 text-xs mt-2">▼ Click to close</div>
               )}
             </button>
             
             <button
-              onClick={() => setExpandedPhase(expandedPhase === 'revision' ? null : 'revision')}
+              onClick={() => togglePhase('revision')}
               className={`bg-white/10 backdrop-blur-sm rounded-xl p-4 text-center hover:bg-white/20 transition-all cursor-pointer border-2 ${
-                expandedPhase === 'revision' ? 'border-emerald-400 scale-105' : 'border-transparent'
+                isExpanded('revision') ? 'border-emerald-400 scale-105' : 'border-transparent'
               }`}
             >
               <div className="text-emerald-300 text-sm mb-2">✏️ Phase 3</div>
               <div className="text-white text-xs mb-2">Revision</div>
               <div className="text-4xl font-bold text-white">{results.phases.revision}</div>
               <div className="text-white/60 text-xs mt-1">30% weight</div>
-              {expandedPhase === 'revision' && (
+              {isExpanded('revision') && (
                 <div className="text-emerald-300 text-xs mt-2">▼ Click to close</div>
               )}
             </button>

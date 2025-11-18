@@ -12,6 +12,7 @@ import { formatTime, getTimeColor, getTimeProgressColor } from '@/lib/utils/time
 import { SCORING, getDefaultScore, clampScore } from '@/lib/constants/scoring';
 import { usePastePrevention } from '@/lib/hooks/usePastePrevention';
 import { retryWithBackoff } from '@/lib/utils/retry';
+import { isFormComplete } from '@/lib/utils/validation';
 
 // Mock peer writings - in reality, these would come from other players
 const MOCK_PEER_WRITINGS = [
@@ -298,9 +299,7 @@ export default function PeerFeedbackContent() {
 
   // Time utilities imported from lib/utils/time-utils.ts
 
-  const isFormComplete = () => {
-    return Object.values(responses).every(response => response.trim().length > 10);
-  };
+  // Form validation using utility
 
   // Paste prevention handlers
   const { handlePaste, handleCut, handleCopy } = usePastePrevention({ showWarning: false });
@@ -416,7 +415,7 @@ export default function PeerFeedbackContent() {
         });
       } catch (fallbackError) {
         console.error('❌ PEER FEEDBACK - Even fallback failed:', fallbackError);
-        const feedbackQuality = isFormComplete() 
+        const feedbackQuality = isFormComplete(responses) 
           ? SCORING.DEFAULT_FEEDBACK_SCORE + Math.random() * 20 
           : 50 + Math.random() * 30;
         

@@ -9,6 +9,9 @@ import { getRandomPrompt } from '@/lib/utils/prompts';
 import { getRandomAIStudents } from '@/lib/services/ai-students';
 import { useCreateSession } from '@/lib/hooks/useSession';
 import { SCORING } from '@/lib/constants/scoring';
+import { useCountdown } from '@/lib/hooks/useCountdown';
+import { useCarousel } from '@/lib/hooks/useCarousel';
+import { normalizePlayerAvatar, getPlayerDisplayName, getPlayerRank } from '@/lib/utils/player-utils';
 
 export default function MatchmakingContent() {
   const router = useRouter();
@@ -20,9 +23,9 @@ export default function MatchmakingContent() {
   const { createSession, isCreating } = useCreateSession();
 
   // Ensure avatar is a string (old profiles had it as an object)
-  const userAvatar = typeof userProfile?.avatar === 'string' ? userProfile.avatar : '🌿';
-  const userRank = userProfile?.currentRank || 'Silver III';
-  const userName = userProfile?.displayName || 'You';
+  const userAvatar = normalizePlayerAvatar(userProfile?.avatar);
+  const userRank = getPlayerRank(userProfile?.currentRank);
+  const userName = getPlayerDisplayName(userProfile?.displayName, 'You');
   const userId = user?.uid || 'temp-user';
 
   const [players, setPlayers] = useState<Array<{
@@ -45,7 +48,7 @@ export default function MatchmakingContent() {
   const aiBackfillIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const hasJoinedQueueRef = useRef(false);
   const partyLockedRef = useRef(false); // Lock party once full
-  const [currentTipIndex, setCurrentTipIndex] = useState(0);
+  // Carousel hook for writing concepts (already imported)
   const [selectedAIStudents, setSelectedAIStudents] = useState<any[]>([]);
   const finalPlayersRef = useRef<any[]>([]);
   const [queueSnapshot, setQueueSnapshot] = useState<QueueEntry[]>([]);
@@ -137,16 +140,12 @@ export default function MatchmakingContent() {
     return () => clearInterval(interval);
   }, []);
 
-  // Rotate writing concepts every 6 seconds while searching
-  useEffect(() => {
-    if (countdown !== null) return; // Stop rotating when match is found
-    
-    const interval = setInterval(() => {
-      setCurrentTipIndex(prev => (prev + 1) % writingConcepts.length);
-    }, 6000);
-    
-    return () => clearInterval(interval);
-  }, [countdown, writingConcepts.length]);
+  // Rotate writing concepts every 6 seconds while searching using carousel hook
+  const { currentIndex: currentTipIndex, goTo: goToTip } = useCarousel({
+    items: writingConcepts,
+    interval: 6000,
+    autoPlay: countdown === null, // Stop auto-play when countdown starts
+  });
 
   // Join queue and listen for players
   useEffect(() => {
@@ -606,7 +605,7 @@ export default function MatchmakingContent() {
                       {writingConcepts.map((_, index) => (
                         <button
                           key={index}
-                          onClick={() => setCurrentTipIndex(index)}
+                          onClick={() => goToTip(index)}
                           className={`w-2 h-2 rounded-full transition-all duration-300 ${
                             index === currentTipIndex 
                               ? 'bg-emerald-400 w-8' 
