@@ -9,6 +9,10 @@ import { getAIFeedback } from '@/lib/services/match-sync';
 import { saveWritingSession, updateUserStatsAfterSession } from '@/lib/services/firestore';
 import { updateAIStudentAfterMatch } from '@/lib/services/ai-students';
 import { calculateCompositeScore, calculateLPChange, calculateXPEarned, calculatePointsEarned, calculateImprovementBonus } from '@/lib/utils/score-calculator';
+import { LoadingState } from '@/components/shared/LoadingState';
+import { getMedalEmoji } from '@/lib/utils/rank-utils';
+import { rankPlayers, getPlayerRank } from '@/lib/utils/ranking-utils';
+import { getSessionStorage, setSessionStorage } from '@/lib/utils/session-storage';
 
 // Mock feedback based on The Writing Revolution concepts
 const MOCK_PHASE_FEEDBACK = {
@@ -122,14 +126,14 @@ export default function ResultsContent({ session }: ResultsContentProps = {}) {
         ]);
         
         // Also try session storage as fallback
-        const phase1Storage = sessionStorage.getItem(`${matchId}-phase1-feedback`);
-        const phase2Storage = sessionStorage.getItem(`${matchId}-phase2-feedback`);
-        const phase3Storage = sessionStorage.getItem(`${matchId}-phase3-feedback`);
+        const phase1Storage = getSessionStorage(`${matchId}-phase1-feedback`);
+        const phase2Storage = getSessionStorage(`${matchId}-phase2-feedback`);
+        const phase3Storage = getSessionStorage(`${matchId}-phase3-feedback`);
         
         setRealFeedback({
-          writing: phase1Feedback || (phase1Storage ? JSON.parse(phase1Storage) : null),
-          feedback: phase2Feedback || (phase2Storage ? JSON.parse(phase2Storage) : null),
-          revision: phase3Feedback || (phase3Storage ? JSON.parse(phase3Storage) : null),
+          writing: phase1Feedback || phase1Storage,
+          feedback: phase2Feedback || phase2Storage,
+          revision: phase3Feedback || phase3Storage,
         });
         
         console.log('✅ RESULTS - AI feedback loaded:', {
@@ -269,11 +273,8 @@ export default function ResultsContent({ session }: ResultsContentProps = {}) {
         ];
 
         // Sort by composite score and assign positions
-        const rankings = allPlayers
-          .sort((a, b) => b.compositeScore - a.compositeScore)
-          .map((player, index) => ({ ...player, position: index + 1 }));
-
-        const yourRank = rankings.find(p => p.isYou)?.position || 5;
+        const rankings = rankPlayers(allPlayers, 'compositeScore');
+        const yourRank = getPlayerRank(rankings, user?.uid);
         
         // LP calculation based on final placement
         const lpChange = calculateLPChange(yourRank);
@@ -408,28 +409,8 @@ export default function ResultsContent({ session }: ResultsContentProps = {}) {
   }, [wordCount, trait, promptType, writingScore, feedbackScore, revisionScore, session, user]);
 
   if (isAnalyzing) {
-    return (
-      <div className="min-h-screen bg-[#0c141d] text-white flex items-center justify-center">
-        <div className="text-center">
-          <div className="inline-block animate-spin text-7xl mb-6">🏆</div>
-          <h2 className="text-3xl font-bold text-white mb-3">Analyzing Complete Battle...</h2>
-          <p className="text-white/60 text-lg mb-6">Calculating scores across all 3 phases</p>
-          <div className="flex justify-center space-x-2">
-            <div className="w-3 h-3 bg-purple-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
-            <div className="w-3 h-3 bg-purple-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
-            <div className="w-3 h-3 bg-purple-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
-          </div>
-        </div>
-      </div>
-    );
+    return <LoadingState variant="analyzing" />;
   }
-
-  const getMedalEmoji = (rank: number) => {
-    if (rank === 1) return '🥇';
-    if (rank === 2) return '🥈';
-    if (rank === 3) return '🥉';
-    return `#${rank}`;
-  };
 
   return (
     <div className="min-h-screen bg-[#0c141d] text-white">

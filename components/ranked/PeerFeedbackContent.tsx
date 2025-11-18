@@ -11,6 +11,7 @@ import { getAssignedPeer } from '@/lib/services/match-sync';
 import { formatTime, getTimeColor, getTimeProgressColor } from '@/lib/utils/time-utils';
 import { SCORING, getDefaultScore, clampScore } from '@/lib/constants/scoring';
 import { usePastePrevention } from '@/lib/hooks/usePastePrevention';
+import { retryWithBackoff } from '@/lib/utils/retry';
 
 // Mock peer writings - in reality, these would come from other players
 const MOCK_PEER_WRITINGS = [
@@ -172,17 +173,22 @@ export default function PeerFeedbackContent() {
       
       console.log('[AIR] Loading assigned peer writing...');
       try {
-        let assignedPeer: Awaited<ReturnType<typeof getAssignedPeer>> | null = null;
-        const MAX_RETRIES = 5;
-        for (let attempt = 0; attempt < MAX_RETRIES; attempt += 1) {
-          assignedPeer = await getAssignedPeer(matchId, user.uid);
-          if (assignedPeer) {
-            console.log(`[AIR] Peer writing ready on attempt ${attempt + 1}:`, assignedPeer.displayName);
-            break;
+        const assignedPeer = await retryWithBackoff(
+          async () => {
+            const peer = await getAssignedPeer(matchId, user.uid);
+            if (peer) {
+              console.log(`[AIR] Peer writing ready:`, peer.displayName);
+            }
+            return peer;
+          },
+          {
+            maxAttempts: 5,
+            delayMs: 1500,
+            onRetry: (attempt) => {
+              console.log(`[AIR] Peer writing not ready (attempt ${attempt}/5), retrying...`);
+            },
           }
-          console.log(`[AIR] Peer writing not ready (attempt ${attempt + 1}/${MAX_RETRIES}), retrying...`);
-          await new Promise((resolve) => setTimeout(resolve, 1500));
-        }
+        );
         
         if (assignedPeer && !cancelled) {
           setCurrentPeer({

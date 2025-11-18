@@ -4,6 +4,7 @@ import { useSearchParams } from 'next/navigation';
 import { useState, useEffect, Suspense } from 'react';
 import Link from 'next/link';
 import { useAuth } from '@/contexts/AuthContext';
+import { getScoreColor } from '@/lib/utils/score-utils';
 
 export default function ResultsContent() {
   const searchParams = useSearchParams();
@@ -82,12 +83,7 @@ export default function ResultsContent() {
     };
   };
 
-  const scoreTone = (score: number) => {
-    if (score >= 90) return 'text-emerald-200';
-    if (score >= 75) return 'text-blue-200';
-    if (score >= 60) return 'text-yellow-200';
-    return 'text-orange-200';
-  };
+  // Score color utility from lib/utils/score-utils.ts
 
   const traitScores = (feedback?.traits ?? {}) as Record<string, number>;
   const traitNotes = (feedback?.specificFeedback ?? {}) as Record<string, string>;
@@ -131,7 +127,7 @@ export default function ResultsContent() {
           <div className="grid gap-6 sm:grid-cols-3 text-center">
             <div>
               <div className="text-xs uppercase tracking-[0.3em] text-white/50">Overall score</div>
-              <div className={`mt-3 text-5xl font-semibold ${scoreTone(feedback.overallScore)}`}>{feedback.overallScore}</div>
+              <div className={`mt-3 text-5xl font-semibold ${getScoreColor(feedback.overallScore)}`}>{feedback.overallScore}</div>
               <p className="mt-1 text-xs text-white/50">out of 100</p>
             </div>
             <div>
@@ -157,7 +153,7 @@ export default function ResultsContent() {
                   <div key={key}>
                     <div className="flex items-center justify-between">
                       <span className="capitalize text-sm text-white/70">{key}</span>
-                      <span className={`text-sm font-semibold ${scoreTone(score)}`}>{score}</span>
+                      <span className={`text-sm font-semibold ${getScoreColor(score)}`}>{score}</span>
                     </div>
                     <div className="mt-2 h-1.5 rounded-full bg-white/10">
                       <div

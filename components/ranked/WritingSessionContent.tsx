@@ -15,6 +15,8 @@ import { SCORING, getDefaultScore, clampScore } from '@/lib/constants/scoring';
 import { countWords } from '@/lib/utils/text-utils';
 import { usePastePrevention } from '@/lib/hooks/usePastePrevention';
 import { useModals } from '@/lib/hooks/useModals';
+import { LoadingState } from '@/components/shared/LoadingState';
+import { ErrorState } from '@/components/shared/ErrorState';
 
 /**
  * WritingSessionContent - Migrated to new session architecture
@@ -550,35 +552,15 @@ export default function WritingSessionContent() {
   
   // Loading state
   if (isReconnecting || !session || !prompt) {
-    return (
-      <div className="min-h-screen bg-[#0c141d] text-white flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-white mx-auto mb-4"></div>
-          <p className="text-white text-xl">
-            {isReconnecting ? 'Reconnecting to session...' : 'Loading session...'}
-          </p>
-        </div>
-      </div>
-    );
+    return <LoadingState 
+      message={isReconnecting ? 'Reconnecting to session...' : 'Loading session...'}
+      variant={isReconnecting ? 'reconnecting' : 'default'}
+    />;
   }
   
   // Error state
   if (error) {
-    return (
-      <div className="min-h-screen bg-[#0c141d] text-white flex items-center justify-center">
-        <div className="text-center bg-white/10 backdrop-blur-sm rounded-lg p-8 max-w-md">
-          <div className="text-6xl mb-4">❌</div>
-          <h1 className="text-white text-2xl font-bold mb-2">Session Error</h1>
-          <p className="text-red-200 mb-6">{error.message}</p>
-          <a 
-            href="/dashboard"
-            className="inline-block bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-semibold transition-colors"
-          >
-            Return to Dashboard
-          </a>
-        </div>
-      </div>
-    );
+    return <ErrorState error={error} title="Session Error" />;
   }
   
   const membersWithCounts = players.map((player, index) => {

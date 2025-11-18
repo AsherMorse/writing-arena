@@ -2,6 +2,7 @@
 
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useState, useEffect, useMemo, Suspense } from 'react';
+import { getMedalEmoji } from '@/lib/utils/rank-utils';
 
 export default function PhaseRankingsContent() {
   const router = useRouter();
@@ -213,12 +214,7 @@ export default function PhaseRankingsContent() {
     }
   }, [countdown, phase, router, matchId, trait, promptId, promptType, content, wordCount, aiScores, yourScore, feedbackScore, peerFeedback]);
   
-  const getMedalEmoji = (rank: number) => {
-    if (rank === 1) return '🥇';
-    if (rank === 2) return '🥈';
-    if (rank === 3) return '🥉';
-    return `#${rank}`;
-  };
+  // Medal emoji utility from lib/utils/rank-utils.ts
   
   return (
     <div className="min-h-screen bg-[#0c141d] text-white flex items-center justify-center py-6 px-4">

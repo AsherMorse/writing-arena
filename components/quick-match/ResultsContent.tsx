@@ -5,6 +5,8 @@ import { useState, useEffect, Suspense } from 'react';
 import Link from 'next/link';
 import { useAuth } from '@/contexts/AuthContext';
 import { saveWritingSession, updateUserStatsAfterSession } from '@/lib/services/firestore';
+import { getMedalEmoji } from '@/lib/utils/rank-utils';
+import { rankPlayers, getPlayerRank } from '@/lib/utils/ranking-utils';
 
 export default function ResultsContent() {
   const searchParams = useSearchParams();
@@ -35,17 +37,16 @@ export default function ResultsContent() {
         const yourScore = data?.overallScore || Math.min(Math.max(60 + wordCount / 5 + Math.random() * 15, 40), 100);
         const aiScores = aiScoresParam.split(',').map(Number);
 
-        const rankings = [
-          { name: 'You', avatar: '🌿', score: Math.round(yourScore), wordCount, isYou: true, rank: 0 },
-          { name: 'WriteBot', avatar: '🤖', score: Math.round(60 + Math.random() * 30), wordCount: aiScores[0], isYou: false, rank: 0 },
-          { name: 'PenPal AI', avatar: '✍️', score: Math.round(65 + Math.random() * 25), wordCount: aiScores[1], isYou: false, rank: 0 },
-          { name: 'WordSmith', avatar: '📝', score: Math.round(55 + Math.random() * 35), wordCount: aiScores[2], isYou: false, rank: 0 },
-          { name: 'QuillMaster', avatar: '🖋️', score: Math.round(60 + Math.random() * 30), wordCount: aiScores[3], isYou: false, rank: 0 },
-        ]
-          .sort((a, b) => b.score - a.score)
-          .map((player, index) => ({ ...player, rank: index + 1 }));
-
-        const yourRank = rankings.find(p => p.isYou)?.rank || 5;
+        const allPlayers = [
+          { name: 'You', avatar: '🌿', score: Math.round(yourScore), wordCount, isYou: true },
+          { name: 'WriteBot', avatar: '🤖', score: Math.round(60 + Math.random() * 30), wordCount: aiScores[0], isYou: false },
+          { name: 'PenPal AI', avatar: '✍️', score: Math.round(65 + Math.random() * 25), wordCount: aiScores[1], isYou: false },
+          { name: 'WordSmith', avatar: '📝', score: Math.round(55 + Math.random() * 35), wordCount: aiScores[2], isYou: false },
+          { name: 'QuillMaster', avatar: '🖋️', score: Math.round(60 + Math.random() * 30), wordCount: aiScores[3], isYou: false },
+        ];
+        
+        const rankings = rankPlayers(allPlayers, 'score').map(p => ({ ...p, rank: p.position }));
+        const yourRank = getPlayerRank(rankings, user?.uid);
         const xpEarned = Math.round(yourScore * 1.5) + (rankings.length - yourRank + 1) * 8;
         const pointsEarned = Math.round(yourScore) + (yourRank === 1 ? 25 : 0);
         const isVictory = yourRank === 1;
@@ -116,12 +117,7 @@ export default function ResultsContent() {
     );
   }
 
-  const getMedalEmoji = (rank: number) => {
-    if (rank === 1) return '🥇';
-    if (rank === 2) return '🥈';
-    if (rank === 3) return '🥉';
-    return `#${rank}`;
-  };
+  // Medal emoji utility from lib/utils/rank-utils.ts
 
   return (
     <div className="min-h-screen bg-[#0c141d] text-white">

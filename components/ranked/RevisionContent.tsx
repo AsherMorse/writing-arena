@@ -12,6 +12,9 @@ import { SCORING, getDefaultScore, clampScore } from '@/lib/constants/scoring';
 import { countWords } from '@/lib/utils/text-utils';
 import { buildResultsURL } from '@/lib/utils/navigation';
 import { usePastePrevention } from '@/lib/hooks/usePastePrevention';
+import { LoadingState } from '@/components/shared/LoadingState';
+import { ErrorState } from '@/components/shared/ErrorState';
+import { setSessionStorage } from '@/lib/utils/session-storage';
 
 // Mock AI feedback - will be replaced with real AI later
 const MOCK_AI_FEEDBACK = {
@@ -306,34 +309,6 @@ export default function RevisionContent() {
 
   // Time utilities imported from lib/utils/time-utils.ts
 
-  const renderLoadingState = () => (
-    <div className="min-h-screen bg-[#0c141d] text-white flex items-center justify-center">
-      <div className="text-center">
-        <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-white mx-auto mb-4"></div>
-        <p className="text-white text-xl">Loading revision phase...</p>
-      </div>
-    </div>
-  );
-
-  const renderErrorState = () => (
-    <div className="min-h-screen bg-[#0c141d] text-white flex items-center justify-center">
-      <div className="text-center bg-white/10 backdrop-blur-sm rounded-lg p-8 max-w-md">
-        <div className="text-6xl mb-4">❌</div>
-        <h1 className="text-white text-2xl font-bold mb-2">Session Error</h1>
-        <p className="text-white/70 mb-6">
-          We couldn&apos;t load the revision phase. Please return to the dashboard and rejoin your match.
-        </p>
-        <button
-          type="button"
-          onClick={() => router.push('/dashboard')}
-          className="rounded-full border border-white/20 bg-white/10 px-6 py-2 text-sm font-semibold text-white transition hover:bg-white/20"
-        >
-          Return to Dashboard
-        </button>
-      </div>
-    </div>
-  );
-
   const handleSubmit = async () => {
     console.log('📤 REVISION - Submitting for batch ranking...');
     setIsEvaluating(true);
@@ -417,7 +392,7 @@ export default function RevisionContent() {
       });
       
       // Save feedback to session storage
-      sessionStorage.setItem(`${matchId}-phase3-feedback`, JSON.stringify(yourRanking));
+        setSessionStorage(`${matchId}-phase3-feedback`, yourRanking);
       
       // NEW: Submit using session architecture
       await submitPhase(3, {
@@ -462,7 +437,7 @@ export default function RevisionContent() {
         const revisionScore = data.score || getDefaultScore(3);
         console.log('✅ REVISION - Fallback evaluation complete, score:', revisionScore);
         
-        sessionStorage.setItem(`${matchId}-phase3-feedback`, JSON.stringify(data));
+        setSessionStorage(`${matchId}-phase3-feedback`, data);
         
         await submitPhase(3, {
           revisedContent,
@@ -528,11 +503,18 @@ export default function RevisionContent() {
   const hasRevised = revisedContent !== originalContent;
 
   if (isReconnecting || !session) {
-    return renderLoadingState();
+    return <LoadingState message="Loading revision phase..." />;
   }
 
   if (error) {
-    return renderErrorState();
+    return (
+      <ErrorState 
+        error={error} 
+        title="Session Error"
+        retryLabel="Return to Dashboard"
+        onRetry={() => router.push('/dashboard')}
+      />
+    );
   }
 
   return (

@@ -95,14 +95,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             console.log('✅ Profile created, fetching...');
             
             // Retry a few times to get the profile
-            for (let i = 0; i < 3; i++) {
-              console.log(`🔄 Retry ${i + 1}/3 fetching profile...`);
-              await new Promise(resolve => setTimeout(resolve, 500));
-              profile = await getUserProfile(user.uid);
-              if (profile) {
-                console.log('✅ Profile found on retry', i + 1);
-                break;
+            const { retryUntilSuccess } = await import('@/lib/utils/retry');
+            const retriedProfile = await retryUntilSuccess(
+              async () => {
+                const p = await getUserProfile(user.uid);
+                if (p) {
+                  console.log('✅ Profile found');
+                  return p;
+                }
+                throw new Error('Profile not found');
+              },
+              {
+                maxAttempts: 3,
+                delayMs: 500,
+                onRetry: (attempt) => {
+                  console.log(`🔄 Retry ${attempt}/3 fetching profile...`);
+                },
               }
+            );
+            if (retriedProfile) {
+              profile = retriedProfile;
             }
           }
           
