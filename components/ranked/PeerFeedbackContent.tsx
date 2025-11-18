@@ -7,6 +7,9 @@ import PhaseInstructions from '@/components/shared/PhaseInstructions';
 import FeedbackValidator from '@/components/shared/FeedbackValidator';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSession } from '@/lib/hooks/useSession';
+import { useSessionData } from '@/lib/hooks/useSessionData';
+import { usePhaseTransition } from '@/lib/hooks/usePhaseTransition';
+import { useAutoSubmit } from '@/lib/hooks/useAutoSubmit';
 import { getAssignedPeer } from '@/lib/services/match-sync';
 import { formatTime, getTimeColor, getTimeProgressColor } from '@/lib/utils/time-utils';
 import { SCORING, getDefaultScore, clampScore } from '@/lib/constants/scoring';
@@ -15,32 +18,7 @@ import { retryWithBackoff } from '@/lib/utils/retry';
 import { isFormComplete } from '@/lib/utils/validation';
 import { LoadingState } from '@/components/shared/LoadingState';
 import { Modal } from '@/components/shared/Modal';
-
-// Mock peer writings - in reality, these would come from other players
-const MOCK_PEER_WRITINGS = [
-  {
-    id: 'peer1',
-    author: 'ProWriter99',
-    avatar: '🎯',
-    rank: 'Silver II',
-    content: `The old lighthouse stood sentinel on the rocky cliff, its weathered stones telling stories of countless storms. Sarah had passed it every day on her way to school, never giving it much thought. But today was different. Today, the rusty door that had always been locked stood slightly ajar, and a mysterious golden light spilled from within.
-
-Her curiosity got the better of her. She pushed the door open and stepped inside. The circular room was dusty and filled with old equipment, but in the center sat an ornate wooden chest she'd never seen before. As she approached, the chest began to glow...`,
-    wordCount: 112
-  },
-  {
-    id: 'peer2',
-    author: 'WordMaster',
-    avatar: '📖',
-    rank: 'Silver III',
-    content: `It was a normal Tuesday morning. I woke up, got dressed, and went to school like always. Nothing interesting ever happens in my small town. But then something weird happened.
-
-At lunch, I found a strange coin in my sandwich. It was old and had weird symbols on it. When I touched it, everything around me started to shimmer and change. Suddenly I wasn't in the cafeteria anymore.
-
-I was standing in a forest I'd never seen before. There were trees everywhere and strange birds singing. I had no idea how I got there or how to get back home.`,
-    wordCount: 104
-  }
-];
+import { MOCK_PEER_WRITINGS } from '@/lib/utils/mock-data';
 
 export default function PeerFeedbackContent() {
   const router = useRouter();
@@ -58,14 +36,14 @@ export default function PeerFeedbackContent() {
     hasSubmitted,
   } = useSession(sessionId);
 
+  // Extract session data using hook
   const {
-    matchId: sessionMatchId,
+    matchId,
     config: sessionConfig,
     players: sessionPlayers,
     coordination: sessionCoordination,
     sessionId: activeSessionId,
-  } = session || {};
-  const matchId = sessionMatchId || '';
+  } = useSessionData(session);
   const [currentPeer, setCurrentPeer] = useState<any>(null);
   const [loadingPeer, setLoadingPeer] = useState(true);
   const [showTipsModal, setShowTipsModal] = useState(false);
@@ -225,84 +203,6 @@ export default function PeerFeedbackContent() {
     };
   }, [user, user?.uid, matchId]);
 
-  // Auto-submit when time runs out
-  // Track when phase started to prevent immediate submission on phase load
-  const [phaseLoadTime] = useState(Date.now());
-  
-  useEffect(() => {
-    const phaseAge = Date.now() - phaseLoadTime;
-    
-    // Only log significant events
-    if (timeRemaining === 0 || (timeRemaining % 10 === 0 && timeRemaining <= 30)) {
-      console.log('🔍 PHASE 2 AUTO-SUBMIT CHECK:', {
-        timeRemaining,
-        willSubmit: timeRemaining === 0 && !hasSubmitted() && phaseAge > 3000,
-      });
-    }
-    
-    // Only auto-submit if:
-    // 1. Time is 0
-    // 2. Haven't submitted
-    // 3. Phase has been loaded for at least 3 seconds (prevent immediate submit on transition)
-    if (timeRemaining === 0 && !hasSubmitted() && phaseAge > 3000) {
-      console.log('⏰ PHASE 2 - Timer expired, auto-submitting...');
-      handleSubmit();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [timeRemaining, hasSubmitted]);
-  
-  // PHASE TRANSITION MONITOR (Cloud Function primary, client fallback)
-  useEffect(() => {
-    if (!session || !hasSubmitted()) return;
-    
-    // IMPORTANT: Only check if we're still in Phase 2
-    if (sessionConfig?.phase !== 2) return;
-    
-    const allPlayers = Object.values(sessionPlayers || {});
-    const realPlayers = allPlayers.filter((p: any) => !p.isAI);
-    const submittedRealPlayers = realPlayers.filter((p: any) => p.phases.phase2?.submitted);
-    
-    console.log('🔍 PHASE MONITOR - Phase 2 submissions:', {
-      currentPhase: sessionConfig?.phase,
-      real: realPlayers.length,
-      submitted: submittedRealPlayers.length,
-      coordFlag: sessionCoordination?.allPlayersReady,
-    });
-    
-    if (submittedRealPlayers.length === realPlayers.length && !sessionCoordination?.allPlayersReady) {
-      console.log('⏱️ PHASE MONITOR - All submitted, waiting for Cloud Function...');
-      
-      // Fallback after 10 seconds
-      const fallbackTimer = setTimeout(async () => {
-        console.warn('⚠️ FALLBACK - Cloud Function timeout, transitioning to phase 3 client-side...');
-        
-        try {
-          const { updateDoc, doc, serverTimestamp } = await import('firebase/firestore');
-          const { db } = await import('@/lib/config/firebase');
-          const sessionRef = doc(db, 'sessions', activeSessionId || sessionId);
-          
-          await updateDoc(sessionRef, {
-            'coordination.allPlayersReady': true,
-            'config.phase': 3,
-            'config.phaseDuration': SCORING.PHASE3_DURATION,
-            'timing.phase3StartTime': serverTimestamp(),
-            updatedAt: serverTimestamp(),
-          });
-          
-          console.log('✅ FALLBACK - Client-side transition to phase 3 complete');
-        } catch (error) {
-          console.error('❌ FALLBACK - Transition failed:', error);
-        }
-      }, 10000);
-      
-      return () => clearTimeout(fallbackTimer);
-    }
-  }, [session, sessionPlayers, sessionCoordination, sessionConfig, hasSubmitted, activeSessionId, sessionId]);
-
-  // Time utilities imported from lib/utils/time-utils.ts
-
-  // Form validation using utility
-
   // Paste prevention handlers
   const { handlePaste, handleCut, handleCopy } = usePastePrevention({ showWarning: false });
 
@@ -430,6 +330,22 @@ export default function PeerFeedbackContent() {
       setIsEvaluating(false);
     }
   };
+
+  // Auto-submit when time runs out
+  useAutoSubmit({
+    timeRemaining,
+    hasSubmitted,
+    onSubmit: handleSubmit,
+    minPhaseAge: 3000,
+  });
+
+  // Phase transition monitoring
+  usePhaseTransition({
+    session,
+    currentPhase: 2,
+    hasSubmitted,
+    sessionId: activeSessionId || sessionId,
+  });
 
   // Loading state
   if (isReconnecting || !session) {

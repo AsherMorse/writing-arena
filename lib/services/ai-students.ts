@@ -13,34 +13,7 @@ import {
   serverTimestamp,
   Timestamp
 } from 'firebase/firestore';
-
-export interface AIStudent {
-  id: string;
-  displayName: string;
-  personality: string;
-  avatar: string;
-  currentRank: string;
-  rankLP: number;
-  characterLevel: number;
-  totalXP: number;
-  stats: {
-    totalMatches: number;
-    wins: number;
-    losses: number;
-    totalWords: number;
-    winRate: number;
-  };
-  traits: {
-    content: number;
-    organization: number;
-    grammar: number;
-    vocabulary: number;
-    mechanics: number;
-  };
-  writingStyle: string;
-  createdAt: Timestamp;
-  updatedAt: Timestamp;
-}
+import { AIStudent } from '@/lib/types';
 
 // Get random AI students within rank range
 export async function getRandomAIStudents(

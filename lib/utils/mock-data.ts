@@ -167,3 +167,109 @@ export function generateMockQuickMatchResults(
   return allPlayers;
 }
 
+// ============================================================================
+// MOCK DATA FOR COMPONENTS
+// ============================================================================
+
+/**
+ * Mock peer writings for fallback when peer data is unavailable
+ */
+export const MOCK_PEER_WRITINGS = [
+  {
+    id: 'peer1',
+    author: 'ProWriter99',
+    avatar: '🎯',
+    rank: 'Silver II',
+    content: `The old lighthouse stood sentinel on the rocky cliff, its weathered stones telling stories of countless storms. Sarah had passed it every day on her way to school, never giving it much thought. But today was different. Today, the rusty door that had always been locked stood slightly ajar, and a mysterious golden light spilled from within.
+
+Her curiosity got the better of her. She pushed the door open and stepped inside. The circular room was dusty and filled with old equipment, but in the center sat an ornate wooden chest she'd never seen before. As she approached, the chest began to glow...`,
+    wordCount: 112
+  },
+  {
+    id: 'peer2',
+    author: 'WordMaster',
+    avatar: '📖',
+    rank: 'Silver III',
+    content: `It was a normal Tuesday morning. I woke up, got dressed, and went to school like always. Nothing interesting ever happens in my small town. But then something weird happened.
+
+At lunch, I found a strange coin in my sandwich. It was old and had weird symbols on it. When I touched it, everything around me started to shimmer and change. Suddenly I wasn't in the cafeteria anymore.
+
+I was standing in a forest I'd never seen before. There were trees everywhere and strange birds singing. I had no idea how I got there or how to get back home.`,
+    wordCount: 104
+  }
+];
+
+/**
+ * Mock AI feedback for fallback
+ */
+export const MOCK_AI_FEEDBACK = {
+  strengths: [
+    "Strong opening hook that draws the reader in",
+    "Good use of descriptive language and sensory details",
+    "Clear narrative structure with a beginning, middle, and setup for continuation"
+  ],
+  improvements: [
+    "Consider adding more character development - what does Sarah look like? What are her motivations?",
+    "The pacing could be slower to build more tension before discovering the chest",
+    "Add more specific details about the lighthouse's interior to create atmosphere"
+  ],
+  score: 78
+};
+
+/**
+ * Mock phase feedback based on The Writing Revolution concepts
+ */
+export const MOCK_PHASE_FEEDBACK = {
+  writing: {
+    strengths: [
+      'Clear topic sentence establishes the main idea',
+      'Good use of transition words (First, Then, Finally)',
+      'Concrete details support your points'
+    ],
+    improvements: [
+      'Try expanding sentences with because/but/so to show deeper thinking',
+      'Add more specific details - use the five senses (what did you see, hear, feel?)',
+      'Consider using an appositive to add description (e.g., "The lighthouse, an ancient stone tower, stood...")'
+    ],
+    writingRevConcepts: [
+      'Sentence expansion: Practice combining short sentences',
+      'Note-taking: Organize ideas before writing',
+      'Single Paragraph Outline (SPO): Use topic sentence + supporting details + conclusion'
+    ]
+  },
+  feedback: {
+    strengths: [
+      'You identified specific strengths in your peer\'s writing',
+      'Suggestions were constructive and actionable',
+      'Good attention to organization and structure'
+    ],
+    improvements: [
+      'Be more specific about which sentences worked well and why',
+      'Reference Writing Revolution strategies (sentence combining, transitions)',
+      'Suggest concrete revision strategies, not just general comments'
+    ],
+    writingRevConcepts: [
+      'Analyzing sentence structure: Look for fragments or run-ons',
+      'Evaluating transitions: Check if ideas connect logically',
+      'Assessing paragraph structure: Topic sentence + evidence + conclusion'
+    ]
+  },
+  revision: {
+    strengths: [
+      'Applied peer feedback by adding descriptive details',
+      'Improved sentence variety and complexity',
+      'Better use of transitional phrases'
+    ],
+    improvements: [
+      'Could combine more short sentences for better flow',
+      'Add subordinating conjunctions (although, since, while) for complexity',
+      'Use appositives to add information without new sentences'
+    ],
+    writingRevConcepts: [
+      'Revision vs. Editing: Focus on ideas first, grammar later',
+      'Sentence combining: Join related ideas',
+      'Adding conjunctions: Use FANBOYS (for, and, nor, but, or, yet, so) and subordinating conjunctions'
+    ]
+  }
+};
+

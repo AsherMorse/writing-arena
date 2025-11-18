@@ -10,34 +10,7 @@ import {
   Timestamp 
 } from 'firebase/firestore';
 import { promoteRank, demoteRank } from './ai-students';
-
-// User Profile Interface
-export interface UserProfile {
-  uid: string;
-  displayName: string;
-  email: string;
-  avatar: string;
-  characterLevel: number;
-  totalXP: number;
-  totalPoints: number;
-  currentRank: string;
-  rankLP: number;
-  traits: {
-    content: number;
-    organization: number;
-    grammar: number;
-    vocabulary: number;
-    mechanics: number;
-  };
-  stats: {
-    totalMatches: number;
-    wins: number;
-    totalWords: number;
-    currentStreak: number;
-  };
-  createdAt: Timestamp;
-  updatedAt: Timestamp;
-}
+import { UserProfile } from '@/lib/types';
 
 // Session Interface
 export interface WritingSession {
