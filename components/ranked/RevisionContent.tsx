@@ -6,6 +6,9 @@ import WritingTipsModal from '@/components/shared/WritingTipsModal';
 import PhaseInstructions from '@/components/shared/PhaseInstructions';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSession } from '@/lib/hooks/useSession';
+import { useSessionData } from '@/lib/hooks/useSessionData';
+import { usePhaseTransition } from '@/lib/hooks/usePhaseTransition';
+import { useAutoSubmit } from '@/lib/hooks/useAutoSubmit';
 import { getPeerFeedbackResponses } from '@/lib/services/match-sync';
 import { formatTime, getTimeColor, getTimeProgressColor } from '@/lib/utils/time-utils';
 import { SCORING, getDefaultScore, clampScore } from '@/lib/constants/scoring';
@@ -16,21 +19,7 @@ import { LoadingState } from '@/components/shared/LoadingState';
 import { ErrorState } from '@/components/shared/ErrorState';
 import { Modal } from '@/components/shared/Modal';
 import { setSessionStorage } from '@/lib/utils/session-storage';
-
-// Mock AI feedback - will be replaced with real AI later
-const MOCK_AI_FEEDBACK = {
-  strengths: [
-    "Strong opening hook that draws the reader in",
-    "Good use of descriptive language and sensory details",
-    "Clear narrative structure with a beginning, middle, and setup for continuation"
-  ],
-  improvements: [
-    "Consider adding more character development - what does Sarah look like? What are her motivations?",
-    "The pacing could be slower to build more tension before discovering the chest",
-    "Add more specific details about the lighthouse's interior to create atmosphere"
-  ],
-  score: 78
-};
+import { MOCK_AI_FEEDBACK } from '@/lib/utils/mock-data';
 
 export default function RevisionContent() {
   const router = useRouter();
@@ -48,14 +37,15 @@ export default function RevisionContent() {
     hasSubmitted,
   } = useSession(sessionId);
   
+  // Extract session data using hook
   const {
-    matchId: sessionMatchId,
+    matchId,
     config: sessionConfig,
     players: sessionPlayers,
     state: sessionState,
     sessionId: activeSessionId,
-  } = session || {};
-  const matchId = sessionMatchId || '';
+  } = useSessionData(session);
+  
   const trait = sessionConfig?.trait || 'all';
   const promptId = sessionConfig?.promptId || '';
   const promptType = sessionConfig?.promptType || 'narrative';
@@ -231,78 +221,6 @@ export default function RevisionContent() {
     generateAIRevisions();
   }, [matchId, user, aiRevisionsGenerated]);
 
-  // Auto-submit when time runs out
-  // Track when phase started to prevent immediate submission on phase load
-  const [phaseLoadTime] = useState(Date.now());
-  
-  useEffect(() => {
-    const phaseAge = Date.now() - phaseLoadTime;
-    
-    // Only log significant events
-    if (timeRemaining === 0 || (timeRemaining % 10 === 0 && timeRemaining <= 30)) {
-      console.log('🔍 PHASE 3 AUTO-SUBMIT CHECK:', {
-        timeRemaining,
-        willSubmit: timeRemaining === 0 && !hasSubmitted() && phaseAge > 3000,
-      });
-    }
-    
-    // Only auto-submit if:
-    // 1. Time is 0
-    // 2. Haven't submitted
-    // 3. Phase has been loaded for at least 3 seconds (prevent immediate submit on transition)
-    if (timeRemaining === 0 && !hasSubmitted() && phaseAge > 3000) {
-      console.log('⏰ PHASE 3 - Timer expired, auto-submitting...');
-      handleSubmit();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [timeRemaining, hasSubmitted]);
-  
-  // PHASE COMPLETION MONITOR (Cloud Function primary, client fallback)
-  useEffect(() => {
-    if (!session || !hasSubmitted()) return;
-    
-    // IMPORTANT: Only check if we're still in Phase 3 and not completed
-    if (sessionConfig?.phase !== 3) return;
-    if (sessionState === 'completed' as any) return;
-    
-    const allPlayers = Object.values(sessionPlayers || {});
-    const realPlayers = allPlayers.filter((p: any) => !p.isAI);
-    const submittedRealPlayers = realPlayers.filter((p: any) => p.phases.phase3?.submitted);
-    
-    console.log('🔍 PHASE MONITOR - Phase 3 submissions:', {
-      currentPhase: sessionConfig?.phase,
-      state: sessionState,
-      real: realPlayers.length,
-      submitted: submittedRealPlayers.length,
-    });
-    
-    if (submittedRealPlayers.length === realPlayers.length && sessionState !== 'completed') {
-      console.log('⏱️ PHASE MONITOR - All submitted, waiting for Cloud Function...');
-      
-      // Fallback after 10 seconds
-      const fallbackTimer = setTimeout(async () => {
-        console.warn('⚠️ FALLBACK - Cloud Function timeout, marking completed client-side...');
-        
-        try {
-          const { updateDoc, doc } = await import('firebase/firestore');
-          const { db } = await import('@/lib/config/firebase');
-          const sessionRef = doc(db, 'sessions', activeSessionId || sessionId);
-          
-          await updateDoc(sessionRef, {
-            'coordination.allPlayersReady': true,
-            'state': 'completed',
-            updatedAt: Date.now(),
-          });
-          
-          console.log('✅ FALLBACK - Session marked completed');
-        } catch (error) {
-          console.error('❌ FALLBACK - Completion failed:', error);
-        }
-      }, 10000);
-      
-      return () => clearTimeout(fallbackTimer);
-    }
-  }, [session, sessionConfig, sessionPlayers, sessionState, activeSessionId, sessionId, hasSubmitted]);
 
   useEffect(() => {
     setWordCountRevised(countWords(revisedContent));
@@ -497,6 +415,22 @@ export default function RevisionContent() {
       setIsEvaluating(false);
     }
   };
+
+  // Auto-submit when time runs out
+  useAutoSubmit({
+    timeRemaining,
+    hasSubmitted,
+    onSubmit: handleSubmit,
+    minPhaseAge: 3000,
+  });
+
+  // Phase transition monitoring (for Phase 3 completion)
+  usePhaseTransition({
+    session,
+    currentPhase: 3,
+    hasSubmitted,
+    sessionId: activeSessionId || sessionId,
+  });
 
   // Paste prevention handlers
   const { handlePaste, handleCut, handleCopy } = usePastePrevention({ showWarning: false });

@@ -4,6 +4,9 @@ import { useParams, useRouter } from 'next/navigation';
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSession } from '@/lib/hooks/useSession';
+import { useSessionData } from '@/lib/hooks/useSessionData';
+import { usePhaseTransition } from '@/lib/hooks/usePhaseTransition';
+import { useAutoSubmit } from '@/lib/hooks/useAutoSubmit';
 import { getPromptById } from '@/lib/utils/prompts';
 import WritingTipsModal from '@/components/shared/WritingTipsModal';
 import WaitingForPlayers from '@/components/shared/WaitingForPlayers';
@@ -59,24 +62,24 @@ export default function WritingSessionContent() {
   const [generatingAI, setGeneratingAI] = useState(false);
   const [aiGenerationProgress, setAiGenerationProgress] = useState(0);
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
-  const phaseTransitionTimerRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Get prompt from session config (safe with optional chaining)
+  // Extract session data using hook
   const {
     matchId: sessionMatchId,
     sessionId: activeSessionId,
     coordination: sessionCoordination,
-    createdAt: sessionCreatedAt,
     config: sessionConfig,
     players: sessionPlayers,
-  } = session || {};
+    allPlayers,
+  } = useSessionData(session);
+  
   const prompt = sessionConfig ? getPromptById(sessionConfig.promptId) : null;
   const trait = sessionConfig?.trait || 'all';
 
   // Calculate players list from session
   const players = useMemo(
-    () => (sessionPlayers ? Object.values(sessionPlayers) : []),
-    [sessionPlayers],
+    () => allPlayers,
+    [allPlayers],
   );
   
   // Debug logging
@@ -268,90 +271,6 @@ export default function WritingSessionContent() {
     setWordCount(countWords(debouncedContent));
   }, [debouncedContent]);
 
-  // Auto-submit when time runs out
-  // Add delay to prevent immediate submission on page load
-  const [sessionLoadTime] = useState(Date.now());
-  
-  useEffect(() => {
-    const sessionAge = Date.now() - sessionLoadTime;
-    
-    // Only auto-submit if:
-    // 1. Time is actually 0
-    // 2. User hasn't submitted
-    // 3. Session exists
-    // 4. Session has been loaded for at least 5 seconds (prevent immediate submit)
-    if (timeRemaining === 0 && !hasSubmitted() && session && sessionAge > 5000) {
-      console.log('⏰ SESSION - Time expired, auto-submitting...');
-      // Don't show ranking modal - go straight to waiting screen
-      // Ranking happens AFTER all players submit, not before
-      handleSubmit();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [timeRemaining, hasSubmitted, session]);
-
-  // PHASE TRANSITION MONITOR
-  // Cloud Functions handle transitions, but client-side fallback if Functions not responding
-  useEffect(() => {
-    if (!session || !hasSubmitted()) return;
-
-    if (sessionConfig?.phase !== 1) {
-      if (phaseTransitionTimerRef.current) {
-        clearTimeout(phaseTransitionTimerRef.current);
-        phaseTransitionTimerRef.current = null;
-      }
-      return;
-    }
-    
-    const allPlayers = Object.values(sessionPlayers || {});
-    const realPlayers = allPlayers.filter(p => !p.isAI);
-    const submittedRealPlayers = realPlayers.filter(p => p.phases.phase1?.submitted);
-    
-    console.log('🔍 PHASE MONITOR - Phase 1 submissions:', {
-      currentPhase: sessionConfig?.phase,
-      real: realPlayers.length,
-      submitted: submittedRealPlayers.length,
-      coordFlag: sessionCoordination?.allPlayersReady,
-    });
-    
-    if (submittedRealPlayers.length === realPlayers.length && !sessionCoordination?.allPlayersReady) {
-      if (phaseTransitionTimerRef.current) return;
-      
-      console.log('⏱️ PHASE MONITOR - All submitted, waiting for Cloud Function to transition...');
-      
-      phaseTransitionTimerRef.current = setTimeout(async () => {
-        console.warn('⚠️ FALLBACK - Cloud Function timeout, transitioning client-side...');
-        
-        try {
-          const { updateDoc, doc, serverTimestamp } = await import('firebase/firestore');
-          const sessionRef = doc(db, 'sessions', activeSessionId || sessionId);
-          
-          await updateDoc(sessionRef, {
-            'coordination.allPlayersReady': true,
-            'coordination.readyCount': submittedRealPlayers.length,
-            'config.phase': 2,
-            'config.phaseDuration': SCORING.PHASE2_DURATION,
-            'timing.phase2StartTime': serverTimestamp(),
-            updatedAt: serverTimestamp(),
-          });
-          
-          console.log('✅ FALLBACK - Client-side transition to phase 2 complete');
-        } catch (error) {
-          console.error('❌ FALLBACK - Transition failed:', error);
-        } finally {
-          phaseTransitionTimerRef.current = null;
-        }
-      }, 10000);
-    } else if (phaseTransitionTimerRef.current) {
-      clearTimeout(phaseTransitionTimerRef.current);
-      phaseTransitionTimerRef.current = null;
-    }
-  }, [session, sessionConfig, sessionCoordination, sessionPlayers, hasSubmitted, activeSessionId, sessionId]);
-
-  useEffect(() => () => {
-    if (phaseTransitionTimerRef.current) {
-      clearTimeout(phaseTransitionTimerRef.current);
-    }
-  }, []);
 
   // Time utilities imported from lib/utils/time-utils.ts
 
@@ -548,6 +467,22 @@ export default function WritingSessionContent() {
       window.removeEventListener('debug-force-submit', handleForceSubmit);
     };
   }, [handleSubmit]);
+
+  // Auto-submit when time runs out
+  useAutoSubmit({
+    timeRemaining,
+    hasSubmitted,
+    onSubmit: handleSubmit,
+    minPhaseAge: 5000, // 5 seconds for Phase 1
+  });
+
+  // Phase transition monitoring
+  usePhaseTransition({
+    session,
+    currentPhase: 1,
+    hasSubmitted,
+    sessionId: activeSessionId || sessionId,
+  });
 
   // Prepare members list with word counts
   // CONDITIONAL RENDERS AFTER ALL HOOKS

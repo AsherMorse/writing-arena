@@ -14,61 +14,7 @@ import { getMedalEmoji } from '@/lib/utils/rank-utils';
 import { rankPlayers, getPlayerRank } from '@/lib/utils/ranking-utils';
 import { getSessionStorage, setSessionStorage } from '@/lib/utils/session-storage';
 import { useExpanded } from '@/lib/hooks/useExpanded';
-
-// Mock feedback based on The Writing Revolution concepts
-const MOCK_PHASE_FEEDBACK = {
-  writing: {
-    strengths: [
-      'Clear topic sentence establishes the main idea',
-      'Good use of transition words (First, Then, Finally)',
-      'Concrete details support your points'
-    ],
-    improvements: [
-      'Try expanding sentences with because/but/so to show deeper thinking',
-      'Add more specific details - use the five senses (what did you see, hear, feel?)',
-      'Consider using an appositive to add description (e.g., "The lighthouse, an ancient stone tower, stood...")'
-    ],
-    writingRevConcepts: [
-      'Sentence expansion: Practice combining short sentences',
-      'Note-taking: Organize ideas before writing',
-      'Single Paragraph Outline (SPO): Use topic sentence + supporting details + conclusion'
-    ]
-  },
-  feedback: {
-    strengths: [
-      'You identified specific strengths in your peer\'s writing',
-      'Suggestions were constructive and actionable',
-      'Good attention to organization and structure'
-    ],
-    improvements: [
-      'Be more specific about which sentences worked well and why',
-      'Reference Writing Revolution strategies (sentence combining, transitions)',
-      'Suggest concrete revision strategies, not just general comments'
-    ],
-    writingRevConcepts: [
-      'Analyzing sentence structure: Look for fragments or run-ons',
-      'Evaluating transitions: Check if ideas connect logically',
-      'Assessing paragraph structure: Topic sentence + evidence + conclusion'
-    ]
-  },
-  revision: {
-    strengths: [
-      'Applied peer feedback by adding descriptive details',
-      'Improved sentence variety and complexity',
-      'Better use of transitional phrases'
-    ],
-    improvements: [
-      'Could combine more short sentences for better flow',
-      'Add subordinating conjunctions (although, since, while) for complexity',
-      'Use appositives to add information without new sentences'
-    ],
-    writingRevConcepts: [
-      'Revision vs. Editing: Focus on ideas first, grammar later',
-      'Sentence combining: Join related ideas',
-      'Adding conjunctions: Use FANBOYS (for, and, nor, but, or, yet, so) and subordinating conjunctions'
-    ]
-  }
-};
+import { MOCK_PHASE_FEEDBACK } from '@/lib/utils/mock-data';
 
 interface ResultsContentProps {
   session?: GameSession; // Optional for backward compatibility
