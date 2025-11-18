@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { generateTWRBatchRankingPrompt } from '@/lib/utils/twr-prompts';
+import { getAnthropicApiKey, logApiKeyStatus, callAnthropicAPI } from '@/lib/utils/api-helpers';
+import { parseClaudeJSON, mapRankingsToPlayers } from '@/lib/utils/claude-parser';
+import { SCORING } from '@/lib/constants/scoring';
 
 interface WritingSubmission {
   playerId: string;
@@ -15,59 +18,20 @@ export async function POST(request: NextRequest) {
   const { writings, prompt, promptType, trait } = requestBody;
   
   try {
-    const apiKey = process.env.ANTHROPIC_API_KEY;
+    logApiKeyStatus('BATCH RANK WRITINGS');
     
-    // Debug: Log API key status (without exposing the actual key)
-    const hasApiKey = !!apiKey;
-    const apiKeyLength = apiKey?.length || 0;
-    const apiKeyPrefix = apiKey?.substring(0, 8) || 'none';
-    const isPlaceholder = apiKey === 'your_api_key_here';
-    
-    console.log('🔍 BATCH RANK WRITINGS - API Key Check:', {
-      hasKey: hasApiKey,
-      keyLength: apiKeyLength,
-      keyPrefix: `${apiKeyPrefix}...`,
-      isPlaceholder,
-      envKeys: Object.keys(process.env).filter(k => k.includes('ANTHROPIC') || k.includes('API')).join(', '),
-    });
-    
-    if (!apiKey || apiKey === 'your_api_key_here') {
+    const apiKey = getAnthropicApiKey();
+    if (!apiKey) {
       console.warn('⚠️ BATCH RANK WRITINGS - API key missing or invalid, using MOCK rankings');
       console.warn('⚠️ MOCK RANKINGS DO NOT REFLECT ACTUAL WRITING QUALITY');
-      console.warn('⚠️ If deploying to Vercel, set ANTHROPIC_API_KEY in Vercel environment variables');
-      console.warn('⚠️ If running locally, ensure ANTHROPIC_API_KEY is in .env.local');
       return NextResponse.json(generateMockRankings(writings));
     }
     
     console.log('✅ BATCH RANK WRITINGS - Using real AI evaluation for', writings.length, 'writings');
 
     // Call Claude API to rank all writings together
-    const anthropicResponse = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': apiKey,
-        'anthropic-version': '2023-06-01',
-      },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
-        max_tokens: 3000,
-        messages: [
-          {
-            role: 'user',
-            content: generateTWRBatchRankingPrompt(writings, prompt, promptType, trait),
-          },
-        ],
-      }),
-    });
-
-    if (!anthropicResponse.ok) {
-      const errorText = await anthropicResponse.text();
-      console.error('❌ BATCH RANK WRITINGS - Claude API error:', errorText);
-      throw new Error(`Claude API request failed: ${anthropicResponse.status}`);
-    }
-
-    const aiResponse = await anthropicResponse.json();
+    const rankingPrompt = generateTWRBatchRankingPrompt(writings, prompt, promptType, trait);
+    const aiResponse = await callAnthropicAPI(apiKey, rankingPrompt, 3000);
     const rankings = parseBatchRankings(aiResponse.content[0].text, writings);
 
     console.log('✅ BATCH RANK WRITINGS - AI evaluation complete, scores:', 
@@ -154,50 +118,34 @@ Important:
 }
 
 function parseBatchRankings(claudeResponse: string, writings: WritingSubmission[]): any {
-  try {
-    const jsonMatch = claudeResponse.match(/\{[\s\S]*\}/);
-    if (jsonMatch) {
-      const parsed = JSON.parse(jsonMatch[0]);
-      
-      console.log('✅ BATCH RANK WRITINGS - Successfully parsed AI response');
-      
-      // Map writer indices back to actual player IDs
-      const rankings = parsed.rankings.map((ranking: any, idx: number) => {
-        // Extract index from playerId if it's in format "writer_index_X"
-        let writerIndex = idx;
-        if (ranking.playerId && typeof ranking.playerId === 'string') {
-          const match = ranking.playerId.match(/writer_index_(\d+)/);
-          if (match) {
-            writerIndex = parseInt(match[1]);
-          }
-        }
-        
-        const actualPlayer = writings[writerIndex];
-        
-        return {
-          playerId: actualPlayer.playerId,
-          playerName: actualPlayer.playerName,
-          isAI: actualPlayer.isAI,
-          content: actualPlayer.content,  // Include content for peer review
-          wordCount: actualPlayer.wordCount,
-          rank: ranking.rank,
-          score: ranking.score,
-          strengths: ranking.strengths || [],
-          improvements: ranking.improvements || [],
-          traitFeedback: ranking.traitFeedback || {},
-        };
-      });
-      
-      return { rankings };
-    } else {
-      console.error('❌ BATCH RANK WRITINGS - No JSON found in AI response');
-    }
-  } catch (error) {
-    console.error('❌ BATCH RANK WRITINGS - Error parsing AI response:', error);
+  const parsed = parseClaudeJSON<{ rankings: any[] }>(claudeResponse);
+  
+  if (!parsed || !parsed.rankings) {
+    console.warn('⚠️ BATCH RANK WRITINGS - Falling back to mock rankings due to parse error');
+    return generateMockRankings(writings);
   }
   
-  console.warn('⚠️ BATCH RANK WRITINGS - Falling back to mock rankings due to parse error');
-  return generateMockRankings(writings);
+  console.log('✅ BATCH RANK WRITINGS - Successfully parsed AI response');
+  
+  // Map writer indices back to actual player IDs
+  const rankings = mapRankingsToPlayers(
+    parsed.rankings,
+    writings,
+    (ranking, idx, actualPlayer) => ({
+      playerId: actualPlayer.playerId,
+      playerName: actualPlayer.playerName,
+      isAI: actualPlayer.isAI,
+      content: actualPlayer.content,  // Include content for peer review
+      wordCount: actualPlayer.wordCount,
+      rank: ranking.rank,
+      score: ranking.score,
+      strengths: ranking.strengths || [],
+      improvements: ranking.improvements || [],
+      traitFeedback: ranking.traitFeedback || {},
+    })
+  );
+  
+  return { rankings };
 }
 
 function generateMockRankings(writings: WritingSubmission[]): any {
@@ -232,14 +180,10 @@ function generateMockRankings(writings: WritingSubmission[]): any {
       };
     } else {
       // CONSERVATIVE mock scoring - lower scores to encourage real AI evaluation
-      // Base score: 30-50 (much lower than before)
-      // Word count bonus: up to 20 points (was 40)
-      // Random factor: 0-15 (was 0-30)
-      // This gives range of 30-85 instead of 50-95
-      const baseScore = 30 + Math.random() * 20; // 30-50 base
+      const baseScore = SCORING.MOCK_BASE_MIN + Math.random() * (SCORING.MOCK_BASE_MAX - SCORING.MOCK_BASE_MIN);
       const wordCountBonus = Math.min(writing.wordCount / 3, 20); // Up to 20 points for word count
-      const randomFactor = Math.random() * 15; // 0-15 random
-      score = Math.round(Math.min(baseScore + wordCountBonus + randomFactor, 85));
+      const randomFactor = Math.random() * SCORING.MOCK_RANDOM_MAX;
+      score = Math.round(Math.min(baseScore + wordCountBonus + randomFactor, SCORING.MOCK_MAX));
       
       // Add warning in feedback that this is mock scoring
       strengths = [

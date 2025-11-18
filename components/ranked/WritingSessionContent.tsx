@@ -10,6 +10,8 @@ import WaitingForPlayers from '@/components/shared/WaitingForPlayers';
 import PhaseInstructions from '@/components/shared/PhaseInstructions';
 import { db } from '@/lib/config/firebase';
 import { doc, getDoc, updateDoc } from 'firebase/firestore';
+import { formatTime, getTimeColor } from '@/lib/utils/time-utils';
+import { SCORING, getDefaultScore, clampScore } from '@/lib/constants/scoring';
 
 /**
  * WritingSessionContent - Migrated to new session architecture
@@ -203,7 +205,7 @@ export default function WritingSessionContent() {
                   submittedAt: serverTimestamp(),
                   content: aiWriting.content,
                   wordCount: aiWriting.wordCount,
-                  score: Math.round(60 + Math.random() * 30),
+                  score: clampScore(60 + Math.random() * 30),
                 },
                 updatedAt: serverTimestamp(),
               });
@@ -320,7 +322,7 @@ export default function WritingSessionContent() {
             'coordination.allPlayersReady': true,
             'coordination.readyCount': submittedRealPlayers.length,
             'config.phase': 2,
-            'config.phaseDuration': 90,
+            'config.phaseDuration': SCORING.PHASE2_DURATION,
             'timing.phase2StartTime': serverTimestamp(),
             updatedAt: serverTimestamp(),
           });
@@ -344,17 +346,7 @@ export default function WritingSessionContent() {
     }
   }, []);
 
-  const formatTime = (seconds: number) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${mins}:${secs.toString().padStart(2, '0')}`;
-  };
-
-  const getTimeColor = () => {
-    if (timeRemaining > 60) return 'text-green-400';
-    if (timeRemaining > 30) return 'text-yellow-400';
-    return 'text-red-400';
-  };
+  // Time utilities imported from lib/utils/time-utils.ts
 
   const handleSubmit = useCallback(async () => {
     if (hasSubmitted() || !user || !userProfile || !session || !prompt) return;
@@ -457,7 +449,7 @@ export default function WritingSessionContent() {
       await submitPhase(1, {
         content: writingContent,
         wordCount: wordCount,
-        score: Math.round(yourScore),
+        score: clampScore(yourScore),
       });
       
       console.log('✅ SESSION - Submission complete, waiting for others...');
@@ -478,22 +470,22 @@ export default function WritingSessionContent() {
         });
         
         const data = await response.json();
-        const yourScore = data.overallScore || 75;
+        const yourScore = data.overallScore || getDefaultScore(1);
         
         await submitPhase(1, {
           content: writingContent,
           wordCount: wordCount,
-          score: Math.round(yourScore),
+          score: clampScore(yourScore),
         });
       } catch (fallbackError) {
         console.error('❌ SESSION - Even fallback failed:', fallbackError);
         const isEmpty = !writingContent || writingContent.trim().length === 0;
-        const yourScore = isEmpty ? 0 : Math.min(Math.max(60 + (wordCount / 5), 40), 100);
+        const yourScore = isEmpty ? SCORING.MIN_SCORE : clampScore(60 + (wordCount / 5));
         
         await submitPhase(1, {
           content: writingContent,
           wordCount: wordCount,
-          score: Math.round(yourScore),
+          score: yourScore,
         });
       }
     }
@@ -656,7 +648,7 @@ export default function WritingSessionContent() {
             </div>
             <div>
               <div className="text-xs uppercase tracking-[0.3em] text-white/50">Phase 1 · Draft</div>
-              <div className={`text-sm font-semibold ${timeRemaining > 0 ? getTimeColor() : 'text-red-400'}`}>
+              <div className={`text-sm font-semibold ${timeRemaining > 0 ? getTimeColor(timeRemaining, { green: SCORING.TIME_PHASE1_GREEN, yellow: SCORING.TIME_GREEN_THRESHOLD }) : 'text-red-400'}`}>
                 {timeRemaining > 0 ? 'Time remaining' : 'Time expired'}
               </div>
             </div>
@@ -678,8 +670,8 @@ export default function WritingSessionContent() {
         </div>
         <div className="mx-auto h-1.5 max-w-6xl rounded-full bg-white/10">
           <div
-            className={`h-full rounded-full ${timeRemaining > 60 ? 'bg-emerald-400' : timeRemaining > 30 ? 'bg-yellow-400' : 'bg-red-400'}`}
-            style={{ width: `${(timeRemaining / 120) * 100}%` }}
+            className={`h-full rounded-full ${timeRemaining > SCORING.TIME_PHASE1_GREEN ? 'bg-emerald-400' : timeRemaining > SCORING.TIME_GREEN_THRESHOLD ? 'bg-yellow-400' : 'bg-red-400'}`}
+            style={{ width: `${(timeRemaining / SCORING.PHASE1_DURATION) * 100}%` }}
           />
         </div>
       </header>

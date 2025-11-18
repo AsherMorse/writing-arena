@@ -7,6 +7,8 @@ import PhaseInstructions from '@/components/shared/PhaseInstructions';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSession } from '@/lib/hooks/useSession';
 import { getPeerFeedbackResponses } from '@/lib/services/match-sync';
+import { formatTime, getTimeColor, getTimeProgressColor } from '@/lib/utils/time-utils';
+import { SCORING, getDefaultScore, clampScore } from '@/lib/constants/scoring';
 
 // Mock AI feedback - will be replaced with real AI later
 const MOCK_AI_FEEDBACK = {
@@ -53,8 +55,8 @@ export default function RevisionContent() {
   
   // Get original content from session player data
   const originalContent = user && sessionPlayers ? (sessionPlayers[user.uid]?.phases.phase1?.content || '') : '';
-  const yourScore = user && sessionPlayers ? (sessionPlayers[user.uid]?.phases.phase1?.score || 75) : 75;
-  const feedbackScore = user && sessionPlayers ? (sessionPlayers[user.uid]?.phases.phase2?.score || 80) : 80;
+  const yourScore = user && sessionPlayers ? (sessionPlayers[user.uid]?.phases.phase1?.score || getDefaultScore(1)) : getDefaultScore(1);
+  const feedbackScore = user && sessionPlayers ? (sessionPlayers[user.uid]?.phases.phase2?.score || getDefaultScore(2)) : getDefaultScore(2);
   const wordCount = user && sessionPlayers ? (sessionPlayers[user.uid]?.phases.phase1?.wordCount || 0) : 0;
   const aiScores = ''; // TODO: Extract from session data
   
@@ -126,7 +128,7 @@ export default function RevisionContent() {
         setAiFeedback({
           strengths: feedback.strengths || [],
           improvements: feedback.improvements || [],
-          score: feedback.score || 75,
+          score: feedback.score || getDefaultScore(2),
         });
       } catch (error) {
         console.error('❌ REVISION - Failed to generate feedback:', error);
@@ -300,17 +302,7 @@ export default function RevisionContent() {
     setWordCountRevised(words.length);
   }, [revisedContent]);
 
-  const formatTime = (seconds: number) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${mins}:${secs.toString().padStart(2, '0')}`;
-  };
-
-  const getTimeColor = () => {
-    if (timeRemaining > 30) return 'text-green-400';
-    if (timeRemaining > 15) return 'text-yellow-400';
-    return 'text-red-400';
-  };
+  // Time utilities imported from lib/utils/time-utils.ts
 
   const renderLoadingState = () => (
     <div className="min-h-screen bg-[#0c141d] text-white flex items-center justify-center">
@@ -351,11 +343,11 @@ export default function RevisionContent() {
     if (isEmpty || unchanged) {
       console.warn('⚠️ REVISION - Empty or unchanged submission, scoring low');
       
-      await submitPhase(3, {
-        revisedContent: revisedContent || originalContent,
-        wordCount: wordCountRevised,
-        score: isEmpty ? 0 : 40, // 0 for empty, 40 for unchanged
-      });
+        await submitPhase(3, {
+          revisedContent: revisedContent || originalContent,
+          wordCount: wordCountRevised,
+          score: isEmpty ? SCORING.MIN_SCORE : 40, // 0 for empty, 40 for unchanged
+        });
       
       console.log('✅ REVISION - Low-effort submission recorded');
       setIsEvaluating(false);
@@ -429,11 +421,11 @@ export default function RevisionContent() {
       await submitPhase(3, {
         revisedContent,
         wordCount: wordCountRevised,
-        score: Math.round(revisionScore),
+        score: clampScore(revisionScore),
         });
       
       router.push(
-        `/ranked/results?matchId=${matchId}&trait=${trait}&promptId=${promptId}&promptType=${promptType}&originalContent=${encodeURIComponent(originalContent)}&revisedContent=${encodeURIComponent(revisedContent)}&wordCount=${wordCount}&revisedWordCount=${wordCountRevised}&aiScores=${aiScores}&writingScore=${yourScore}&feedbackScore=${feedbackScore}&revisionScore=${Math.round(revisionScore)}`
+        `/ranked/results?matchId=${matchId}&trait=${trait}&promptId=${promptId}&promptType=${promptType}&originalContent=${encodeURIComponent(originalContent)}&revisedContent=${encodeURIComponent(revisedContent)}&wordCount=${wordCount}&revisedWordCount=${wordCountRevised}&aiScores=${aiScores}&writingScore=${yourScore}&feedbackScore=${feedbackScore}&revisionScore=${clampScore(revisionScore)}`
       );
       
     } catch (error) {
@@ -452,7 +444,7 @@ export default function RevisionContent() {
         });
         
         const data = await response.json();
-        const revisionScore = data.score || 75;
+        const revisionScore = data.score || getDefaultScore(3);
         console.log('✅ REVISION - Fallback evaluation complete, score:', revisionScore);
         
         sessionStorage.setItem(`${matchId}-phase3-feedback`, JSON.stringify(data));
@@ -460,28 +452,28 @@ export default function RevisionContent() {
         await submitPhase(3, {
           revisedContent,
           wordCount: wordCountRevised,
-          score: Math.round(revisionScore),
+          score: clampScore(revisionScore),
           });
         
         router.push(
-          `/ranked/results?matchId=${matchId}&trait=${trait}&promptId=${promptId}&promptType=${promptType}&originalContent=${encodeURIComponent(originalContent)}&revisedContent=${encodeURIComponent(revisedContent)}&wordCount=${wordCount}&revisedWordCount=${wordCountRevised}&aiScores=${aiScores}&writingScore=${yourScore}&feedbackScore=${feedbackScore}&revisionScore=${Math.round(revisionScore)}`
+          `/ranked/results?matchId=${matchId}&trait=${trait}&promptId=${promptId}&promptType=${promptType}&originalContent=${encodeURIComponent(originalContent)}&revisedContent=${encodeURIComponent(revisedContent)}&wordCount=${wordCount}&revisedWordCount=${wordCountRevised}&aiScores=${aiScores}&writingScore=${yourScore}&feedbackScore=${feedbackScore}&revisionScore=${clampScore(revisionScore)}`
         );
       } catch (fallbackError) {
         console.error('❌ REVISION - Even fallback failed:', fallbackError);
         const changeAmount = Math.abs(wordCountRevised - wordCount);
         const hasSignificantChanges = changeAmount > 10;
         const revisionScore = hasSignificantChanges 
-          ? Math.min(85 + Math.random() * 10, 95)
-          : 60 + Math.random() * 15;
+          ? clampScore(85 + Math.random() * 10)
+          : clampScore(60 + Math.random() * 15);
         
         await submitPhase(3, {
           revisedContent,
           wordCount: wordCountRevised,
-          score: Math.round(revisionScore),
+          score: revisionScore,
         }).catch(console.error);
         
         router.push(
-          `/ranked/results?matchId=${matchId}&trait=${trait}&promptId=${promptId}&promptType=${promptType}&originalContent=${encodeURIComponent(originalContent)}&revisedContent=${encodeURIComponent(revisedContent)}&wordCount=${wordCount}&revisedWordCount=${wordCountRevised}&aiScores=${aiScores}&writingScore=${yourScore}&feedbackScore=${feedbackScore}&revisionScore=${Math.round(revisionScore)}`
+          `/ranked/results?matchId=${matchId}&trait=${trait}&promptId=${promptId}&promptType=${promptType}&originalContent=${encodeURIComponent(originalContent)}&revisedContent=${encodeURIComponent(revisedContent)}&wordCount=${wordCount}&revisedWordCount=${wordCountRevised}&aiScores=${aiScores}&writingScore=${yourScore}&feedbackScore=${feedbackScore}&revisionScore=${clampScore(revisionScore)}`
         );
       }
     } finally {
@@ -561,7 +553,7 @@ export default function RevisionContent() {
         <div className="container mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4">
-              <div className={`text-3xl font-bold ${getTimeColor()}`}>
+              <div className={`text-3xl font-bold ${getTimeColor(timeRemaining)}`}>
                 {formatTime(timeRemaining)}
               </div>
               <div className="text-white/60">
@@ -589,10 +581,8 @@ export default function RevisionContent() {
 
           <div className="mt-4 w-full bg-white/10 rounded-full h-2 overflow-hidden">
             <div 
-              className={`h-full transition-all duration-1000 ${
-                timeRemaining > 30 ? 'bg-green-400' : timeRemaining > 15 ? 'bg-yellow-400' : 'bg-red-400'
-              }`}
-              style={{ width: `${(timeRemaining / 60) * 100}%` }}
+              className={`h-full transition-all duration-1000 ${getTimeProgressColor(timeRemaining)}`}
+              style={{ width: `${(timeRemaining / SCORING.PHASE3_DURATION) * 100}%` }}
             />
           </div>
         </div>

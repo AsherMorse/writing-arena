@@ -8,6 +8,8 @@ import FeedbackValidator from '@/components/shared/FeedbackValidator';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSession } from '@/lib/hooks/useSession';
 import { getAssignedPeer } from '@/lib/services/match-sync';
+import { formatTime, getTimeColor, getTimeProgressColor } from '@/lib/utils/time-utils';
+import { SCORING, getDefaultScore, clampScore } from '@/lib/constants/scoring';
 
 // Mock peer writings - in reality, these would come from other players
 const MOCK_PEER_WRITINGS = [
@@ -272,7 +274,7 @@ export default function PeerFeedbackContent() {
           await updateDoc(sessionRef, {
             'coordination.allPlayersReady': true,
             'config.phase': 3,
-            'config.phaseDuration': 90,
+            'config.phaseDuration': SCORING.PHASE3_DURATION,
             'timing.phase3StartTime': serverTimestamp(),
             updatedAt: serverTimestamp(),
           });
@@ -287,17 +289,7 @@ export default function PeerFeedbackContent() {
     }
   }, [session, sessionPlayers, sessionCoordination, sessionConfig, hasSubmitted, activeSessionId, sessionId]);
 
-  const formatTime = (seconds: number) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${mins}:${secs.toString().padStart(2, '0')}`;
-  };
-
-  const getTimeColor = () => {
-    if (timeRemaining > 30) return 'text-green-400';
-    if (timeRemaining > 15) return 'text-yellow-400';
-    return 'text-red-400';
-  };
+  // Time utilities imported from lib/utils/time-utils.ts
 
   const isFormComplete = () => {
     return Object.values(responses).every(response => response.trim().length > 10);
@@ -395,10 +387,10 @@ export default function PeerFeedbackContent() {
       });
       
       // NEW: Submit using session architecture
-      await submitPhase(2, {
-        responses,
-        score: Math.round(feedbackScore),
-      });
+        await submitPhase(2, {
+          responses,
+          score: clampScore(feedbackScore),
+        });
       
       console.log('✅ PEER FEEDBACK - Submission complete, phase will transition automatically!');
       
@@ -417,20 +409,22 @@ export default function PeerFeedbackContent() {
         });
         
         const data = await response.json();
-        const feedbackScore = data.score || 75;
+        const feedbackScore = data.score || getDefaultScore(2);
         console.log('✅ PEER FEEDBACK - Fallback evaluation complete, score:', feedbackScore);
         
         await submitPhase(2, {
           responses,
-          score: Math.round(feedbackScore),
+          score: clampScore(feedbackScore),
         });
       } catch (fallbackError) {
         console.error('❌ PEER FEEDBACK - Even fallback failed:', fallbackError);
-        const feedbackQuality = isFormComplete() ? Math.random() * 20 + 75 : Math.random() * 30 + 50;
+        const feedbackQuality = isFormComplete() 
+          ? SCORING.DEFAULT_FEEDBACK_SCORE + Math.random() * 20 
+          : 50 + Math.random() * 30;
         
         await submitPhase(2, {
           responses,
-          score: Math.round(feedbackQuality),
+          score: clampScore(feedbackQuality),
         }).catch(console.error);
       }
     } finally {
@@ -500,7 +494,7 @@ export default function PeerFeedbackContent() {
         <div className="container mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4">
-              <div className={`text-3xl font-bold ${getTimeColor()}`}>
+              <div className={`text-3xl font-bold ${getTimeColor(timeRemaining)}`}>
                 {formatTime(timeRemaining)}
               </div>
               <div className="text-white/60">
@@ -518,10 +512,8 @@ export default function PeerFeedbackContent() {
 
           <div className="mt-4 w-full bg-white/10 rounded-full h-2 overflow-hidden">
             <div 
-              className={`h-full transition-all duration-1000 ${
-                timeRemaining > 30 ? 'bg-green-400' : timeRemaining > 15 ? 'bg-yellow-400' : 'bg-red-400'
-              }`}
-              style={{ width: `${(timeRemaining / 60) * 100}%` }}
+              className={`h-full transition-all duration-1000 ${getTimeProgressColor(timeRemaining)}`}
+              style={{ width: `${(timeRemaining / SCORING.PHASE2_DURATION) * 100}%` }}
             />
           </div>
         </div>

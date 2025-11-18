@@ -8,6 +8,7 @@ import { joinQueue, leaveQueue, listenToQueue, QueueEntry, createMatchLobby, lis
 import { getRandomPrompt } from '@/lib/utils/prompts';
 import { getRandomAIStudents } from '@/lib/services/ai-students';
 import { useCreateSession } from '@/lib/hooks/useSession';
+import { SCORING } from '@/lib/constants/scoring';
 
 export default function MatchmakingContent() {
   const router = useRouter();
@@ -454,7 +455,7 @@ export default function MatchmakingContent() {
             promptId: randomPrompt.id,
             promptType: randomPrompt.type,
             phase: 1,
-            phaseDuration: 120,
+            phaseDuration: SCORING.PHASE1_DURATION,
           },
           players: lobbyPlayers.map(p => ({
             userId: p.userId,
@@ -530,7 +531,7 @@ export default function MatchmakingContent() {
             promptId: randomPrompt.id,
             promptType: randomPrompt.type,
             phase: 1,
-            phaseDuration: 120,
+            phaseDuration: SCORING.PHASE1_DURATION,
           },
           players: singlePlayerPlayers,
         })
