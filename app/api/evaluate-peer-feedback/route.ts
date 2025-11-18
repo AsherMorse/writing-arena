@@ -22,7 +22,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Call Claude API to evaluate the quality of peer feedback
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
+    const anthropicResponse = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -41,12 +41,12 @@ export async function POST(request: NextRequest) {
       }),
     });
 
-    if (!response.ok) {
+    if (!anthropicResponse.ok) {
       throw new Error('Claude API request failed');
     }
 
-    const data = await response.json();
-    const evaluation = parsePeerFeedbackEvaluation(data.content[0].text);
+    const aiResponse = await anthropicResponse.json();
+    const evaluation = parsePeerFeedbackEvaluation(aiResponse.content[0].text);
 
     return NextResponse.json(evaluation);
   } catch (error) {

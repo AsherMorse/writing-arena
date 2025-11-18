@@ -166,6 +166,27 @@ export class SessionManager {
       [`players.${this.userId}.displayName`]: playerInfo.displayName,
       [`players.${this.userId}.avatar`]: playerInfo.avatar,
       updatedAt: serverTimestamp(),
+    }).catch((error) => {
+      if (error?.code === 'not-found') {
+        console.warn('⚠️ SESSION MANAGER - Player not found in session, recreating entry');
+        return setDoc(sessionRef, {
+          players: {
+            [this.userId!]: {
+              userId: this.userId,
+              displayName: playerInfo.displayName,
+              avatar: playerInfo.avatar,
+              rank: playerInfo.rank,
+              isAI: false,
+              status: 'connected',
+              lastHeartbeat: serverTimestamp(),
+              connectionId: this.connectionId,
+              phases: {},
+            },
+          },
+          updatedAt: serverTimestamp(),
+        }, { merge: true });
+      }
+      throw error;
     });
     
     console.log('✅ SESSION MANAGER - Reconnected successfully');

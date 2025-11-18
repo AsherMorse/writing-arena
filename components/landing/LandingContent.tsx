@@ -1,4 +1,7 @@
+'use client';
+
 import Link from 'next/link';
+import { useAuth } from '@/contexts/AuthContext';
 
 const modes = [
   {
@@ -34,6 +37,12 @@ const stagePipeline = [
 ];
 
 export default function LandingContent() {
+  const { user } = useAuth();
+  const isLoggedIn = !!user;
+  const headerCtaHref = isLoggedIn ? '/dashboard' : '/auth';
+  const headerCtaLabel = isLoggedIn ? 'Go to dashboard' : 'Sign in';
+  const heroCtaHref = isLoggedIn ? '/dashboard' : '/auth';
+  const heroCtaLabel = isLoggedIn ? 'Resume writing' : 'Enter the arena';
   return (
     <div className="min-h-screen bg-[#0c141d] text-white">
       <header className="border-b border-white/10">
@@ -46,10 +55,10 @@ export default function LandingContent() {
           </Link>
           <div className="flex items-center gap-3 text-sm">
             <Link
-              href="/auth"
+              href={headerCtaHref}
               className="rounded-full border border-white/15 bg-white/5 px-5 py-2 font-semibold text-white transition hover:bg-white/10"
             >
-              Sign in
+              {headerCtaLabel}
             </Link>
           </div>
         </div>
@@ -73,10 +82,10 @@ export default function LandingContent() {
             </div>
             <div className="flex flex-col gap-3 sm:flex-row">
               <Link
-                href="/auth"
+                href={heroCtaHref}
                 className="rounded-full bg-emerald-400 px-8 py-3 text-center text-sm font-semibold text-[#0c141d] transition hover:bg-emerald-300"
               >
-                Enter the arena
+                {heroCtaLabel}
               </Link>
               <Link
                 href="/ranked"

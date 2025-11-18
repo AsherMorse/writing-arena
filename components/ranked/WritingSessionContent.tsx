@@ -1,7 +1,7 @@
 'use client';
 
 import { useParams, useRouter } from 'next/navigation';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSession } from '@/lib/hooks/useSession';
 import { getPromptById } from '@/lib/utils/prompts';
@@ -49,20 +49,33 @@ export default function WritingSessionContent() {
   const [aiWordCounts, setAiWordCounts] = useState<number[]>([0, 0, 0, 0]);
   const [generatingAI, setGeneratingAI] = useState(false);
   const [aiGenerationProgress, setAiGenerationProgress] = useState(0);
+  const textareaRef = useRef<HTMLTextAreaElement | null>(null);
+  const phaseTransitionTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   // Get prompt from session config (safe with optional chaining)
-  const prompt = session ? getPromptById(session.config.promptId) : null;
-  const trait = session?.config.trait || 'all';
+  const {
+    matchId: sessionMatchId,
+    sessionId: activeSessionId,
+    coordination: sessionCoordination,
+    createdAt: sessionCreatedAt,
+    config: sessionConfig,
+    players: sessionPlayers,
+  } = session || {};
+  const prompt = sessionConfig ? getPromptById(sessionConfig.promptId) : null;
+  const trait = sessionConfig?.trait || 'all';
 
   // Calculate players list from session
-  const players = session ? Object.values(session.players) : [];
+  const players = useMemo(
+    () => (sessionPlayers ? Object.values(sessionPlayers) : []),
+    [sessionPlayers],
+  );
   
   // Debug logging
   useEffect(() => {
     if (session && players.length > 0) {
       console.log('👥 SESSION - Players in session:', players.length, players.map(p => p.displayName));
     }
-  }, [session, players]);
+  }, [session, sessionPlayers, players]);
   
   // Get submission tracking
   const { submitted, total } = submissionCount();
@@ -74,11 +87,11 @@ export default function WritingSessionContent() {
     if (!session || aiWritingsGenerated || !user || !prompt) return;
     
     const generateAIWritings = async () => {
-      console.log('🤖 SESSION - Checking for existing AI writings...');
+      console.log('[AIR] Checking for existing AI writings...');
       
       try {
         // Check if AI writings already exist in matchStates (backward compatibility)
-        const matchRef = doc(db, 'matchStates', session.matchId);
+        const matchRef = doc(db, 'matchStates', sessionMatchId || sessionId);
         const matchDoc = await getDoc(matchRef);
         
         if (matchDoc.exists()) {
@@ -86,19 +99,19 @@ export default function WritingSessionContent() {
           const existingWritings = matchState?.aiWritings?.phase1;
           
           if (existingWritings && existingWritings.length > 0) {
-            console.log('✅ SESSION - Found existing AI writings, restoring...');
+            console.log('[AIR] Found existing AI writings:', existingWritings.length);
             setAiWordCounts(existingWritings.map((w: any) => w.wordCount));
             setAiWritingsGenerated(true);
             return;
           }
         } else {
           // Create matchStates document for backward compatibility
-          console.log('📝 SESSION - Creating matchStates document for backward compatibility...');
+          console.log('[AIR] Creating matchStates document for backward compatibility');
           const { setDoc } = await import('firebase/firestore');
           await setDoc(matchRef, {
-            matchId: session.matchId,
-            sessionId: session.sessionId,
-            players: Object.values(session.players).map(p => ({
+            matchId: sessionMatchId || sessionId,
+            sessionId: activeSessionId || sessionId,
+            players: Object.values(sessionPlayers || {}).map(p => ({
               userId: p.userId,
               displayName: p.displayName,
               avatar: p.avatar,
@@ -106,19 +119,19 @@ export default function WritingSessionContent() {
               isAI: p.isAI,
             })),
             phase: 1,
-            createdAt: session.createdAt,
+            createdAt: sessionCreatedAt,
           });
         }
         
         // Generate new AI writings
-        console.log('🤖 SESSION - Generating new AI writings...');
+        console.log('[AIR] Generating new AI writings for prompt:', prompt.id);
         
         // Get AI players
         const aiPlayers = players.filter(p => p.isAI);
         
         // Show loading state
         setGeneratingAI(true);
-        console.log(`🎨 SESSION - Generating ${aiPlayers.length} AI writings...`);
+        console.log(`[AIR] Generating ${aiPlayers.length} AI writings`);
         setAiWritingsGenerated(true);
         
         // Generate writing for each AI player in parallel
@@ -135,7 +148,7 @@ export default function WritingSessionContent() {
           });
           
           const data = await response.json();
-          console.log(`✅ Generated writing for ${aiPlayer.displayName}:`, data.wordCount, 'words');
+          console.log(`[AIR] Generated writing for ${aiPlayer.displayName}:`, data.wordCount);
           
           // Update progress
           setAiGenerationProgress(((index + 1) / aiPlayers.length) * 100);
@@ -166,7 +179,7 @@ export default function WritingSessionContent() {
         setGeneratingAI(false);
         setAiGenerationProgress(100);
         
-        console.log('✅ SESSION - All AI writings generated and stored');
+        console.log('[AIR] Stored AI writings for match');
         
         // AUTO-SUBMIT AI PLAYERS (they've "finished writing")
         // Submit each AI player's work to the session after a short delay (5-15 seconds)
@@ -178,11 +191,11 @@ export default function WritingSessionContent() {
               const aiWriting = aiWritings.find(w => w.playerId === aiPlayer.userId);
               if (!aiWriting) return;
               
-              console.log(`🤖 SESSION - Auto-submitting for AI player: ${aiPlayer.displayName}`);
+              console.log(`[AIR] Auto-submitting AI player ${aiPlayer.displayName} after delay ${delay}`);
               
               // Submit directly to sessions collection
               const { updateDoc, doc, serverTimestamp } = await import('firebase/firestore');
-              const sessionRef = doc(db, 'sessions', session.sessionId);
+              const sessionRef = doc(db, 'sessions', activeSessionId || sessionId);
               
               await updateDoc(sessionRef, {
                 [`players.${aiPlayer.userId}.phases.phase1`]: {
@@ -195,7 +208,7 @@ export default function WritingSessionContent() {
                 updatedAt: serverTimestamp(),
               });
               
-              console.log(`✅ SESSION - AI player ${aiPlayer.displayName} submitted`);
+              console.log(`[AIR] AI player ${aiPlayer.displayName} submission saved`);
             } catch (error) {
               console.error(`❌ SESSION - Failed to auto-submit AI player ${aiPlayer.displayName}:`, error);
             }
@@ -203,7 +216,7 @@ export default function WritingSessionContent() {
         });
         
       } catch (error) {
-        console.error('❌ SESSION - Failed to generate AI writings:', error);
+        console.error('[AIR] Failed to generate AI writings:', error);
         // Continue with fallback word counts
         setAiWordCounts([40, 55, 48, 62]);
         setAiWritingsGenerated(true);
@@ -224,7 +237,7 @@ export default function WritingSessionContent() {
     const interval = setInterval(() => {
       setAiWordCounts(prev => prev.map((count, i) => {
         const target = targetCounts[i] || 95;
-        const hasSubmitted = session.players[aiPlayers[i]?.userId]?.phases.phase1?.submitted;
+        const hasSubmitted = (sessionPlayers || {})[aiPlayers[i]?.userId]?.phases.phase1?.submitted;
         
         if (hasSubmitted) {
           // Freeze at final count if submitted
@@ -238,7 +251,7 @@ export default function WritingSessionContent() {
     }, 2000);
     
     return () => clearInterval(interval);
-  }, [session, players]);
+  }, [session, sessionPlayers, players]);
       
   // Update word count when content changes
   useEffect(() => {
@@ -271,38 +284,43 @@ export default function WritingSessionContent() {
   // Cloud Functions handle transitions, but client-side fallback if Functions not responding
   useEffect(() => {
     if (!session || !hasSubmitted()) return;
+
+    if (sessionConfig?.phase !== 1) {
+      if (phaseTransitionTimerRef.current) {
+        clearTimeout(phaseTransitionTimerRef.current);
+        phaseTransitionTimerRef.current = null;
+      }
+      return;
+    }
     
-    // IMPORTANT: Only check if we're still in Phase 1
-    if (session.config.phase !== 1) return;
-    
-    const allPlayers = Object.values(session.players);
+    const allPlayers = Object.values(sessionPlayers || {});
     const realPlayers = allPlayers.filter(p => !p.isAI);
     const submittedRealPlayers = realPlayers.filter(p => p.phases.phase1?.submitted);
     
     console.log('🔍 PHASE MONITOR - Phase 1 submissions:', {
-      currentPhase: session.config.phase,
+      currentPhase: sessionConfig?.phase,
       real: realPlayers.length,
       submitted: submittedRealPlayers.length,
-      coordFlag: session.coordination.allPlayersReady,
+      coordFlag: sessionCoordination?.allPlayersReady,
     });
     
-    // If all real players submitted but Cloud Function hasn't transitioned after 10 seconds
-    if (submittedRealPlayers.length === realPlayers.length && !session.coordination.allPlayersReady) {
+    if (submittedRealPlayers.length === realPlayers.length && !sessionCoordination?.allPlayersReady) {
+      if (phaseTransitionTimerRef.current) return;
+      
       console.log('⏱️ PHASE MONITOR - All submitted, waiting for Cloud Function to transition...');
       
-      // Fallback: If Cloud Function doesn't respond in 10 seconds, do it client-side
-      const fallbackTimer = setTimeout(async () => {
+      phaseTransitionTimerRef.current = setTimeout(async () => {
         console.warn('⚠️ FALLBACK - Cloud Function timeout, transitioning client-side...');
         
         try {
           const { updateDoc, doc, serverTimestamp } = await import('firebase/firestore');
-          const sessionRef = doc(db, 'sessions', session.sessionId);
+          const sessionRef = doc(db, 'sessions', activeSessionId || sessionId);
           
           await updateDoc(sessionRef, {
             'coordination.allPlayersReady': true,
             'coordination.readyCount': submittedRealPlayers.length,
             'config.phase': 2,
-            'config.phaseDuration': 90, // 1.5 minutes for peer feedback
+            'config.phaseDuration': 90,
             'timing.phase2StartTime': serverTimestamp(),
             updatedAt: serverTimestamp(),
           });
@@ -310,13 +328,21 @@ export default function WritingSessionContent() {
           console.log('✅ FALLBACK - Client-side transition to phase 2 complete');
         } catch (error) {
           console.error('❌ FALLBACK - Transition failed:', error);
+        } finally {
+          phaseTransitionTimerRef.current = null;
         }
-      }, 10000); // 10 second timeout
-      
-      // Cleanup if component unmounts
-      return () => clearTimeout(fallbackTimer);
+      }, 10000);
+    } else if (phaseTransitionTimerRef.current) {
+      clearTimeout(phaseTransitionTimerRef.current);
+      phaseTransitionTimerRef.current = null;
     }
-  }, [session, hasSubmitted]);
+  }, [session, sessionConfig, sessionCoordination, sessionPlayers, hasSubmitted, activeSessionId, sessionId]);
+
+  useEffect(() => () => {
+    if (phaseTransitionTimerRef.current) {
+      clearTimeout(phaseTransitionTimerRef.current);
+    }
+  }, []);
 
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
@@ -330,7 +356,7 @@ export default function WritingSessionContent() {
     return 'text-red-400';
   };
 
-  const handleSubmit = async () => {
+  const handleSubmit = useCallback(async () => {
     if (hasSubmitted() || !user || !userProfile || !session || !prompt) return;
     
     console.log('📤 SESSION - Submitting for batch ranking...');
@@ -354,7 +380,7 @@ export default function WritingSessionContent() {
     
     try {
       // Get AI writings from matchStates
-      const matchDoc = await getDoc(doc(db, 'matchStates', session.matchId));
+      const matchDoc = await getDoc(doc(db, 'matchStates', sessionMatchId || sessionId));
       if (!matchDoc.exists()) throw new Error('Match state not found');
       
       const matchState = matchDoc.data();
@@ -406,7 +432,7 @@ export default function WritingSessionContent() {
       console.log(`🎯 SESSION - You scored ${yourScore}`);
       
       // Store rankings in matchStates for backward compatibility
-      const matchRef = doc(db, 'matchStates', session.matchId);
+      const matchRef = doc(db, 'matchStates', sessionMatchId || sessionId);
       const { setDoc } = await import('firebase/firestore');
       await setDoc(matchRef, {
         rankings: {
@@ -458,7 +484,7 @@ export default function WritingSessionContent() {
         });
       }
     }
-  };
+  }, [hasSubmitted, user, userProfile, session, sessionMatchId, sessionId, prompt, writingContent, wordCount, submitPhase, trait]);
 
   const handlePaste = (e: React.ClipboardEvent<HTMLTextAreaElement>) => {
     e.preventDefault();
@@ -469,6 +495,55 @@ export default function WritingSessionContent() {
   const handleCut = (e: React.ClipboardEvent<HTMLTextAreaElement>) => {
     e.preventDefault();
   };
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return undefined;
+
+    const handleDebugPaste = async () => {
+      try {
+        const textarea = textareaRef.current;
+        if (!textarea) return;
+        const clipboardText = await navigator.clipboard.readText();
+        if (!clipboardText) return;
+
+        const { selectionStart, selectionEnd, value } = textarea;
+        const before = value.slice(0, selectionStart ?? value.length);
+        const after = value.slice(selectionEnd ?? value.length);
+        const nextValue = `${before}${clipboardText}${after}`;
+
+        setShowPasteWarning(false);
+        setWritingContent(nextValue);
+
+        const cursorPosition = (selectionStart ?? value.length) + clipboardText.length;
+        requestAnimationFrame(() => {
+          textarea.focus();
+          textarea.setSelectionRange(cursorPosition, cursorPosition);
+        });
+      } catch (error) {
+        console.error('❌ DEBUG - Failed to paste from clipboard:', error);
+      }
+    };
+
+    const handler = () => {
+      void handleDebugPaste();
+    };
+
+    window.addEventListener('debug-paste-clipboard', handler);
+    return () => {
+      window.removeEventListener('debug-paste-clipboard', handler);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return undefined;
+    const handleForceSubmit = () => {
+      void handleSubmit();
+    };
+    window.addEventListener('debug-force-submit', handleForceSubmit);
+    return () => {
+      window.removeEventListener('debug-force-submit', handleForceSubmit);
+    };
+  }, [handleSubmit]);
 
   // Prepare members list with word counts
   // CONDITIONAL RENDERS AFTER ALL HOOKS
@@ -640,6 +715,7 @@ export default function WritingSessionContent() {
                 onPaste={handlePaste}
                 onCopy={handleCut}
                 onCut={handleCut}
+                ref={textareaRef}
                 placeholder="Start writing your response..."
                 className="mt-4 h-[420px] w-full resize-none bg-transparent text-base leading-relaxed focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed"
                 autoFocus

@@ -51,7 +51,14 @@ export default function PeerFeedbackContent() {
     hasSubmitted,
   } = useSession(sessionId);
 
-  const matchId = session?.matchId || '';
+  const {
+    matchId: sessionMatchId,
+    config: sessionConfig,
+    players: sessionPlayers,
+    coordination: sessionCoordination,
+    sessionId: activeSessionId,
+  } = session || {};
+  const matchId = sessionMatchId || '';
   const [currentPeer, setCurrentPeer] = useState<any>(null);
   const [loadingPeer, setLoadingPeer] = useState(true);
   const [showTipsModal, setShowTipsModal] = useState(false);
@@ -150,20 +157,31 @@ export default function PeerFeedbackContent() {
     generateAIFeedback();
   }, [matchId, user, aiFeedbackGenerated]);
 
-  // Load assigned peer's writing
+  // Load assigned peer's writing with retries (AI writes may take a moment to store)
   useEffect(() => {
+    let cancelled = false;
+
     const loadPeerWriting = async () => {
       if (!user || !matchId) {
         setLoadingPeer(false);
         return;
       }
       
-      console.log('👥 PEER FEEDBACK - Loading assigned peer writing...');
+      console.log('[AIR] Loading assigned peer writing...');
       try {
-        const assignedPeer = await getAssignedPeer(matchId, user.uid);
+        let assignedPeer: Awaited<ReturnType<typeof getAssignedPeer>> | null = null;
+        const MAX_RETRIES = 5;
+        for (let attempt = 0; attempt < MAX_RETRIES; attempt += 1) {
+          assignedPeer = await getAssignedPeer(matchId, user.uid);
+          if (assignedPeer) {
+            console.log(`[AIR] Peer writing ready on attempt ${attempt + 1}:`, assignedPeer.displayName);
+            break;
+          }
+          console.log(`[AIR] Peer writing not ready (attempt ${attempt + 1}/${MAX_RETRIES}), retrying...`);
+          await new Promise((resolve) => setTimeout(resolve, 1500));
+        }
         
-        if (assignedPeer) {
-          console.log('✅ PEER FEEDBACK - Loaded peer:', assignedPeer.displayName);
+        if (assignedPeer && !cancelled) {
           setCurrentPeer({
             id: assignedPeer.userId,
             author: assignedPeer.displayName,
@@ -172,20 +190,28 @@ export default function PeerFeedbackContent() {
             content: assignedPeer.writing,
             wordCount: assignedPeer.wordCount,
           });
-        } else {
-          console.warn('⚠️ PEER FEEDBACK - No assigned peer found, using fallback');
+        } else if (!cancelled) {
+          console.warn('[AIR] No assigned peer found after retries, using fallback');
           setCurrentPeer(MOCK_PEER_WRITINGS[0]);
         }
       } catch (error) {
         console.error('❌ PEER FEEDBACK - Error loading peer:', error);
-        setCurrentPeer(MOCK_PEER_WRITINGS[0]);
+        if (!cancelled) {
+          setCurrentPeer(MOCK_PEER_WRITINGS[0]);
+        }
       } finally {
-        setLoadingPeer(false);
+        if (!cancelled) {
+          setLoadingPeer(false);
+        }
       }
     };
     
     loadPeerWriting();
-  }, [user, matchId]);
+    
+    return () => {
+      cancelled = true;
+    };
+  }, [user, user?.uid, matchId]);
 
   // Auto-submit when time runs out
   // Track when phase started to prevent immediate submission on phase load
@@ -218,20 +244,20 @@ export default function PeerFeedbackContent() {
     if (!session || !hasSubmitted()) return;
     
     // IMPORTANT: Only check if we're still in Phase 2
-    if (session.config.phase !== 2) return;
+    if (sessionConfig?.phase !== 2) return;
     
-    const allPlayers = Object.values(session.players);
+    const allPlayers = Object.values(sessionPlayers || {});
     const realPlayers = allPlayers.filter((p: any) => !p.isAI);
     const submittedRealPlayers = realPlayers.filter((p: any) => p.phases.phase2?.submitted);
     
     console.log('🔍 PHASE MONITOR - Phase 2 submissions:', {
-      currentPhase: session.config.phase,
+      currentPhase: sessionConfig?.phase,
       real: realPlayers.length,
       submitted: submittedRealPlayers.length,
-      coordFlag: session.coordination.allPlayersReady,
+      coordFlag: sessionCoordination?.allPlayersReady,
     });
     
-    if (submittedRealPlayers.length === realPlayers.length && !session.coordination.allPlayersReady) {
+    if (submittedRealPlayers.length === realPlayers.length && !sessionCoordination?.allPlayersReady) {
       console.log('⏱️ PHASE MONITOR - All submitted, waiting for Cloud Function...');
       
       // Fallback after 10 seconds
@@ -241,7 +267,7 @@ export default function PeerFeedbackContent() {
         try {
           const { updateDoc, doc, serverTimestamp } = await import('firebase/firestore');
           const { db } = await import('@/lib/config/firebase');
-          const sessionRef = doc(db, 'sessions', session.sessionId);
+          const sessionRef = doc(db, 'sessions', activeSessionId || sessionId);
           
           await updateDoc(sessionRef, {
             'coordination.allPlayersReady': true,
@@ -259,7 +285,7 @@ export default function PeerFeedbackContent() {
       
       return () => clearTimeout(fallbackTimer);
     }
-  }, [session, hasSubmitted]);
+  }, [session, sessionPlayers, sessionCoordination, sessionConfig, hasSubmitted, activeSessionId, sessionId]);
 
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);

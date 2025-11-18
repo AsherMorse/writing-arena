@@ -20,7 +20,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Call Claude API to rank all writings together
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
+    const anthropicResponse = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -39,12 +39,12 @@ export async function POST(request: NextRequest) {
       }),
     });
 
-    if (!response.ok) {
+    if (!anthropicResponse.ok) {
       throw new Error('Claude API request failed');
     }
 
-    const data = await response.json();
-    const rankings = parseBatchRankings(data.content[0].text, writings);
+    const aiResponse = await anthropicResponse.json();
+    const rankings = parseBatchRankings(aiResponse.content[0].text, writings);
 
     return NextResponse.json(rankings);
   } catch (error) {
@@ -224,6 +224,8 @@ function generateMockRankings(writings: WritingSubmission[]): any {
       playerId: writing.playerId,
       playerName: writing.playerName,
       isAI: writing.isAI,
+      content: writing.content,
+      wordCount: writing.wordCount,
       score,
       rank: 0, // Will be set after sorting
       strengths,

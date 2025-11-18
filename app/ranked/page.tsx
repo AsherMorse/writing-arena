@@ -15,6 +15,12 @@ export default function RankedPage() {
     }
   }, [user, loading, router]);
 
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    sessionStorage.removeItem('activeSessionId');
+    sessionStorage.removeItem('activeMatchId');
+  }, []);
+
   if (loading || !userProfile) {
     return (
       <div className="min-h-screen bg-[#0c141d] flex items-center justify-center">

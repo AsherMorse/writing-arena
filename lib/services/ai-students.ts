@@ -67,13 +67,9 @@ export async function getRandomAIStudents(
     );
     
     const snapshots = await Promise.all(queries);
-    const allStudents: AIStudent[] = [];
-    
-    snapshots.forEach(snapshot => {
-      snapshot.forEach(doc => {
-        allStudents.push({ id: doc.id, ...doc.data() } as AIStudent);
-      });
-    });
+    const allStudents = snapshots.flatMap(snapshot =>
+      snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as AIStudent))
+    );
     
     if (allStudents.length === 0) {
       console.warn('⚠️ AI STUDENTS - No AI students found, using fallback');
