@@ -25,7 +25,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Call Claude API to rank all feedback submissions together
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
+    const anthropicResponse = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -44,12 +44,12 @@ export async function POST(request: NextRequest) {
       }),
     });
 
-    if (!response.ok) {
+    if (!anthropicResponse.ok) {
       throw new Error('Claude API request failed');
     }
 
-    const data = await response.json();
-    const rankings = parseBatchFeedbackRankings(data.content[0].text, feedbackSubmissions);
+    const aiResponse = await anthropicResponse.json();
+    const rankings = parseBatchFeedbackRankings(aiResponse.content[0].text, feedbackSubmissions);
 
     return NextResponse.json(rankings);
   } catch (error) {

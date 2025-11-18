@@ -117,9 +117,9 @@ export default function ProfileSettingsModal({ isOpen, onClose }: ProfileSetting
           <div>
             <label className="block text-white font-semibold mb-3">Choose Your Avatar</label>
             <div className="grid grid-cols-10 gap-2 max-h-[200px] overflow-y-auto p-2 bg-white/5 rounded-xl border border-white/10">
-              {AVATAR_OPTIONS.map((avatar) => (
+              {AVATAR_OPTIONS.map((avatar, index) => (
                 <button
-                  key={avatar}
+                  key={`${avatar}-${index}`}
                   onClick={() => setSelectedAvatar(avatar)}
                   className={`text-3xl p-2 rounded-lg transition-all hover:scale-110 ${
                     selectedAvatar === avatar

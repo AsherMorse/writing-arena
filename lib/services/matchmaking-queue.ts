@@ -89,10 +89,7 @@ export function listenToQueue(
   );
 
   const unsubscribe = onSnapshot(queueQuery, (snapshot) => {
-    const players: QueueEntry[] = [];
-    snapshot.forEach((doc) => {
-      players.push(doc.data() as QueueEntry);
-    });
+    const players = snapshot.docs.map(doc => doc.data() as QueueEntry);
     
     console.log('📥 QUEUE - Players update:', {
       count: players.length,

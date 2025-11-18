@@ -39,19 +39,29 @@ export default function RevisionContent() {
     hasSubmitted,
   } = useSession(sessionId);
   
-  const matchId = session?.matchId || '';
-  const trait = session?.config.trait || 'all';
-  const promptId = session?.config.promptId || '';
-  const promptType = session?.config.promptType || 'narrative';
+  const {
+    matchId: sessionMatchId,
+    config: sessionConfig,
+    players: sessionPlayers,
+    state: sessionState,
+    sessionId: activeSessionId,
+  } = session || {};
+  const matchId = sessionMatchId || '';
+  const trait = sessionConfig?.trait || 'all';
+  const promptId = sessionConfig?.promptId || '';
+  const promptType = sessionConfig?.promptType || 'narrative';
   
   // Get original content from session player data
-  const originalContent = user && session ? (session.players[user.uid]?.phases.phase1?.content || '') : '';
-  const yourScore = user && session ? (session.players[user.uid]?.phases.phase1?.score || 75) : 75;
-  const feedbackScore = user && session ? (session.players[user.uid]?.phases.phase2?.score || 80) : 80;
-  const wordCount = user && session ? (session.players[user.uid]?.phases.phase1?.wordCount || 0) : 0;
+  const originalContent = user && sessionPlayers ? (sessionPlayers[user.uid]?.phases.phase1?.content || '') : '';
+  const yourScore = user && sessionPlayers ? (sessionPlayers[user.uid]?.phases.phase1?.score || 75) : 75;
+  const feedbackScore = user && sessionPlayers ? (sessionPlayers[user.uid]?.phases.phase2?.score || 80) : 80;
+  const wordCount = user && sessionPlayers ? (sessionPlayers[user.uid]?.phases.phase1?.wordCount || 0) : 0;
   const aiScores = ''; // TODO: Extract from session data
   
   const [revisedContent, setRevisedContent] = useState(originalContent);
+  useEffect(() => {
+    setRevisedContent(originalContent);
+  }, [originalContent]);
   const [wordCountRevised, setWordCountRevised] = useState(0);
   const [showFeedback, setShowFeedback] = useState(true);
   const [showTipsModal, setShowTipsModal] = useState(false);
@@ -106,7 +116,7 @@ export default function RevisionContent() {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             content: originalContent,
-            promptType: session.config.promptType,
+            promptType,
           }),
         });
         
@@ -127,7 +137,7 @@ export default function RevisionContent() {
     };
     
     generateRealFeedback();
-  }, [originalContent, session, loadingFeedback]);
+  }, [originalContent, promptType, session, loadingFeedback]);
 
   // Generate AI revisions when phase starts
   useEffect(() => {
@@ -243,21 +253,21 @@ export default function RevisionContent() {
     if (!session || !hasSubmitted()) return;
     
     // IMPORTANT: Only check if we're still in Phase 3 and not completed
-    if (session.config.phase !== 3) return;
-    if (session.state === 'completed' as any) return;
+    if (sessionConfig?.phase !== 3) return;
+    if (sessionState === 'completed' as any) return;
     
-    const allPlayers = Object.values(session.players);
+    const allPlayers = Object.values(sessionPlayers || {});
     const realPlayers = allPlayers.filter((p: any) => !p.isAI);
     const submittedRealPlayers = realPlayers.filter((p: any) => p.phases.phase3?.submitted);
     
     console.log('🔍 PHASE MONITOR - Phase 3 submissions:', {
-      currentPhase: session.config.phase,
-      state: session.state,
+      currentPhase: sessionConfig?.phase,
+      state: sessionState,
       real: realPlayers.length,
       submitted: submittedRealPlayers.length,
     });
     
-    if (submittedRealPlayers.length === realPlayers.length && session.state !== 'completed') {
+    if (submittedRealPlayers.length === realPlayers.length && sessionState !== 'completed') {
       console.log('⏱️ PHASE MONITOR - All submitted, waiting for Cloud Function...');
       
       // Fallback after 10 seconds
@@ -267,7 +277,7 @@ export default function RevisionContent() {
         try {
           const { updateDoc, doc } = await import('firebase/firestore');
           const { db } = await import('@/lib/config/firebase');
-          const sessionRef = doc(db, 'sessions', session.sessionId);
+          const sessionRef = doc(db, 'sessions', activeSessionId || sessionId);
           
           await updateDoc(sessionRef, {
             'coordination.allPlayersReady': true,
@@ -283,7 +293,7 @@ export default function RevisionContent() {
       
       return () => clearTimeout(fallbackTimer);
     }
-  }, [session, hasSubmitted]);
+  }, [session, sessionConfig, sessionPlayers, sessionState, activeSessionId, sessionId, hasSubmitted]);
 
   useEffect(() => {
     const words = revisedContent.trim().split(/\s+/).filter(word => word.length > 0);
@@ -301,6 +311,34 @@ export default function RevisionContent() {
     if (timeRemaining > 15) return 'text-yellow-400';
     return 'text-red-400';
   };
+
+  const renderLoadingState = () => (
+    <div className="min-h-screen bg-[#0c141d] text-white flex items-center justify-center">
+      <div className="text-center">
+        <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-white mx-auto mb-4"></div>
+        <p className="text-white text-xl">Loading revision phase...</p>
+      </div>
+    </div>
+  );
+
+  const renderErrorState = () => (
+    <div className="min-h-screen bg-[#0c141d] text-white flex items-center justify-center">
+      <div className="text-center bg-white/10 backdrop-blur-sm rounded-lg p-8 max-w-md">
+        <div className="text-6xl mb-4">❌</div>
+        <h1 className="text-white text-2xl font-bold mb-2">Session Error</h1>
+        <p className="text-white/70 mb-6">
+          We couldn&apos;t load the revision phase. Please return to the dashboard and rejoin your match.
+        </p>
+        <button
+          type="button"
+          onClick={() => router.push('/dashboard')}
+          className="rounded-full border border-white/20 bg-white/10 px-6 py-2 text-sm font-semibold text-white transition hover:bg-white/20"
+        >
+          Return to Dashboard
+        </button>
+      </div>
+    </div>
+  );
 
   const handleSubmit = async () => {
     console.log('📤 REVISION - Submitting for batch ranking...');
@@ -464,6 +502,14 @@ export default function RevisionContent() {
   };
 
   const hasRevised = revisedContent !== originalContent;
+
+  if (isReconnecting || !session) {
+    return renderLoadingState();
+  }
+
+  if (error) {
+    return renderErrorState();
+  }
 
   return (
     <div className="min-h-screen bg-[#0c141d] text-white">

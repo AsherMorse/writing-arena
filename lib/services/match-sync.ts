@@ -252,9 +252,9 @@ export async function getPeerFeedbackResponses(
     
     if (!matchSnap.exists()) return null;
     
-    const matchState = matchSnap.data();
-    const players = matchState.players || [];
-    const feedbackRankings = matchState.rankings?.phase2 || [];
+    const matchState = { ...matchSnap.data() };
+    const players = [...(matchState.players || [])];
+    const feedbackRankings = [...(matchState.rankings?.phase2 || [])];
     
     // Find who gave YOU feedback (reverse round-robin: you were reviewed by previous player)
     const yourIndex = players.findIndex((p: any) => p.userId === userId);
@@ -300,9 +300,10 @@ export async function getAssignedPeer(
     
     if (!matchSnap.exists()) return null;
     
-    const matchState = matchSnap.data();
-    const players = matchState.players || [];
-    const writings = matchState.aiWritings?.phase1 || [];
+    const matchState = { ...matchSnap.data() };
+    const players = [...(matchState.players || [])];
+    const writesPhase1 = [...(matchState.aiWritings?.phase1 || [])];
+    const rankingsPhase1 = [...(matchState.rankings?.phase1 || [])];
     
     // Find your position in the party
     const yourIndex = players.findIndex((p: any) => p.userId === userId);
@@ -310,32 +311,16 @@ export async function getAssignedPeer(
     
     // Round-robin: review the next person (wrap around)
     const peerIndex = (yourIndex + 1) % players.length;
-    const peer = players[peerIndex];
+    const peer = { ...players[peerIndex] };
     
     console.log('🎯 MATCH SYNC - Assigned peer:', peer.displayName, 'at index', peerIndex);
     
     // Get peer's Phase 1 writing
-    let peerWriting = '';
-    let peerWordCount = 0;
-    
-    if (peer.isAI) {
-      // Get AI writing from stored writings
-      const aiWriting = writings.find((w: any) => w.playerId === peer.userId);
-      if (aiWriting) {
-        peerWriting = aiWriting.content;
-        peerWordCount = aiWriting.wordCount;
-        console.log('✅ MATCH SYNC - Retrieved AI peer writing:', peerWordCount, 'words');
-      }
-    } else {
-      // Get human player's writing from rankings
-      const rankings = matchState.rankings?.phase1 || [];
-      const peerRanking = rankings.find((r: any) => r.playerId === peer.userId);
-      if (peerRanking && peerRanking.content) {
-        peerWriting = peerRanking.content;
-        peerWordCount = peerRanking.wordCount || 0;
-        console.log('✅ MATCH SYNC - Retrieved human peer writing:', peerWordCount, 'words');
-      }
-    }
+    const peerWritingSource = peer.isAI
+      ? writesPhase1.find((w: any) => w.playerId === peer.userId)
+      : rankingsPhase1.find((r: any) => r.playerId === peer.userId);
+    const peerWriting = peerWritingSource?.content || '';
+    const peerWordCount = peerWritingSource?.wordCount || 0;
     
     if (!peerWriting) {
       console.warn('⚠️ MATCH SYNC - No writing found for peer');

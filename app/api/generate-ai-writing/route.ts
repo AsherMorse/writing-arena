@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 export async function POST(request: NextRequest) {
+  const payload = await request.json();
+  const { prompt, promptType, rank, playerName } = payload;
   try {
-    const { prompt, promptType, rank, playerName } = await request.json();
 
     const apiKey = process.env.ANTHROPIC_API_KEY;
     
@@ -11,7 +12,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Call Claude API to generate writing at appropriate skill level
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
+    const anthropicResponse = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -30,12 +31,14 @@ export async function POST(request: NextRequest) {
       }),
     });
 
-    if (!response.ok) {
+    if (!anthropicResponse.ok) {
+      const errorText = await anthropicResponse.text();
+      console.error('Claude API request failed', anthropicResponse.status, errorText);
       throw new Error('Claude API request failed');
     }
 
-    const data = await response.json();
-    const writingContent = data.content[0].text.trim();
+    const aiResponse = await anthropicResponse.json();
+    const writingContent = aiResponse.content[0].text.trim();
 
     // Count words
     const wordCount = writingContent.trim().split(/\s+/).filter((w: string) => w.length > 0).length;
@@ -47,7 +50,6 @@ export async function POST(request: NextRequest) {
     });
   } catch (error) {
     console.error('Error generating AI writing:', error);
-    const { rank } = await request.json();
     return NextResponse.json(generateMockAIWriting(rank));
   }
 }

@@ -40,7 +40,11 @@ export default function DebugMenu() {
   }, []);
 
   const buttons = useMemo(() => {
-    const dynamicButtons: DebugButton[] = [];
+    const dynamicButtons: DebugButton[] = [
+      { label: 'Fill Lobby w/ AI', eventName: 'debug-fill-lobby-ai' },
+      { label: 'Paste Clipboard', eventName: 'debug-paste-clipboard' },
+      { label: 'Force Submit Phase', eventName: 'debug-force-submit' },
+    ];
     dynamicButtons.push(phaseActions.primary ?? { label: 'Placeholder 1' });
     dynamicButtons.push(phaseActions.secondary ?? { label: 'Placeholder 2' });
 

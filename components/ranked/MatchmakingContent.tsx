@@ -1,7 +1,7 @@
 'use client';
 
 import { useRouter, useSearchParams } from 'next/navigation';
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import Link from 'next/link';
 import { useAuth } from '@/contexts/AuthContext';
 import { joinQueue, leaveQueue, listenToQueue, QueueEntry, createMatchLobby, listenToMatchLobby } from '@/lib/services/matchmaking-queue';
@@ -51,6 +51,30 @@ export default function MatchmakingContent() {
   const [isLeader, setIsLeader] = useState(false);
   const [sharedMatchId, setSharedMatchId] = useState<string | null>(null);
   const lobbyListenerRef = useRef<(() => void) | null>(null);
+
+  const buildAIPlayer = useCallback(
+    (student: any, fallbackRank: string = userRank) => ({
+      userId: student.id || student.userId || `ai-${student.displayName || student.name || 'player'}`,
+      name: student.displayName || student.name || 'AI Player',
+      avatar: student.avatar || '🤖',
+      rank: student.currentRank || student.rank || fallbackRank,
+      isAI: true,
+    }),
+    [userRank],
+  );
+
+  const displayPlayers = useMemo(() => {
+    const hasSelf = players.some(p => p.userId === userId);
+    if (hasSelf) return players;
+    const selfPlayer = {
+      userId,
+      name: 'You',
+      avatar: userAvatar,
+      rank: userRank,
+      isAI: false,
+    };
+    return [selfPlayer, ...players].slice(0, 5);
+  }, [players, userId, userAvatar, userRank]);
 
   // Writing Revolution concepts carousel
   const writingConcepts = [
@@ -200,13 +224,7 @@ export default function MatchmakingContent() {
               const aiStudent = aiStudents[aiIndex];
               console.log('🤖 MATCHMAKING - Adding AI student:', aiStudent.displayName, '(party size:', prev.length + 1, ')');
               
-              const aiPlayer = {
-                userId: aiStudent.id,
-                name: aiStudent.displayName,
-                avatar: aiStudent.avatar,
-                rank: aiStudent.currentRank,
-                isAI: true,
-              };
+              const aiPlayer = buildAIPlayer(aiStudent);
               
               aiIndex++;
               return [...prev, aiPlayer];
@@ -234,13 +252,7 @@ export default function MatchmakingContent() {
                 const aiStudent = aiStudents[aiIndex];
                 console.log('🤖 MATCHMAKING - Adding AI student:', aiStudent.displayName, '(party size:', prev.length + 1, ')');
                 
-                const aiPlayer = {
-                  userId: aiStudent.id,
-                  name: aiStudent.displayName,
-                  avatar: aiStudent.avatar,
-                  rank: aiStudent.currentRank,
-                  isAI: true,
-                };
+                const aiPlayer = buildAIPlayer(aiStudent);
                 
                 aiIndex++;
                 return [...prev, aiPlayer];
@@ -273,7 +285,63 @@ export default function MatchmakingContent() {
         );
       }
     };
-  }, [user, userProfile, userId, userName, userAvatar, userRank, trait]);
+  }, [user, userProfile, userId, userName, userAvatar, userRank, trait, buildAIPlayer]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return undefined;
+
+    const fillLobbyWithAI = async () => {
+      try {
+        console.log('🧪 MATCHMAKING - Debug fill lobby with AI triggered');
+
+        const ensureAIStudents = async () => {
+          if (selectedAIStudents.length > 0) {
+            return selectedAIStudents;
+          }
+          const aiStudents = await getRandomAIStudents(userRank, 4);
+          if (aiStudents.length > 0) {
+            setSelectedAIStudents(aiStudents);
+          }
+          return aiStudents;
+        };
+
+        const aiStudents = await ensureAIStudents();
+        if (aiStudents.length === 0) {
+          console.warn('⚠️ MATCHMAKING - No AI students available for debug fill');
+          return;
+        }
+
+        const aiPlayerPool = aiStudents.map(ai => buildAIPlayer(ai, userRank));
+
+        const selfPlayer = {
+          userId,
+          name: 'You',
+          avatar: userAvatar,
+          rank: userRank,
+          isAI: false,
+        };
+
+        setPlayers(prev => {
+          const otherRealPlayers = prev.filter(p => !p.isAI && p.userId !== userId);
+          const baseParty = [selfPlayer, ...otherRealPlayers];
+          const slotsRemaining = Math.max(0, 5 - baseParty.length);
+          const aiToAdd = aiPlayerPool.slice(0, slotsRemaining);
+          return [...baseParty, ...aiToAdd].slice(0, 5);
+        });
+      } catch (error) {
+        console.error('❌ MATCHMAKING - Failed to fill lobby via debug:', error);
+      }
+    };
+
+    const handler = () => {
+      void fillLobbyWithAI();
+    };
+
+    window.addEventListener('debug-fill-lobby-ai', handler);
+    return () => {
+      window.removeEventListener('debug-fill-lobby-ai', handler);
+    };
+  }, [selectedAIStudents, userAvatar, userRank, userId, buildAIPlayer]);
 
   // Start match when 5 players
   useEffect(() => {
@@ -558,7 +626,7 @@ export default function MatchmakingContent() {
 
               <div className="grid grid-cols-5 gap-4 mb-8">
                 {[...Array(5)].map((_, index) => {
-                  const player = players[index];
+                  const player = displayPlayers[index];
                   return (
                     <div
                       key={index}
@@ -597,7 +665,7 @@ export default function MatchmakingContent() {
               <div className="text-center">
                 <div className="inline-flex items-center gap-3 rounded-full border border-white/10 bg-white/5 px-6 py-3">
                   <span className="text-white/60 text-sm">Party Size:</span>
-                  <span className="text-white font-bold text-lg">{players.length}/5</span>
+                  <span className="text-white font-bold text-lg">{displayPlayers.length}/5</span>
                 </div>
               </div>
             </>

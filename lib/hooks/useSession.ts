@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { SessionManager } from '../services/session-manager';
 import { GameSession, PlayerInfo, PhaseSubmissionData, Phase } from '../types/session';
 import { useAuth } from '@/contexts/AuthContext';
@@ -16,27 +16,37 @@ export function useSession(sessionId: string | null) {
   const [isReconnecting, setIsReconnecting] = useState(false);
   const [error, setError] = useState<Error | null>(null);
   const [sessionManager] = useState(() => new SessionManager());
+  const [profileReady, setProfileReady] = useState(false);
+  const playerInfoRef = useRef<PlayerInfo | null>(null);
   const [timeRemaining, setTimeRemaining] = useState(0);
   
+  useEffect(() => {
+    if (user && userProfile) {
+      playerInfoRef.current = {
+        displayName: userProfile.displayName,
+        avatar: typeof userProfile.avatar === 'string' ? userProfile.avatar : '🌿',
+        rank: userProfile.currentRank || 'Silver III',
+      };
+      setProfileReady(true);
+    } else {
+      playerInfoRef.current = null;
+      setProfileReady(false);
+    }
+  }, [user, userProfile]);
+
   // Initialize session
   useEffect(() => {
-    if (!user || !userProfile || !sessionId) return;
+    if (!user || !sessionId || !profileReady || !playerInfoRef.current) return;
     
     const init = async () => {
       try {
         setIsReconnecting(true);
         setError(null);
         
-        const playerInfo: PlayerInfo = {
-          displayName: userProfile.displayName,
-          avatar: typeof userProfile.avatar === 'string' ? userProfile.avatar : '🌿',
-          rank: userProfile.currentRank || 'Silver III',
-        };
-        
         const gameSession = await sessionManager.joinSession(
           sessionId,
           user.uid,
-          playerInfo
+          playerInfoRef.current
         );
         
         setSession(gameSession);
@@ -72,9 +82,10 @@ export function useSession(sessionId: string | null) {
     // Cleanup on unmount
     return () => {
       sessionManager.leaveSession();
+      setSession(null);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [sessionId, user, userProfile]);
+  }, [sessionId, user?.uid, profileReady]);
   
   // Update time remaining every second
   useEffect(() => {

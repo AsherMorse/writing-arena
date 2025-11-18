@@ -154,15 +154,12 @@ export async function getUserProfile(uid: string): Promise<UserProfile | null> {
     }
     
     // Handle avatar - could be a string or an object from old schema
-    let avatarValue = '🌿';
-    if (rawData.avatar) {
-      if (typeof rawData.avatar === 'string') {
-        avatarValue = rawData.avatar;
-      } else if (rawData.avatar.photoURL) {
-        // Old schema had avatar as object with photoURL - just use default emoji
-        avatarValue = '🌿';
-      }
-    }
+    const avatarValue = (() => {
+      if (!rawData.avatar) return '🌿';
+      if (typeof rawData.avatar === 'string') return rawData.avatar;
+      if (rawData.avatar.photoURL) return '🌿';
+      return '🌿';
+    })();
     console.log('🎨 Avatar processing:', { 
       type: typeof rawData.avatar, 
       isObject: typeof rawData.avatar === 'object',
