@@ -106,3 +106,64 @@ function getSkillLevelFromRank(rank: string): string {
   return 'intermediate';
 }
 
+/**
+ * Generate mock practice feedback
+ */
+export function generateMockPracticeFeedback(wordCount: number): any {
+  const base = Math.min(100, Math.max(45, 60 + wordCount / 8));
+  return {
+    overallScore: Math.round(base),
+    xpEarned: Math.round(base * 1.2),
+    traits: {
+      content: Math.round(base + Math.random() * 10 - 5),
+      organization: Math.round(base + Math.random() * 10 - 5),
+      grammar: Math.round(base + Math.random() * 10 - 5),
+      vocabulary: Math.round(base + Math.random() * 10 - 5),
+      mechanics: Math.round(base + Math.random() * 10 - 5),
+    },
+    strengths: [
+      'Clear main idea anchored your draft.',
+      'Specific examples made the message concrete.',
+      'Paragraph order helped readers follow.',
+    ],
+    improvements: [
+      'Add transitions to smooth shifts between ideas.',
+      'Vary sentence openings to avoid repetition.',
+      'Double-check punctuation on compound sentences.',
+    ],
+    specificFeedback: {
+      content: 'Stay focused on the prompt; add one more supporting detail next time.',
+      organization: 'Consider transition words like furthermore or however to guide readers.',
+      grammar: 'Watch comma placement in longer sentences.',
+      vocabulary: 'Swap general verbs for precise action words.',
+      mechanics: 'Proofread for capitalization and ending punctuation.',
+    },
+    nextSteps: [
+      'Practice a descriptive prompt to stretch vocabulary.',
+      'Rewrite one paragraph using sentence combining.',
+      'Use because/but/so to expand key ideas.',
+    ],
+  };
+}
+
+/**
+ * Generate mock quick match results
+ */
+export function generateMockQuickMatchResults(
+  wordCount: number, 
+  aiScores: number[],
+  yourScore?: number
+): any {
+  const fallbackScore = yourScore || Math.min(Math.max(60 + wordCount / 5, 40), 100);
+  
+  const allPlayers = [
+    { name: 'You', avatar: '🌿', score: Math.round(fallbackScore), wordCount, isYou: true },
+    { name: 'WriteBot', avatar: '🤖', score: Math.round(60 + Math.random() * 30), wordCount: aiScores[0] || 0, isYou: false },
+    { name: 'PenPal AI', avatar: '✍️', score: Math.round(65 + Math.random() * 25), wordCount: aiScores[1] || 0, isYou: false },
+    { name: 'WordSmith', avatar: '📝', score: Math.round(55 + Math.random() * 35), wordCount: aiScores[2] || 0, isYou: false },
+    { name: 'QuillMaster', avatar: '🖋️', score: Math.round(60 + Math.random() * 30), wordCount: aiScores[3] || 0, isYou: false },
+  ];
+  
+  return allPlayers;
+}
+

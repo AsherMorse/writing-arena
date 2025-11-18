@@ -1,49 +1,49 @@
 'use client';
 
-import { useRouter, useSearchParams } from 'next/navigation';
-import { useState, useEffect, Suspense } from 'react';
+import { Suspense, useState } from 'react';
 import Link from 'next/link';
 import { useAuth } from '@/contexts/AuthContext';
 import { saveWritingSession, updateUserStatsAfterSession } from '@/lib/services/firestore';
 import { getMedalEmoji } from '@/lib/utils/rank-utils';
 import { rankPlayers, getPlayerRank } from '@/lib/utils/ranking-utils';
+import { useAsyncData } from '@/lib/hooks/useAsyncData';
+import { useSearchParams, parseResultsSearchParams } from '@/lib/hooks/useSearchParams';
+import { AnalyzingState } from '@/components/shared/AnalyzingState';
+import { ResultsLayout } from '@/components/shared/ResultsLayout';
+import { PlayerCard } from '@/components/shared/PlayerCard';
+import { generateMockQuickMatchResults } from '@/lib/utils/mock-data';
 
-export default function ResultsContent() {
-  const searchParams = useSearchParams();
+function ResultsContentInner() {
   const { user, refreshProfile } = useAuth();
-  const trait = searchParams.get('trait');
-  const promptType = searchParams.get('promptType');
-  const content = searchParams.get('content') || '';
-  const wordCount = parseInt(searchParams.get('wordCount') || '0');
-  const aiScoresParam = searchParams.get('aiScores') || '0,0,0,0';
+  const params = useSearchParams(parseResultsSearchParams);
+  const { trait, promptType, content, wordCount, aiScores } = params;
+  const decodedContent = decodeURIComponent(content);
+  const aiScoresArray = aiScores.split(',').map(Number);
 
-  const [isAnalyzing, setIsAnalyzing] = useState(true);
   const [results, setResults] = useState<any>(null);
+  const [isAnalyzing, setIsAnalyzing] = useState(true);
 
-  useEffect(() => {
-    const analyzeMatch = async () => {
-      try {
-        const response = await fetch('/api/analyze-writing', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            content: decodeURIComponent(content),
-            trait,
-            promptType,
-          }),
-        });
+  // Use async data hook for fetching analysis
+  const { data: analysisData, loading, error } = useAsyncData(
+    async () => {
+      const response = await fetch('/api/analyze-writing', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          content: decodedContent,
+          trait,
+          promptType,
+        }),
+      });
 
-        const data = await response.ok ? await response.json() : null;
+      if (!response.ok) throw new Error('analysis failed');
+      return await response.json();
+    },
+    [decodedContent, trait, promptType],
+    {
+      onSuccess: async (data) => {
         const yourScore = data?.overallScore || Math.min(Math.max(60 + wordCount / 5 + Math.random() * 15, 40), 100);
-        const aiScores = aiScoresParam.split(',').map(Number);
-
-        const allPlayers = [
-          { name: 'You', avatar: '🌿', score: Math.round(yourScore), wordCount, isYou: true },
-          { name: 'WriteBot', avatar: '🤖', score: Math.round(60 + Math.random() * 30), wordCount: aiScores[0], isYou: false },
-          { name: 'PenPal AI', avatar: '✍️', score: Math.round(65 + Math.random() * 25), wordCount: aiScores[1], isYou: false },
-          { name: 'WordSmith', avatar: '📝', score: Math.round(55 + Math.random() * 35), wordCount: aiScores[2], isYou: false },
-          { name: 'QuillMaster', avatar: '🖋️', score: Math.round(60 + Math.random() * 30), wordCount: aiScores[3], isYou: false },
-        ];
+        const allPlayers = generateMockQuickMatchResults(wordCount, aiScoresArray, yourScore);
         
         const rankings = rankPlayers(allPlayers, 'score').map(p => ({ ...p, rank: p.position }));
         const yourRank = getPlayerRank(rankings, user?.uid);
@@ -58,7 +58,7 @@ export default function ResultsContent() {
               mode: 'quick-match',
               trait: trait || 'all',
               promptType: promptType || 'narrative',
-              content: decodeURIComponent(content),
+              content: decodedContent,
               wordCount,
               score: Math.round(yourScore),
               traitScores: data.traits,
@@ -75,67 +75,54 @@ export default function ResultsContent() {
           }
         }
 
-        setResults({ rankings, yourRank, xpEarned, pointsEarned, isVictory });
-        setIsAnalyzing(false);
-      } catch (error) {
-        console.error('Error analyzing Quick Match:', error);
+        setTimeout(() => {
+          setResults({ rankings, yourRank, xpEarned, pointsEarned, isVictory });
+          setIsAnalyzing(false);
+        }, 1200);
+      },
+      onError: () => {
         const fallbackScore = Math.min(Math.max(60 + wordCount / 5, 40), 100);
-        const aiScores = aiScoresParam.split(',').map(Number);
-        const rankings = [
-          { name: 'You', avatar: '🌿', score: Math.round(fallbackScore), wordCount, isYou: true, rank: 0 },
-          { name: 'WriteBot', avatar: '🤖', score: Math.round(60 + Math.random() * 30), wordCount: aiScores[0], isYou: false, rank: 0 },
-          { name: 'PenPal AI', avatar: '✍️', score: Math.round(65 + Math.random() * 25), wordCount: aiScores[1], isYou: false, rank: 0 },
-          { name: 'WordSmith', avatar: '📝', score: Math.round(55 + Math.random() * 35), wordCount: aiScores[2], isYou: false, rank: 0 },
-          { name: 'QuillMaster', avatar: '🖋️', score: Math.round(60 + Math.random() * 30), wordCount: aiScores[3], isYou: false, rank: 0 },
-        ]
-          .sort((a, b) => b.score - a.score)
-          .map((player, index) => ({ ...player, rank: index + 1 }));
-
-        const yourRank = rankings.find(p => p.isYou)?.rank || 5;
-        setResults({ rankings, yourRank, xpEarned: Math.round(fallbackScore * 1.5), pointsEarned: Math.round(fallbackScore), isVictory: yourRank === 1 });
-        setIsAnalyzing(false);
-      }
-    };
-
-    analyzeMatch();
-  }, [wordCount, aiScoresParam, trait, promptType, content, user, refreshProfile]);
+        const allPlayers = generateMockQuickMatchResults(wordCount, aiScoresArray, fallbackScore);
+        const rankings = rankPlayers(allPlayers, 'score').map(p => ({ ...p, rank: p.position }));
+        const yourRank = getPlayerRank(rankings, user?.uid);
+        
+        setTimeout(() => {
+          setResults({ 
+            rankings, 
+            yourRank, 
+            xpEarned: Math.round(fallbackScore * 1.5), 
+            pointsEarned: Math.round(fallbackScore), 
+            isVictory: yourRank === 1 
+          });
+          setIsAnalyzing(false);
+        }, 1200);
+      },
+    }
+  );
 
   if (isAnalyzing || !results) {
-    return (
-      <div className="min-h-screen bg-[#0c141d] text-white">
-        <div className="mx-auto flex min-h-screen max-w-4xl flex-col items-center justify-center gap-6 px-6 text-center">
-          <div className="flex h-20 w-20 items-center justify-center rounded-full border border-white/10 bg-[#141e27] text-4xl">🤖</div>
-          <h2 className="text-2xl font-semibold">Analyzing your draft</h2>
-          <p className="text-sm text-white/60">Scoring your response against AI sparring partners.</p>
-          <div className="flex gap-2">
-            {[0, 150, 300].map(delay => (
-              <span key={delay} className="h-2 w-2 animate-bounce rounded-full bg-emerald-300" style={{ animationDelay: `${delay}ms` }} />
-            ))}
-          </div>
-        </div>
-      </div>
-    );
+    return <AnalyzingState message="Analyzing your draft" subtitle="Scoring your response against AI sparring partners." />;
   }
 
-  // Medal emoji utility from lib/utils/rank-utils.ts
+  const actions = (
+    <>
+      <Link
+        href="/quick-match"
+        className="rounded-full border border-emerald-200/40 bg-emerald-400 px-8 py-3 text-center text-sm font-semibold text-[#0c141d] transition hover:bg-emerald-300"
+      >
+        Play again
+      </Link>
+      <Link
+        href="/dashboard"
+        className="rounded-full border border-white/15 bg-white/5 px-8 py-3 text-center text-sm font-semibold text-white transition hover:bg-white/10"
+      >
+        Return to dashboard
+      </Link>
+    </>
+  );
 
   return (
-    <div className="min-h-screen bg-[#0c141d] text-white">
-      <main className="mx-auto flex max-w-6xl flex-col gap-12 px-6 py-16">
-        <section className="flex flex-col gap-4 sm:flex-row sm:justify-end">
-          <Link
-            href="/quick-match"
-            className="rounded-full border border-emerald-200/40 bg-emerald-400 px-8 py-3 text-center text-sm font-semibold text-[#0c141d] transition hover:bg-emerald-300"
-          >
-            Play again
-          </Link>
-          <Link
-            href="/dashboard"
-            className="rounded-full border border-white/15 bg-white/5 px-8 py-3 text-center text-sm font-semibold text-white transition hover:bg-white/10"
-          >
-            Return to dashboard
-          </Link>
-        </section>
+    <ResultsLayout actions={actions}>
 
         <section className="rounded-3xl border border-white/10 bg-[#141e27] p-8">
           <div className="flex flex-col gap-6 text-center">
@@ -174,40 +161,17 @@ export default function ResultsContent() {
             </header>
             <div className="mt-6 space-y-3">
               {results.rankings.map((player: any) => (
-                <div
+                <PlayerCard
                   key={player.name}
-                  className={`rounded-2xl border px-5 py-4 transition ${
-                    player.isYou ? 'border-emerald-300/40 bg-emerald-400/10' : 'border-white/10 bg-white/5'
-                  }`}
-                >
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-4">
-                      <span className={`flex h-11 w-11 items-center justify-center rounded-xl text-lg font-semibold ${
-                        player.rank === 1
-                          ? 'bg-yellow-400 text-[#0c141d]'
-                          : player.rank === 2
-                          ? 'bg-white/80 text-[#0c141d]'
-                          : player.rank === 3
-                          ? 'bg-orange-300 text-[#0c141d]'
-                          : 'bg-white/10 text-white/60'
-                      }`}
-                      >
-                        {player.rank === 1 ? '🥇' : player.rank === 2 ? '🥈' : player.rank === 3 ? '🥉' : `#${player.rank}`}
-                      </span>
-                      <div className="flex items-center gap-3">
-                        <span className="text-3xl">{player.avatar}</span>
-                        <div>
-                          <div className={`text-sm font-semibold ${player.isYou ? 'text-emerald-200' : 'text-white'}`}>{player.name}</div>
-                          <div className="text-xs text-white/50">{player.wordCount} words</div>
-                        </div>
-                      </div>
-                    </div>
-                    <div className="text-right">
-                      <div className={`text-2xl font-semibold ${player.isYou ? 'text-emerald-200' : 'text-white'}`}>{player.score}</div>
-                      <div className="text-xs text-white/50">score</div>
-                    </div>
-                  </div>
-                </div>
+                  player={{
+                    ...player,
+                    position: player.rank,
+                  }}
+                  variant="ranking"
+                  showPosition
+                  showWordCount
+                  showScore
+                />
               ))}
             </div>
           </div>
@@ -246,8 +210,15 @@ export default function ResultsContent() {
           </p>
         </section>
         <p className="text-center text-xs text-white/50">Review your scores, then decide if you want another run.</p>
-      </main>
-    </div>
+    </ResultsLayout>
+  );
+}
+
+export default function ResultsContent() {
+  return (
+    <Suspense fallback={<AnalyzingState />}>
+      <ResultsContentInner />
+    </Suspense>
   );
 }
 
