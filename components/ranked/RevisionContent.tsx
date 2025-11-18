@@ -9,6 +9,7 @@ import { useSession } from '@/lib/hooks/useSession';
 import { getPeerFeedbackResponses } from '@/lib/services/match-sync';
 import { formatTime, getTimeColor, getTimeProgressColor } from '@/lib/utils/time-utils';
 import { SCORING, getDefaultScore, clampScore } from '@/lib/constants/scoring';
+import { countWords } from '@/lib/utils/text-utils';
 
 // Mock AI feedback - will be replaced with real AI later
 const MOCK_AI_FEEDBACK = {
@@ -298,8 +299,7 @@ export default function RevisionContent() {
   }, [session, sessionConfig, sessionPlayers, sessionState, activeSessionId, sessionId, hasSubmitted]);
 
   useEffect(() => {
-    const words = revisedContent.trim().split(/\s+/).filter(word => word.length > 0);
-    setWordCountRevised(words.length);
+    setWordCountRevised(countWords(revisedContent));
   }, [revisedContent]);
 
   // Time utilities imported from lib/utils/time-utils.ts

@@ -2,6 +2,7 @@
 
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useState, useEffect, Suspense } from 'react';
+import { countWords } from '@/lib/utils/text-utils';
 
 export default function SessionContent() {
   const router = useRouter();
@@ -59,8 +60,7 @@ export default function SessionContent() {
   }, [timeLeft]);
 
   useEffect(() => {
-    const words = writingContent.trim().split(/\s+/).filter(word => word.length > 0);
-    setWordCount(words.length);
+    setWordCount(countWords(writingContent));
   }, [writingContent]);
 
   useEffect(() => {

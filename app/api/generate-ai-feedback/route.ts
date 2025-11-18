@@ -1,32 +1,23 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { getAnthropicApiKey, logApiKeyStatus, callAnthropicAPI } from '@/lib/utils/api-helpers';
+import { parseClaudeJSON } from '@/lib/utils/claude-parser';
+import { generateMockAIFeedback } from '@/lib/utils/mock-data';
 
 export async function POST(request: NextRequest) {
+  const requestBody = await request.json();
+  const { peerWriting, rank, playerName } = requestBody;
+  
   try {
-    const { peerWriting, rank, playerName } = await request.json();
-
-    const apiKey = process.env.ANTHROPIC_API_KEY;
+    logApiKeyStatus('GENERATE AI FEEDBACK');
     
-    if (!apiKey || apiKey === 'your_api_key_here') {
+    const apiKey = getAnthropicApiKey();
+    if (!apiKey) {
+      console.warn('⚠️ GENERATE AI FEEDBACK - API key missing, using mock');
       return NextResponse.json(generateMockFeedback(rank));
     }
 
     const skillLevel = getSkillLevelFromRank(rank);
-
-    // Call Claude API to generate peer feedback at appropriate skill level
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': apiKey,
-        'anthropic-version': '2023-06-01',
-      },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
-        max_tokens: 800,
-        messages: [
-          {
-            role: 'user',
-            content: `You are simulating peer feedback from a ${skillLevel} student writer named "${playerName}".
+    const prompt = `You are simulating peer feedback from a ${skillLevel} student writer named "${playerName}".
 
 PEER'S WRITING TO EVALUATE:
 ${peerWriting}
@@ -49,33 +40,21 @@ Respond in JSON:
   "improvements": "suggestions",
   "organization": "how it's organized",
   "engagement": "interest level"
-}`,
-          },
-        ],
-      }),
+}`;
+
+    const aiResponse = await callAnthropicAPI(apiKey, prompt, 800);
+    const parsed = parseClaudeJSON<any>(aiResponse.content[0].text);
+    
+    if (!parsed) {
+      throw new Error('Could not parse feedback JSON');
+    }
+    
+    return NextResponse.json({
+      responses: parsed,
+      playerName,
     });
-
-    if (!response.ok) {
-      throw new Error('Claude API request failed');
-    }
-
-    const data = await response.json();
-    const feedbackText = data.content[0].text;
-    
-    // Try to parse JSON from response
-    const jsonMatch = feedbackText.match(/\{[\s\S]*\}/);
-    if (jsonMatch) {
-      const feedback = JSON.parse(jsonMatch[0]);
-      return NextResponse.json({
-        responses: feedback,
-        playerName,
-      });
-    }
-    
-    throw new Error('Could not parse feedback JSON');
   } catch (error) {
-    console.error('Error generating AI feedback:', error);
-    const { rank } = await request.json();
+    console.error('❌ GENERATE AI FEEDBACK - Error:', error);
     return NextResponse.json(generateMockFeedback(rank));
   }
 }

@@ -1,32 +1,23 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { getAnthropicApiKey, logApiKeyStatus, callAnthropicAPI } from '@/lib/utils/api-helpers';
+import { countWords } from '@/lib/utils/text-utils';
+import { generateMockAIWriting } from '@/lib/utils/mock-data';
 
 export async function POST(request: NextRequest) {
+  const requestBody = await request.json();
+  const { originalContent, feedback, rank, playerName } = requestBody;
+  
   try {
-    const { originalContent, feedback, rank, playerName } = await request.json();
-
-    const apiKey = process.env.ANTHROPIC_API_KEY;
+    logApiKeyStatus('GENERATE AI REVISION');
     
-    if (!apiKey || apiKey === 'your_api_key_here') {
+    const apiKey = getAnthropicApiKey();
+    if (!apiKey) {
+      console.warn('⚠️ GENERATE AI REVISION - API key missing, using mock');
       return NextResponse.json(generateMockRevision(originalContent, rank));
     }
 
     const skillLevel = getSkillLevelFromRank(rank);
-
-    // Call Claude API to generate a revision at appropriate skill level
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': apiKey,
-        'anthropic-version': '2023-06-01',
-      },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
-        max_tokens: 1200,
-        messages: [
-          {
-            role: 'user',
-            content: `You are simulating a ${skillLevel} student writer named "${playerName}" revising their work.
+    const prompt = `You are simulating a ${skillLevel} student writer named "${playerName}" revising their work.
 
 ORIGINAL WRITING:
 ${originalContent}
@@ -47,19 +38,11 @@ Important:
 - Show improvement but stay authentic to skill level
 - Write ONLY the revised essay, no meta-commentary
 
-Begin revised version now:`,
-          },
-        ],
-      }),
-    });
+Begin revised version now:`;
 
-    if (!response.ok) {
-      throw new Error('Claude API request failed');
-    }
-
-    const data = await response.json();
-    const revisedContent = data.content[0].text.trim();
-    const wordCount = revisedContent.split(/\s+/).filter((w: string) => w.length > 0).length;
+    const aiResponse = await callAnthropicAPI(apiKey, prompt, 1200);
+    const revisedContent = aiResponse.content[0].text.trim();
+    const wordCount = countWords(revisedContent);
 
     return NextResponse.json({
       content: revisedContent,
@@ -67,8 +50,7 @@ Begin revised version now:`,
       playerName,
     });
   } catch (error) {
-    console.error('Error generating AI revision:', error);
-    const { originalContent, rank } = await request.json();
+    console.error('❌ GENERATE AI REVISION - Error:', error);
     return NextResponse.json(generateMockRevision(originalContent, rank));
   }
 }
@@ -123,7 +105,7 @@ function generateMockRevision(originalContent: string, rank: string): any {
   };
   
   const revisedContent = originalContent + (additions[skillLevel] || additions.intermediate);
-  const wordCount = revisedContent.split(/\s+/).filter(w => w.length > 0).length;
+  const wordCount = countWords(revisedContent);
   
   return {
     content: revisedContent,

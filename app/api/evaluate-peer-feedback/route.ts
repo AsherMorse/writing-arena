@@ -1,56 +1,30 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { generateTWRPeerFeedbackPrompt } from '@/lib/utils/twr-prompts';
+import { getAnthropicApiKey, logApiKeyStatus, callAnthropicAPI } from '@/lib/utils/api-helpers';
+import { parseClaudeJSON } from '@/lib/utils/claude-parser';
+import { randomScore } from '@/lib/utils/random-utils';
 
 export async function POST(request: NextRequest) {
-  let payload: { responses?: any; peerWriting?: string };
+  const requestBody = await request.json();
+  const { responses = {}, peerWriting = '' } = requestBody;
+  
   try {
-    payload = await request.json();
-  } catch (error) {
-    console.error('Error parsing peer-feedback body:', error);
-    return NextResponse.json(generateMockFeedbackScore({}));
-  }
-
-  const responses = payload.responses || {};
-  const peerWriting = payload.peerWriting || '';
-
-  try {
-
-    const apiKey = process.env.ANTHROPIC_API_KEY;
+    logApiKeyStatus('EVALUATE PEER FEEDBACK');
     
-    if (!apiKey || apiKey === 'your_api_key_here') {
+    const apiKey = getAnthropicApiKey();
+    if (!apiKey) {
+      console.warn('⚠️ EVALUATE PEER FEEDBACK - API key missing, using mock');
       return NextResponse.json(generateMockFeedbackScore(responses));
     }
 
     // Call Claude API to evaluate the quality of peer feedback
-    const anthropicResponse = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': apiKey,
-        'anthropic-version': '2023-06-01',
-      },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
-        max_tokens: 1000,
-        messages: [
-          {
-            role: 'user',
-            content: generateTWRPeerFeedbackPrompt(responses, peerWriting),
-          },
-        ],
-      }),
-    });
-
-    if (!anthropicResponse.ok) {
-      throw new Error('Claude API request failed');
-    }
-
-    const aiResponse = await anthropicResponse.json();
+    const prompt = generateTWRPeerFeedbackPrompt(responses, peerWriting);
+    const aiResponse = await callAnthropicAPI(apiKey, prompt, 1000);
     const evaluation = parsePeerFeedbackEvaluation(aiResponse.content[0].text);
 
     return NextResponse.json(evaluation);
   } catch (error) {
-    console.error('Error evaluating peer feedback:', error);
+    console.error('❌ EVALUATE PEER FEEDBACK - Error:', error);
     return NextResponse.json(generateMockFeedbackScore(responses));
   }
 }
@@ -96,23 +70,21 @@ Return JSON:
 }
 
 function parsePeerFeedbackEvaluation(claudeResponse: string): any {
-  try {
-    const jsonMatch = claudeResponse.match(/\{[\s\S]*\}/);
-    if (jsonMatch) {
-      return JSON.parse(jsonMatch[0]);
-    }
-  } catch (error) {
-    console.error('Error parsing peer feedback evaluation:', error);
+  const parsed = parseClaudeJSON<any>(claudeResponse);
+  
+  if (!parsed) {
+    console.warn('⚠️ EVALUATE PEER FEEDBACK - Failed to parse Claude response, using mock');
+    return generateMockFeedbackScore({});
   }
   
-  return generateMockFeedbackScore({});
+  return parsed;
 }
 
 function generateMockFeedbackScore(responses: any): any {
   const isComplete = responses && Object.keys(responses).length >= 5;
   const score = isComplete 
-    ? Math.round(75 + Math.random() * 20) 
-    : Math.round(50 + Math.random() * 30);
+    ? randomScore(75, 20)
+    : randomScore(50, 30);
   
   return {
     score,

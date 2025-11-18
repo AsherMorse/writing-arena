@@ -1,5 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { generateTWRWritingPrompt } from '@/lib/utils/twr-prompts';
+import { getAnthropicApiKey, logApiKeyStatus, callAnthropicAPI } from '@/lib/utils/api-helpers';
+import { parseClaudeJSON } from '@/lib/utils/claude-parser';
+import { countWords } from '@/lib/utils/text-utils';
+import { randomScore } from '@/lib/utils/random-utils';
 
 export async function POST(request: NextRequest) {
   let payload: { content?: string; trait?: string | null; promptType?: string | null };
@@ -13,48 +17,26 @@ export async function POST(request: NextRequest) {
   const content = payload.content || '';
   const trait = payload.trait || null;
   const promptType = payload.promptType || null;
+  const wordCount = countWords(content);
 
   try {
-
-    // Check if API key is configured
-    const apiKey = process.env.ANTHROPIC_API_KEY;
+    logApiKeyStatus('ANALYZE WRITING');
     
-    if (!apiKey || apiKey === 'your_api_key_here') {
-      // Return mock feedback if API key is not configured
-      return NextResponse.json(generateMockFeedback(trait, content.split(/\s+/).length));
+    const apiKey = getAnthropicApiKey();
+    if (!apiKey) {
+      console.warn('⚠️ ANALYZE WRITING - API key missing, using mock feedback');
+      return NextResponse.json(generateMockFeedback(trait, wordCount));
     }
 
     // Call Claude API for real feedback
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': apiKey,
-        'anthropic-version': '2023-06-01',
-      },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
-        max_tokens: 2000,
-        messages: [
-          {
-            role: 'user',
-            content: generateTWRWritingPrompt(content, trait || 'all', promptType || 'narrative'),
-          },
-        ],
-      }),
-    });
-
-    if (!response.ok) {
-      throw new Error('Claude API request failed');
-    }
-
-    const data = await response.json();
-    const feedback = parseClaudioFeedback(data.content[0].text, trait || 'all', content.split(/\s+/).length);
+    const prompt = generateTWRWritingPrompt(content, trait || 'all', promptType || 'narrative');
+    const aiResponse = await callAnthropicAPI(apiKey, prompt, 2000);
+    const feedback = parseClaudioFeedback(aiResponse.content[0].text, trait || 'all', wordCount);
 
     return NextResponse.json(feedback);
   } catch (error) {
-    console.error('Error analyzing writing:', error);
-    return NextResponse.json(generateMockFeedback(trait, content.split(/\s+/).length));
+    console.error('❌ ANALYZE WRITING - Error:', error);
+    return NextResponse.json(generateMockFeedback(trait, wordCount));
   }
 }
 
@@ -122,22 +104,17 @@ Format your response as valid JSON matching this structure:
 }
 
 function parseClaudioFeedback(claudeResponse: string, trait: string, wordCount: number): any {
-  try {
-    // Try to parse JSON from Claude's response
-    const jsonMatch = claudeResponse.match(/\{[\s\S]*\}/);
-    if (jsonMatch) {
-      const parsed = JSON.parse(jsonMatch[0]);
-      return {
-        ...parsed,
-        xpEarned: Math.round(parsed.overallScore * 1.5),
-      };
-    }
-  } catch (error) {
-    console.error('Error parsing Claude feedback:', error);
+  const parsed = parseClaudeJSON<any>(claudeResponse);
+  
+  if (!parsed) {
+    console.warn('⚠️ ANALYZE WRITING - Failed to parse Claude response, using mock');
+    return generateMockFeedback(trait, wordCount);
   }
   
-  // Fallback to mock if parsing fails
-  return generateMockFeedback(trait, wordCount);
+  return {
+    ...parsed,
+    xpEarned: Math.round(parsed.overallScore * 1.5),
+  };
 }
 
 function generateMockFeedback(focusTrait: string | null, words: number) {
@@ -147,11 +124,11 @@ function generateMockFeedback(focusTrait: string | null, words: number) {
     overallScore: Math.round(baseScore),
     xpEarned: Math.round(baseScore * 1.5),
     traits: {
-      content: Math.round(baseScore + Math.random() * 10 - 5),
-      organization: Math.round(baseScore + Math.random() * 10 - 5),
-      grammar: Math.round(baseScore + Math.random() * 10 - 5),
-      vocabulary: Math.round(baseScore + Math.random() * 10 - 5),
-      mechanics: Math.round(baseScore + Math.random() * 10 - 5),
+      content: randomScore(baseScore, 5),
+      organization: randomScore(baseScore, 5),
+      grammar: randomScore(baseScore, 5),
+      vocabulary: randomScore(baseScore, 5),
+      mechanics: randomScore(baseScore, 5),
     },
     strengths: [
       'Strong opening that captures attention',

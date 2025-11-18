@@ -12,6 +12,7 @@ import { db } from '@/lib/config/firebase';
 import { doc, getDoc, updateDoc } from 'firebase/firestore';
 import { formatTime, getTimeColor } from '@/lib/utils/time-utils';
 import { SCORING, getDefaultScore, clampScore } from '@/lib/constants/scoring';
+import { countWords } from '@/lib/utils/text-utils';
 
 /**
  * WritingSessionContent - Migrated to new session architecture
@@ -257,8 +258,7 @@ export default function WritingSessionContent() {
       
   // Update word count when content changes
   useEffect(() => {
-    const words = writingContent.trim().split(/\s+/).filter(word => word.length > 0);
-    setWordCount(words.length);
+    setWordCount(countWords(writingContent));
   }, [writingContent]);
 
   // Auto-submit when time runs out

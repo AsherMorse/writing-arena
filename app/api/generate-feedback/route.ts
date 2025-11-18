@@ -1,46 +1,30 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { generateTWRFeedbackPrompt } from '@/lib/utils/twr-prompts';
+import { getAnthropicApiKey, logApiKeyStatus, callAnthropicAPI } from '@/lib/utils/api-helpers';
+import { parseClaudeJSON } from '@/lib/utils/claude-parser';
+import { generateMockAIFeedback } from '@/lib/utils/mock-data';
 
 export async function POST(request: NextRequest) {
+  const requestBody = await request.json();
+  const { content, promptType } = requestBody;
+  
   try {
-    const { content, promptType } = await request.json();
-
-    const apiKey = process.env.ANTHROPIC_API_KEY;
+    logApiKeyStatus('GENERATE FEEDBACK');
     
-    if (!apiKey || apiKey === 'your_api_key_here') {
+    const apiKey = getAnthropicApiKey();
+    if (!apiKey) {
+      console.warn('⚠️ GENERATE FEEDBACK - API key missing, using mock');
       return NextResponse.json(generateMockAIFeedback());
     }
 
     // Call Claude API to generate feedback for revision phase
-    const anthropicResponse = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': apiKey,
-        'anthropic-version': '2023-06-01',
-      },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
-        max_tokens: 1500,
-        messages: [
-          {
-            role: 'user',
-            content: generateTWRFeedbackPrompt(content, promptType),
-          },
-        ],
-      }),
-    });
-
-    if (!anthropicResponse.ok) {
-      throw new Error('Claude API request failed');
-    }
-
-    const aiResponse = await anthropicResponse.json();
+    const prompt = generateTWRFeedbackPrompt(content, promptType);
+    const aiResponse = await callAnthropicAPI(apiKey, prompt, 1500);
     const feedback = parseFeedbackResponse(aiResponse.content[0].text);
 
     return NextResponse.json(feedback);
   } catch (error) {
-    console.error('Error generating feedback:', error);
+    console.error('❌ GENERATE FEEDBACK - Error:', error);
     return NextResponse.json(generateMockAIFeedback());
   }
 }
@@ -85,31 +69,15 @@ Return JSON with 3 SPECIFIC strengths and 3 SPECIFIC, ACTIONABLE improvements:
 }
 
 function parseFeedbackResponse(claudeResponse: string): any {
-  try {
-    const jsonMatch = claudeResponse.match(/\{[\s\S]*\}/);
-    if (jsonMatch) {
-      return JSON.parse(jsonMatch[0]);
-    }
-  } catch (error) {
-    console.error('Error parsing feedback:', error);
+  const parsed = parseClaudeJSON<any>(claudeResponse);
+  
+  if (!parsed) {
+    console.warn('⚠️ GENERATE FEEDBACK - Failed to parse Claude response, using mock');
+    return generateMockAIFeedback();
   }
   
-  return generateMockAIFeedback();
+  return parsed;
 }
 
-function generateMockAIFeedback(): any {
-  return {
-    strengths: [
-      "Strong opening hook that draws the reader in",
-      "Good use of descriptive language and sensory details",
-      "Clear narrative structure with a beginning, middle, and setup for continuation"
-    ],
-    improvements: [
-      "Consider adding more character development - what does the character look like? What are their motivations?",
-      "The pacing could be slower to build more tension",
-      "Add more specific details using the five senses to create atmosphere"
-    ],
-    score: 78
-  };
-}
+// Mock data generation moved to lib/utils/mock-data.ts - using generateMockAIFeedback()
 

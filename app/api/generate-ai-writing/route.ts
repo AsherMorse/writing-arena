@@ -1,47 +1,26 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { getAnthropicApiKey, logApiKeyStatus, callAnthropicAPI } from '@/lib/utils/api-helpers';
+import { countWords } from '@/lib/utils/text-utils';
+import { generateMockAIWriting } from '@/lib/utils/mock-data';
 
 export async function POST(request: NextRequest) {
-  const payload = await request.json();
-  const { prompt, promptType, rank, playerName } = payload;
+  const requestBody = await request.json();
+  const { prompt, promptType, rank, playerName } = requestBody;
+  
   try {
-
-    const apiKey = process.env.ANTHROPIC_API_KEY;
+    logApiKeyStatus('GENERATE AI WRITING');
     
-    if (!apiKey || apiKey === 'your_api_key_here') {
+    const apiKey = getAnthropicApiKey();
+    if (!apiKey) {
+      console.warn('⚠️ GENERATE AI WRITING - API key missing, using mock');
       return NextResponse.json(generateMockAIWriting(rank));
     }
 
     // Call Claude API to generate writing at appropriate skill level
-    const anthropicResponse = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': apiKey,
-        'anthropic-version': '2023-06-01',
-      },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
-        max_tokens: 1000,
-        messages: [
-          {
-            role: 'user',
-            content: generateAIWritingPrompt(prompt, promptType, rank, playerName),
-          },
-        ],
-      }),
-    });
-
-    if (!anthropicResponse.ok) {
-      const errorText = await anthropicResponse.text();
-      console.error('Claude API request failed', anthropicResponse.status, errorText);
-      throw new Error('Claude API request failed');
-    }
-
-    const aiResponse = await anthropicResponse.json();
+    const promptText = generateAIWritingPrompt(prompt, promptType, rank, playerName);
+    const aiResponse = await callAnthropicAPI(apiKey, promptText, 1000);
     const writingContent = aiResponse.content[0].text.trim();
-
-    // Count words
-    const wordCount = writingContent.trim().split(/\s+/).filter((w: string) => w.length > 0).length;
+    const wordCount = countWords(writingContent);
 
     return NextResponse.json({
       content: writingContent,
@@ -49,7 +28,7 @@ export async function POST(request: NextRequest) {
       playerName,
     });
   } catch (error) {
-    console.error('Error generating AI writing:', error);
+    console.error('❌ GENERATE AI WRITING - Error:', error);
     return NextResponse.json(generateMockAIWriting(rank));
   }
 }
@@ -176,24 +155,5 @@ function getSkillCharacteristics(skillLevel: string): string {
   return characteristics[skillLevel] || characteristics.intermediate;
 }
 
-function generateMockAIWriting(rank: string): any {
-  const skillLevel = getSkillLevelFromRank(rank);
-  
-  // Simple fallback if API key not available - with realistic mistakes and shorter for 2-min constraint
-  const mockWritings: Record<string, string> = {
-    beginner: `The lighthouse was old and scary. I went inside becuase I was curios. There was a chest that was glowing I wonder what was in it. It was really intresting.`,
-    
-    intermediate: `The old lighthouse stood on teh cliff. I walked past it before but today was different. The door was open and I could see a golden light inside. I decided to go in, I couldnt beleive what I saw.`,
-    
-    proficient: `The weathered lighthouse had always intrigued me, standing on the rocky cliff. For years, its door remained locked. But today, as I walked my usual path, I noticed something different—the door stood ajar, and a mysterious golden light spilled out. My curiosity overcame my caution and I stepped inside.`,
-  };
-  
-  const content = mockWritings[skillLevel] || mockWritings.intermediate;
-  const wordCount = content.split(/\s+/).filter(w => w.length > 0).length;
-  
-  return {
-    content,
-    wordCount,
-  };
-}
+// Mock data generation moved to lib/utils/mock-data.ts
 
