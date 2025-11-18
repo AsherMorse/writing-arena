@@ -51,6 +51,7 @@ export default function MatchmakingContent() {
   const [isLeader, setIsLeader] = useState(false);
   const [sharedMatchId, setSharedMatchId] = useState<string | null>(null);
   const lobbyListenerRef = useRef<(() => void) | null>(null);
+  const [hasFilledWithAI, setHasFilledWithAI] = useState(false);
 
   const buildAIPlayer = useCallback(
     (student: any, fallbackRank: string = userRank) => ({
@@ -662,11 +663,72 @@ export default function MatchmakingContent() {
                 })}
               </div>
 
-              <div className="text-center">
+              <div className="text-center space-y-4">
                 <div className="inline-flex items-center gap-3 rounded-full border border-white/10 bg-white/5 px-6 py-3">
                   <span className="text-white/60 text-sm">Party Size:</span>
                   <span className="text-white font-bold text-lg">{displayPlayers.length}/5</span>
                 </div>
+                
+                {/* Fast Track Button - Only show if not full and not already filled */}
+                {displayPlayers.length < 5 && !hasFilledWithAI && (
+                  <div>
+                    <button
+                      onClick={async () => {
+                        console.log('🚀 MATCHMAKING - Fast track: Filling with AI players...');
+                        setHasFilledWithAI(true);
+                        
+                        // Stop AI backfill interval
+                        if (aiBackfillIntervalRef.current) {
+                          clearInterval(aiBackfillIntervalRef.current);
+                          aiBackfillIntervalRef.current = null;
+                        }
+                        
+                        // Ensure we have AI students loaded
+                        let aiStudents = selectedAIStudents;
+                        if (aiStudents.length === 0) {
+                          console.log('🤖 MATCHMAKING - Fetching AI students for fast track...');
+                          aiStudents = await getRandomAIStudents(userRank, 4);
+                          if (aiStudents.length > 0) {
+                            setSelectedAIStudents(aiStudents);
+                          }
+                        }
+                        
+                        if (aiStudents.length === 0) {
+                          console.warn('⚠️ MATCHMAKING - No AI students available');
+                          setHasFilledWithAI(false);
+                          return;
+                        }
+                        
+                        // Leave queue since we're not waiting for real players
+                        if (user) {
+                          leaveQueue(userId).catch(err => 
+                            console.error('Error leaving queue:', err)
+                          );
+                        }
+                        
+                        // Fill remaining slots immediately
+                        setPlayers(prev => {
+                          const slotsRemaining = 5 - prev.length;
+                          if (slotsRemaining <= 0) return prev;
+                          
+                          const aiToAdd = aiStudents
+                            .slice(0, slotsRemaining)
+                            .map(ai => buildAIPlayer(ai));
+                          
+                          console.log(`✅ MATCHMAKING - Fast track: Adding ${aiToAdd.length} AI players immediately`);
+                          return [...prev, ...aiToAdd].slice(0, 5);
+                        });
+                      }}
+                      className="inline-flex items-center gap-2 rounded-full border border-emerald-400/50 bg-emerald-500/20 hover:bg-emerald-500/30 px-6 py-3 text-emerald-200 font-semibold transition-all duration-200 hover:scale-105 hover:shadow-lg hover:shadow-emerald-500/20"
+                    >
+                      <span className="text-xl">🤖</span>
+                      <span>Play Against AI Now</span>
+                    </button>
+                    <p className="text-white/40 text-xs mt-2">
+                      Skip waiting and start immediately with AI opponents
+                    </p>
+                  </div>
+                )}
               </div>
             </>
           ) : (

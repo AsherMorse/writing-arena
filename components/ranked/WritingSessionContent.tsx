@@ -423,13 +423,26 @@ export default function WritingSessionContent() {
       
       console.log('✅ SESSION - Batch ranking complete:', rankings.length, 'players ranked');
       
+      // Check if mock scoring was used (look for warning in feedback)
+      const isMockScoring = rankings.some((r: any) => 
+        r.strengths?.some((s: string) => s.includes('MOCK SCORING')) ||
+        r.improvements?.some((i: string) => i.includes('Enable AI evaluation'))
+      );
+      
+      if (isMockScoring) {
+        console.warn('⚠️ SESSION - WARNING: Mock scoring detected! Scores may not reflect actual quality.');
+        console.warn('⚠️ SESSION - Check server logs to see if API key is configured correctly.');
+      } else {
+        console.log('✅ SESSION - Real AI evaluation confirmed');
+      }
+      
       // Find your ranking
       const yourRanking = rankings.find((r: any) => r.playerId === user.uid);
       if (!yourRanking) throw new Error('Your ranking not found');
       
       const yourScore = yourRanking.score;
       
-      console.log(`🎯 SESSION - You scored ${yourScore}`);
+      console.log(`🎯 SESSION - You scored ${yourScore}`, isMockScoring ? '(MOCK SCORING)' : '(AI EVALUATED)');
       
       // Store rankings in matchStates for backward compatibility
       const matchRef = doc(db, 'matchStates', sessionMatchId || sessionId);

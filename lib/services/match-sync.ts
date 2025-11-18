@@ -250,35 +250,67 @@ export async function getPeerFeedbackResponses(
     const matchRef = doc(db, 'matchStates', matchId);
     const matchSnap = await getDoc(matchRef);
     
-    if (!matchSnap.exists()) return null;
+    if (!matchSnap.exists()) {
+      console.warn('⚠️ MATCH SYNC - Match state not found');
+      return null;
+    }
     
     const matchState = { ...matchSnap.data() };
     const players = [...(matchState.players || [])];
     const feedbackRankings = [...(matchState.rankings?.phase2 || [])];
+    const aiFeedbacks = [...(matchState.aiFeedbacks?.phase2 || [])];
+    
+    console.log('📊 MATCH SYNC - Match state:', {
+      totalPlayers: players.length,
+      rankingsCount: feedbackRankings.length,
+      aiFeedbacksCount: aiFeedbacks.length,
+    });
     
     // Find who gave YOU feedback (reverse round-robin: you were reviewed by previous player)
     const yourIndex = players.findIndex((p: any) => p.userId === userId);
-    if (yourIndex === -1) return null;
+    if (yourIndex === -1) {
+      console.warn('⚠️ MATCH SYNC - User not found in players list');
+      return null;
+    }
     
     // The person who reviewed YOU is the one before you (wrap around)
     const reviewerIndex = yourIndex === 0 ? players.length - 1 : yourIndex - 1;
     const reviewer = players[reviewerIndex];
     
-    console.log('🎯 MATCH SYNC - Your reviewer was:', reviewer.displayName);
+    console.log('🎯 MATCH SYNC - Your reviewer was:', reviewer.displayName, '(isAI:', reviewer.isAI, ')');
     
-    // Get their feedback from rankings
-    const reviewerFeedback = feedbackRankings.find((r: any) => r.playerId === reviewer.userId);
+    // First, try to get feedback from rankings (includes both human and AI after batch ranking)
+    let reviewerFeedback = feedbackRankings.find((r: any) => r.playerId === reviewer.userId);
     
+    // If not found in rankings and reviewer is AI, try aiFeedbacks as fallback
+    if (!reviewerFeedback && reviewer.isAI) {
+      console.log('🤖 MATCH SYNC - Reviewer is AI, checking aiFeedbacks...');
+      const aiFeedback = aiFeedbacks.find((f: any) => f.playerId === reviewer.userId);
+      if (aiFeedback && aiFeedback.responses) {
+        console.log('✅ MATCH SYNC - Found AI feedback in aiFeedbacks');
+        return {
+          reviewerName: reviewer.displayName,
+          reviewerAvatar: reviewer.avatar || '🤖',
+          responses: aiFeedback.responses,
+        };
+      }
+    }
+    
+    // If found in rankings, use it
     if (reviewerFeedback && reviewerFeedback.responses) {
-      console.log('✅ MATCH SYNC - Retrieved peer feedback responses');
+      console.log('✅ MATCH SYNC - Retrieved peer feedback responses from rankings');
       return {
         reviewerName: reviewer.displayName,
-        reviewerAvatar: reviewer.avatar || '👤',
+        reviewerAvatar: reviewer.avatar || (reviewer.isAI ? '🤖' : '👤'),
         responses: reviewerFeedback.responses,
       };
     }
     
-    console.warn('⚠️ MATCH SYNC - No peer feedback found');
+    console.warn('⚠️ MATCH SYNC - No peer feedback found for reviewer:', reviewer.displayName, {
+      foundInRankings: !!reviewerFeedback,
+      hasResponses: !!(reviewerFeedback?.responses),
+      reviewerIsAI: reviewer.isAI,
+    });
     return null;
     
   } catch (error) {

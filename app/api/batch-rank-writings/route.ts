@@ -10,14 +10,36 @@ interface WritingSubmission {
 }
 
 export async function POST(request: NextRequest) {
+  // Read request body once and store it
+  const requestBody = await request.json();
+  const { writings, prompt, promptType, trait } = requestBody;
+  
   try {
-    const { writings, prompt, promptType, trait } = await request.json();
-
     const apiKey = process.env.ANTHROPIC_API_KEY;
     
+    // Debug: Log API key status (without exposing the actual key)
+    const hasApiKey = !!apiKey;
+    const apiKeyLength = apiKey?.length || 0;
+    const apiKeyPrefix = apiKey?.substring(0, 8) || 'none';
+    const isPlaceholder = apiKey === 'your_api_key_here';
+    
+    console.log('🔍 BATCH RANK WRITINGS - API Key Check:', {
+      hasKey: hasApiKey,
+      keyLength: apiKeyLength,
+      keyPrefix: `${apiKeyPrefix}...`,
+      isPlaceholder,
+      envKeys: Object.keys(process.env).filter(k => k.includes('ANTHROPIC') || k.includes('API')).join(', '),
+    });
+    
     if (!apiKey || apiKey === 'your_api_key_here') {
+      console.warn('⚠️ BATCH RANK WRITINGS - API key missing or invalid, using MOCK rankings');
+      console.warn('⚠️ MOCK RANKINGS DO NOT REFLECT ACTUAL WRITING QUALITY');
+      console.warn('⚠️ If deploying to Vercel, set ANTHROPIC_API_KEY in Vercel environment variables');
+      console.warn('⚠️ If running locally, ensure ANTHROPIC_API_KEY is in .env.local');
       return NextResponse.json(generateMockRankings(writings));
     }
+    
+    console.log('✅ BATCH RANK WRITINGS - Using real AI evaluation for', writings.length, 'writings');
 
     // Call Claude API to rank all writings together
     const anthropicResponse = await fetch('https://api.anthropic.com/v1/messages', {
@@ -40,16 +62,21 @@ export async function POST(request: NextRequest) {
     });
 
     if (!anthropicResponse.ok) {
-      throw new Error('Claude API request failed');
+      const errorText = await anthropicResponse.text();
+      console.error('❌ BATCH RANK WRITINGS - Claude API error:', errorText);
+      throw new Error(`Claude API request failed: ${anthropicResponse.status}`);
     }
 
     const aiResponse = await anthropicResponse.json();
     const rankings = parseBatchRankings(aiResponse.content[0].text, writings);
 
+    console.log('✅ BATCH RANK WRITINGS - AI evaluation complete, scores:', 
+      rankings.rankings?.map((r: any) => `${r.playerName}: ${r.score}`).join(', '));
+    
     return NextResponse.json(rankings);
   } catch (error) {
-    console.error('Error batch ranking writings:', error);
-    const { writings } = await request.json();
+    console.error('❌ BATCH RANK WRITINGS - Error:', error);
+    console.warn('⚠️ BATCH RANK WRITINGS - Falling back to MOCK rankings (scores may not reflect quality)');
     return NextResponse.json(generateMockRankings(writings));
   }
 }
@@ -132,6 +159,8 @@ function parseBatchRankings(claudeResponse: string, writings: WritingSubmission[
     if (jsonMatch) {
       const parsed = JSON.parse(jsonMatch[0]);
       
+      console.log('✅ BATCH RANK WRITINGS - Successfully parsed AI response');
+      
       // Map writer indices back to actual player IDs
       const rankings = parsed.rankings.map((ranking: any, idx: number) => {
         // Extract index from playerId if it's in format "writer_index_X"
@@ -160,16 +189,22 @@ function parseBatchRankings(claudeResponse: string, writings: WritingSubmission[
       });
       
       return { rankings };
+    } else {
+      console.error('❌ BATCH RANK WRITINGS - No JSON found in AI response');
     }
   } catch (error) {
-    console.error('Error parsing batch rankings:', error);
+    console.error('❌ BATCH RANK WRITINGS - Error parsing AI response:', error);
   }
   
+  console.warn('⚠️ BATCH RANK WRITINGS - Falling back to mock rankings due to parse error');
   return generateMockRankings(writings);
 }
 
 function generateMockRankings(writings: WritingSubmission[]): any {
+  console.warn('⚠️ MOCK RANKINGS - Using fallback scoring (NOT based on actual quality)');
+  
   // Fallback: generate rankings based on word count and some randomness
+  // NOTE: These scores are NOT based on actual writing quality - they're just placeholders
   const rankings = writings.map((writing, index) => {
     // Check if submission is empty
     const isEmpty = !writing.content || writing.content.trim().length === 0 || writing.wordCount === 0;
@@ -196,27 +231,34 @@ function generateMockRankings(writings: WritingSubmission[]): any {
         mechanics: 'No content submitted.',
       };
     } else {
-      // Base score on word count (more words = generally more developed)
-      const wordCountScore = Math.min(writing.wordCount / 2, 40);
-      const randomFactor = Math.random() * 30;
-      score = Math.round(Math.min(50 + wordCountScore + randomFactor, 95));
+      // CONSERVATIVE mock scoring - lower scores to encourage real AI evaluation
+      // Base score: 30-50 (much lower than before)
+      // Word count bonus: up to 20 points (was 40)
+      // Random factor: 0-15 (was 0-30)
+      // This gives range of 30-85 instead of 50-95
+      const baseScore = 30 + Math.random() * 20; // 30-50 base
+      const wordCountBonus = Math.min(writing.wordCount / 3, 20); // Up to 20 points for word count
+      const randomFactor = Math.random() * 15; // 0-15 random
+      score = Math.round(Math.min(baseScore + wordCountBonus + randomFactor, 85));
       
+      // Add warning in feedback that this is mock scoring
       strengths = [
+        '⚠️ MOCK SCORING: This score is not based on actual quality',
         'Clear attempt to address the prompt',
         'Some descriptive details included',
-        'Organized structure',
       ];
       improvements = [
+        '⚠️ Enable AI evaluation for accurate feedback',
         'Try expanding sentences with because/but/so',
         'Add more specific details',
         'Use stronger transitions',
       ];
       traitFeedback = {
-        content: 'Ideas are present and relevant to the prompt.',
-        organization: 'Writing has a clear structure.',
-        grammar: 'Sentences are generally well-constructed.',
-        vocabulary: 'Word choice is appropriate.',
-        mechanics: 'Spelling and punctuation are mostly correct.',
+        content: '⚠️ Mock evaluation - enable AI for accurate assessment.',
+        organization: '⚠️ Mock evaluation - enable AI for accurate assessment.',
+        grammar: '⚠️ Mock evaluation - enable AI for accurate assessment.',
+        vocabulary: '⚠️ Mock evaluation - enable AI for accurate assessment.',
+        mechanics: '⚠️ Mock evaluation - enable AI for accurate assessment.',
       };
     }
     

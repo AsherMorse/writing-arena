@@ -583,9 +583,6 @@ export default function PeerFeedbackContent() {
                     data-enable-grammarly="false"
                     spellCheck="true"
                   />
-                  <div className="text-white/40 text-xs mt-1">
-                    {responses.clarity.length}/50 characters minimum
-                  </div>
                 </div>
 
                 <div>
@@ -599,9 +596,6 @@ export default function PeerFeedbackContent() {
                     className="w-full p-3 rounded-lg bg-white/10 text-white placeholder-white/40 border border-white/20 focus:border-blue-400 focus:outline-none min-h-[80px] disabled:opacity-50 disabled:cursor-not-allowed"
                     disabled={timeRemaining === 0}
                   />
-                  <div className="text-white/40 text-xs mt-1">
-                    {responses.strengths.length}/50 characters minimum
-                  </div>
                 </div>
 
                 <div>
@@ -615,9 +609,6 @@ export default function PeerFeedbackContent() {
                     className="w-full p-3 rounded-lg bg-white/10 text-white placeholder-white/40 border border-white/20 focus:border-blue-400 focus:outline-none min-h-[80px] disabled:opacity-50 disabled:cursor-not-allowed"
                     disabled={timeRemaining === 0}
                   />
-                  <div className="text-white/40 text-xs mt-1">
-                    {responses.improvements.length}/50 characters minimum
-                  </div>
                 </div>
 
                 <div>
@@ -631,9 +622,6 @@ export default function PeerFeedbackContent() {
                     className="w-full p-3 rounded-lg bg-white/10 text-white placeholder-white/40 border border-white/20 focus:border-blue-400 focus:outline-none min-h-[80px] disabled:opacity-50 disabled:cursor-not-allowed"
                     disabled={timeRemaining === 0}
                   />
-                  <div className="text-white/40 text-xs mt-1">
-                    {responses.organization.length}/50 characters minimum
-                  </div>
                 </div>
 
                 <div>
@@ -647,9 +635,6 @@ export default function PeerFeedbackContent() {
                     className="w-full p-3 rounded-lg bg-white/10 text-white placeholder-white/40 border border-white/20 focus:border-blue-400 focus:outline-none min-h-[80px] disabled:opacity-50 disabled:cursor-not-allowed"
                     disabled={timeRemaining === 0}
                   />
-                  <div className="text-white/40 text-xs mt-1">
-                    {responses.engagement.length}/50 characters minimum
-                  </div>
                 </div>
               </div>
               
