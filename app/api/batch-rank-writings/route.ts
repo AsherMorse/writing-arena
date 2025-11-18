@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { generateTWRBatchRankingPrompt } from '@/lib/utils/twr-prompts';
+import { getPhase1WritingPrompt } from '@/lib/prompts/grading-prompts';
 import { getAnthropicApiKey, logApiKeyStatus, callAnthropicAPI } from '@/lib/utils/api-helpers';
 import { parseClaudeJSON, mapRankingsToPlayers } from '@/lib/utils/claude-parser';
 import { SCORING } from '@/lib/constants/scoring';
@@ -30,7 +30,7 @@ export async function POST(request: NextRequest) {
     console.log('✅ BATCH RANK WRITINGS - Using real AI evaluation for', writings.length, 'writings');
 
     // Call Claude API to rank all writings together
-    const rankingPrompt = generateTWRBatchRankingPrompt(writings, prompt, promptType, trait);
+    const rankingPrompt = getPhase1WritingPrompt(writings, prompt, promptType, trait);
     const aiResponse = await callAnthropicAPI(apiKey, rankingPrompt, 3000);
     const rankings = parseBatchRankings(aiResponse.content[0].text, writings);
 
@@ -45,77 +45,7 @@ export async function POST(request: NextRequest) {
   }
 }
 
-function generateBatchRankingPrompt(
-  writings: WritingSubmission[], 
-  prompt: string, 
-  promptType: string,
-  trait: string
-): string {
-  const writingsText = writings.map((w, idx) => 
-    `WRITER ${idx + 1}: ${w.playerName}\n${w.content}\n---`
-  ).join('\n\n');
-
-  return `You are evaluating and ranking ${writings.length} student writing submissions for a competitive writing session.
-
-WRITING PROMPT:
-${prompt}
-
-PROMPT TYPE: ${promptType}
-FOCUS TRAIT: ${trait}
-
-SUBMISSIONS TO EVALUATE:
-${writingsText}
-
-TASK:
-Evaluate each submission on the following criteria (The Writing Revolution principles):
-- Content: Ideas, development, relevance to prompt
-- Organization: Structure, transitions, flow
-- Grammar: Sentence variety, correct usage
-- Vocabulary: Word choice, precision
-- Mechanics: Spelling, punctuation, capitalization
-
-For each writer, provide HIGHLY SPECIFIC, POINTED feedback:
-1. Overall score (0-100)
-2. 3 SPECIFIC strengths - QUOTE exact phrases/sentences that work well
-3. 3 SPECIFIC improvements - QUOTE what needs fixing and give CONCRETE revisions
-4. Brief but SPECIFIC feedback for each trait - reference actual text
-
-CRITICAL: All feedback must quote the student's actual writing. 
-- Good: "The phrase 'lighthouse stood sentinel' uses strong imagery"
-- Bad: "Good use of descriptive language"
-- Good: "Change 'got the better' to 'consumed her thoughts' for stronger vocabulary"
-- Bad: "Could improve word choice"
-
-Then rank them from best to worst based on overall quality.
-
-Respond in JSON format:
-{
-  "rankings": [
-    {
-      "playerId": "writer_index_0_to_${writings.length - 1}",
-      "playerName": "name",
-      "score": 85,
-      "rank": 1,
-      "strengths": ["strength 1", "strength 2", "strength 3"],
-      "improvements": ["improvement 1", "improvement 2", "improvement 3"],
-      "traitFeedback": {
-        "content": "feedback",
-        "organization": "feedback",
-        "grammar": "feedback",
-        "vocabulary": "feedback",
-        "mechanics": "feedback"
-      }
-    }
-  ]
-}
-
-Important:
-- Score objectively based on writing quality
-- Don't favor any writer
-- Provide specific, actionable feedback
-- Use The Writing Revolution terminology where appropriate
-- Rank strictly by quality (highest score = rank 1)`;
-}
+// Prompt moved to lib/prompts/grading-prompts.ts - use getPhase1WritingPrompt()
 
 function parseBatchRankings(claudeResponse: string, writings: WritingSubmission[]): any {
   const parsed = parseClaudeJSON<{ rankings: any[] }>(claudeResponse);

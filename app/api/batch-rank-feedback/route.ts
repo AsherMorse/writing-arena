@@ -1,4 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { getPhase2PeerFeedbackPrompt } from '@/lib/prompts/grading-prompts';
+import { getAnthropicApiKey, logApiKeyStatus, callAnthropicAPI } from '@/lib/utils/api-helpers';
+import { parseClaudeJSON } from '@/lib/utils/claude-parser';
 
 interface FeedbackSubmission {
   playerId: string;
@@ -15,131 +18,61 @@ interface FeedbackSubmission {
 }
 
 export async function POST(request: NextRequest) {
+  // Read request body once and store it
+  const requestBody = await request.json();
+  const { feedbackSubmissions } = requestBody;
+  
   try {
-    const { feedbackSubmissions } = await request.json();
-
-    const apiKey = process.env.ANTHROPIC_API_KEY;
+    logApiKeyStatus('BATCH RANK FEEDBACK');
     
-    if (!apiKey || apiKey === 'your_api_key_here') {
+    const apiKey = getAnthropicApiKey();
+    if (!apiKey) {
+      console.warn('⚠️ BATCH RANK FEEDBACK - API key missing, using MOCK rankings');
       return NextResponse.json(generateMockFeedbackRankings(feedbackSubmissions));
     }
 
     // Call Claude API to rank all feedback submissions together
-    const anthropicResponse = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': apiKey,
-        'anthropic-version': '2023-06-01',
-      },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
-        max_tokens: 2500,
-        messages: [
-          {
-            role: 'user',
-            content: generateBatchFeedbackRankingPrompt(feedbackSubmissions),
-          },
-        ],
-      }),
-    });
-
-    if (!anthropicResponse.ok) {
-      throw new Error('Claude API request failed');
-    }
-
-    const aiResponse = await anthropicResponse.json();
+    const prompt = getPhase2PeerFeedbackPrompt(feedbackSubmissions);
+    const aiResponse = await callAnthropicAPI(apiKey, prompt, 2500);
     const rankings = parseBatchFeedbackRankings(aiResponse.content[0].text, feedbackSubmissions);
 
     return NextResponse.json(rankings);
   } catch (error) {
-    console.error('Error batch ranking feedback:', error);
-    const { feedbackSubmissions } = await request.json();
+    console.error('❌ BATCH RANK FEEDBACK - Error:', error);
+    console.warn('⚠️ BATCH RANK FEEDBACK - Falling back to MOCK rankings');
     return NextResponse.json(generateMockFeedbackRankings(feedbackSubmissions));
   }
 }
 
-function generateBatchFeedbackRankingPrompt(feedbackSubmissions: FeedbackSubmission[]): string {
-  const feedbackText = feedbackSubmissions.map((f, idx) => {
-    return `EVALUATOR ${idx + 1}: ${f.playerName}
-
-Peer Writing They Evaluated:
-${f.peerWriting.substring(0, 500)}...
-
-Their Feedback:
-- Main idea clarity: ${f.responses.clarity}
-- Strengths noted: ${f.responses.strengths}
-- Improvements suggested: ${f.responses.improvements}
-- Organization: ${f.responses.organization}
-- Engagement: ${f.responses.engagement}
----`;
-  }).join('\n\n');
-
-  return `You are evaluating the quality of peer feedback from ${feedbackSubmissions.length} students.
-
-${feedbackText}
-
-TASK:
-Evaluate each student's peer feedback based on:
-- **Specificity**: Are comments specific with examples, or vague/general?
-- **Constructiveness**: Are suggestions helpful and actionable?
-- **Completeness**: Did they address all aspects thoroughly?
-- **Insight**: Do they demonstrate understanding of good writing?
-- **Writing Revolution principles**: Do they reference specific strategies?
-
-Provide scores 0-100 for each evaluator's feedback quality. Higher scores for:
-- Specific references to sentences/phrases
-- Actionable improvement suggestions
-- Mentions of writing techniques (transitions, sentence variety, etc.)
-- Constructive tone
-- Thorough responses
-
-Respond in JSON format:
-{
-  "rankings": [
-    {
-      "evaluatorIndex": 0,
-      "playerName": "name",
-      "score": 85,
-      "rank": 1,
-      "strengths": ["what they did well in giving feedback"],
-      "improvements": ["how to improve feedback skills"]
-    }
-  ]
-}
-
-Rank from best (1) to worst (${feedbackSubmissions.length}) feedback quality.`;
-}
+// Prompt moved to lib/prompts/grading-prompts.ts - use getPhase2PeerFeedbackPrompt()
 
 function parseBatchFeedbackRankings(claudeResponse: string, feedbackSubmissions: FeedbackSubmission[]): any {
-  try {
-    const jsonMatch = claudeResponse.match(/\{[\s\S]*\}/);
-    if (jsonMatch) {
-      const parsed = JSON.parse(jsonMatch[0]);
-      
-      const rankings = parsed.rankings.map((ranking: any) => {
-        const index = ranking.evaluatorIndex || 0;
-        const actualSubmission = feedbackSubmissions[index];
-        
-        return {
-          playerId: actualSubmission.playerId,
-          playerName: actualSubmission.playerName,
-          isAI: actualSubmission.isAI,
-          score: ranking.score,
-          rank: ranking.rank,
-          strengths: ranking.strengths || [],
-          improvements: ranking.improvements || [],
-          responses: actualSubmission.responses,
-        };
-      });
-      
-      return { rankings };
-    }
-  } catch (error) {
-    console.error('Error parsing batch feedback rankings:', error);
+  const parsed = parseClaudeJSON<{ rankings: any[] }>(claudeResponse);
+  
+  if (!parsed || !parsed.rankings) {
+    console.warn('⚠️ BATCH RANK FEEDBACK - Falling back to mock rankings due to parse error');
+    return generateMockFeedbackRankings(feedbackSubmissions);
   }
   
-  return generateMockFeedbackRankings(feedbackSubmissions);
+  console.log('✅ BATCH RANK FEEDBACK - Successfully parsed AI response');
+  
+  const rankings = parsed.rankings.map((ranking: any) => {
+    const index = ranking.evaluatorIndex || 0;
+    const actualSubmission = feedbackSubmissions[index];
+    
+    return {
+      playerId: actualSubmission.playerId,
+      playerName: actualSubmission.playerName,
+      isAI: actualSubmission.isAI,
+      score: ranking.score,
+      rank: ranking.rank,
+      strengths: ranking.strengths || [],
+      improvements: ranking.improvements || [],
+      responses: actualSubmission.responses,
+    };
+  });
+  
+  return { rankings };
 }
 
 function generateMockFeedbackRankings(feedbackSubmissions: FeedbackSubmission[]): any {

@@ -1,4 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { getPhase3RevisionPrompt } from '@/lib/prompts/grading-prompts';
+import { getAnthropicApiKey, logApiKeyStatus, callAnthropicAPI } from '@/lib/utils/api-helpers';
+import { parseClaudeJSON } from '@/lib/utils/claude-parser';
 
 interface RevisionSubmission {
   playerId: string;
@@ -11,134 +14,64 @@ interface RevisionSubmission {
 }
 
 export async function POST(request: NextRequest) {
+  // Read request body once and store it
+  const requestBody = await request.json();
+  const { revisionSubmissions } = requestBody;
+  
   try {
-    const { revisionSubmissions } = await request.json();
-
-    const apiKey = process.env.ANTHROPIC_API_KEY;
+    logApiKeyStatus('BATCH RANK REVISIONS');
     
-    if (!apiKey || apiKey === 'your_api_key_here') {
+    const apiKey = getAnthropicApiKey();
+    if (!apiKey) {
+      console.warn('⚠️ BATCH RANK REVISIONS - API key missing, using MOCK rankings');
       return NextResponse.json(generateMockRevisionRankings(revisionSubmissions));
     }
 
     // Call Claude API to rank all revisions together
-    const anthropicResponse = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': apiKey,
-        'anthropic-version': '2023-06-01',
-      },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
-        max_tokens: 3500,
-        messages: [
-          {
-            role: 'user',
-            content: generateBatchRevisionRankingPrompt(revisionSubmissions),
-          },
-        ],
-      }),
-    });
-
-    if (!anthropicResponse.ok) {
-      throw new Error('Claude API request failed');
-    }
-
-    const aiResponse = await anthropicResponse.json();
+    const prompt = getPhase3RevisionPrompt(revisionSubmissions);
+    const aiResponse = await callAnthropicAPI(apiKey, prompt, 3500);
     const rankings = parseBatchRevisionRankings(aiResponse.content[0].text, revisionSubmissions);
 
     return NextResponse.json(rankings);
   } catch (error) {
-    console.error('Error batch ranking revisions:', error);
-    const { revisionSubmissions } = await request.json();
+    console.error('❌ BATCH RANK REVISIONS - Error:', error);
+    console.warn('⚠️ BATCH RANK REVISIONS - Falling back to MOCK rankings');
     return NextResponse.json(generateMockRevisionRankings(revisionSubmissions));
   }
 }
 
-function generateBatchRevisionRankingPrompt(revisionSubmissions: RevisionSubmission[]): string {
-  const revisionsText = revisionSubmissions.map((r, idx) => {
-    return `WRITER ${idx + 1}: ${r.playerName}
-
-ORIGINAL:
-${r.originalContent.substring(0, 400)}...
-
-REVISED:
-${r.revisedContent.substring(0, 400)}...
-
-FEEDBACK THEY RECEIVED:
-${JSON.stringify(r.feedback, null, 2).substring(0, 300)}...
----`;
-  }).join('\n\n');
-
-  return `You are evaluating the quality of revisions from ${revisionSubmissions.length} students.
-
-${revisionsText}
-
-TASK:
-Evaluate each revision based on:
-- **Effectiveness**: Did they apply the feedback well?
-- **Improvement**: Is the revised version better than the original?
-- **Depth**: Are changes meaningful or just superficial edits?
-- **Writing Revolution strategies**: Did they use sentence combining, appositives, transitions, etc.?
-- **Quality**: Overall writing quality of the revised version
-
-Provide scores 0-100 for each revision. Higher scores for:
-- Meaningful improvements (not just adding words)
-- Applying feedback suggestions effectively
-- Using Writing Revolution strategies
-- Clearer, stronger writing in revision
-- Thoughtful changes that enhance the piece
-
-Respond in JSON format:
-{
-  "rankings": [
-    {
-      "writerIndex": 0,
-      "playerName": "name",
-      "score": 88,
-      "rank": 1,
-      "improvements": ["specific improvements they made"],
-      "strengths": ["what they did well in revising"],
-      "suggestions": ["what could still improve"]
-    }
-  ]
-}
-
-Rank from best (1) to worst (${revisionSubmissions.length}) revision quality.`;
-}
+// Prompt moved to lib/prompts/grading-prompts.ts - use getPhase3RevisionPrompt()
 
 function parseBatchRevisionRankings(claudeResponse: string, revisionSubmissions: RevisionSubmission[]): any {
-  try {
-    const jsonMatch = claudeResponse.match(/\{[\s\S]*\}/);
-    if (jsonMatch) {
-      const parsed = JSON.parse(jsonMatch[0]);
-      
-      const rankings = parsed.rankings.map((ranking: any) => {
-        const index = ranking.writerIndex || 0;
-        const actualSubmission = revisionSubmissions[index];
-        
-        return {
-          playerId: actualSubmission.playerId,
-          playerName: actualSubmission.playerName,
-          isAI: actualSubmission.isAI,
-          score: ranking.score,
-          rank: ranking.rank,
-          improvements: ranking.improvements || [],
-          strengths: ranking.strengths || [],
-          suggestions: ranking.suggestions || [],
-          originalContent: actualSubmission.originalContent,
-          revisedContent: actualSubmission.revisedContent,
-          wordCount: actualSubmission.wordCount,
-        };
-      });
-      
-      return { rankings };
-    }
-  } catch (error) {
-    console.error('Error parsing batch revision rankings:', error);
+  const parsed = parseClaudeJSON<{ rankings: any[] }>(claudeResponse);
+  
+  if (!parsed || !parsed.rankings) {
+    console.warn('⚠️ BATCH RANK REVISIONS - Falling back to mock rankings due to parse error');
+    return generateMockRevisionRankings(revisionSubmissions);
   }
   
-  return generateMockRevisionRankings(revisionSubmissions);
+  console.log('✅ BATCH RANK REVISIONS - Successfully parsed AI response');
+  
+  const rankings = parsed.rankings.map((ranking: any) => {
+    const index = ranking.writerIndex || 0;
+    const actualSubmission = revisionSubmissions[index];
+    
+    return {
+      playerId: actualSubmission.playerId,
+      playerName: actualSubmission.playerName,
+      isAI: actualSubmission.isAI,
+      score: ranking.score,
+      rank: ranking.rank,
+      improvements: ranking.improvements || [],
+      strengths: ranking.strengths || [],
+      suggestions: ranking.suggestions || [],
+      originalContent: actualSubmission.originalContent,
+      revisedContent: actualSubmission.revisedContent,
+      wordCount: actualSubmission.wordCount,
+    };
+  });
+  
+  return { rankings };
 }
 
 function generateMockRevisionRankings(revisionSubmissions: RevisionSubmission[]): any {
