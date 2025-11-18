@@ -10,6 +10,8 @@ import { getPeerFeedbackResponses } from '@/lib/services/match-sync';
 import { formatTime, getTimeColor, getTimeProgressColor } from '@/lib/utils/time-utils';
 import { SCORING, getDefaultScore, clampScore } from '@/lib/constants/scoring';
 import { countWords } from '@/lib/utils/text-utils';
+import { buildResultsURL } from '@/lib/utils/navigation';
+import { usePastePrevention } from '@/lib/hooks/usePastePrevention';
 
 // Mock AI feedback - will be replaced with real AI later
 const MOCK_AI_FEEDBACK = {
@@ -425,7 +427,20 @@ export default function RevisionContent() {
         });
       
       router.push(
-        `/ranked/results?matchId=${matchId}&trait=${trait}&promptId=${promptId}&promptType=${promptType}&originalContent=${encodeURIComponent(originalContent)}&revisedContent=${encodeURIComponent(revisedContent)}&wordCount=${wordCount}&revisedWordCount=${wordCountRevised}&aiScores=${aiScores}&writingScore=${yourScore}&feedbackScore=${feedbackScore}&revisionScore=${clampScore(revisionScore)}`
+        buildResultsURL({
+          matchId,
+          trait,
+          promptId,
+          promptType,
+          originalContent,
+          revisedContent,
+          wordCount,
+          revisedWordCount: wordCountRevised,
+          writingScore: yourScore,
+          feedbackScore,
+          revisionScore,
+          aiScores,
+        })
       );
       
     } catch (error) {
@@ -456,7 +471,20 @@ export default function RevisionContent() {
           });
         
         router.push(
-          `/ranked/results?matchId=${matchId}&trait=${trait}&promptId=${promptId}&promptType=${promptType}&originalContent=${encodeURIComponent(originalContent)}&revisedContent=${encodeURIComponent(revisedContent)}&wordCount=${wordCount}&revisedWordCount=${wordCountRevised}&aiScores=${aiScores}&writingScore=${yourScore}&feedbackScore=${feedbackScore}&revisionScore=${clampScore(revisionScore)}`
+          buildResultsURL({
+            matchId,
+            trait,
+            promptId,
+            promptType,
+            originalContent,
+            revisedContent,
+            wordCount,
+            revisedWordCount: wordCountRevised,
+            writingScore: yourScore,
+            feedbackScore,
+            revisionScore,
+            aiScores,
+          })
         );
       } catch (fallbackError) {
         console.error('❌ REVISION - Even fallback failed:', fallbackError);
@@ -473,7 +501,20 @@ export default function RevisionContent() {
         }).catch(console.error);
         
         router.push(
-          `/ranked/results?matchId=${matchId}&trait=${trait}&promptId=${promptId}&promptType=${promptType}&originalContent=${encodeURIComponent(originalContent)}&revisedContent=${encodeURIComponent(revisedContent)}&wordCount=${wordCount}&revisedWordCount=${wordCountRevised}&aiScores=${aiScores}&writingScore=${yourScore}&feedbackScore=${feedbackScore}&revisionScore=${clampScore(revisionScore)}`
+          buildResultsURL({
+            matchId,
+            trait,
+            promptId,
+            promptType,
+            originalContent,
+            revisedContent,
+            wordCount,
+            revisedWordCount: wordCountRevised,
+            writingScore: yourScore,
+            feedbackScore,
+            revisionScore,
+            aiScores,
+          })
         );
       }
     } finally {
@@ -481,17 +522,8 @@ export default function RevisionContent() {
     }
   };
 
-  const handlePaste = (e: React.ClipboardEvent) => {
-    e.preventDefault();
-  };
-
-  const handleCopy = (e: React.ClipboardEvent) => {
-    e.preventDefault();
-  };
-
-  const handleCut = (e: React.ClipboardEvent) => {
-    e.preventDefault();
-  };
+  // Paste prevention handlers
+  const { handlePaste, handleCut, handleCopy } = usePastePrevention({ showWarning: false });
 
   const hasRevised = revisedContent !== originalContent;
 

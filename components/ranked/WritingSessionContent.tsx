@@ -13,6 +13,8 @@ import { doc, getDoc, updateDoc } from 'firebase/firestore';
 import { formatTime, getTimeColor } from '@/lib/utils/time-utils';
 import { SCORING, getDefaultScore, clampScore } from '@/lib/constants/scoring';
 import { countWords } from '@/lib/utils/text-utils';
+import { usePastePrevention } from '@/lib/hooks/usePastePrevention';
+import { useModals } from '@/lib/hooks/useModals';
 
 /**
  * WritingSessionContent - Migrated to new session architecture
@@ -45,9 +47,10 @@ export default function WritingSessionContent() {
   // UI state only (not persisted)
   const [writingContent, setWritingContent] = useState('');
   const [wordCount, setWordCount] = useState(0);
-  const [showPasteWarning, setShowPasteWarning] = useState(false);
-  const [showTipsModal, setShowTipsModal] = useState(false);
-  const [showRankingModal, setShowRankingModal] = useState(false);
+  
+  // Use hooks for paste prevention and modals
+  const { showPasteWarning, handlePaste, handleCut, handleCopy, setShowPasteWarning } = usePastePrevention();
+  const { showTipsModal, setShowTipsModal, showRankingModal, setShowRankingModal } = useModals();
   const [aiWritingsGenerated, setAiWritingsGenerated] = useState(false);
   const [aiWordCounts, setAiWordCounts] = useState<number[]>([0, 0, 0, 0]);
   const [generatingAI, setGeneratingAI] = useState(false);
@@ -491,15 +494,7 @@ export default function WritingSessionContent() {
     }
   }, [hasSubmitted, user, userProfile, session, sessionMatchId, sessionId, prompt, writingContent, wordCount, submitPhase, trait]);
 
-  const handlePaste = (e: React.ClipboardEvent<HTMLTextAreaElement>) => {
-    e.preventDefault();
-    setShowPasteWarning(true);
-    setTimeout(() => setShowPasteWarning(false), 3000);
-  };
-
-  const handleCut = (e: React.ClipboardEvent<HTMLTextAreaElement>) => {
-    e.preventDefault();
-  };
+  // Paste prevention handlers from usePastePrevention hook (already defined above)
 
   useEffect(() => {
     if (typeof window === 'undefined') return undefined;

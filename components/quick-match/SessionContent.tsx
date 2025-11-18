@@ -3,6 +3,8 @@
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useState, useEffect, Suspense } from 'react';
 import { countWords } from '@/lib/utils/text-utils';
+import { formatTime } from '@/lib/utils/time-utils';
+import { usePastePrevention } from '@/lib/hooks/usePastePrevention';
 
 export default function SessionContent() {
   const router = useRouter();
@@ -70,11 +72,7 @@ export default function SessionContent() {
     return () => clearInterval(interval);
   }, []);
 
-  const formatTime = (seconds: number) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${mins}:${secs.toString().padStart(2, '0')}`;
-  };
+  // Time formatting from lib/utils/time-utils.ts
 
   const handleSubmit = () => {
     const encodedContent = encodeURIComponent(writingContent);

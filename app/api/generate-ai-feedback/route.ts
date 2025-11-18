@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getAnthropicApiKey, logApiKeyStatus, callAnthropicAPI } from '@/lib/utils/api-helpers';
 import { parseClaudeJSON } from '@/lib/utils/claude-parser';
 import { generateMockAIFeedback } from '@/lib/utils/mock-data';
+import { getSkillLevelFromRank, getFeedbackCharacteristics } from '@/lib/utils/skill-level';
 
 export async function POST(request: NextRequest) {
   const requestBody = await request.json();
@@ -59,39 +60,7 @@ Respond in JSON:
   }
 }
 
-function getSkillLevelFromRank(rank: string): string {
-  if (rank.includes('Bronze')) return 'beginner';
-  if (rank.includes('Silver')) return 'intermediate';
-  if (rank.includes('Gold')) return 'proficient';
-  if (rank.includes('Platinum')) return 'advanced';
-  return 'intermediate';
-}
-
-function getFeedbackCharacteristics(skillLevel: string): string {
-  const characteristics: Record<string, string> = {
-    beginner: `- Simple, general observations
-- Basic language ("good", "nice", "cool")
-- May miss some details
-- Feedback is encouraging but not very specific`,
-    
-    intermediate: `- More specific observations
-- References some specific parts of the writing
-- Constructive suggestions
-- Uses some writing vocabulary`,
-    
-    proficient: `- Detailed, specific feedback
-- References exact sentences or phrases
-- Actionable suggestions for improvement
-- Uses writing terminology appropriately`,
-    
-    advanced: `- Sophisticated analysis
-- Identifies literary techniques
-- Highly specific, actionable feedback
-- References Writing Revolution strategies`,
-  };
-  
-  return characteristics[skillLevel] || characteristics.intermediate;
-}
+// Skill level utilities moved to lib/utils/skill-level.ts
 
 function generateMockFeedback(rank: string): any {
   const skillLevel = getSkillLevelFromRank(rank);

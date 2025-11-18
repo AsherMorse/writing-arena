@@ -3,6 +3,8 @@
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useState, useEffect, Suspense } from 'react';
 import { countWords } from '@/lib/utils/text-utils';
+import { formatTime } from '@/lib/utils/time-utils';
+import { usePastePrevention } from '@/lib/hooks/usePastePrevention';
 import WritingTipsModal from '@/components/shared/WritingTipsModal';
 
 export default function SessionContent() {
@@ -15,7 +17,7 @@ export default function SessionContent() {
   const [isWriting, setIsWriting] = useState(false);
   const [writingContent, setWritingContent] = useState('');
   const [wordCount, setWordCount] = useState(0);
-  const [showPasteWarning, setShowPasteWarning] = useState(false);
+  // Paste warning managed by usePastePrevention hook
   const [showTipsModal, setShowTipsModal] = useState(false);
 
   const prompts = {
@@ -82,11 +84,7 @@ export default function SessionContent() {
     setWordCount(countWords(writingContent));
   }, [writingContent]);
 
-  const formatTime = (seconds: number) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${mins}:${secs.toString().padStart(2, '0')}`;
-  };
+  // Time formatting from lib/utils/time-utils.ts
 
   const handleStart = () => {
     setIsWriting(true);
@@ -97,15 +95,8 @@ export default function SessionContent() {
     router.push(`/practice/results?trait=${trait}&promptType=${promptType}&content=${encodedContent}&wordCount=${wordCount}`);
   };
 
-  const handlePaste = (event: React.ClipboardEvent<HTMLTextAreaElement>) => {
-    event.preventDefault();
-    setShowPasteWarning(true);
-    setTimeout(() => setShowPasteWarning(false), 2500);
-  };
-
-  const handleCut = (event: React.ClipboardEvent<HTMLTextAreaElement>) => {
-    event.preventDefault();
-  };
+  // Paste prevention handlers
+  const { showPasteWarning, handlePaste, handleCut } = usePastePrevention({ warningDuration: 2500 });
 
   if (!isWriting) {
     return (

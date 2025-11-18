@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getAnthropicApiKey, logApiKeyStatus, callAnthropicAPI } from '@/lib/utils/api-helpers';
 import { countWords } from '@/lib/utils/text-utils';
 import { generateMockAIWriting } from '@/lib/utils/mock-data';
+import { getSkillLevelFromRank, getRevisionCharacteristics } from '@/lib/utils/skill-level';
 
 export async function POST(request: NextRequest) {
   const requestBody = await request.json();
@@ -55,43 +56,7 @@ Begin revised version now:`;
   }
 }
 
-function getSkillLevelFromRank(rank: string): string {
-  if (rank.includes('Bronze')) return 'beginner';
-  if (rank.includes('Silver')) return 'intermediate';
-  if (rank.includes('Gold')) return 'proficient';
-  if (rank.includes('Platinum')) return 'advanced';
-  return 'intermediate';
-}
-
-function getRevisionCharacteristics(skillLevel: string): string {
-  const characteristics: Record<string, string> = {
-    beginner: `- Add a few more details where suggested
-- Fix obvious grammar errors
-- Maybe add 1-2 more sentences
-- Improvements are modest but present
-- Some feedback points may be missed`,
-    
-    intermediate: `- Address several feedback points
-- Add more descriptive details
-- Improve some sentence structures
-- Add transitions where suggested
-- Noticeable improvement while staying at level`,
-    
-    proficient: `- Address most feedback points thoughtfully
-- Add sophisticated details and descriptions
-- Improve sentence variety meaningfully
-- Enhance organization and flow
-- Clear, substantial improvement`,
-    
-    advanced: `- Address all major feedback points
-- Add nuanced details and imagery
-- Demonstrate strong command of writing techniques
-- Polish sentence structures elegantly
-- Significant, sophisticated improvement`,
-  };
-  
-  return characteristics[skillLevel] || characteristics.intermediate;
-}
+// Skill level utilities moved to lib/utils/skill-level.ts
 
 function generateMockRevision(originalContent: string, rank: string): any {
   const skillLevel = getSkillLevelFromRank(rank);

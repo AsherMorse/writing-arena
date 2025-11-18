@@ -10,6 +10,7 @@ import { useSession } from '@/lib/hooks/useSession';
 import { getAssignedPeer } from '@/lib/services/match-sync';
 import { formatTime, getTimeColor, getTimeProgressColor } from '@/lib/utils/time-utils';
 import { SCORING, getDefaultScore, clampScore } from '@/lib/constants/scoring';
+import { usePastePrevention } from '@/lib/hooks/usePastePrevention';
 
 // Mock peer writings - in reality, these would come from other players
 const MOCK_PEER_WRITINGS = [
@@ -295,17 +296,8 @@ export default function PeerFeedbackContent() {
     return Object.values(responses).every(response => response.trim().length > 10);
   };
 
-  const handlePaste = (e: React.ClipboardEvent) => {
-    e.preventDefault();
-  };
-
-  const handleCopy = (e: React.ClipboardEvent) => {
-    e.preventDefault();
-  };
-
-  const handleCut = (e: React.ClipboardEvent) => {
-    e.preventDefault();
-  };
+  // Paste prevention handlers
+  const { handlePaste, handleCut, handleCopy } = usePastePrevention({ showWarning: false });
 
   const handleSubmit = async () => {
     console.log('📤 PEER FEEDBACK - Submitting for batch ranking...');

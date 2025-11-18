@@ -8,6 +8,7 @@ import AnimatedScore from '@/components/shared/AnimatedScore';
 import { getAIFeedback } from '@/lib/services/match-sync';
 import { saveWritingSession, updateUserStatsAfterSession } from '@/lib/services/firestore';
 import { updateAIStudentAfterMatch } from '@/lib/services/ai-students';
+import { calculateCompositeScore, calculateLPChange, calculateXPEarned, calculatePointsEarned, calculateImprovementBonus } from '@/lib/utils/score-calculator';
 
 // Mock feedback based on The Writing Revolution concepts
 const MOCK_PHASE_FEEDBACK = {
@@ -176,7 +177,7 @@ export default function ResultsContent({ session }: ResultsContentProps = {}) {
         }
         
         // Calculate composite score from all 3 phases
-        const yourCompositeScore = (writingScore * 0.4) + (feedbackScore * 0.3) + (revisionScore * 0.3);
+        const yourCompositeScore = calculateCompositeScore(writingScore, feedbackScore, revisionScore);
         
         // Build AI players data from session or rankings
         let aiPlayers: any[] = [];
@@ -253,7 +254,7 @@ export default function ResultsContent({ session }: ResultsContentProps = {}) {
             phase1: Math.round(writingScore),
             phase2: Math.round(feedbackScore),
             phase3: Math.round(revisionScore),
-            compositeScore: Math.round(yourCompositeScore),
+            compositeScore: yourCompositeScore,
             wordCount,
             revisedWordCount,
             isYou: true,
@@ -261,7 +262,7 @@ export default function ResultsContent({ session }: ResultsContentProps = {}) {
           },
           ...aiPlayers.map(player => ({
             ...player,
-            compositeScore: Math.round((player.phase1 * 0.4) + (player.phase2 * 0.3) + (player.phase3 * 0.3)),
+            compositeScore: calculateCompositeScore(player.phase1, player.phase2, player.phase3),
             isYou: false,
             position: 0,
           }))
@@ -275,19 +276,15 @@ export default function ResultsContent({ session }: ResultsContentProps = {}) {
         const yourRank = rankings.find(p => p.isYou)?.position || 5;
         
         // LP calculation based on final placement
-        const lpChange = 
-          yourRank === 1 ? 35 : 
-          yourRank === 2 ? 22 : 
-          yourRank === 3 ? 12 : 
-          yourRank === 4 ? -5 : -15;
+        const lpChange = calculateLPChange(yourRank);
         
         // XP based on performance across all phases
-        const xpEarned = Math.round(yourCompositeScore * 2.5); // 2.5x for ranked
-        const pointsEarned = Math.round(yourCompositeScore * 2) + (yourRank === 1 ? 30 : yourRank === 2 ? 15 : 0);
+        const xpEarned = calculateXPEarned(yourCompositeScore, 'ranked');
+        const pointsEarned = calculatePointsEarned(yourCompositeScore, yourRank);
         const isVictory = yourRank === 1;
 
         // Calculate improvement from original to revision
-        const improvementBonus = Math.max(0, revisionScore - writingScore);
+        const improvementBonus = calculateImprovementBonus(writingScore, revisionScore);
 
         // Save session and update user profile
         if (user) {
@@ -339,7 +336,7 @@ export default function ResultsContent({ session }: ResultsContentProps = {}) {
               if (!aiPlayer.name) continue;
               
               // Determine AI player's LP change based on their placement
-              const aiComposite = (aiPlayer.phase1 * 0.4) + (aiPlayer.phase2 * 0.3) + (aiPlayer.phase3 * 0.3);
+              const aiComposite = calculateCompositeScore(aiPlayer.phase1, aiPlayer.phase2, aiPlayer.phase3);
               const aiPlayerData = allPlayers.find(p => p.name === aiPlayer.name);
               const aiPlacement = aiPlayerData?.position || 5;
               
