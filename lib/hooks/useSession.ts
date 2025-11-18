@@ -43,10 +43,14 @@ export function useSession(sessionId: string | null) {
         setIsReconnecting(true);
         setError(null);
         
+        // TypeScript guard: we know playerInfoRef.current is not null due to check above
+        const playerInfo = playerInfoRef.current;
+        if (!playerInfo) return;
+        
         const gameSession = await sessionManager.joinSession(
           sessionId,
           user.uid,
-          playerInfoRef.current
+          playerInfo
         );
         
         setSession(gameSession);
