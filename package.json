@@ -11,7 +11,9 @@
     "test:ci": "jest --ci --coverage",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
-    "test:all": "npm run test:ci && npm run test:e2e"
+    "test:all": "npm run test:ci && npm run test:e2e",
+    "test:empty-submissions": "node scripts/test-empty-submission-flow.js",
+    "test:full-match": "node scripts/test-full-match-flow.js"
   },
   "dependencies": {
     "firebase": "^12.5.0",

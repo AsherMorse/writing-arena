@@ -1,6 +1,6 @@
 'use client';
 
-import { useRouter, useParams } from 'next/navigation';
+import { useRouter, useParams, useSearchParams } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import WritingTipsModal from '@/components/shared/WritingTipsModal';
 import PhaseInstructions from '@/components/shared/PhaseInstructions';
@@ -11,7 +11,7 @@ import { usePhaseTransition } from '@/lib/hooks/usePhaseTransition';
 import { useAutoSubmit } from '@/lib/hooks/useAutoSubmit';
 import { getPeerFeedbackResponses } from '@/lib/services/match-sync';
 import { formatTime, getTimeColor, getTimeProgressColor } from '@/lib/utils/time-utils';
-import { SCORING, getDefaultScore, clampScore } from '@/lib/constants/scoring';
+import { SCORING, getDefaultScore } from '@/lib/constants/scoring';
 import { countWords } from '@/lib/utils/text-utils';
 import { buildResultsURL } from '@/lib/utils/navigation';
 import { usePastePrevention } from '@/lib/hooks/usePastePrevention';
@@ -20,11 +20,14 @@ import { ErrorState } from '@/components/shared/ErrorState';
 import { Modal } from '@/components/shared/Modal';
 import { setSessionStorage } from '@/lib/utils/session-storage';
 import { MOCK_AI_FEEDBACK } from '@/lib/utils/mock-data';
+import { useBatchRankingSubmission } from '@/lib/hooks/useBatchRankingSubmission';
+import { validateRevisionSubmission } from '@/lib/utils/submission-validation';
 
 export default function RevisionContent() {
   const router = useRouter();
   const params = useParams();
-  const sessionId = params?.sessionId as string;
+  const searchParams = useSearchParams();
+  const sessionId = (params?.sessionId || searchParams?.get('sessionId')) as string;
   const { user } = useAuth();
   
   // NEW: Use session hook
@@ -226,99 +229,37 @@ export default function RevisionContent() {
     setWordCountRevised(countWords(revisedContent));
   }, [revisedContent]);
 
-  // Time utilities imported from lib/utils/time-utils.ts
-
-  const handleSubmit = async () => {
-    console.log('📤 REVISION - Submitting for batch ranking...');
-    setIsEvaluating(true);
-    
-    // Check if revision is empty or unchanged
-    const isEmpty = !revisedContent || revisedContent.trim().length === 0 || wordCountRevised === 0;
-    const unchanged = revisedContent === originalContent;
-    
-    if (isEmpty || unchanged) {
-      console.warn('⚠️ REVISION - Empty or unchanged submission, scoring low');
+  // Batch ranking submission hook
+  const { submit: handleBatchSubmit, isSubmitting: isBatchSubmitting } = useBatchRankingSubmission({
+    phase: 3,
+    matchId: matchId || '',
+    userId: user?.uid || '',
+    endpoint: '/api/batch-rank-revisions',
+    firestoreKey: 'aiRevisions.phase3',
+    rankingsKey: 'rankings.phase3',
+    prepareUserSubmission: () => ({
+      playerId: user?.uid || '',
+      playerName: 'You',
+      originalContent,
+      revisedContent,
+      feedback: aiFeedback,
+      wordCount: wordCountRevised,
+      isAI: false,
+    }),
+    prepareSubmissionData: (score: number) => ({
+      revisedContent,
+      wordCount: wordCountRevised,
+      score: score,
+    }),
+    submitPhase: async (phase, data) => {
+      // Submit phase first
+      await submitPhase(phase, data);
       
-        await submitPhase(3, {
-          revisedContent: revisedContent || originalContent,
-          wordCount: wordCountRevised,
-          score: isEmpty ? SCORING.MIN_SCORE : 40, // 0 for empty, 40 for unchanged
-        });
+      // After submission, navigate to results
+      const yourRanking = await getRankingFromStorage();
+      const revisionScore = yourRanking?.score || data.score || getDefaultScore(3);
       
-      console.log('✅ REVISION - Low-effort submission recorded');
-      setIsEvaluating(false);
-      return;
-    }
-    
-    try {
-      // Get AI revisions from Firestore
-      const { getDoc, doc, updateDoc } = await import('firebase/firestore');
-      const { db } = await import('@/lib/config/firebase');
-      
-      const matchDoc = await getDoc(doc(db, 'matchStates', matchId));
-      if (!matchDoc.exists()) throw new Error('Match state not found');
-      
-      const matchState = matchDoc.data();
-      const aiRevisions = matchState?.aiRevisions?.phase3 || [];
-      
-      if (aiRevisions.length === 0) {
-        console.warn('⚠️ REVISION - No AI revisions found, falling back to individual evaluation');
-        throw new Error('AI revisions not available');
-      }
-      
-      // Prepare all revision submissions for batch ranking
-      const allRevisionSubmissions = [
-        {
-          playerId: user?.uid || '',
-          playerName: 'You',
-          originalContent,
-          revisedContent,
-          feedback: aiFeedback,
-          wordCount: wordCountRevised,
-          isAI: false,
-        },
-        ...aiRevisions
-      ];
-      
-      console.log(`📊 REVISION - Batch ranking ${allRevisionSubmissions.length} revisions...`);
-      
-      // Call batch ranking API
-      const response = await fetch('/api/batch-rank-revisions', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          revisionSubmissions: allRevisionSubmissions,
-        }),
-      });
-      
-      const data = await response.json();
-      const rankings = data.rankings;
-      
-      console.log('✅ REVISION - Batch ranking complete:', rankings.length, 'revisions ranked');
-      
-      // Find your ranking
-      const yourRanking = rankings.find((r: any) => r.playerId === user?.uid);
-      if (!yourRanking) throw new Error('Your ranking not found');
-      
-      const revisionScore = yourRanking.score;
-      
-      console.log(`🎯 REVISION - You ranked #${yourRanking.rank} with score ${revisionScore}`);
-      
-      // Store ALL revision rankings in Firestore
-      const matchRef = doc(db, 'matchStates', matchId);
-      await updateDoc(matchRef, {
-        'rankings.phase3': rankings,
-      });
-      
-      // Save feedback to session storage
-        setSessionStorage(`${matchId}-phase3-feedback`, yourRanking);
-      
-      // NEW: Submit using session architecture
-      await submitPhase(3, {
-        revisedContent,
-        wordCount: wordCountRevised,
-        score: clampScore(revisionScore),
-        });
+      setSessionStorage(`${matchId}-phase3-feedback`, yourRanking || data);
       
       router.push(
         buildResultsURL({
@@ -336,34 +277,20 @@ export default function RevisionContent() {
           aiScores,
         })
       );
-      
-    } catch (error) {
-      console.error('❌ REVISION - Batch ranking failed, using fallback:', error);
-      
-      // Fallback to individual evaluation
-      try {
-        const response = await fetch('/api/evaluate-revision', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            originalContent,
-            revisedContent,
-            feedback: aiFeedback,
-          }),
+    },
+    validateSubmission: () => validateRevisionSubmission(originalContent, revisedContent, wordCountRevised),
+    onEmptySubmission: async (isEmpty, unchanged) => {
+      if (isEmpty || unchanged) {
+        console.warn('⚠️ REVISION - Empty or unchanged submission, scoring low');
+        const score = isEmpty ? SCORING.MIN_SCORE : 40;
+        await submitPhase(3, {
+          revisedContent: revisedContent || originalContent,
+          wordCount: wordCountRevised,
+          score,
         });
+        console.log('✅ REVISION - Low-effort submission recorded');
         
-        const data = await response.json();
-        const revisionScore = data.score || getDefaultScore(3);
-        console.log('✅ REVISION - Fallback evaluation complete, score:', revisionScore);
-        
-        setSessionStorage(`${matchId}-phase3-feedback`, data);
-        
-        await submitPhase(3, {
-          revisedContent,
-          wordCount: wordCountRevised,
-          score: clampScore(revisionScore),
-          });
-        
+        // Navigate to results even for empty submission
         router.push(
           buildResultsURL({
             matchId,
@@ -376,41 +303,48 @@ export default function RevisionContent() {
             revisedWordCount: wordCountRevised,
             writingScore: yourScore,
             feedbackScore,
-            revisionScore,
-            aiScores,
-          })
-        );
-      } catch (fallbackError) {
-        console.error('❌ REVISION - Even fallback failed:', fallbackError);
-        const changeAmount = Math.abs(wordCountRevised - wordCount);
-        const hasSignificantChanges = changeAmount > 10;
-        const revisionScore = hasSignificantChanges 
-          ? clampScore(85 + Math.random() * 10)
-          : clampScore(60 + Math.random() * 15);
-        
-        await submitPhase(3, {
-          revisedContent,
-          wordCount: wordCountRevised,
-          score: revisionScore,
-        }).catch(console.error);
-        
-        router.push(
-          buildResultsURL({
-            matchId,
-            trait,
-            promptId,
-            promptType,
-            originalContent,
-            revisedContent,
-            wordCount,
-            revisedWordCount: wordCountRevised,
-            writingScore: yourScore,
-            feedbackScore,
-            revisionScore,
+            revisionScore: score,
             aiScores,
           })
         );
       }
+    },
+    fallbackEvaluation: async () => {
+      const response = await fetch('/api/evaluate-revision', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          originalContent,
+          revisedContent,
+          feedback: aiFeedback,
+        }),
+      });
+      
+      const data = await response.json();
+      return data.score || getDefaultScore(3);
+    },
+  });
+
+  // Helper to get ranking from Firestore after submission
+  const getRankingFromStorage = async () => {
+    try {
+      const { getDoc, doc } = await import('firebase/firestore');
+      const { db } = await import('@/lib/config/firebase');
+      const matchDoc = await getDoc(doc(db, 'matchStates', matchId || ''));
+      if (matchDoc.exists()) {
+        const rankings = matchDoc.data()?.rankings?.phase3 || [];
+        return rankings.find((r: any) => r.playerId === user?.uid);
+      }
+    } catch (error) {
+      console.error('Error getting ranking:', error);
+    }
+    return null;
+  };
+
+  const handleSubmit = async () => {
+    setIsEvaluating(true);
+    try {
+      await handleBatchSubmit();
     } finally {
       setIsEvaluating(false);
     }
@@ -430,7 +364,23 @@ export default function RevisionContent() {
     currentPhase: 3,
     hasSubmitted,
     sessionId: activeSessionId || sessionId,
+    onTransition: (nextPhase) => {
+      console.log('🔄 REVISION - Phase transition detected:', nextPhase);
+      if (session?.state === 'completed') {
+        router.push(`/ranked/results?sessionId=${activeSessionId || sessionId}`);
+      }
+    },
   });
+
+  // Also listen for session completion
+  useEffect(() => {
+    if (!session || !hasSubmitted()) return;
+    
+    if (session.state === 'completed') {
+      console.log('🎉 REVISION - Session completed, navigating to results...');
+      router.push(`/ranked/results/${activeSessionId || sessionId}`);
+    }
+  }, [session?.state, hasSubmitted, router, activeSessionId, sessionId]);
 
   // Paste prevention handlers
   const { handlePaste, handleCut, handleCopy } = usePastePrevention({ showWarning: false });

@@ -1,6 +1,6 @@
 'use client';
 
-import { useRouter, useParams } from 'next/navigation';
+import { useRouter, useParams, useSearchParams } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import WritingTipsModal from '@/components/shared/WritingTipsModal';
 import PhaseInstructions from '@/components/shared/PhaseInstructions';
@@ -12,18 +12,21 @@ import { usePhaseTransition } from '@/lib/hooks/usePhaseTransition';
 import { useAutoSubmit } from '@/lib/hooks/useAutoSubmit';
 import { getAssignedPeer } from '@/lib/services/match-sync';
 import { formatTime, getTimeColor, getTimeProgressColor } from '@/lib/utils/time-utils';
-import { SCORING, getDefaultScore, clampScore } from '@/lib/constants/scoring';
+import { SCORING, getDefaultScore } from '@/lib/constants/scoring';
 import { usePastePrevention } from '@/lib/hooks/usePastePrevention';
 import { retryWithBackoff } from '@/lib/utils/retry';
 import { isFormComplete } from '@/lib/utils/validation';
 import { LoadingState } from '@/components/shared/LoadingState';
 import { Modal } from '@/components/shared/Modal';
 import { MOCK_PEER_WRITINGS } from '@/lib/utils/mock-data';
+import { useBatchRankingSubmission } from '@/lib/hooks/useBatchRankingSubmission';
+import { validateFeedbackSubmission } from '@/lib/utils/submission-validation';
 
 export default function PeerFeedbackContent() {
   const router = useRouter();
   const params = useParams();
-  const sessionId = params?.sessionId as string;
+  const searchParams = useSearchParams();
+  const sessionId = (params?.sessionId || searchParams?.get('sessionId')) as string;
   const { user } = useAuth();
   
   // NEW: Use session hook
@@ -206,123 +209,56 @@ export default function PeerFeedbackContent() {
   // Paste prevention handlers
   const { handlePaste, handleCut, handleCopy } = usePastePrevention({ showWarning: false });
 
-  const handleSubmit = async () => {
-    console.log('📤 PEER FEEDBACK - Submitting for batch ranking...');
-    setIsEvaluating(true);
-    
-    // Check if feedback is empty or incomplete
-    const totalChars = Object.values(responses).join('').length;
-    const isEmpty = totalChars < 50; // Less than 50 total characters = empty
-    
-    if (isEmpty) {
-      console.warn('⚠️ PEER FEEDBACK - Incomplete submission, scoring as 0');
-      
-      await submitPhase(2, {
-        responses,
-        score: 0,
-      });
-      
-      console.log('✅ PEER FEEDBACK - Empty submission recorded');
-      setIsEvaluating(false);
-      return;
-    }
-    
-    try {
-      // Get AI feedback submissions from Firestore
-      const { getDoc, doc, updateDoc } = await import('firebase/firestore');
-      const { db } = await import('@/lib/config/firebase');
-      
-      const matchDoc = await getDoc(doc(db, 'matchStates', matchId));
-      if (!matchDoc.exists()) throw new Error('Match state not found');
-      
-      const matchState = matchDoc.data();
-      const aiFeedbacks = matchState?.aiFeedbacks?.phase2 || [];
-      
-      if (aiFeedbacks.length === 0) {
-        console.warn('⚠️ PEER FEEDBACK - No AI feedback found, falling back to individual evaluation');
-        throw new Error('AI feedback not available');
-      }
-      
-      // Prepare all feedback submissions for batch ranking
-      const allFeedbackSubmissions = [
-        {
-          playerId: user?.uid || '',
-          playerName: 'You',
+  // Batch ranking submission hook
+  const { submit: handleBatchSubmit, isSubmitting: isBatchSubmitting } = useBatchRankingSubmission({
+    phase: 2,
+    matchId: matchId || '',
+    userId: user?.uid || '',
+    endpoint: '/api/batch-rank-feedback',
+    firestoreKey: 'aiFeedbacks.phase2',
+    rankingsKey: 'rankings.phase2',
+    prepareUserSubmission: () => ({
+      playerId: user?.uid || '',
+      playerName: 'You',
+      responses,
+      peerWriting: currentPeer?.content || '',
+      isAI: false,
+    }),
+    prepareSubmissionData: (score: number) => ({
+      responses,
+      score: score,
+    }),
+    submitPhase,
+    validateSubmission: () => validateFeedbackSubmission(responses),
+    onEmptySubmission: async (isEmpty) => {
+      if (isEmpty) {
+        console.warn('⚠️ PEER FEEDBACK - Incomplete submission, scoring as 0');
+        await submitPhase(2, {
           responses,
-          peerWriting: currentPeer?.content || '',
-          isAI: false,
-        },
-        ...aiFeedbacks
-      ];
-      
-      console.log(`📊 PEER FEEDBACK - Batch ranking ${allFeedbackSubmissions.length} feedback submissions...`);
-      
-      // Call batch ranking API
-      const response = await fetch('/api/batch-rank-feedback', {
+          score: 0,
+        });
+        console.log('✅ PEER FEEDBACK - Empty submission recorded');
+      }
+    },
+    fallbackEvaluation: async () => {
+      const response = await fetch('/api/evaluate-peer-feedback', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          feedbackSubmissions: allFeedbackSubmissions,
+          responses,
+          peerWriting: currentPeer?.content || '',
         }),
       });
       
       const data = await response.json();
-      const rankings = data.rankings;
-      
-      console.log('✅ PEER FEEDBACK - Batch ranking complete:', rankings.length, 'feedback ranked');
-      
-      // Find your ranking
-      const yourRanking = rankings.find((r: any) => r.playerId === user?.uid);
-      const feedbackScore = yourRanking?.score ?? 75;
-      
-      console.log(`🎯 PEER FEEDBACK - You ranked #${yourRanking?.rank} with score ${feedbackScore}`);
-      
-      // Store ALL feedback rankings in Firestore
-      const matchRef = doc(db, 'matchStates', matchId);
-      await updateDoc(matchRef, {
-        'rankings.phase2': rankings,
-      });
-      
-      // NEW: Submit using session architecture
-      await submitPhase(2, {
-        responses,
-        score: clampScore(feedbackScore),
-      });
-      
-      console.log('✅ PEER FEEDBACK - Submission complete, phase will transition automatically!');
-      
-    } catch (error) {
-      console.error('❌ PEER FEEDBACK - Batch ranking failed, using fallback:', error);
-      
-      try {
-        const response = await fetch('/api/evaluate-peer-feedback', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            responses,
-            peerWriting: currentPeer?.content || '',
-          }),
-        });
-        
-        const data = await response.json();
-        const feedbackScore = data.score || getDefaultScore(2);
-        console.log('✅ PEER FEEDBACK - Fallback evaluation complete, score:', feedbackScore);
-        
-        await submitPhase(2, {
-          responses,
-          score: clampScore(feedbackScore),
-        });
-      } catch (fallbackError) {
-        console.error('❌ PEER FEEDBACK - Even fallback failed:', fallbackError);
-        const feedbackQuality = isFormComplete(responses) 
-          ? SCORING.DEFAULT_FEEDBACK_SCORE + Math.random() * 20 
-          : 50 + Math.random() * 30;
-        
-        await submitPhase(2, {
-          responses,
-          score: clampScore(feedbackQuality),
-        }).catch(console.error);
-      }
+      return data.score || getDefaultScore(2);
+    },
+  });
+
+  const handleSubmit = async () => {
+    setIsEvaluating(true);
+    try {
+      await handleBatchSubmit();
     } finally {
       setIsEvaluating(false);
     }
@@ -342,7 +278,24 @@ export default function PeerFeedbackContent() {
     currentPhase: 2,
     hasSubmitted,
     sessionId: activeSessionId || sessionId,
+    onTransition: (nextPhase) => {
+      console.log('🔄 PEER FEEDBACK - Phase transition detected:', nextPhase);
+      if (nextPhase === 3) {
+        router.push(`/ranked/revision?sessionId=${activeSessionId || sessionId}`);
+      }
+    },
   });
+
+  // Also listen for phase changes from session updates
+  useEffect(() => {
+    if (!session || !hasSubmitted()) return;
+    
+    const currentPhase = session.config?.phase;
+    if (currentPhase === 3) {
+      console.log('🔄 PEER FEEDBACK - Session phase changed to 3, navigating...');
+      router.push(`/ranked/revision/${activeSessionId || sessionId}`);
+    }
+  }, [session?.config?.phase, hasSubmitted, router, activeSessionId, sessionId]);
 
   // Debug time remaining
   useEffect(() => {

@@ -12,15 +12,17 @@ import WritingTipsModal from '@/components/shared/WritingTipsModal';
 import WaitingForPlayers from '@/components/shared/WaitingForPlayers';
 import PhaseInstructions from '@/components/shared/PhaseInstructions';
 import { db } from '@/lib/config/firebase';
-import { doc, getDoc, updateDoc } from 'firebase/firestore';
+import { doc, getDoc } from 'firebase/firestore';
 import { formatTime, getTimeColor } from '@/lib/utils/time-utils';
-import { SCORING, getDefaultScore, clampScore } from '@/lib/constants/scoring';
+import { SCORING, getDefaultScore } from '@/lib/constants/scoring';
 import { countWords } from '@/lib/utils/text-utils';
 import { usePastePrevention } from '@/lib/hooks/usePastePrevention';
 import { useModals } from '@/lib/hooks/useModals';
 import { LoadingState } from '@/components/shared/LoadingState';
 import { ErrorState } from '@/components/shared/ErrorState';
 import { useDebounce } from '@/lib/hooks/useDebounce';
+import { useBatchRankingSubmission } from '@/lib/hooks/useBatchRankingSubmission';
+import { validateWritingSubmission } from '@/lib/utils/submission-validation';
 
 /**
  * WritingSessionContent - Migrated to new session architecture
@@ -287,151 +289,61 @@ export default function WritingSessionContent() {
   }, [debouncedContent]);
 
 
-  // Time utilities imported from lib/utils/time-utils.ts
-
-  const handleSubmit = useCallback(async () => {
-    if (hasSubmitted() || !user || !userProfile || !session || !prompt) return;
-    
-    console.log('📤 SESSION - Submitting for batch ranking...');
-    
-    // Check for empty submission
-    const isEmpty = !writingContent || writingContent.trim().length === 0 || wordCount === 0;
-    
-    if (isEmpty) {
-      console.warn('⚠️ SESSION - Empty submission detected, scoring as 0');
-      
-      // Submit with 0 score for empty content
-      await submitPhase(1, {
-        content: '',
-        wordCount: 0,
-        score: 0,
-      });
-      
-      console.log('✅ SESSION - Empty submission recorded');
-      return;
-    }
-    
-    try {
-      // Get AI writings from matchStates
-      const matchDoc = await getDoc(doc(db, 'matchStates', sessionMatchId || sessionId));
-      if (!matchDoc.exists()) throw new Error('Match state not found');
-      
-      const matchState = matchDoc.data();
-      const aiWritings = matchState?.aiWritings?.phase1 || [];
-      
-      if (aiWritings.length === 0) {
-        console.warn('⚠️ SESSION - No AI writings found, falling back to individual evaluation');
-        throw new Error('AI writings not available');
+  // Batch ranking submission hook
+  const { submit: handleBatchSubmit, isSubmitting: isBatchSubmitting } = useBatchRankingSubmission({
+    phase: 1,
+    matchId: sessionMatchId || sessionId,
+    userId: user?.uid || '',
+    endpoint: '/api/batch-rank-writings',
+    firestoreKey: 'aiWritings.phase1',
+    rankingsKey: 'rankings.phase1',
+    prepareUserSubmission: () => ({
+      playerId: user?.uid || '',
+      playerName: userProfile?.displayName || 'You',
+      content: writingContent,
+      wordCount: wordCount,
+      isAI: false,
+      rank: userProfile?.currentRank || 'Silver III',
+    }),
+    prepareSubmissionData: (score: number) => ({
+      content: writingContent,
+      wordCount: wordCount,
+      score: score,
+    }),
+    submitPhase,
+    validateSubmission: () => validateWritingSubmission(writingContent, wordCount),
+    onEmptySubmission: async (isEmpty) => {
+      if (isEmpty) {
+        console.warn('⚠️ SESSION - Empty submission detected, scoring as 0');
+        await submitPhase(1, {
+          content: '',
+          wordCount: 0,
+          score: 0,
+        });
+        console.log('✅ SESSION - Empty submission recorded');
       }
-      
-      // Prepare all writings for batch ranking
-      const allWritings = [
-        {
-          playerId: user.uid,
-          playerName: userProfile.displayName || 'You',
-          content: writingContent,
-          wordCount: wordCount,
-          isAI: false,
-          rank: userProfile.currentRank || 'Silver III',
-        },
-        ...aiWritings
-      ];
-      
-      console.log(`📊 SESSION - Batch ranking ${allWritings.length} writings...`);
-      
-      // Call batch ranking API
-      const response = await fetch('/api/batch-rank-writings', {
+    },
+    fallbackEvaluation: async () => {
+      // Fallback to individual evaluation
+      const response = await fetch('/api/analyze-writing', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          writings: allWritings,
-          prompt: prompt.description,
-          promptType: prompt.type,
+          content: writingContent,
           trait: trait,
+          promptType: prompt?.type,
         }),
       });
       
       const data = await response.json();
-      const rankings = data.rankings;
-      
-      console.log('✅ SESSION - Batch ranking complete:', rankings.length, 'players ranked');
-      
-      // Check if mock scoring was used (look for warning in feedback)
-      const isMockScoring = rankings.some((r: any) => 
-        r.strengths?.some((s: string) => s.includes('MOCK SCORING')) ||
-        r.improvements?.some((i: string) => i.includes('Enable AI evaluation'))
-      );
-      
-      if (isMockScoring) {
-        console.warn('⚠️ SESSION - WARNING: Mock scoring detected! Scores may not reflect actual quality.');
-        console.warn('⚠️ SESSION - Check server logs to see if API key is configured correctly.');
-      } else {
-        console.log('✅ SESSION - Real AI evaluation confirmed');
-      }
-      
-      // Find your ranking
-      const yourRanking = rankings.find((r: any) => r.playerId === user.uid);
-      if (!yourRanking) throw new Error('Your ranking not found');
-      
-      const yourScore = yourRanking.score;
-      
-      console.log(`🎯 SESSION - You scored ${yourScore}`, isMockScoring ? '(MOCK SCORING)' : '(AI EVALUATED)');
-      
-      // Store rankings in matchStates for backward compatibility
-      const matchRef = doc(db, 'matchStates', sessionMatchId || sessionId);
-      const { setDoc } = await import('firebase/firestore');
-      await setDoc(matchRef, {
-        rankings: {
-          phase1: rankings,
-        },
-      }, { merge: true });
-      
-      // NEW: Submit using session architecture
-      await submitPhase(1, {
-        content: writingContent,
-        wordCount: wordCount,
-        score: clampScore(yourScore),
-      });
-      
-      console.log('✅ SESSION - Submission complete, waiting for others...');
-      
-    } catch (error) {
-      console.error('❌ SESSION - Batch ranking failed, using fallback:', error);
-      
-      // Fallback to individual evaluation
-      try {
-        const response = await fetch('/api/analyze-writing', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            content: writingContent,
-            trait: trait,
-            promptType: prompt.type,
-          }),
-        });
-        
-        const data = await response.json();
-        // Use nullish coalescing (??) so 0 is preserved and not replaced by default score
-        const yourScore = data.overallScore ?? getDefaultScore(1);
-        
-        await submitPhase(1, {
-          content: writingContent,
-          wordCount: wordCount,
-          score: clampScore(yourScore),
-        });
-      } catch (fallbackError) {
-        console.error('❌ SESSION - Even fallback failed:', fallbackError);
-        const isEmpty = !writingContent || writingContent.trim().length === 0;
-        const yourScore = isEmpty ? SCORING.MIN_SCORE : clampScore(60 + (wordCount / 5));
-        
-        await submitPhase(1, {
-          content: writingContent,
-          wordCount: wordCount,
-          score: yourScore,
-        });
-      }
-    }
-  }, [hasSubmitted, user, userProfile, session, sessionMatchId, sessionId, prompt, writingContent, wordCount, submitPhase, trait]);
+      return data.overallScore ?? getDefaultScore(1);
+    },
+  });
+
+  const handleSubmit = useCallback(async () => {
+    if (hasSubmitted() || !user || !userProfile || !session || !prompt) return;
+    await handleBatchSubmit();
+  }, [hasSubmitted, user, userProfile, session, prompt, handleBatchSubmit]);
 
   // Paste prevention handlers from usePastePrevention hook (already defined above)
 
@@ -498,7 +410,24 @@ export default function WritingSessionContent() {
     currentPhase: 1,
     hasSubmitted,
     sessionId: activeSessionId || sessionId,
+    onTransition: (nextPhase) => {
+      console.log('🔄 WRITING SESSION - Phase transition detected:', nextPhase);
+      if (nextPhase === 2) {
+        router.push(`/ranked/peer-feedback?sessionId=${activeSessionId || sessionId}`);
+      }
+    },
   });
+
+  // Also listen for phase changes from session updates
+  useEffect(() => {
+    if (!session || !hasSubmitted()) return;
+    
+    const currentPhase = session.config?.phase;
+    if (currentPhase === 2) {
+      console.log('🔄 WRITING SESSION - Session phase changed to 2, navigating...');
+      router.push(`/ranked/peer-feedback?sessionId=${activeSessionId || sessionId}`);
+    }
+  }, [session?.config?.phase, hasSubmitted, router, activeSessionId, sessionId]);
 
   // Prepare members list with word counts
   // CONDITIONAL RENDERS AFTER ALL HOOKS
