@@ -238,11 +238,6 @@ export default function PeerFeedbackContent() {
       const matchState = matchDoc.data();
       const aiFeedbacks = matchState?.aiFeedbacks?.phase2 || [];
       
-      if (aiFeedbacks.length === 0) {
-        console.warn('⚠️ PEER FEEDBACK - No AI feedback found, falling back to individual evaluation');
-        throw new Error('AI feedback not available');
-      }
-      
       // Prepare all feedback submissions for batch ranking
       const allFeedbackSubmissions = [
         {
@@ -273,11 +268,9 @@ export default function PeerFeedbackContent() {
       
       // Find your ranking
       const yourRanking = rankings.find((r: any) => r.playerId === user?.uid);
-      if (!yourRanking) throw new Error('Your ranking not found');
+      const feedbackScore = yourRanking?.score ?? 75;
       
-      const feedbackScore = yourRanking.score;
-      
-      console.log(`🎯 PEER FEEDBACK - You ranked #${yourRanking.rank} with score ${feedbackScore}`);
+      console.log(`🎯 PEER FEEDBACK - You ranked #${yourRanking?.rank} with score ${feedbackScore}`);
       
       // Store ALL feedback rankings in Firestore
       const matchRef = doc(db, 'matchStates', matchId);
@@ -286,46 +279,25 @@ export default function PeerFeedbackContent() {
       });
       
       // NEW: Submit using session architecture
-        await submitPhase(2, {
-          responses,
-          score: clampScore(feedbackScore),
-        });
+      await submitPhase(2, {
+        responses,
+        score: clampScore(feedbackScore),
+      });
       
       console.log('✅ PEER FEEDBACK - Submission complete, phase will transition automatically!');
       
     } catch (error) {
       console.error('❌ PEER FEEDBACK - Batch ranking failed, using fallback:', error);
       
-      // Fallback to individual evaluation
-      try {
-        const response = await fetch('/api/evaluate-peer-feedback', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            responses,
-            peerWriting: currentPeer?.content || '',
-          }),
-        });
-        
-        const data = await response.json();
-        const feedbackScore = data.score || getDefaultScore(2);
-        console.log('✅ PEER FEEDBACK - Fallback evaluation complete, score:', feedbackScore);
-        
-        await submitPhase(2, {
-          responses,
-          score: clampScore(feedbackScore),
-        });
-      } catch (fallbackError) {
-        console.error('❌ PEER FEEDBACK - Even fallback failed:', fallbackError);
-        const feedbackQuality = isFormComplete(responses) 
-          ? SCORING.DEFAULT_FEEDBACK_SCORE + Math.random() * 20 
-          : 50 + Math.random() * 30;
-        
-        await submitPhase(2, {
-          responses,
-          score: clampScore(feedbackQuality),
-        }).catch(console.error);
-      }
+      // Fallback to basic local scoring
+      const feedbackQuality = isFormComplete(responses) 
+        ? 80 + Math.random() * 15
+        : 60 + Math.random() * 20;
+      
+      await submitPhase(2, {
+        responses,
+        score: clampScore(feedbackQuality),
+      }).catch(console.error);
     } finally {
       setIsEvaluating(false);
     }
@@ -346,6 +318,13 @@ export default function PeerFeedbackContent() {
     hasSubmitted,
     sessionId: activeSessionId || sessionId,
   });
+
+  // Debug time remaining
+  useEffect(() => {
+    if (process.env.NODE_ENV === 'development') {
+      console.log('⏱️ PEER FEEDBACK - Time remaining:', timeRemaining, 'Duration:', SCORING.PHASE2_DURATION);
+    }
+  }, [timeRemaining]);
 
   // Loading state
   if (isReconnecting || !session) {
@@ -422,7 +401,7 @@ export default function PeerFeedbackContent() {
           <div className="mt-4 w-full bg-white/10 rounded-full h-2 overflow-hidden">
             <div 
               className={`h-full transition-all duration-1000 ${getTimeProgressColor(timeRemaining)}`}
-              style={{ width: `${(timeRemaining / SCORING.PHASE2_DURATION) * 100}%` }}
+              style={{ width: `${Math.min(100, Math.max(0, (timeRemaining / SCORING.PHASE2_DURATION) * 100))}%` }}
             />
           </div>
         </div>
@@ -548,4 +527,3 @@ export default function PeerFeedbackContent() {
     </div>
   );
 }
-

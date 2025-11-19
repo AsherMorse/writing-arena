@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import { GameSession, SessionPlayer } from '@/lib/types/session';
 
 /**
@@ -14,9 +15,13 @@ export function useSessionData(session: GameSession | null) {
   const timing = session?.timing;
 
   // Helper getters
-  const allPlayers = Object.values(players);
-  const realPlayers = allPlayers.filter((p) => !p.isAI);
-  const aiPlayers = allPlayers.filter((p) => p.isAI);
+  // Sort by userId to ensure stable order (prevents "jumping" in UI)
+  const allPlayers = useMemo(() => {
+    return Object.values(players).sort((a, b) => a.userId.localeCompare(b.userId));
+  }, [players]);
+
+  const realPlayers = useMemo(() => allPlayers.filter((p) => !p.isAI), [allPlayers]);
+  const aiPlayers = useMemo(() => allPlayers.filter((p) => p.isAI), [allPlayers]);
 
   // Get current phase
   const currentPhase = config?.phase || 1;

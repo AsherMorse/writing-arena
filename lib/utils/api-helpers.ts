@@ -49,7 +49,7 @@ export async function callAnthropicAPI(
       'anthropic-version': '2023-06-01',
     },
     body: JSON.stringify({
-      model: 'claude-sonnet-4-20250514',
+      model: 'claude-sonnet-4-5-20250929',
       max_tokens: maxTokens,
       messages: [{ role: 'user', content: prompt }],
     }),

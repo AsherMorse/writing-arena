@@ -97,12 +97,15 @@ export default function WritingSessionContent() {
 
   // ALL HOOKS MUST BE CALLED BEFORE ANY CONDITIONAL RETURNS
 
+  // Ref to store the final target word counts for AI players
+  const aiTargetCountsRef = useRef<number[]>([]);
+
   // Generate AI writings once when session initializes
   useEffect(() => {
     if (!session || aiWritingsGenerated || !user || !prompt) return;
     
     const generateAIWritings = async () => {
-      console.log('[AIR] Checking for existing AI writings...');
+      console.log('[ST] Checking for existing AI writings...');
       
       try {
         // Check if AI writings already exist in matchStates (backward compatibility)
@@ -114,14 +117,16 @@ export default function WritingSessionContent() {
           const existingWritings = matchState?.aiWritings?.phase1;
           
           if (existingWritings && existingWritings.length > 0) {
-            console.log('[AIR] Found existing AI writings:', existingWritings.length);
-            setAiWordCounts(existingWritings.map((w: any) => w.wordCount));
+            console.log('[ST] Found existing AI writings:', existingWritings.length);
+            // STORE TARGETS, NOT IMMEDIATE STATE
+            aiTargetCountsRef.current = existingWritings.map((w: any) => w.wordCount);
+            console.log('[ST] Set targets from existing:', aiTargetCountsRef.current);
             setAiWritingsGenerated(true);
             return;
           }
         } else {
           // Create matchStates document for backward compatibility
-          console.log('[AIR] Creating matchStates document for backward compatibility');
+          console.log('[ST] Creating matchStates document for backward compatibility');
           const { setDoc } = await import('firebase/firestore');
           await setDoc(matchRef, {
             matchId: sessionMatchId || sessionId,
@@ -139,14 +144,14 @@ export default function WritingSessionContent() {
         }
         
         // Generate new AI writings
-        console.log('[AIR] Generating new AI writings for prompt:', prompt.id);
+        console.log('[ST] Generating new AI writings for prompt:', prompt.id);
         
         // Get AI players
         const aiPlayers = players.filter(p => p.isAI);
         
         // Show loading state
         setGeneratingAI(true);
-        console.log(`[AIR] Generating ${aiPlayers.length} AI writings`);
+        console.log(`[ST] Generating ${aiPlayers.length} AI writings`);
         setAiWritingsGenerated(true);
         
         // Generate writing for each AI player in parallel
@@ -163,7 +168,7 @@ export default function WritingSessionContent() {
           });
           
           const data = await response.json();
-          console.log(`[AIR] Generated writing for ${aiPlayer.displayName}:`, data.wordCount);
+          console.log(`[ST] Generated writing for ${aiPlayer.displayName}:`, data.wordCount);
           
           // Update progress
           setAiGenerationProgress(((index + 1) / aiPlayers.length) * 100);
@@ -190,11 +195,13 @@ export default function WritingSessionContent() {
         }, { merge: true });
         
         // Update AI word counts for UI
-        setAiWordCounts(aiWritings.map(w => w.wordCount));
+        // STORE TARGETS
+        aiTargetCountsRef.current = aiWritings.map(w => w.wordCount);
+        console.log('[ST] Set targets from generated:', aiTargetCountsRef.current);
         setGeneratingAI(false);
         setAiGenerationProgress(100);
         
-        console.log('[AIR] Stored AI writings for match');
+        console.log('[ST] Stored AI writings for match');
         
         // AUTO-SUBMIT AI PLAYERS (they've "finished writing")
         // Submit each AI player's work to the session after a short delay (5-15 seconds)
@@ -206,7 +213,7 @@ export default function WritingSessionContent() {
               const aiWriting = aiWritings.find(w => w.playerId === aiPlayer.userId);
               if (!aiWriting) return;
               
-              console.log(`[AIR] Auto-submitting AI player ${aiPlayer.displayName} after delay ${delay}`);
+              console.log(`[ST] Auto-submitting AI player ${aiPlayer.displayName} after delay ${delay}`);
               
               // Submit directly to sessions collection
               const { updateDoc, doc, serverTimestamp } = await import('firebase/firestore');
@@ -223,7 +230,7 @@ export default function WritingSessionContent() {
                 updatedAt: serverTimestamp(),
               });
               
-              console.log(`[AIR] AI player ${aiPlayer.displayName} submission saved`);
+              console.log(`[ST] AI player ${aiPlayer.displayName} submission saved`);
             } catch (error) {
               console.error(`❌ SESSION - Failed to auto-submit AI player ${aiPlayer.displayName}:`, error);
             }
@@ -231,9 +238,10 @@ export default function WritingSessionContent() {
         });
         
       } catch (error) {
-        console.error('[AIR] Failed to generate AI writings:', error);
+        console.error('[ST] Failed to generate AI writings:', error);
         // Continue with fallback word counts
-        setAiWordCounts([40, 55, 48, 62]);
+        aiTargetCountsRef.current = [40, 55, 48, 62];
+        console.log('[ST] Set fallback targets:', aiTargetCountsRef.current);
         setAiWritingsGenerated(true);
       }
     };
@@ -242,31 +250,35 @@ export default function WritingSessionContent() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [session, aiWritingsGenerated, user, prompt]);
 
-  // Realistic AI word count progression
+  // ANIMATION EFFECT - SIMPLIFIED
+  // Just increment word counts slowly towards the target
   useEffect(() => {
     if (!session) return;
-    
-    const aiPlayers = players.filter(p => p.isAI);
-    const targetCounts = aiPlayers.map(() => 80 + Math.floor(Math.random() * 30)); // Target: 80-110 words
-    
+
     const interval = setInterval(() => {
-      setAiWordCounts(prev => prev.map((count, i) => {
-        const target = targetCounts[i] || 95;
-        const hasSubmitted = (sessionPlayers || {})[aiPlayers[i]?.userId]?.phases.phase1?.submitted;
-        
-        if (hasSubmitted) {
-          // Freeze at final count if submitted
-          return target;
+      setAiWordCounts(prevCounts => {
+        const aiPlayers = players.filter(p => p.isAI);
+        if (prevCounts.length !== aiPlayers.length) {
+          return new Array(aiPlayers.length).fill(0);
         }
-        
-        // Increment toward target at realistic pace (2-4 words per 2 seconds)
-        const increase = 2 + Math.floor(Math.random() * 3);
-        return Math.min(count + increase, target);
-      }));
-    }, 2000);
-    
+
+        return prevCounts.map((currentCount, index) => {
+          const target = aiTargetCountsRef.current[index] || 100;
+          
+          // If we reached the target, stop
+          if (currentCount >= target) return target;
+
+          // Simple random increment: 0.5 to 1.5 words per tick (every 1s)
+          // This simulates a writing speed of ~60 words/min which is realistic
+          const increment = 0.5 + Math.random();
+          
+          return Math.min(target, currentCount + increment);
+        });
+      });
+    }, 1000);
+
     return () => clearInterval(interval);
-  }, [session, sessionPlayers, players]);
+  }, [session, players]);
       
   // Update word count when content changes (debounced for performance)
   const debouncedContent = useDebounce(writingContent, 300);
@@ -399,7 +411,8 @@ export default function WritingSessionContent() {
         });
         
         const data = await response.json();
-        const yourScore = data.overallScore || getDefaultScore(1);
+        // Use nullish coalescing (??) so 0 is preserved and not replaced by default score
+        const yourScore = data.overallScore ?? getDefaultScore(1);
         
         await submitPhase(1, {
           content: writingContent,
@@ -683,7 +696,7 @@ export default function WritingSessionContent() {
                         </div>
                       </div>
                       <div className="text-right text-sm font-semibold text-white">
-                        {member.wordCount}
+                        {Math.floor(member.wordCount)}
                         <span className="ml-1 text-xs text-white/50">w</span>
                       </div>
                     </div>
