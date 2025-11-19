@@ -88,12 +88,6 @@ export default function WritingSessionContent() {
     [allPlayers],
   );
   
-  // Debug logging
-  useEffect(() => {
-    if (session && players.length > 0) {
-      console.log('👥 SESSION - Players in session:', players.length, players.map(p => p.displayName));
-    }
-  }, [session, sessionPlayers, players]);
   
   // Get submission tracking
   const { submitted, total } = submissionCount();

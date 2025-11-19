@@ -129,7 +129,6 @@ export async function checkAndTransitionPhase(
     const sessionDoc = await getDoc(sessionRef);
     
     if (!sessionDoc.exists()) {
-      console.error('❌ CLIENT TRANSITION - Session not found:', sessionId);
       return false;
     }
     
@@ -148,7 +147,7 @@ export async function checkAndTransitionPhase(
     // Perform transition (transaction will handle race conditions)
     return await transitionToNextPhase(sessionId, currentPhase);
   } catch (error) {
-    console.error('❌ CLIENT TRANSITION - Error checking phase:', error);
+    console.error('❌ PHASE TRANSITION - Error:', error);
     return false;
   }
 }

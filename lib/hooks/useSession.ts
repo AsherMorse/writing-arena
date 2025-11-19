@@ -62,20 +62,20 @@ export function useSession(sessionId: string | null) {
         });
         
         sessionManager.on('onPhaseTransition', (newPhase) => {
-          console.log('📍 HOOK - Phase transition:', newPhase);
+          // Phase transition handled by components
         });
         
         sessionManager.on('onAllPlayersReady', () => {
-          console.log('✅ HOOK - All players ready!');
+          // All players ready - handled by components
         });
         
         sessionManager.on('onSessionError', (err) => {
-          console.error('❌ HOOK - Session error:', err);
+          console.error('❌ SESSION ERROR:', err);
           setError(err);
         });
         
       } catch (err) {
-        console.error('❌ HOOK - Failed to join session:', err);
+        console.error('❌ Failed to join session:', err);
         setError(err as Error);
         setIsReconnecting(false);
       }
@@ -109,15 +109,21 @@ export function useSession(sessionId: string | null) {
   // Submit phase helper
   const submitPhase = useCallback(
     async (phase: Phase, data: PhaseSubmissionData) => {
+      // Check if session manager is initialized
+      if (!sessionManager || !sessionId || !user?.uid) {
+        console.error('❌ Cannot submit phase: Session not initialized');
+        throw new Error('Session not initialized');
+      }
+      
       try {
         await sessionManager.submitPhase(phase, data);
       } catch (err) {
-        console.error('❌ HOOK - Failed to submit phase:', err);
+        console.error('❌ Failed to submit phase:', err);
         setError(err as Error);
         throw err;
       }
     },
-    [sessionManager]
+    [sessionManager, sessionId, user?.uid]
   );
   
   // Check if user has submitted

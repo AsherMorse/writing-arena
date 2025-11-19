@@ -74,8 +74,6 @@ export class SessionManager {
     userId: string,
     playerInfo: PlayerInfo
   ): Promise<GameSession> {
-    console.log('🎮 SESSION MANAGER - Joining session:', { sessionId, userId });
-    
     this.sessionId = sessionId;
     this.userId = userId;
     
@@ -83,7 +81,6 @@ export class SessionManager {
     const sessionSnap = await getDoc(sessionRef);
     
     if (sessionSnap.exists()) {
-      console.log('🔄 SESSION MANAGER - Reconnecting to existing session');
       await this.reconnectToSession(sessionRef, playerInfo);
       this.currentSession = sessionSnap.data() as GameSession;
     } else {
@@ -100,7 +97,6 @@ export class SessionManager {
     // Start periodic refresh as backup (every 30 seconds)
     this.startPeriodicRefresh();
     
-    console.log('✅ SESSION MANAGER - Successfully joined session');
     return this.currentSession;
   }
   
@@ -113,8 +109,6 @@ export class SessionManager {
     playerInfo: PlayerInfo,
     trait: string
   ): Promise<GameSession> {
-    console.log('🔍 SESSION MANAGER - Finding or creating session for:', userId);
-    
     // Query for existing 'forming' sessions with same trait
     const sessionsRef = collection(db, 'sessions');
     const formingQuery = query(
@@ -132,8 +126,6 @@ export class SessionManager {
         const existingSession = snapshot.docs[0].data() as GameSession;
         const existingSessionId = snapshot.docs[0].id;
         
-        console.log('✅ SESSION MANAGER - Found existing session:', existingSessionId);
-        
         // Add player to existing session
         await this.addPlayerToSession(existingSessionId, userId, playerInfo);
         
@@ -146,7 +138,6 @@ export class SessionManager {
     }
     
     // No existing session found - create new one
-    console.log('🆕 SESSION MANAGER - No existing session found, creating new one');
     return await this.createFormingSession(userId, playerInfo, trait);
   }
 
@@ -160,8 +151,6 @@ export class SessionManager {
   ): Promise<GameSession> {
     const sessionId = `session-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
     const matchId = `match-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
-    
-    console.log('🎮 SESSION MANAGER - Creating forming session:', sessionId);
     
     const session: GameSession = {
       sessionId,
@@ -204,7 +193,6 @@ export class SessionManager {
     const sessionRef = doc(db, 'sessions', sessionId);
     await setDoc(sessionRef, session);
     
-    console.log('✅ SESSION MANAGER - Forming session created:', sessionId);
     return session;
   }
 
@@ -217,26 +205,27 @@ export class SessionManager {
     playerInfo: PlayerInfo,
     isAI: boolean = false
   ): Promise<void> {
-    console.log(`➕ SESSION MANAGER - Adding player to session ${sessionId}:`, userId);
-    
     const sessionRef = doc(db, 'sessions', sessionId);
     
-    await updateDoc(sessionRef, {
-      [`players.${userId}`]: {
-        userId,
-        displayName: playerInfo.displayName,
-        avatar: playerInfo.avatar,
-        rank: playerInfo.rank,
-        isAI,
-        status: 'connected',
-        lastHeartbeat: serverTimestamp(),
-        connectionId: isAI ? 'ai-connection' : this.connectionId,
-        phases: {},
-      },
-      updatedAt: serverTimestamp(),
-    });
-    
-    console.log(`✅ SESSION MANAGER - Player added to session: ${userId}`);
+    try {
+      await updateDoc(sessionRef, {
+        [`players.${userId}`]: {
+          userId,
+          displayName: playerInfo.displayName,
+          avatar: playerInfo.avatar,
+          rank: playerInfo.rank,
+          isAI,
+          status: 'connected',
+          lastHeartbeat: serverTimestamp(),
+          connectionId: isAI ? 'ai-connection' : this.connectionId,
+          phases: {},
+        },
+        updatedAt: serverTimestamp(),
+      });
+    } catch (error) {
+      console.error(`❌ SESSION MANAGER - Failed to add player to session:`, error);
+      throw error;
+    }
   }
 
   /**
@@ -249,8 +238,6 @@ export class SessionManager {
     promptType: string,
     phaseDuration: number
   ): Promise<void> {
-    console.log(`🚀 SESSION MANAGER - Starting session: ${sessionId}`);
-    
     const sessionRef = doc(db, 'sessions', sessionId);
     
     await updateDoc(sessionRef, {
@@ -261,8 +248,6 @@ export class SessionManager {
       'timing.phase1StartTime': serverTimestamp(),
       updatedAt: serverTimestamp(),
     });
-    
-    console.log(`✅ SESSION MANAGER - Session started: ${sessionId}`);
   }
 
   /**
@@ -274,7 +259,6 @@ export class SessionManager {
     // Use provided matchId or generate new one
     const matchId = options.matchId || `match-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
     
-    console.log('🎮 SESSION MANAGER - Creating new session:', sessionId, 'with matchId:', matchId);
     
     // Build players map
     const players: { [userId: string]: SessionPlayer } = {};
@@ -317,7 +301,6 @@ export class SessionManager {
     const sessionRef = doc(db, 'sessions', sessionId);
     await setDoc(sessionRef, session);
     
-    console.log('✅ SESSION MANAGER - Session created:', sessionId);
     return session;
   }
   
@@ -360,7 +343,6 @@ export class SessionManager {
       throw error;
     });
     
-    console.log('✅ SESSION MANAGER - Reconnected successfully');
   }
   
   /**
@@ -372,8 +354,6 @@ export class SessionManager {
     if (this.heartbeatInterval) {
       clearInterval(this.heartbeatInterval);
     }
-    
-    console.log('💓 SESSION MANAGER - Starting heartbeat');
     
     this.heartbeatInterval = setInterval(async () => {
       if (!this.sessionId || !this.userId) return;
@@ -401,10 +381,9 @@ export class SessionManager {
     data: PhaseSubmissionData
   ): Promise<void> {
     if (!this.sessionId || !this.userId) {
+      console.error(`❌ SESSION MANAGER - Cannot submit phase ${phase}: Session not initialized`);
       throw new Error('Session not initialized');
     }
-    
-    console.log(`📤 SESSION MANAGER - Submitting phase ${phase}`, data);
     
     const sessionRef = doc(db, 'sessions', this.sessionId);
     
@@ -416,8 +395,6 @@ export class SessionManager {
       },
       updatedAt: serverTimestamp(),
     });
-    
-    console.log(`✅ SESSION MANAGER - Phase ${phase} submitted`);
   }
   
   /**
@@ -439,7 +416,6 @@ export class SessionManager {
           const updatedSession = sessionSnap.data() as GameSession;
           // Only update if session actually changed (prevent unnecessary re-renders)
           if (JSON.stringify(updatedSession) !== JSON.stringify(this.currentSession)) {
-            console.log('🔄 SESSION MANAGER - Periodic refresh: session updated');
             this.currentSession = updatedSession;
             this.eventHandlers.onSessionUpdate?.(updatedSession);
           }
@@ -456,7 +432,6 @@ export class SessionManager {
   private listenToSession(): void {
     if (!this.sessionId) return;
     
-    console.log('👂 SESSION MANAGER - Listening for session updates');
     
     const sessionRef = doc(db, 'sessions', this.sessionId);
     
@@ -478,7 +453,6 @@ export class SessionManager {
         
         // Check for phase transition
         if (previousSession && previousSession.config.phase !== session.config.phase) {
-          console.log('🔄 SESSION MANAGER - Phase transition detected:', session.config.phase);
           this.eventHandlers.onPhaseTransition?.(session.config.phase);
         }
         
@@ -487,7 +461,6 @@ export class SessionManager {
           for (const [userId, player] of Object.entries(session.players)) {
             const prevPlayer = previousSession.players[userId];
             if (prevPlayer && prevPlayer.status !== player.status) {
-              console.log(`👤 SESSION MANAGER - Player ${player.displayName} status: ${player.status}`);
               this.eventHandlers.onPlayerStatusChange?.(userId, player.status);
             }
           }
@@ -495,7 +468,6 @@ export class SessionManager {
         
         // Check if all players ready
         if (session.coordination.allPlayersReady && !previousSession?.coordination.allPlayersReady) {
-          console.log('✅ SESSION MANAGER - All players ready!');
           this.eventHandlers.onAllPlayersReady?.();
         }
       },
@@ -549,22 +521,11 @@ export class SessionManager {
     }
     
     if (!startTime) {
-      console.log('⏱️ SESSION MANAGER - No start time yet, returning full duration:', config.phaseDuration);
       return config.phaseDuration;
     }
     
     const elapsed = Date.now() - startTime.toMillis();
     const remaining = config.phaseDuration - Math.floor(elapsed / 1000);
-    
-    // Only log in development or if there's an issue
-    if (process.env.NODE_ENV === 'development' || remaining < 0) {
-      console.log('⏱️ SESSION MANAGER - Time calculation:', { 
-        phase,
-        elapsed: Math.floor(elapsed / 1000), 
-        remaining, 
-        duration: config.phaseDuration,
-      });
-    }
     
     return Math.max(0, remaining);
   }
@@ -617,7 +578,6 @@ export class SessionManager {
    * Leave session gracefully
    */
   async leaveSession(): Promise<void> {
-    console.log('🚪 SESSION MANAGER - Leaving session');
     
     // Stop heartbeat
     if (this.heartbeatInterval) {
@@ -655,7 +615,6 @@ export class SessionManager {
     this.currentSession = null;
     this.eventHandlers = {};
     
-    console.log('✅ SESSION MANAGER - Left session successfully');
   }
   
   /**

@@ -48,8 +48,6 @@ export async function joinQueue(
   rankLP: number,
   trait: string
 ): Promise<string> {
-  console.log('🎮 QUEUE - Joining:', { userId, displayName, rank, trait });
-  
   const queueRef = doc(db, 'matchmakingQueue', userId);
   await setDoc(queueRef, {
     userId,
@@ -61,16 +59,13 @@ export async function joinQueue(
     joinedAt: serverTimestamp(),
   });
   
-  console.log('✅ QUEUE - Joined successfully');
   return userId;
 }
 
 // Leave the matchmaking queue
 export async function leaveQueue(userId: string): Promise<void> {
-  console.log('🚪 QUEUE - Leaving:', userId);
   const queueRef = doc(db, 'matchmakingQueue', userId);
   await deleteDoc(queueRef);
-  console.log('✅ QUEUE - Left successfully');
 }
 
 // Listen for players in queue (for matchmaking)
@@ -79,8 +74,6 @@ export function listenToQueue(
   currentUserId: string,
   onPlayersUpdate: (players: QueueEntry[]) => void
 ): () => void {
-  console.log('👂 QUEUE - Listening for players in trait:', trait);
-  
   const queueRef = collection(db, 'matchmakingQueue');
   const queueQuery = query(
     queueRef,
@@ -90,15 +83,9 @@ export function listenToQueue(
 
   const unsubscribe = onSnapshot(queueQuery, (snapshot) => {
     const players = snapshot.docs.map(doc => doc.data() as QueueEntry);
-    
-    console.log('📥 QUEUE - Players update:', {
-      count: players.length,
-      players: players.map(p => ({ name: p.displayName, rank: p.rank }))
-    });
-    
     onPlayersUpdate(players);
   }, (error) => {
-    console.error('❌ QUEUE - Error listening:', error);
+    console.error('❌ QUEUE ERROR:', error);
   });
 
   return unsubscribe;
@@ -183,8 +170,6 @@ export async function createMatchLobby(
   trait: string,
   promptId: string
 ): Promise<void> {
-  console.log('🏛️ MATCHMAKING - Creating shared match lobby:', matchId);
-  
   const lobbyRef = doc(db, 'matchLobbies', matchId);
   await setDoc(lobbyRef, {
     matchId,
@@ -194,8 +179,6 @@ export async function createMatchLobby(
     createdAt: serverTimestamp(),
     status: 'ready',
   });
-  
-  console.log('✅ MATCHMAKING - Lobby created with', players.length, 'players');
 }
 
 // Listen for match lobby (for followers to detect when leader creates it)
@@ -203,18 +186,15 @@ export function listenToMatchLobby(
   matchId: string,
   onLobbyReady: (lobbyData: any) => void
 ): () => void {
-  console.log('👂 MATCHMAKING - Listening for lobby:', matchId);
-  
   const lobbyRef = doc(db, 'matchLobbies', matchId);
   
   const unsubscribe = onSnapshot(lobbyRef, (snapshot) => {
     if (snapshot.exists()) {
       const data = snapshot.data();
-      console.log('✅ MATCHMAKING - Lobby found:', data);
       onLobbyReady(data);
     }
   }, (error) => {
-    console.error('❌ MATCHMAKING - Error listening to lobby:', error);
+    console.error('❌ LOBBY ERROR:', error);
   });
   
   return unsubscribe;
