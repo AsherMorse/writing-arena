@@ -474,9 +474,44 @@ export default function ResultsContent({ session }: ResultsContentProps = {}) {
             const improvements = phaseFeedbackData?.improvements || 
                                 (phaseFeedbackData?.suggestions) || // revision uses 'suggestions'
                                 mockFeedback.improvements;
-            const nextSteps = phaseFeedbackData?.nextSteps || 
-                             phaseFeedbackData?.specificFeedback || 
-                             mockFeedback.writingRevConcepts;
+            
+            // Generate nextSteps from improvements if not provided
+            let nextSteps = phaseFeedbackData?.nextSteps;
+            if (!nextSteps && improvements && Array.isArray(improvements) && improvements.length > 0) {
+              // Generate actionable next steps from improvements
+              nextSteps = improvements.slice(0, 3).map((imp: string) => {
+                // Extract actionable advice from improvement
+                if (typeof imp === 'string') {
+                  // If it already contains actionable language, use it
+                  if (imp.includes('Try') || imp.includes('Practice') || imp.includes('Add')) {
+                    return imp;
+                  }
+                  // Otherwise, convert to actionable step
+                  if (imp.includes('because/but/so') || imp.includes('sentence expansion')) {
+                    return 'Practice sentence expansion: Add "because", "but", or "so" to show deeper thinking';
+                  }
+                  if (imp.includes('appositive')) {
+                    return 'Try appositives: Add description using commas (e.g., "Sarah, a curious student, wrote...")';
+                  }
+                  if (imp.includes('transition')) {
+                    return 'Use transition words: Connect ideas with "First", "Then", "However", "Therefore"';
+                  }
+                  // Default: make it actionable
+                  return `Focus on: ${imp}`;
+                }
+                return imp;
+              });
+            }
+            
+            // Fallback to mock if still no nextSteps
+            if (!nextSteps || nextSteps.length === 0) {
+              nextSteps = phaseFeedbackData?.specificFeedback ? 
+                         Object.values(phaseFeedbackData.specificFeedback) : 
+                         mockFeedback.writingRevConcepts;
+            }
+            
+            // Get trait-specific feedback for Phase 1
+            const traitFeedback = phaseFeedbackData?.traitFeedback || {};
             
             return (
               <div className="bg-white/10 backdrop-blur-sm rounded-xl p-6 border border-white/20 animate-in fade-in slide-in-from-top duration-300">
@@ -499,48 +534,85 @@ export default function ResultsContent({ session }: ResultsContentProps = {}) {
                       <span>✨</span>
                       <span>Strengths</span>
                     </div>
-                    <ul className="space-y-1">
-                      {Array.isArray(strengths) ? strengths.map((strength, i) => (
+                    <ul className="space-y-2">
+                      {Array.isArray(strengths) && strengths.length > 0 ? strengths.map((strength, i) => (
                         <li key={i} className="text-white/90 text-sm leading-relaxed pl-4">
                           • {strength}
                         </li>
-                      )) : <li className="text-white/60 text-sm italic pl-4">No strengths data available</li>}
+                      )) : (
+                        <li className="text-white/60 text-sm italic pl-4">
+                          {phaseFeedbackData ? 'No strengths identified' : 'Submit your work to receive feedback'}
+                        </li>
+                      )}
                     </ul>
                   </div>
 
                   {/* Areas for Growth */}
                   <div>
                     <div className="text-yellow-300 font-semibold mb-2 flex items-center space-x-2">
-                      <span>💡</span>
+                      <span>🎯</span>
                       <span>Areas for Growth</span>
                     </div>
-                    <ul className="space-y-1">
-                      {Array.isArray(improvements) ? improvements.map((improvement, i) => (
+                    <ul className="space-y-2">
+                      {Array.isArray(improvements) && improvements.length > 0 ? improvements.map((improvement, i) => (
                         <li key={i} className="text-white/90 text-sm leading-relaxed pl-4">
                           • {improvement}
                         </li>
-                      )) : <li className="text-white/60 text-sm italic pl-4">No improvement suggestions available</li>}
+                      )) : (
+                        <li className="text-white/60 text-sm italic pl-4">
+                          {phaseFeedbackData ? 'No specific improvements identified' : 'Submit your work to receive feedback'}
+                        </li>
+                      )}
                     </ul>
                   </div>
-
-                  {/* Writing Revolution Concepts / Next Steps */}
-                  {(Array.isArray(nextSteps) || typeof nextSteps === 'object') && (
-                    <div className="bg-blue-500/20 border border-blue-400/30 rounded-lg p-4">
+                  
+                  {/* Trait-specific feedback for Phase 1 */}
+                  {expandedPhase === 'writing' && traitFeedback && Object.keys(traitFeedback).length > 0 && (
+                    <div>
                       <div className="text-blue-300 font-semibold mb-2 flex items-center space-x-2">
-                        <span>📚</span>
-                        <span>{expandedPhase === 'writing' ? 'Next Steps' : 'The Writing Revolution - Key Strategies'}</span>
+                        <span>📊</span>
+                        <span>Trait-Specific Feedback</span>
                       </div>
-                      <ul className="space-y-1">
-                        {Array.isArray(nextSteps) ? nextSteps.map((item, i) => (
-                          <li key={i} className="text-white/90 text-sm leading-relaxed pl-4">
-                            • {item}
-                          </li>
-                        )) : typeof nextSteps === 'object' ? Object.entries(nextSteps).map(([key, value], i) => (
-                          <li key={i} className="text-white/90 text-sm leading-relaxed pl-4">
-                            <strong>{key}:</strong> {value as string}
-                          </li>
-                        )) : null}
-                      </ul>
+                      <div className="space-y-2">
+                        {Object.entries(traitFeedback).map(([trait, feedback]) => (
+                          <div key={trait} className="bg-white/5 rounded-lg p-3 border border-white/10">
+                            <div className="text-purple-300 text-xs font-semibold mb-1 capitalize">{trait}</div>
+                            <p className="text-white/80 text-xs leading-relaxed">{feedback as string}</p>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Next Steps */}
+                  <div>
+                    <div className="text-blue-300 font-semibold mb-2 flex items-center space-x-2">
+                      <span>🚀</span>
+                      <span>Actionable Next Steps</span>
+                    </div>
+                    <ul className="space-y-2">
+                      {Array.isArray(nextSteps) && nextSteps.length > 0 ? nextSteps.map((step, i) => (
+                        <li key={i} className="text-white/90 text-sm leading-relaxed pl-4">
+                          • {step}
+                        </li>
+                      )) : typeof nextSteps === 'object' && nextSteps !== null ? Object.entries(nextSteps).map(([key, value], i) => (
+                        <li key={i} className="text-white/90 text-sm leading-relaxed pl-4">
+                          <strong className="capitalize">{key}:</strong> {value as string}
+                        </li>
+                      )) : (
+                        <li className="text-white/60 text-sm italic pl-4">
+                          {phaseFeedbackData ? 'Review improvements above for specific next steps' : 'Submit your work to receive personalized next steps'}
+                        </li>
+                      )}
+                    </ul>
+                  </div>
+                  
+                  {/* Show warning if using mock feedback */}
+                  {!phaseFeedbackData && (
+                    <div className="bg-yellow-500/20 border border-yellow-500/50 rounded-lg p-3 mt-4">
+                      <p className="text-yellow-300 text-xs">
+                        ⚠️ This is general feedback. Submit your work to receive personalized, actionable feedback based on your actual writing.
+                      </p>
                     </div>
                   )}
                 </div>

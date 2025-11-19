@@ -23,6 +23,7 @@ import { ErrorState } from '@/components/shared/ErrorState';
 import { useDebounce } from '@/lib/hooks/useDebounce';
 import { useBatchRankingSubmission } from '@/lib/hooks/useBatchRankingSubmission';
 import { validateWritingSubmission } from '@/lib/utils/submission-validation';
+import { useCarousel } from '@/lib/hooks/useCarousel';
 
 /**
  * WritingSessionContent - Migrated to new session architecture
@@ -59,6 +60,53 @@ export default function WritingSessionContent() {
   // Use hooks for paste prevention and modals
   const { showPasteWarning, handlePaste, handleCut, handleCopy, setShowPasteWarning } = usePastePrevention();
   const { showTipsModal, setShowTipsModal, showRankingModal, setShowRankingModal } = useModals();
+  
+  // Writing tips carousel for calculating modal
+  const writingTips = useMemo(() => [
+    {
+      name: 'Sentence Expansion',
+      tip: 'Use because, but, or so to show why things happen.',
+      example: 'She opened the door because she heard a strange noise.',
+      icon: '🔗',
+    },
+    {
+      name: 'Appositives',
+      tip: 'Add description using commas to provide extra information.',
+      example: 'Sarah, a curious ten-year-old, pushed open the rusty gate.',
+      icon: '✏️',
+    },
+    {
+      name: 'Five Senses',
+      tip: 'Include what you see, hear, smell, taste, and feel.',
+      example: 'The salty air stung my eyes while waves crashed loudly below.',
+      icon: '👁️',
+    },
+    {
+      name: 'Show, Don\'t Tell',
+      tip: 'Use specific details instead of general statements.',
+      example: 'Her hands trembled as she reached for the handle.',
+      icon: '🎭',
+    },
+    {
+      name: 'Transition Words',
+      tip: 'Use signal words to connect ideas smoothly.',
+      example: 'First, Then, However, Therefore, For example',
+      icon: '➡️',
+    },
+    {
+      name: 'Strong Conclusions',
+      tip: 'End with a final thought that ties everything together.',
+      example: 'For these reasons, it is clear that...',
+      icon: '🎯',
+    },
+  ], []);
+  
+  const { currentIndex: currentTipIndex, goTo: goToTip } = useCarousel({
+    items: writingTips,
+    interval: 5000, // Rotate every 5 seconds
+    autoPlay: showRankingModal, // Only auto-play when modal is open
+  });
+  
   const [aiWritingsGenerated, setAiWritingsGenerated] = useState(false);
   const [aiWordCounts, setAiWordCounts] = useState<number[]>([0, 0, 0, 0]);
   const [generatingAI, setGeneratingAI] = useState(false);
@@ -524,11 +572,52 @@ export default function WritingSessionContent() {
         <h2 className="text-3xl font-bold text-white mb-3">
           {timeRemaining === 0 ? "Time's Up!" : "Calculating Scores..."}
         </h2>
-        <p className="text-white/70 text-lg mb-6">
+        <p className="text-white/70 text-lg mb-4">
           {isBatchSubmitting 
             ? "Evaluating writing quality and ranking responses..."
             : "Preparing your results..."}
         </p>
+        <p className="text-emerald-400 text-sm mb-8 font-semibold">
+          ⏱️ This usually takes 1-2 minutes
+        </p>
+        
+        {/* Writing Tips Carousel */}
+        <div className="bg-gradient-to-br from-emerald-500/20 to-teal-500/20 backdrop-blur-sm rounded-xl p-6 border-2 border-emerald-400/30 max-w-md mx-auto mb-6">
+          <div className="flex items-center justify-center mb-3">
+            <div className="text-2xl mr-2">{writingTips[currentTipIndex].icon}</div>
+            <h3 className="text-lg font-bold text-white">
+              {writingTips[currentTipIndex].name}
+            </h3>
+          </div>
+          
+          <p className="text-white/90 text-sm text-center mb-4 leading-relaxed">
+            {writingTips[currentTipIndex].tip}
+          </p>
+          
+          <div className="bg-white/10 backdrop-blur-sm rounded-lg p-3 border border-white/20">
+            <div className="text-emerald-300 text-xs font-semibold mb-1 text-center">Example:</div>
+            <p className="text-white text-xs italic text-center leading-relaxed">
+              {writingTips[currentTipIndex].example}
+            </p>
+          </div>
+
+          {/* Progress dots */}
+          <div className="flex justify-center space-x-1.5 mt-4">
+            {writingTips.map((_, index) => (
+              <button
+                key={index}
+                onClick={() => goToTip(index)}
+                className={`w-1.5 h-1.5 rounded-full transition-all duration-300 ${
+                  index === currentTipIndex 
+                    ? 'bg-emerald-400 w-6' 
+                    : 'bg-white/30 hover:bg-white/50'
+                }`}
+                aria-label={`Go to tip ${index + 1}`}
+              />
+            ))}
+          </div>
+        </div>
+        
         <div className="flex items-center justify-center gap-2">
           <div className="w-2 h-2 bg-emerald-400 rounded-full animate-pulse" style={{ animationDelay: '0ms' }}></div>
           <div className="w-2 h-2 bg-emerald-400 rounded-full animate-pulse" style={{ animationDelay: '150ms' }}></div>

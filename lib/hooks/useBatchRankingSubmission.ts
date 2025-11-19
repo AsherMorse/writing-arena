@@ -174,10 +174,48 @@ export function useBatchRankingSubmission<TSubmission, TSubmissionData>(
       const score = yourRanking.score;
       console.log(`🎯 You ranked #${yourRanking.rank} with score ${score}`);
 
-      // Store rankings in Firestore
+      // Extract user's feedback from ranking
+      const userFeedback: any = {
+        strengths: yourRanking.strengths || [],
+        improvements: yourRanking.improvements || [],
+      };
+      
+      // Phase-specific feedback fields
+      if (options.phase === 1) {
+        // Phase 1: Writing - includes traitFeedback and can generate nextSteps
+        userFeedback.traitFeedback = yourRanking.traitFeedback || {};
+        // Generate nextSteps from improvements
+        userFeedback.nextSteps = (yourRanking.improvements || []).slice(0, 3).map((imp: string) => {
+          // Extract TWR strategy mentioned and create actionable step
+          if (imp.includes('because/but/so') || imp.includes('sentence expansion')) {
+            return 'Practice sentence expansion: Add "because", "but", or "so" to show deeper thinking';
+          }
+          if (imp.includes('appositive')) {
+            return 'Try appositives: Add description using commas (e.g., "Sarah, a curious student, wrote...")';
+          }
+          if (imp.includes('transition')) {
+            return 'Use transition words: Connect ideas with "First", "Then", "However", "Therefore"';
+          }
+          return imp;
+        });
+      } else if (options.phase === 2) {
+        // Phase 2: Peer Feedback - feedback on feedback quality
+        // No additional fields needed
+      } else if (options.phase === 3) {
+        // Phase 3: Revision - includes suggestions
+        userFeedback.suggestions = yourRanking.suggestions || [];
+      }
+
+      // Store rankings AND user's feedback in Firestore
       const matchRef = doc(db, 'matchStates', options.matchId);
       await updateDoc(matchRef, {
         [options.rankingsKey]: rankings,
+        [`feedback.${options.userId}.phase${options.phase}`]: userFeedback,
+      });
+
+      console.log(`✅ Stored feedback for phase ${options.phase}:`, {
+        hasStrengths: userFeedback.strengths?.length > 0,
+        hasImprovements: userFeedback.improvements?.length > 0,
       });
 
       // Submit phase with clamped score
