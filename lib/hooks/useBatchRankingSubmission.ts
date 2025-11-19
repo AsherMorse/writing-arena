@@ -3,6 +3,7 @@ import { getDoc, doc, updateDoc } from 'firebase/firestore';
 import { db } from '@/lib/config/firebase';
 import { clampScore } from '@/lib/constants/scoring';
 import { Phase } from '@/lib/types/session';
+import { retryUntilSuccess } from '@/lib/utils/retry';
 
 /**
  * Helper to get nested value from object using dot notation path
@@ -117,27 +118,45 @@ export function useBatchRankingSubmission<TSubmission, TSubmissionData>(
 
       console.log(`📊 Batch ranking ${allSubmissions.length} submissions for phase ${options.phase}...`);
 
-      // Call batch ranking API
+      // Call batch ranking API with retry logic
       const requestBody: Record<string, any> = {
         [getRequestBodyKey(options.endpoint)]: allSubmissions,
         ...getAdditionalBodyParams(options.endpoint, matchState),
       };
 
-      const response = await fetch(options.endpoint, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(requestBody),
+      // Retry API call up to 3 times with exponential backoff
+      const apiCall = async () => {
+        const response = await fetch(options.endpoint, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(requestBody),
+        });
+
+        if (!response.ok) {
+          throw new Error(`Batch ranking API returned ${response.status}`);
+        }
+
+        const data = await response.json();
+        const rankings = data.rankings;
+
+        if (!rankings || rankings.length === 0) {
+          throw new Error('No rankings returned from API');
+        }
+
+        return rankings;
+      };
+
+      const rankings = await retryUntilSuccess(apiCall, {
+        maxAttempts: 3,
+        delayMs: 1000,
+        exponentialBackoff: true,
+        onRetry: (attempt) => {
+          console.log(`🔄 Phase ${options.phase} - Retrying batch ranking API (attempt ${attempt}/3)...`);
+        },
       });
 
-      if (!response.ok) {
-        throw new Error(`Batch ranking API returned ${response.status}`);
-      }
-
-      const data = await response.json();
-      const rankings = data.rankings;
-
-      if (!rankings || rankings.length === 0) {
-        throw new Error('No rankings returned from API');
+      if (!rankings) {
+        throw new Error('Batch ranking API failed after 3 attempts');
       }
 
       // Find user's ranking

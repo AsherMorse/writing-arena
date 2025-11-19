@@ -416,22 +416,15 @@ export default function MatchmakingContent() {
       console.log('📝 MATCHMAKING - Selected prompt:', randomPrompt.id, randomPrompt.title);
       console.log('🎮 MATCHMAKING - Match ID:', matchId);
       
-      // Save selected AI students to sessionStorage so session page can use them
-      if (selectedAIStudents.length > 0) {
-        sessionStorage.setItem(`${matchId}-ai-students`, JSON.stringify(selectedAIStudents));
-        console.log('💾 MATCHMAKING - Saved', selectedAIStudents.length, 'AI students for match');
-      }
-      
-      // Save all players for the match - use ref to get the saved party (not current state which might be empty)
-      const playersToSave = finalPlayersRef.current.length > 0 ? finalPlayersRef.current : players;
-      sessionStorage.setItem(`${matchId}-players`, JSON.stringify(playersToSave));
-      console.log('💾 MATCHMAKING - Saved', playersToSave.length, 'players:', playersToSave.map(p => p.name).join(', '));
+      // Note: AI students and players are now stored in Firestore session, not sessionStorage
+      // Session page will fetch from Firestore via useSession hook
       
       // If multi-player match, leader creates lobby and all navigate
       if (isMultiPlayer && amILeader) {
         console.log('👑 MATCHMAKING - I am leader, creating shared lobby...');
         
-        // Convert players to proper format
+        // Convert players to proper format (use finalPlayersRef which has the saved party)
+        const playersToSave = finalPlayersRef.current.length > 0 ? finalPlayersRef.current : players;
         const lobbyPlayers = playersToSave
           .filter((p: any) => p && (p.userId || p.isYou || p.id)) // Include AI with 'id'
           .map((p: any) => ({

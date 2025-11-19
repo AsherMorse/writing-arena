@@ -1,40 +1,52 @@
 import { useEffect, useRef } from 'react';
 import { GameSession, Phase } from '@/lib/types/session';
-import { SCORING } from '@/lib/constants/scoring';
-import { db } from '@/lib/config/firebase';
+import { checkAndTransitionPhase } from '@/lib/services/phase-transition';
 
 interface UsePhaseTransitionOptions {
   session: GameSession | null;
   currentPhase: Phase;
   hasSubmitted: () => boolean;
   sessionId: string;
-  fallbackDelay?: number;
+  checkInterval?: number; // How often to check (ms)
   onTransition?: (nextPhase: Phase) => void;
 }
 
 /**
  * Hook to monitor phase transitions when all players have submitted
- * Handles Cloud Function fallback if Functions are not responding
+ * Uses client-side Firestore checks instead of Cloud Functions
  */
 export function usePhaseTransition({
   session,
   currentPhase,
   hasSubmitted,
   sessionId,
-  fallbackDelay = 10000,
+  checkInterval = 1000, // Check every second
   onTransition,
 }: UsePhaseTransitionOptions) {
-  const transitionTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const checkIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const isTransitioningRef = useRef(false);
 
   useEffect(() => {
-    if (!session || !hasSubmitted()) return;
+    if (!session || !hasSubmitted()) {
+      // Clear interval if user hasn't submitted
+      if (checkIntervalRef.current) {
+        clearInterval(checkIntervalRef.current);
+        checkIntervalRef.current = null;
+      }
+      return;
+    }
 
     // Only check if we're still in the current phase
     if (session.config?.phase !== currentPhase) {
-      if (transitionTimerRef.current) {
-        clearTimeout(transitionTimerRef.current);
-        transitionTimerRef.current = null;
+      if (checkIntervalRef.current) {
+        clearInterval(checkIntervalRef.current);
+        checkIntervalRef.current = null;
       }
+      return;
+    }
+
+    // Don't check if already transitioning
+    if (isTransitioningRef.current) {
       return;
     }
 
@@ -57,73 +69,71 @@ export function usePhaseTransition({
     // Check if all real players have submitted
     if (
       submittedRealPlayers.length === realPlayers.length &&
-      !session.coordination?.allPlayersReady
+      !session.coordination?.allPlayersReady &&
+      realPlayers.length > 0
     ) {
-      // Prevent duplicate timers
-      if (transitionTimerRef.current) return;
-
-      console.log(
-        `⏱️ PHASE MONITOR - All submitted, waiting for Cloud Function...`
-      );
-
-      transitionTimerRef.current = setTimeout(async () => {
-        console.warn(
-          `⚠️ FALLBACK - Cloud Function timeout, transitioning client-side...`
-        );
-
-        try {
-          const { updateDoc, doc, serverTimestamp } = await import(
-            'firebase/firestore'
-          );
-          const sessionRef = doc(db, 'sessions', sessionId);
-
-          const nextPhase = (currentPhase + 1) as Phase;
-          const phaseDuration =
-            nextPhase === 2
-              ? SCORING.PHASE2_DURATION
-              : nextPhase === 3
-              ? SCORING.PHASE3_DURATION
-              : SCORING.PHASE1_DURATION;
-
-          const updateData: any = {
-            'coordination.allPlayersReady': true,
-            'coordination.readyCount': submittedRealPlayers.length,
-            updatedAt: serverTimestamp(),
-          };
-
-          // If transitioning to next phase (not completing)
-          if (nextPhase <= 3) {
-            updateData['config.phase'] = nextPhase;
-            updateData['config.phaseDuration'] = phaseDuration;
-            updateData[`timing.phase${nextPhase}StartTime`] = serverTimestamp();
-          } else {
-            // Phase 3 completed - mark session as completed
-            updateData['state'] = 'completed';
+      // Try immediate transition first
+      if (!checkIntervalRef.current && !isTransitioningRef.current) {
+        console.log(`⏱️ PHASE MONITOR - All submitted, attempting immediate phase transition...`);
+        
+        // Try immediately
+        (async () => {
+          try {
+            isTransitioningRef.current = true;
+            const transitioned = await checkAndTransitionPhase(sessionId, currentPhase);
+            
+            if (transitioned) {
+              const nextPhase = (currentPhase + 1) as Phase;
+              onTransition?.(nextPhase);
+              isTransitioningRef.current = false;
+              return; // Success, don't start polling
+            }
+          } catch (error) {
+            console.error('❌ PHASE MONITOR - Immediate transition failed:', error);
+          } finally {
+            isTransitioningRef.current = false;
           }
-
-          await updateDoc(sessionRef, updateData);
-
-          console.log(
-            `✅ FALLBACK - Client-side transition to phase ${nextPhase} complete`
-          );
-
-          onTransition?.(nextPhase);
-        } catch (error) {
-          console.error('❌ FALLBACK - Transition failed:', error);
-        } finally {
-          transitionTimerRef.current = null;
-        }
-      }, fallbackDelay);
-    } else if (transitionTimerRef.current) {
-      // Clear timer if not all players submitted
-      clearTimeout(transitionTimerRef.current);
-      transitionTimerRef.current = null;
+          
+          // If immediate transition didn't work, start polling
+          console.log(`⏱️ PHASE MONITOR - Starting polling for phase transition...`);
+          checkIntervalRef.current = setInterval(async () => {
+            // Prevent multiple simultaneous transitions
+            if (isTransitioningRef.current) return;
+            
+            try {
+              isTransitioningRef.current = true;
+              const transitioned = await checkAndTransitionPhase(sessionId, currentPhase);
+              
+              if (transitioned) {
+                // Clear interval
+                if (checkIntervalRef.current) {
+                  clearInterval(checkIntervalRef.current);
+                  checkIntervalRef.current = null;
+                }
+                
+                const nextPhase = (currentPhase + 1) as Phase;
+                onTransition?.(nextPhase);
+              }
+            } catch (error) {
+              console.error('❌ PHASE MONITOR - Transition check failed:', error);
+            } finally {
+              isTransitioningRef.current = false;
+            }
+          }, checkInterval);
+        })();
+      }
+    } else {
+      // Clear interval if not all players submitted
+      if (checkIntervalRef.current) {
+        clearInterval(checkIntervalRef.current);
+        checkIntervalRef.current = null;
+      }
     }
 
     return () => {
-      if (transitionTimerRef.current) {
-        clearTimeout(transitionTimerRef.current);
-        transitionTimerRef.current = null;
+      if (checkIntervalRef.current) {
+        clearInterval(checkIntervalRef.current);
+        checkIntervalRef.current = null;
       }
     };
   }, [
@@ -131,7 +141,7 @@ export function usePhaseTransition({
     currentPhase,
     hasSubmitted,
     sessionId,
-    fallbackDelay,
+    checkInterval,
     onTransition,
   ]);
 }

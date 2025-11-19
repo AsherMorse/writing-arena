@@ -42,6 +42,7 @@ export class SessionManager {
   private heartbeatInterval: NodeJS.Timeout | null = null;
   private sessionListener: Unsubscribe | null = null;
   private currentSession: GameSession | null = null;
+  private periodicRefreshInterval: NodeJS.Timeout | null = null;
   
   // Event handlers
   private eventHandlers: Partial<SessionEvents> = {};
@@ -90,6 +91,9 @@ export class SessionManager {
     
     // Listen for session updates
     this.listenToSession();
+    
+    // Start periodic refresh as backup (every 30 seconds)
+    this.startPeriodicRefresh();
     
     console.log('✅ SESSION MANAGER - Successfully joined session');
     return this.currentSession;
@@ -247,6 +251,36 @@ export class SessionManager {
     });
     
     console.log(`✅ SESSION MANAGER - Phase ${phase} submitted`);
+  }
+  
+  /**
+   * Start periodic session refresh as backup (every 30 seconds)
+   */
+  private startPeriodicRefresh(): void {
+    if (this.periodicRefreshInterval) {
+      clearInterval(this.periodicRefreshInterval);
+    }
+
+    this.periodicRefreshInterval = setInterval(async () => {
+      if (!this.sessionId || !this.userId) return;
+
+      try {
+        const sessionRef = doc(db, 'sessions', this.sessionId);
+        const sessionSnap = await getDoc(sessionRef);
+        
+        if (sessionSnap.exists()) {
+          const updatedSession = sessionSnap.data() as GameSession;
+          // Only update if session actually changed (prevent unnecessary re-renders)
+          if (JSON.stringify(updatedSession) !== JSON.stringify(this.currentSession)) {
+            console.log('🔄 SESSION MANAGER - Periodic refresh: session updated');
+            this.currentSession = updatedSession;
+            this.eventHandlers.onSessionUpdate?.(updatedSession);
+          }
+        }
+      } catch (error) {
+        console.error('❌ SESSION MANAGER - Periodic refresh failed:', error);
+      }
+    }, 30000); // Every 30 seconds
   }
   
   /**
@@ -422,6 +456,11 @@ export class SessionManager {
     if (this.heartbeatInterval) {
       clearInterval(this.heartbeatInterval);
       this.heartbeatInterval = null;
+    }
+    
+    if (this.periodicRefreshInterval) {
+      clearInterval(this.periodicRefreshInterval);
+      this.periodicRefreshInterval = null;
     }
     
     // Stop listening

@@ -196,18 +196,26 @@ export default function PhaseRankingsContent() {
     return () => clearInterval(interval);
   }, [writingConcepts.length]);
 
-  // Countdown timer
+  // Countdown timer with navigation guard
   useEffect(() => {
     if (countdown > 0) {
       const timer = setTimeout(() => setCountdown(countdown - 1), 1000);
       return () => clearTimeout(timer);
     } else {
-      // Navigate to next phase using sessionId
-      if (phase === 1) {
-        router.push(`/ranked/peer-feedback?sessionId=${sessionId}`);
-      } else if (phase === 2) {
-        router.push(`/ranked/revision?sessionId=${sessionId}`);
-      }
+      // Navigate to next phase using sessionId (only once)
+      let navigated = false;
+      const navigate = () => {
+        if (navigated) return;
+        navigated = true;
+        
+        if (phase === 1) {
+          router.push(`/ranked/peer-feedback?sessionId=${sessionId}`);
+        } else if (phase === 2) {
+          router.push(`/ranked/revision?sessionId=${sessionId}`);
+        }
+      };
+      
+      navigate();
     }
   }, [countdown, phase, router, sessionId]);
   

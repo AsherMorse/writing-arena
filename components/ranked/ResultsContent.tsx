@@ -12,7 +12,7 @@ import { calculateCompositeScore, calculateLPChange, calculateXPEarned, calculat
 import { LoadingState } from '@/components/shared/LoadingState';
 import { getMedalEmoji } from '@/lib/utils/rank-utils';
 import { rankPlayers, getPlayerRank } from '@/lib/utils/ranking-utils';
-import { getSessionStorage, setSessionStorage } from '@/lib/utils/session-storage';
+// Removed sessionStorage import - using Firestore session data instead
 import { useExpanded } from '@/lib/hooks/useExpanded';
 import { MOCK_PHASE_FEEDBACK } from '@/lib/utils/mock-data';
 
@@ -73,21 +73,17 @@ export default function ResultsContent({ session }: ResultsContentProps = {}) {
           getAIFeedback(matchId, user.uid, 3),
         ]);
         
-        // Also try session storage as fallback
-        const phase1Storage = getSessionStorage(`${matchId}-phase1-feedback`);
-        const phase2Storage = getSessionStorage(`${matchId}-phase2-feedback`);
-        const phase3Storage = getSessionStorage(`${matchId}-phase3-feedback`);
-        
+        // Note: Removed sessionStorage fallback - all data comes from Firestore
         setRealFeedback({
-          writing: phase1Feedback || phase1Storage,
-          feedback: phase2Feedback || phase2Storage,
-          revision: phase3Feedback || phase3Storage,
+          writing: phase1Feedback,
+          feedback: phase2Feedback,
+          revision: phase3Feedback,
         });
         
         console.log('✅ RESULTS - AI feedback loaded:', {
-          hasPhase1: !!(phase1Feedback || phase1Storage),
-          hasPhase2: !!(phase2Feedback || phase2Storage),
-          hasPhase3: !!(phase3Feedback || phase3Storage),
+          hasPhase1: !!phase1Feedback,
+          hasPhase2: !!phase2Feedback,
+          hasPhase3: !!phase3Feedback,
         });
       } catch (error) {
         console.error('❌ RESULTS - Error fetching AI feedback:', error);
@@ -302,22 +298,32 @@ export default function ResultsContent({ session }: ResultsContentProps = {}) {
               // AI player IDs are stored as "ai-student-XXX" from database
               const aiStudentId = aiPlayer.name; // This will be their userId which is the database ID
               
-              // Try to get real AI student ID from stored players
-              const storedPlayers = sessionStorage.getItem(`${matchId}-players`);
-              if (storedPlayers) {
+              // Get AI student ID from session data (stored in Firestore)
+              // AI players have userId that matches their database ID
+              if (session && aiPlayer.userId && aiPlayer.userId.startsWith('ai-')) {
+                // Extract AI student ID from userId (format: "ai-student-XXX" or just use userId)
+                const aiStudentId = aiPlayer.userId.replace('ai-', '').replace('student-', '');
                 try {
-                  const players = JSON.parse(storedPlayers);
-                  const aiPlayerMatch = players.find((p: any) => p.name === aiPlayer.name && p.isAI);
-                  if (aiPlayerMatch && aiPlayerMatch.userId) {
-                    // Update the persistent AI student
-                    await updateAIStudentAfterMatch(
-                      aiPlayerMatch.userId,
-                      aiLPChange,
-                      aiXP,
-                      aiIsWin,
-                      aiPlayer.wordCount || 100
-                    ).catch(err => console.error('Error updating AI student:', err));
-                  }
+                  await updateAIStudentAfterMatch(
+                    aiStudentId,
+                    aiLPChange,
+                    aiXP,
+                    aiIsWin,
+                    aiPlayer.wordCount || 100
+                  ).catch(err => console.error('Error updating AI student:', err));
+                } catch (e) {
+                  console.warn('Could not update AI student:', e);
+                }
+              } else if (session && aiPlayer.userId) {
+                // Try direct userId if it's already the database ID
+                try {
+                  await updateAIStudentAfterMatch(
+                    aiPlayer.userId,
+                    aiLPChange,
+                    aiXP,
+                    aiIsWin,
+                    aiPlayer.wordCount || 100
+                  ).catch(err => console.error('Error updating AI student:', err));
                 } catch (e) {
                   console.warn('Could not update AI student:', e);
                 }
