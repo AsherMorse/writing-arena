@@ -228,7 +228,30 @@ export default function PeerFeedbackContent() {
       responses,
       score: score,
     }),
-    submitPhase,
+    submitPhase: async (phase, data) => {
+      // Submit phase first
+      await submitPhase(phase, data);
+      
+      // Then navigate to rankings page
+      const originalContent = user && sessionPlayers ? (sessionPlayers[user.uid]?.phases.phase1?.content || '') : '';
+      const wordCount = user && sessionPlayers ? (sessionPlayers[user.uid]?.phases.phase1?.wordCount || 0) : 0;
+      const writingScore = user && sessionPlayers ? (sessionPlayers[user.uid]?.phases.phase1?.score || 0) : 0;
+      
+      const rankingsUrl = `/ranked/phase-rankings?` +
+        `sessionId=${activeSessionId || sessionId}&` +
+        `phase=${phase}&` +
+        `matchId=${matchId || ''}&` +
+        `trait=${sessionConfig?.trait || 'all'}&` +
+        `promptId=${sessionConfig?.promptId || ''}&` +
+        `promptType=${sessionConfig?.promptType || 'narrative'}&` +
+        `content=${encodeURIComponent(originalContent)}&` +
+        `wordCount=${wordCount}&` +
+        `yourScore=${writingScore}&` +
+        `feedbackScore=${data.score || 0}`;
+      
+      console.log('📊 PEER FEEDBACK - Navigating to rankings page:', rankingsUrl);
+      router.push(rankingsUrl);
+    },
     validateSubmission: () => validateFeedbackSubmission(responses),
     onEmptySubmission: async (isEmpty) => {
       if (isEmpty) {
@@ -272,30 +295,8 @@ export default function PeerFeedbackContent() {
     minPhaseAge: 3000,
   });
 
-  // Phase transition monitoring
-  usePhaseTransition({
-    session,
-    currentPhase: 2,
-    hasSubmitted,
-    sessionId: activeSessionId || sessionId,
-    onTransition: (nextPhase) => {
-      console.log('🔄 PEER FEEDBACK - Phase transition detected:', nextPhase);
-      if (nextPhase === 3) {
-        router.push(`/ranked/revision?sessionId=${activeSessionId || sessionId}`);
-      }
-    },
-  });
-
-  // Also listen for phase changes from session updates
-  useEffect(() => {
-    if (!session || !hasSubmitted()) return;
-    
-    const currentPhase = session.config?.phase;
-    if (currentPhase === 3) {
-      console.log('🔄 PEER FEEDBACK - Session phase changed to 3, navigating...');
-      router.push(`/ranked/revision/${activeSessionId || sessionId}`);
-    }
-  }, [session?.config?.phase, hasSubmitted, router, activeSessionId, sessionId]);
+  // Note: Phase transitions now happen via rankings page countdown
+  // No need to navigate directly here - rankings page handles it
 
   // Debug time remaining
   useEffect(() => {

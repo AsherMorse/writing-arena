@@ -10,6 +10,7 @@ export default function PhaseRankingsContent() {
   
   // Current phase info
   const phase = parseInt(searchParams.get('phase') || '1');
+  const sessionId = searchParams.get('sessionId') || '';
   const matchId = searchParams.get('matchId') || '';
   const trait = searchParams.get('trait');
   const promptId = searchParams.get('promptId');
@@ -201,18 +202,14 @@ export default function PhaseRankingsContent() {
       const timer = setTimeout(() => setCountdown(countdown - 1), 1000);
       return () => clearTimeout(timer);
     } else {
-      // Navigate to next phase
+      // Navigate to next phase using sessionId
       if (phase === 1) {
-        router.push(
-          `/ranked/peer-feedback?matchId=${matchId}&trait=${trait}&promptId=${promptId}&promptType=${promptType}&content=${content}&wordCount=${wordCount}&aiScores=${aiScores}&yourScore=${yourScore}`
-        );
+        router.push(`/ranked/peer-feedback?sessionId=${sessionId}`);
       } else if (phase === 2) {
-        router.push(
-          `/ranked/revision?matchId=${matchId}&trait=${trait}&promptId=${promptId}&promptType=${promptType}&content=${content}&wordCount=${wordCount}&aiScores=${aiScores}&yourScore=${yourScore}&feedbackScore=${feedbackScore}&peerFeedback=${peerFeedback}`
-        );
+        router.push(`/ranked/revision?sessionId=${sessionId}`);
       }
     }
-  }, [countdown, phase, router, matchId, trait, promptId, promptType, content, wordCount, aiScores, yourScore, feedbackScore, peerFeedback]);
+  }, [countdown, phase, router, sessionId]);
   
   // Medal emoji utility from lib/utils/rank-utils.ts
   

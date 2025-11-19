@@ -310,7 +310,25 @@ export default function WritingSessionContent() {
       wordCount: wordCount,
       score: score,
     }),
-    submitPhase,
+    submitPhase: async (phase, data) => {
+      // Submit phase first
+      await submitPhase(phase, data);
+      
+      // Then navigate to rankings page
+      const rankingsUrl = `/ranked/phase-rankings?` +
+        `sessionId=${activeSessionId || sessionId}&` +
+        `phase=${phase}&` +
+        `matchId=${sessionMatchId || sessionId}&` +
+        `trait=${trait}&` +
+        `promptId=${sessionConfig?.promptId || ''}&` +
+        `promptType=${sessionConfig?.promptType || 'narrative'}&` +
+        `content=${encodeURIComponent(writingContent)}&` +
+        `wordCount=${wordCount}&` +
+        `yourScore=${data.score || 0}`;
+      
+      console.log('📊 WRITING SESSION - Navigating to rankings page:', rankingsUrl);
+      router.push(rankingsUrl);
+    },
     validateSubmission: () => validateWritingSubmission(writingContent, wordCount),
     onEmptySubmission: async (isEmpty) => {
       if (isEmpty) {
@@ -404,30 +422,8 @@ export default function WritingSessionContent() {
     minPhaseAge: 5000, // 5 seconds for Phase 1
   });
 
-  // Phase transition monitoring
-  usePhaseTransition({
-    session,
-    currentPhase: 1,
-    hasSubmitted,
-    sessionId: activeSessionId || sessionId,
-    onTransition: (nextPhase) => {
-      console.log('🔄 WRITING SESSION - Phase transition detected:', nextPhase);
-      if (nextPhase === 2) {
-        router.push(`/ranked/peer-feedback?sessionId=${activeSessionId || sessionId}`);
-      }
-    },
-  });
-
-  // Also listen for phase changes from session updates
-  useEffect(() => {
-    if (!session || !hasSubmitted()) return;
-    
-    const currentPhase = session.config?.phase;
-    if (currentPhase === 2) {
-      console.log('🔄 WRITING SESSION - Session phase changed to 2, navigating...');
-      router.push(`/ranked/peer-feedback?sessionId=${activeSessionId || sessionId}`);
-    }
-  }, [session?.config?.phase, hasSubmitted, router, activeSessionId, sessionId]);
+  // Note: Phase transitions now happen via rankings page countdown
+  // No need to navigate directly here - rankings page handles it
 
   // Prepare members list with word counts
   // CONDITIONAL RENDERS AFTER ALL HOOKS
