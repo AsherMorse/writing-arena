@@ -355,13 +355,6 @@ export default function RevisionContent() {
     }
   };
 
-  // Show calculating modal when timer expires
-  useEffect(() => {
-    if (timeRemaining === 0 && !hasSubmitted()) {
-      setShowRankingModal(true);
-    }
-  }, [timeRemaining, hasSubmitted, setShowRankingModal]);
-
   // Auto-submit when time runs out
   useAutoSubmit({
     timeRemaining,
@@ -392,10 +385,17 @@ export default function RevisionContent() {
       console.log('🎉 REVISION - Session completed, navigating to results...');
       router.push(`/ranked/results/${activeSessionId || sessionId}`);
     }
-  }, [session?.state, hasSubmitted, router, activeSessionId, sessionId]);
+  }, [session, hasSubmitted, router, activeSessionId, sessionId]);
 
   // Paste prevention handlers
   const { handlePaste, handleCut, handleCopy } = usePastePrevention({ showWarning: false });
+
+  // Show calculating modal when timer expires
+  useEffect(() => {
+    if (timeRemaining === 0 && !hasSubmitted()) {
+      setShowRankingModal(true);
+    }
+  }, [timeRemaining, hasSubmitted, setShowRankingModal]);
 
   const hasRevised = revisedContent !== originalContent;
 

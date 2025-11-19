@@ -105,11 +105,12 @@ export function useBatchRankingSubmission<TSubmission, TSubmissionData>(
 
       // Prepare all submissions
       const userSubmission = options.prepareUserSubmission();
+      const submissionAny = userSubmission as any;
       console.log(`📝 Phase ${options.phase} - User submission prepared:`, {
-        hasContent: !!userSubmission.content,
-        contentLength: userSubmission.content?.length || 0,
-        contentPreview: userSubmission.content?.substring(0, 50) || '',
-        wordCount: (userSubmission as any).wordCount || 'N/A',
+        hasContent: !!submissionAny.content,
+        contentLength: submissionAny.content?.length || 0,
+        contentPreview: submissionAny.content?.substring(0, 50) || '',
+        wordCount: submissionAny.wordCount || 'N/A',
       });
       
       const allSubmissions = [userSubmission, ...aiSubmissions];

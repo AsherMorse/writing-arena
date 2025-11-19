@@ -15,7 +15,7 @@ import { Modal } from '@/components/shared/Modal';
 import { db } from '@/lib/config/firebase';
 import { doc, getDoc } from 'firebase/firestore';
 import { formatTime, getTimeColor } from '@/lib/utils/time-utils';
-import { SCORING, getDefaultScore } from '@/lib/constants/scoring';
+import { SCORING, getDefaultScore, clampScore } from '@/lib/constants/scoring';
 import { countWords } from '@/lib/utils/text-utils';
 import { usePastePrevention } from '@/lib/hooks/usePastePrevention';
 import { useModals } from '@/lib/hooks/useModals';
@@ -402,7 +402,7 @@ export default function WritingSessionContent() {
     return () => {
       window.removeEventListener('debug-paste-clipboard', handler);
     };
-  }, []);
+  }, [setShowPasteWarning]);
 
   useEffect(() => {
     if (typeof window === 'undefined') return undefined;
@@ -425,6 +425,23 @@ export default function WritingSessionContent() {
 
   // Note: Phase transitions now happen via rankings page countdown
   // No need to navigate directly here - rankings page handles it
+
+  // Show calculating modal when timer expires or batch ranking is in progress
+  useEffect(() => {
+    if (timeRemaining === 0 && !hasSubmitted()) {
+      // Timer expired but not submitted yet - show calculating modal
+      setShowRankingModal(true);
+    } else if (isBatchSubmitting) {
+      // Batch ranking in progress - keep modal open
+      setShowRankingModal(true);
+    } else if (hasSubmitted() && !isBatchSubmitting) {
+      // Submission complete - close modal after brief delay
+      const timer = setTimeout(() => {
+        setShowRankingModal(false);
+      }, 500);
+      return () => clearTimeout(timer);
+    }
+  }, [timeRemaining, isBatchSubmitting, hasSubmitted, setShowRankingModal]);
 
   // Prepare members list with word counts
   // CONDITIONAL RENDERS AFTER ALL HOOKS
@@ -456,23 +473,6 @@ export default function WritingSessionContent() {
       wordCount: isYou ? wordCount : (player.isAI ? aiWordCounts[aiIndex] || 0 : 0),
     };
   });
-
-  // Show calculating modal when timer expires or batch ranking is in progress
-  useEffect(() => {
-    if (timeRemaining === 0 && !hasSubmitted()) {
-      // Timer expired but not submitted yet - show calculating modal
-      setShowRankingModal(true);
-    } else if (isBatchSubmitting) {
-      // Batch ranking in progress - keep modal open
-      setShowRankingModal(true);
-    } else if (hasSubmitted() && !isBatchSubmitting) {
-      // Submission complete - close modal after brief delay
-      const timer = setTimeout(() => {
-        setShowRankingModal(false);
-      }, 500);
-      return () => clearTimeout(timer);
-    }
-  }, [timeRemaining, isBatchSubmitting, hasSubmitted, setShowRankingModal]);
 
   // Show waiting screen if user has submitted
   if (hasSubmitted()) {
