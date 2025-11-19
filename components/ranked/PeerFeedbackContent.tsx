@@ -237,13 +237,13 @@ export default function PeerFeedbackContent() {
     },
     validateSubmission: () => validateFeedbackSubmission(responses),
     onEmptySubmission: async (isEmpty) => {
-      if (isEmpty) {
-        console.warn('⚠️ PEER FEEDBACK - Incomplete submission, scoring as 0');
-        await submitPhase(2, {
-          responses,
-          score: 0,
-        });
-        console.log('✅ PEER FEEDBACK - Empty submission recorded');
+    if (isEmpty) {
+      console.warn('⚠️ PEER FEEDBACK - Incomplete submission, scoring as 0');
+      await submitPhase(2, {
+        responses,
+        score: 0,
+      });
+      console.log('✅ PEER FEEDBACK - Empty submission recorded');
       }
     },
     fallbackEvaluation: async () => {
@@ -259,8 +259,8 @@ export default function PeerFeedbackContent() {
       const data = await response.json();
       return data.score || getDefaultScore(2);
     },
-  });
-
+      });
+      
   const handleSubmit = async () => {
     setIsEvaluating(true);
     setShowRankingModal(true); // Show calculating modal

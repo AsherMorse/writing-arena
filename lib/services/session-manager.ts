@@ -41,8 +41,8 @@ import {
  * - Clean state management
  */
 export class SessionManager {
-  private sessionId: string | null = null;
-  private userId: string | null = null;
+  private _sessionId: string | null = null;
+  private _userId: string | null = null;
   private connectionId: string;
   private heartbeatInterval: NodeJS.Timeout | null = null;
   private sessionListener: Unsubscribe | null = null;
@@ -51,6 +51,15 @@ export class SessionManager {
   
   // Event handlers
   private eventHandlers: Partial<SessionEvents> = {};
+  
+  // Public getters for sessionId and userId
+  get sessionId(): string | null {
+    return this._sessionId;
+  }
+  
+  get userId(): string | null {
+    return this._userId;
+  }
   
   constructor() {
     this.connectionId = this.generateConnectionId();
@@ -74,8 +83,8 @@ export class SessionManager {
     userId: string,
     playerInfo: PlayerInfo
   ): Promise<GameSession> {
-    this.sessionId = sessionId;
-    this.userId = userId;
+    this._sessionId = sessionId;
+    this._userId = userId;
     
     const sessionRef = doc(db, 'sessions', sessionId);
     const sessionSnap = await getDoc(sessionRef);
@@ -249,7 +258,7 @@ export class SessionManager {
       updatedAt: serverTimestamp(),
     });
   }
-
+  
   /**
    * Create a new session (typically called by matchmaking)
    * DEPRECATED: Use findOrJoinSession instead
@@ -311,22 +320,22 @@ export class SessionManager {
     sessionRef: any,
     playerInfo: PlayerInfo
   ): Promise<void> {
-    if (!this.userId) throw new Error('userId not set');
+    if (!this._userId) throw new Error('userId not set');
     
     await updateDoc(sessionRef, {
-      [`players.${this.userId}.status`]: 'connected',
-      [`players.${this.userId}.lastHeartbeat`]: serverTimestamp(),
-      [`players.${this.userId}.connectionId`]: this.connectionId,
-      [`players.${this.userId}.displayName`]: playerInfo.displayName,
-      [`players.${this.userId}.avatar`]: playerInfo.avatar,
+      [`players.${this._userId}.status`]: 'connected',
+      [`players.${this._userId}.lastHeartbeat`]: serverTimestamp(),
+      [`players.${this._userId}.connectionId`]: this.connectionId,
+      [`players.${this._userId}.displayName`]: playerInfo.displayName,
+      [`players.${this._userId}.avatar`]: playerInfo.avatar,
       updatedAt: serverTimestamp(),
     }).catch((error) => {
       if (error?.code === 'not-found') {
         console.warn('⚠️ SESSION MANAGER - Player not found in session, recreating entry');
         return setDoc(sessionRef, {
           players: {
-            [this.userId!]: {
-              userId: this.userId,
+            [this._userId!]: {
+              userId: this._userId,
               displayName: playerInfo.displayName,
               avatar: playerInfo.avatar,
               rank: playerInfo.rank,
@@ -356,12 +365,12 @@ export class SessionManager {
     }
     
     this.heartbeatInterval = setInterval(async () => {
-      if (!this.sessionId || !this.userId) return;
+      if (!this._sessionId || !this._userId) return;
       
       try {
-        await updateDoc(doc(db, 'sessions', this.sessionId), {
-          [`players.${this.userId}.lastHeartbeat`]: serverTimestamp(),
-          [`players.${this.userId}.status`]: 'connected',
+        await updateDoc(doc(db, 'sessions', this._sessionId), {
+          [`players.${this._userId}.lastHeartbeat`]: serverTimestamp(),
+          [`players.${this._userId}.status`]: 'connected',
           updatedAt: serverTimestamp(),
         });
       } catch (error) {
@@ -380,15 +389,18 @@ export class SessionManager {
     phase: Phase,
     data: PhaseSubmissionData
   ): Promise<void> {
-    if (!this.sessionId || !this.userId) {
-      console.error(`❌ SESSION MANAGER - Cannot submit phase ${phase}: Session not initialized`);
+    if (!this._sessionId || !this._userId) {
+      console.error(`❌ SESSION MANAGER - Cannot submit phase ${phase}: Session not initialized`, {
+        hasSessionId: !!this._sessionId,
+        hasUserId: !!this._userId,
+      });
       throw new Error('Session not initialized');
     }
     
-    const sessionRef = doc(db, 'sessions', this.sessionId);
+    const sessionRef = doc(db, 'sessions', this._sessionId);
     
     await updateDoc(sessionRef, {
-      [`players.${this.userId}.phases.phase${phase}`]: {
+      [`players.${this._userId}.phases.phase${phase}`]: {
         submitted: true,
         submittedAt: serverTimestamp(),
         ...data,
@@ -406,10 +418,10 @@ export class SessionManager {
     }
 
     this.periodicRefreshInterval = setInterval(async () => {
-      if (!this.sessionId || !this.userId) return;
+      if (!this._sessionId || !this._userId) return;
 
       try {
-        const sessionRef = doc(db, 'sessions', this.sessionId);
+        const sessionRef = doc(db, 'sessions', this._sessionId);
         const sessionSnap = await getDoc(sessionRef);
         
         if (sessionSnap.exists()) {
@@ -430,10 +442,9 @@ export class SessionManager {
    * Listen for real-time session updates
    */
   private listenToSession(): void {
-    if (!this.sessionId) return;
+    if (!this._sessionId) return;
     
-    
-    const sessionRef = doc(db, 'sessions', this.sessionId);
+    const sessionRef = doc(db, 'sessions', this._sessionId);
     
     this.sessionListener = onSnapshot(
       sessionRef,
@@ -534,9 +545,9 @@ export class SessionManager {
    * Check if current user has submitted current phase
    */
   hasSubmittedCurrentPhase(): boolean {
-    if (!this.currentSession || !this.userId) return false;
+    if (!this.currentSession || !this._userId) return false;
     
-    const player = this.currentSession.players[this.userId];
+    const player = this.currentSession.players[this._userId];
     if (!player) return false;
     
     const phase = this.currentSession.config.phase;
@@ -597,11 +608,11 @@ export class SessionManager {
     }
     
     // Mark as disconnected
-    if (this.sessionId && this.userId) {
+    if (this._sessionId && this._userId) {
       try {
-        await updateDoc(doc(db, 'sessions', this.sessionId), {
-          [`players.${this.userId}.status`]: 'disconnected',
-          [`players.${this.userId}.lastHeartbeat`]: serverTimestamp(),
+        await updateDoc(doc(db, 'sessions', this._sessionId), {
+          [`players.${this._userId}.status`]: 'disconnected',
+          [`players.${this._userId}.lastHeartbeat`]: serverTimestamp(),
           updatedAt: serverTimestamp(),
         });
       } catch (error) {
@@ -610,8 +621,8 @@ export class SessionManager {
     }
     
     // Clear state
-    this.sessionId = null;
-    this.userId = null;
+    this._sessionId = null;
+    this._userId = null;
     this.currentSession = null;
     this.eventHandlers = {};
     

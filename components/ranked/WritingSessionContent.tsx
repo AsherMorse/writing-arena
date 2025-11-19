@@ -342,9 +342,12 @@ export default function WritingSessionContent() {
   });
 
   const handleSubmit = useCallback(async () => {
-    if (hasSubmitted() || !user || !userProfile || !session || !prompt) return;
+    // Guard: Don't submit if already submitted, missing data, or session not initialized
+    if (hasSubmitted() || !user || !userProfile || !session || !prompt || !sessionId) {
+      return;
+    }
     await handleBatchSubmit();
-  }, [hasSubmitted, user, userProfile, session, prompt, handleBatchSubmit]);
+  }, [hasSubmitted, user, userProfile, session, prompt, sessionId, handleBatchSubmit]);
 
   // Paste prevention handlers from usePastePrevention hook (already defined above)
 
@@ -398,12 +401,20 @@ export default function WritingSessionContent() {
   }, [handleSubmit]);
 
   // Auto-submit when time runs out
-  useAutoSubmit({
+  const autoSubmitControl = useAutoSubmit({
     timeRemaining,
     hasSubmitted,
     onSubmit: handleSubmit,
     minPhaseAge: 5000, // 5 seconds for Phase 1
+    isSessionReady: () => !!(session && sessionId && user?.uid),
   });
+
+  // Set session context for global tracking
+  useEffect(() => {
+    if (sessionId && session?.config?.phase) {
+      autoSubmitControl.setSessionContext(sessionId, session.config.phase);
+    }
+  }, [sessionId, session?.config?.phase, autoSubmitControl]);
 
   // Note: Phase transitions now happen via rankings page countdown
   // No need to navigate directly here - rankings page handles it

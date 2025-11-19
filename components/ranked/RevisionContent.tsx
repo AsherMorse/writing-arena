@@ -238,13 +238,13 @@ export default function RevisionContent() {
     firestoreKey: 'aiRevisions.phase3',
     rankingsKey: 'rankings.phase3',
     prepareUserSubmission: () => ({
-      playerId: user?.uid || '',
-      playerName: 'You',
-      originalContent,
-      revisedContent,
-      feedback: aiFeedback,
-      wordCount: wordCountRevised,
-      isAI: false,
+          playerId: user?.uid || '',
+          playerName: 'You',
+          originalContent,
+          revisedContent,
+          feedback: aiFeedback,
+          wordCount: wordCountRevised,
+          isAI: false,
     }),
     prepareSubmissionData: (score: number) => ({
       revisedContent,
@@ -287,7 +287,7 @@ export default function RevisionContent() {
           revisedContent: revisedContent || originalContent,
           wordCount: wordCountRevised,
           score,
-        });
+          });
         console.log('✅ REVISION - Low-effort submission recorded');
         
         // Navigate to results even for empty submission

@@ -54,7 +54,7 @@ function generateMockRankings(feedbackSubmissions: FeedbackSubmission[]): { rank
       return totalLength === 0;
     },
     calculateScore: (submission) => {
-      const totalLength = Object.values(submission.responses).join('').length;
+    const totalLength = Object.values(submission.responses).join('').length;
       const isComplete = totalLength > 200;
       const baseScore = isComplete ? 70 : 50;
       const lengthBonus = Math.min(totalLength / 20, 20);

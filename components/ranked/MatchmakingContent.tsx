@@ -251,10 +251,10 @@ export default function MatchmakingContent() {
               setPlayers((prev) => {
                 const currentCount = prev.length;
                 if (currentCount >= 5 || aiIndex >= aiStudents.length) return prev;
-                
-                const aiStudent = aiStudents[aiIndex];
-                const aiPlayer = buildAIPlayer(aiStudent);
-                
+              
+              const aiStudent = aiStudents[aiIndex];
+              const aiPlayer = buildAIPlayer(aiStudent);
+              
                 // Add AI player to Firestore session (async, don't block)
                 if (currentSessionId) {
                   addPlayerToSession(
@@ -270,9 +270,9 @@ export default function MatchmakingContent() {
                     console.error('❌ MATCHMAKING - Failed to add AI player:', error);
                   });
                 }
-                aiIndex++;
-                return [...prev, aiPlayer];
-              });
+              aiIndex++;
+              return [...prev, aiPlayer];
+            });
             })();
             
             // Continue adding AI students gradually (one every 5 seconds)
@@ -432,35 +432,35 @@ export default function MatchmakingContent() {
       return () => clearTimeout(timer);
     } else {
       (async () => {
-        // Determine if this is a multi-player match
-        const realPlayersInQueue = queueSnapshot.filter(p => finalPlayersRef.current.some(fp => fp.userId === p.userId));
-        const isMultiPlayer = realPlayersInQueue.length >= 2;
+      // Determine if this is a multi-player match
+      const realPlayersInQueue = queueSnapshot.filter(p => finalPlayersRef.current.some(fp => fp.userId === p.userId));
+      const isMultiPlayer = realPlayersInQueue.length >= 2;
+      
+      // Get a truly random prompt from the library
+      const randomPrompt = getRandomPrompt();
+      
+      // If multiple real players, coordinate matchId (use earliest player's ID as leader)
+      let matchId: string;
+      let amILeader = false;
+      
+      if (isMultiPlayer) {
+        // Sort by join time and use earliest player as leader
+        const sortedPlayers = [...realPlayersInQueue].sort((a, b) => {
+          const aTime = a.joinedAt?.toMillis() || 0;
+          const bTime = b.joinedAt?.toMillis() || 0;
+          return aTime - bTime;
+        });
+        const leaderId = sortedPlayers[0].userId;
+        const leaderJoinTime = sortedPlayers[0].joinedAt?.toMillis() || Date.now();
+        matchId = `match-${leaderId}-${leaderJoinTime}`;
+        amILeader = leaderId === userId;
         
-        // Get a truly random prompt from the library
-        const randomPrompt = getRandomPrompt();
-        
-        // If multiple real players, coordinate matchId (use earliest player's ID as leader)
-        let matchId: string;
-        let amILeader = false;
-        
-        if (isMultiPlayer) {
-          // Sort by join time and use earliest player as leader
-          const sortedPlayers = [...realPlayersInQueue].sort((a, b) => {
-            const aTime = a.joinedAt?.toMillis() || 0;
-            const bTime = b.joinedAt?.toMillis() || 0;
-            return aTime - bTime;
-          });
-          const leaderId = sortedPlayers[0].userId;
-          const leaderJoinTime = sortedPlayers[0].joinedAt?.toMillis() || Date.now();
-          matchId = `match-${leaderId}-${leaderJoinTime}`;
-          amILeader = leaderId === userId;
-          
-          setIsLeader(amILeader);
-          setSharedMatchId(matchId);
-        } else {
-          // Single player match
-          matchId = `match-${userId}-${Date.now()}`;
-          amILeader = true;
+        setIsLeader(amILeader);
+        setSharedMatchId(matchId);
+      } else {
+        // Single player match
+        matchId = `match-${userId}-${Date.now()}`;
+        amILeader = true;
         }
         
         // Session already exists (created when user joined queue)
@@ -468,8 +468,8 @@ export default function MatchmakingContent() {
         if (!currentSessionId) {
           console.error('❌ MATCHMAKING - No session ID available!');
           return;
-        }
-
+      }
+      
         // Start the session (set prompt, phase duration, start time)
         try {
           await startSession(
@@ -480,17 +480,17 @@ export default function MatchmakingContent() {
           );
           
           // Create lobby for backward compatibility (if multi-player)
-          if (isMultiPlayer && amILeader) {
+      if (isMultiPlayer && amILeader) {
             const playersToSave = finalPlayersRef.current.length > 0 ? finalPlayersRef.current : players;
-            const lobbyPlayers = playersToSave
+        const lobbyPlayers = playersToSave
               .filter((p: any) => p && (p.userId || p.isYou || p.id))
-              .map((p: any) => ({
-                userId: p.userId || p.id || (p.isYou ? userId : `ai-${p.name}`),
-                displayName: p.name === 'You' ? userName : p.name,
-                avatar: p.avatar || '🤖',
+          .map((p: any) => ({
+            userId: p.userId || p.id || (p.isYou ? userId : `ai-${p.name}`),
+          displayName: p.name === 'You' ? userName : p.name,
+            avatar: p.avatar || '🤖',
                 rank: p.currentRank || p.rank || 'Silver III',
-                isAI: p.isAI || false,
-              }));
+            isAI: p.isAI || false,
+          }));
             createMatchLobby(matchId, lobbyPlayers, trait, randomPrompt.id).catch(console.error);
           }
           
@@ -668,11 +668,11 @@ export default function MatchmakingContent() {
                         const currentPlayerCount = players.length;
                         const slotsRemaining = 5 - currentPlayerCount;
                         if (slotsRemaining <= 0) return;
-                        
-                        const aiToAdd = aiStudents
-                          .slice(0, slotsRemaining)
-                          .map(ai => buildAIPlayer(ai));
-                        
+                          
+                          const aiToAdd = aiStudents
+                            .slice(0, slotsRemaining)
+                            .map(ai => buildAIPlayer(ai));
+                          
                         // Add AI players to Firestore session FIRST (before updating local state)
                         if (!currentSessionId) {
                           console.error('❌ MATCHMAKING - Fast track: No session ID available!');

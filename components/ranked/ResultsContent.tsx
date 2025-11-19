@@ -304,13 +304,13 @@ export default function ResultsContent({ session }: ResultsContentProps = {}) {
                 // Extract AI student ID from userId (format: "ai-student-XXX" or just use userId)
                 const aiStudentId = aiPlayer.userId.replace('ai-', '').replace('student-', '');
                 try {
-                  await updateAIStudentAfterMatch(
+                    await updateAIStudentAfterMatch(
                     aiStudentId,
-                    aiLPChange,
-                    aiXP,
-                    aiIsWin,
-                    aiPlayer.wordCount || 100
-                  ).catch(err => console.error('Error updating AI student:', err));
+                      aiLPChange,
+                      aiXP,
+                      aiIsWin,
+                      aiPlayer.wordCount || 100
+                    ).catch(err => console.error('Error updating AI student:', err));
                 } catch (e) {
                   console.warn('Could not update AI student:', e);
                 }

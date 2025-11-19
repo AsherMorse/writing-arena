@@ -69,6 +69,12 @@ export function useBatchRankingSubmission<TSubmission, TSubmissionData>(
   const [error, setError] = useState<Error | null>(null);
 
   const submit = async () => {
+    // Prevent duplicate submissions
+    if (isSubmitting) {
+      console.warn(`⚠️ Phase ${options.phase} - Already submitting, ignoring duplicate call`);
+      return;
+    }
+    
     setIsSubmitting(true);
     setError(null);
 
@@ -182,6 +188,12 @@ export function useBatchRankingSubmission<TSubmission, TSubmissionData>(
       console.error(`❌ Batch ranking failed for phase ${options.phase}:`, error);
       setError(error as Error);
 
+      // Don't retry if session is not initialized - this is a fatal error
+      if (error instanceof Error && error.message === 'Session not initialized') {
+        console.error('❌ Session not initialized - cannot submit phase');
+        throw error;
+      }
+
       // Fallback to individual evaluation if provided
       if (options.fallbackEvaluation) {
         try {
@@ -193,6 +205,11 @@ export function useBatchRankingSubmission<TSubmission, TSubmissionData>(
           );
           console.log('✅ Fallback evaluation complete');
         } catch (fallbackError) {
+          // Don't retry if session is not initialized
+          if (fallbackError instanceof Error && fallbackError.message === 'Session not initialized') {
+            console.error('❌ Session not initialized - cannot use fallback');
+            throw fallbackError;
+          }
           console.error('❌ Fallback evaluation failed:', fallbackError);
           throw fallbackError;
         }

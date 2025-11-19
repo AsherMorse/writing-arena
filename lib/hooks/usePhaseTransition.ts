@@ -83,7 +83,7 @@ export function usePhaseTransition({
             const transitioned = await checkAndTransitionPhase(sessionId, currentPhase);
             
             if (transitioned) {
-              const nextPhase = (currentPhase + 1) as Phase;
+          const nextPhase = (currentPhase + 1) as Phase;
               onTransition?.(nextPhase);
               isTransitioningRef.current = false;
               return; // Success, don't start polling
@@ -112,13 +112,13 @@ export function usePhaseTransition({
                 }
                 
                 const nextPhase = (currentPhase + 1) as Phase;
-                onTransition?.(nextPhase);
+          onTransition?.(nextPhase);
               }
-            } catch (error) {
+        } catch (error) {
               console.error('❌ PHASE MONITOR - Transition check failed:', error);
-            } finally {
+        } finally {
               isTransitioningRef.current = false;
-            }
+        }
           }, checkInterval);
         })();
       }

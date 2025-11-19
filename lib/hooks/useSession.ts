@@ -111,8 +111,25 @@ export function useSession(sessionId: string | null) {
     async (phase: Phase, data: PhaseSubmissionData) => {
       // Check if session manager is initialized
       if (!sessionManager || !sessionId || !user?.uid) {
-        console.error('❌ Cannot submit phase: Session not initialized');
-        throw new Error('Session not initialized');
+        const error = new Error('Session not initialized');
+        console.error('❌ Cannot submit phase: Session not initialized', {
+          hasSessionManager: !!sessionManager,
+          hasSessionId: !!sessionId,
+          hasUserId: !!user?.uid,
+        });
+        setError(error);
+        throw error;
+      }
+      
+      // Double-check session manager has sessionId and userId set
+      if (!sessionManager.sessionId || !sessionManager.userId) {
+        const error = new Error('Session manager not properly initialized');
+        console.error('❌ Session manager missing sessionId/userId', {
+          sessionManagerSessionId: sessionManager.sessionId,
+          sessionManagerUserId: sessionManager.userId,
+        });
+        setError(error);
+        throw error;
       }
       
       try {

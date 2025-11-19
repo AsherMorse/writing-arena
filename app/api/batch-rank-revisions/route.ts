@@ -72,8 +72,8 @@ function generateMockRankings(revisionSubmissions: RevisionSubmission[]): { rank
           'Submit a revision to receive a score',
           'Apply the feedback you received',
           'Try to expand and improve your writing',
-        ];
-      }
+      ];
+    }
       return [
         'Added more descriptive details',
         'Improved sentence variety',
