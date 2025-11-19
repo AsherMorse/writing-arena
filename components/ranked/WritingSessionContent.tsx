@@ -676,9 +676,9 @@ export default function WritingSessionContent() {
               <div className="flex items-start gap-4">
                 <div className="text-5xl">{prompt.image}</div>
                 <div className="flex-1 space-y-2">
-                  <div className="flex items-center justify-between">
-                    <h2 className="text-xl font-semibold">{prompt.title}</h2>
+                  <div className="space-y-1">
                     <span className="text-[11px] uppercase text-white/40">{prompt.type}</span>
+                    <h2 className="text-xl font-semibold">{prompt.title}</h2>
                   </div>
                   <p className="text-sm text-white/70 leading-relaxed">{prompt.description}</p>
                 </div>
