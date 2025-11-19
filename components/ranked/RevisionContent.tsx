@@ -116,13 +116,6 @@ export default function RevisionContent() {
     },
   ], []);
   
-  const { currentIndex: currentTipIndex, goTo: goToTip } = useCarousel({
-    items: writingTips,
-    interval: 5000, // Rotate every 5 seconds
-    autoPlay: showRankingModal || isEvaluating || isBatchSubmitting, // Only auto-play when modal is open
-  });
-  
-
   // Fetch real peer feedback from Phase 2
   useEffect(() => {
     const fetchPeerFeedback = async () => {
@@ -370,6 +363,13 @@ export default function RevisionContent() {
       const data = await response.json();
       return data.score || getDefaultScore(3);
     },
+  });
+  
+  // Writing tips carousel for calculating modal (after batch submission hook)
+  const { currentIndex: currentTipIndex, goTo: goToTip } = useCarousel({
+    items: writingTips,
+    interval: 5000, // Rotate every 5 seconds
+    autoPlay: showRankingModal || isEvaluating || isBatchSubmitting, // Only auto-play when modal is open
   });
 
   // Helper to get ranking from Firestore after submission
