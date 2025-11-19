@@ -343,12 +343,24 @@ export default function RevisionContent() {
 
   const handleSubmit = async () => {
     setIsEvaluating(true);
+    setShowRankingModal(true); // Show calculating modal
     try {
       await handleBatchSubmit();
     } finally {
       setIsEvaluating(false);
+      // Keep modal open briefly after submission completes
+      setTimeout(() => {
+        setShowRankingModal(false);
+      }, 500);
     }
   };
+
+  // Show calculating modal when timer expires
+  useEffect(() => {
+    if (timeRemaining === 0 && !hasSubmitted()) {
+      setShowRankingModal(true);
+    }
+  }, [timeRemaining, hasSubmitted, setShowRankingModal]);
 
   // Auto-submit when time runs out
   useAutoSubmit({
@@ -404,17 +416,21 @@ export default function RevisionContent() {
 
   return (
     <div className="min-h-screen bg-[#0c141d] text-white">
-      {/* Ranking Modal */}
+      {/* Calculating Scores Modal */}
       <Modal
-        isOpen={showRankingModal}
-        onClose={() => setShowRankingModal(false)}
+        isOpen={showRankingModal || isEvaluating || isBatchSubmitting}
+        onClose={() => {}} // Don't allow closing during calculation
         variant="tips"
         showCloseButton={false}
       >
         <div className="text-6xl mb-6 animate-bounce">✨</div>
-        <h2 className="text-3xl font-bold text-white mb-3">Time&apos;s Up!</h2>
+        <h2 className="text-3xl font-bold text-white mb-3">
+          {timeRemaining === 0 ? "Time's Up!" : "Calculating Scores..."}
+        </h2>
         <p className="text-white/70 text-lg mb-6">
-          Evaluating revisions and calculating final scores...
+          {(isEvaluating || isBatchSubmitting)
+            ? "Evaluating revisions and calculating final scores..."
+            : "Preparing your results..."}
         </p>
         <div className="flex items-center justify-center gap-2">
           <div className="w-2 h-2 bg-emerald-400 rounded-full animate-pulse" style={{ animationDelay: '0ms' }}></div>

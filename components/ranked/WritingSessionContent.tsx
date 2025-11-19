@@ -11,6 +11,7 @@ import { getPromptById } from '@/lib/utils/prompts';
 import WritingTipsModal from '@/components/shared/WritingTipsModal';
 import WaitingForPlayers from '@/components/shared/WaitingForPlayers';
 import PhaseInstructions from '@/components/shared/PhaseInstructions';
+import { Modal } from '@/components/shared/Modal';
 import { db } from '@/lib/config/firebase';
 import { doc, getDoc } from 'firebase/firestore';
 import { formatTime, getTimeColor } from '@/lib/utils/time-utils';
@@ -456,6 +457,23 @@ export default function WritingSessionContent() {
     };
   });
 
+  // Show calculating modal when timer expires or batch ranking is in progress
+  useEffect(() => {
+    if (timeRemaining === 0 && !hasSubmitted()) {
+      // Timer expired but not submitted yet - show calculating modal
+      setShowRankingModal(true);
+    } else if (isBatchSubmitting) {
+      // Batch ranking in progress - keep modal open
+      setShowRankingModal(true);
+    } else if (hasSubmitted() && !isBatchSubmitting) {
+      // Submission complete - close modal after brief delay
+      const timer = setTimeout(() => {
+        setShowRankingModal(false);
+      }, 500);
+      return () => clearTimeout(timer);
+    }
+  }, [timeRemaining, isBatchSubmitting, hasSubmitted, setShowRankingModal]);
+
   // Show waiting screen if user has submitted
   if (hasSubmitted()) {
     // Convert session players to WaitingForPlayers format
@@ -487,7 +505,28 @@ export default function WritingSessionContent() {
  
   return (
     <div className="min-h-screen bg-[#0c141d] text-white">
-      {/* Removed confusing ranking modal - go straight to waiting screen */}
+      {/* Calculating Scores Modal - Shows when timer expires and scores are being calculated */}
+      <Modal
+        isOpen={showRankingModal}
+        onClose={() => {}} // Don't allow closing during calculation
+        variant="ranking"
+        showCloseButton={false}
+      >
+        <div className="text-6xl mb-6 animate-bounce">📊</div>
+        <h2 className="text-3xl font-bold text-white mb-3">
+          {timeRemaining === 0 ? "Time's Up!" : "Calculating Scores..."}
+        </h2>
+        <p className="text-white/70 text-lg mb-6">
+          {isBatchSubmitting 
+            ? "Evaluating writing quality and ranking responses..."
+            : "Preparing your results..."}
+        </p>
+        <div className="flex items-center justify-center gap-2">
+          <div className="w-2 h-2 bg-emerald-400 rounded-full animate-pulse" style={{ animationDelay: '0ms' }}></div>
+          <div className="w-2 h-2 bg-emerald-400 rounded-full animate-pulse" style={{ animationDelay: '150ms' }}></div>
+          <div className="w-2 h-2 bg-emerald-400 rounded-full animate-pulse" style={{ animationDelay: '300ms' }}></div>
+        </div>
+      </Modal>
       
       <WritingTipsModal
         isOpen={showTipsModal}
