@@ -5,7 +5,6 @@ import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSession } from '@/lib/hooks/useSession';
 import { useSessionData } from '@/lib/hooks/useSessionData';
-import { usePhaseTransition } from '@/lib/hooks/usePhaseTransition';
 import { useAutoSubmit } from '@/lib/hooks/useAutoSubmit';
 import { getPromptById } from '@/lib/utils/prompts';
 import WritingTipsModal from '@/components/shared/WritingTipsModal';
@@ -401,20 +400,13 @@ export default function WritingSessionContent() {
   }, [handleSubmit]);
 
   // Auto-submit when time runs out
-  const autoSubmitControl = useAutoSubmit({
+  useAutoSubmit({
     timeRemaining,
     hasSubmitted,
     onSubmit: handleSubmit,
     minPhaseAge: 5000, // 5 seconds for Phase 1
     isSessionReady: () => !!(session && sessionId && user?.uid),
   });
-
-  // Set session context for global tracking
-  useEffect(() => {
-    if (sessionId && session?.config?.phase) {
-      autoSubmitControl.setSessionContext(sessionId, session.config.phase);
-    }
-  }, [sessionId, session?.config?.phase, autoSubmitControl]);
 
   // Note: Phase transitions now happen via rankings page countdown
   // No need to navigate directly here - rankings page handles it
