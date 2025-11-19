@@ -148,13 +148,72 @@ export function useSession(sessionId: string | null) {
 }
 
 /**
- * Hook specifically for creating a new session (used by matchmaking)
+ * Hook specifically for finding or joining a session (used by matchmaking)
  */
 export function useCreateSession() {
   const [sessionManager] = useState(() => new SessionManager());
   const [isCreating, setIsCreating] = useState(false);
   const [error, setError] = useState<Error | null>(null);
   
+  const findOrJoinSession = useCallback(
+    async (
+      userId: string,
+      playerInfo: { displayName: string; avatar: string; rank: string },
+      trait: string
+    ) => {
+      try {
+        setIsCreating(true);
+        setError(null);
+        
+        const session = await sessionManager.findOrJoinSession(userId, playerInfo, trait);
+        
+        setIsCreating(false);
+        return session;
+      } catch (err) {
+        console.error('❌ HOOK - Failed to find or join session:', err);
+        setError(err as Error);
+        setIsCreating(false);
+        throw err;
+      }
+    },
+    [sessionManager]
+  );
+
+  const addPlayerToSession = useCallback(
+    async (
+      sessionId: string,
+      userId: string,
+      playerInfo: { displayName: string; avatar: string; rank: string },
+      isAI: boolean = false
+    ) => {
+      try {
+        await sessionManager.addPlayerToSession(sessionId, userId, playerInfo, isAI);
+      } catch (err) {
+        console.error('❌ HOOK - Failed to add player to session:', err);
+        throw err;
+      }
+    },
+    [sessionManager]
+  );
+
+  const startSession = useCallback(
+    async (
+      sessionId: string,
+      promptId: string,
+      promptType: string,
+      phaseDuration: number
+    ) => {
+      try {
+        await sessionManager.startSession(sessionId, promptId, promptType, phaseDuration);
+      } catch (err) {
+        console.error('❌ HOOK - Failed to start session:', err);
+        throw err;
+      }
+    },
+    [sessionManager]
+  );
+
+  // Legacy createSession for backward compatibility
   const createSession = useCallback(
     async (options: Parameters<SessionManager['createSession']>[0]) => {
       try {
@@ -176,7 +235,10 @@ export function useCreateSession() {
   );
   
   return {
-    createSession,
+    findOrJoinSession,
+    addPlayerToSession,
+    startSession,
+    createSession, // Legacy support
     isCreating,
     error,
   };

@@ -8,6 +8,11 @@ import {
   serverTimestamp,
   Timestamp,
   Unsubscribe,
+  collection,
+  query,
+  where,
+  getDocs,
+  limit,
 } from 'firebase/firestore';
 import {
   GameSession,
@@ -100,7 +105,169 @@ export class SessionManager {
   }
   
   /**
+   * Find existing session in 'forming' state or create new one
+   * Called when user joins queue
+   */
+  async findOrJoinSession(
+    userId: string,
+    playerInfo: PlayerInfo,
+    trait: string
+  ): Promise<GameSession> {
+    console.log('🔍 SESSION MANAGER - Finding or creating session for:', userId);
+    
+    // Query for existing 'forming' sessions with same trait
+    const sessionsRef = collection(db, 'sessions');
+    const formingQuery = query(
+      sessionsRef,
+      where('state', '==', 'forming'),
+      where('config.trait', '==', trait),
+      limit(1)
+    );
+    
+    try {
+      const snapshot = await getDocs(formingQuery);
+      
+      if (!snapshot.empty) {
+        // Found existing session - join it
+        const existingSession = snapshot.docs[0].data() as GameSession;
+        const existingSessionId = snapshot.docs[0].id;
+        
+        console.log('✅ SESSION MANAGER - Found existing session:', existingSessionId);
+        
+        // Add player to existing session
+        await this.addPlayerToSession(existingSessionId, userId, playerInfo);
+        
+        // Join the session
+        return await this.joinSession(existingSessionId, userId, playerInfo);
+      }
+    } catch (error) {
+      console.error('❌ SESSION MANAGER - Error finding session:', error);
+      // Continue to create new session
+    }
+    
+    // No existing session found - create new one
+    console.log('🆕 SESSION MANAGER - No existing session found, creating new one');
+    return await this.createFormingSession(userId, playerInfo, trait);
+  }
+
+  /**
+   * Create a new session in 'forming' state (waiting for players)
+   */
+  private async createFormingSession(
+    userId: string,
+    playerInfo: PlayerInfo,
+    trait: string
+  ): Promise<GameSession> {
+    const sessionId = `session-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+    const matchId = `match-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+    
+    console.log('🎮 SESSION MANAGER - Creating forming session:', sessionId);
+    
+    const session: GameSession = {
+      sessionId,
+      matchId,
+      mode: 'ranked',
+      createdAt: Timestamp.now(),
+      updatedAt: Timestamp.now(),
+      config: {
+        trait,
+        promptId: '', // Will be set when session starts
+        promptType: 'narrative',
+        phase: 1,
+        phaseDuration: 120,
+      },
+      players: {
+        [userId]: {
+          userId,
+          displayName: playerInfo.displayName,
+          avatar: playerInfo.avatar,
+          rank: playerInfo.rank,
+          isAI: false,
+          status: 'connected',
+          lastHeartbeat: Timestamp.now(),
+          connectionId: this.connectionId,
+          phases: {},
+        },
+      },
+      state: 'forming', // Start in 'forming' state
+      timing: {},
+      coordination: {
+        readyCount: 0,
+        allPlayersReady: false,
+      },
+      metadata: {
+        createdBy: userId,
+        version: 1,
+      },
+    };
+    
+    const sessionRef = doc(db, 'sessions', sessionId);
+    await setDoc(sessionRef, session);
+    
+    console.log('✅ SESSION MANAGER - Forming session created:', sessionId);
+    return session;
+  }
+
+  /**
+   * Add a player to an existing session
+   */
+  async addPlayerToSession(
+    sessionId: string,
+    userId: string,
+    playerInfo: PlayerInfo,
+    isAI: boolean = false
+  ): Promise<void> {
+    console.log(`➕ SESSION MANAGER - Adding player to session ${sessionId}:`, userId);
+    
+    const sessionRef = doc(db, 'sessions', sessionId);
+    
+    await updateDoc(sessionRef, {
+      [`players.${userId}`]: {
+        userId,
+        displayName: playerInfo.displayName,
+        avatar: playerInfo.avatar,
+        rank: playerInfo.rank,
+        isAI,
+        status: 'connected',
+        lastHeartbeat: serverTimestamp(),
+        connectionId: isAI ? 'ai-connection' : this.connectionId,
+        phases: {},
+      },
+      updatedAt: serverTimestamp(),
+    });
+    
+    console.log(`✅ SESSION MANAGER - Player added to session: ${userId}`);
+  }
+
+  /**
+   * Start session (transition from 'forming' to 'active')
+   * Called when party is full and match is starting
+   */
+  async startSession(
+    sessionId: string,
+    promptId: string,
+    promptType: string,
+    phaseDuration: number
+  ): Promise<void> {
+    console.log(`🚀 SESSION MANAGER - Starting session: ${sessionId}`);
+    
+    const sessionRef = doc(db, 'sessions', sessionId);
+    
+    await updateDoc(sessionRef, {
+      'state': 'active',
+      'config.promptId': promptId,
+      'config.promptType': promptType,
+      'config.phaseDuration': phaseDuration,
+      'timing.phase1StartTime': serverTimestamp(),
+      updatedAt: serverTimestamp(),
+    });
+    
+    console.log(`✅ SESSION MANAGER - Session started: ${sessionId}`);
+  }
+
+  /**
    * Create a new session (typically called by matchmaking)
+   * DEPRECATED: Use findOrJoinSession instead
    */
   async createSession(options: CreateSessionOptions): Promise<GameSession> {
     const sessionId = `session-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;

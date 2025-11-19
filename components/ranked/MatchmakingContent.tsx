@@ -19,8 +19,9 @@ export default function MatchmakingContent() {
   const trait = searchParams.get('trait') || 'all';
   const { user, userProfile } = useAuth();
   
-  // NEW: Session creation hook
-  const { createSession, isCreating } = useCreateSession();
+  // NEW: Session management hooks
+  const { findOrJoinSession, addPlayerToSession, startSession, createSession, isCreating } = useCreateSession();
+  const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
 
   // Ensure avatar is a string (old profiles had it as an object)
   const userAvatar = normalizePlayerAvatar(userProfile?.avatar);
@@ -162,6 +163,17 @@ export default function MatchmakingContent() {
         await joinQueue(userId, userName, userAvatar, userRank, userProfile.rankLP || 0, trait);
         console.log('✅ MATCHMAKING - In queue, listening for others...');
 
+        // IMMEDIATELY find or create session
+        const playerInfo = {
+          displayName: userName,
+          avatar: userAvatar,
+          rank: userRank,
+        };
+        
+        const session = await findOrJoinSession(userId, playerInfo, trait);
+        setCurrentSessionId(session.sessionId);
+        console.log('✅ MATCHMAKING - Session found/created:', session.sessionId);
+
         // Listen for other players in queue
         unsubscribeQueue = listenToQueue(trait, userId, (queuePlayers: QueueEntry[]) => {
           console.log('📥 MATCHMAKING - Queue update, players found:', queuePlayers.length);
@@ -170,10 +182,37 @@ export default function MatchmakingContent() {
           setQueueSnapshot(queuePlayers);
           
           // If party is locked (countdown started), ignore queue updates
-          if (partyLockedRef.current) {
-            console.log('🔒 MATCHMAKING - Party locked, ignoring queue update');
+          if (partyLockedRef.current || !currentSessionId) {
+            console.log('🔒 MATCHMAKING - Party locked or no session, ignoring queue update');
             return;
           }
+          
+          // Add new real players to session (async, don't block)
+          (async () => {
+            for (const queuePlayer of queuePlayers) {
+              if (queuePlayer.userId !== userId && currentSessionId) {
+                // Check if player already in local state
+                const alreadyAdded = players.some(p => p.userId === queuePlayer.userId);
+                if (!alreadyAdded) {
+                  console.log('➕ MATCHMAKING - Adding real player to session:', queuePlayer.displayName);
+                  try {
+                    await addPlayerToSession(
+                      currentSessionId,
+                      queuePlayer.userId,
+                      {
+                        displayName: queuePlayer.displayName,
+                        avatar: queuePlayer.avatar,
+                        rank: queuePlayer.rank,
+                      },
+                      false
+                    );
+                  } catch (error) {
+                    console.error('❌ MATCHMAKING - Failed to add player to session:', error);
+                  }
+                }
+              }
+            }
+          })();
           
           // Convert queue entries to player format
           const realPlayers = queuePlayers.map(p => ({
@@ -231,9 +270,9 @@ export default function MatchmakingContent() {
               return [...prev, aiPlayer];
             });
             
-            // Continue adding AI students gradually (one every 10 seconds)
+            // Continue adding AI students gradually (one every 5 seconds)
             aiBackfillIntervalRef.current = setInterval(() => {
-              setPlayers(prev => {
+              setPlayers((prev) => {
                 // Check if party is already full or we've added all AI students
                 if (prev.length >= 5 || aiIndex >= aiStudents.length) {
                   console.log('🎮 MATCHMAKING - Party full (', prev.length, '/5), stopping AI backfill');
@@ -255,10 +294,26 @@ export default function MatchmakingContent() {
                 
                 const aiPlayer = buildAIPlayer(aiStudent);
                 
+                // Add AI player to Firestore session (async, don't wait)
+                if (currentSessionId) {
+                  addPlayerToSession(
+                    currentSessionId,
+                    aiPlayer.userId,
+                    {
+                      displayName: aiStudent.displayName || 'AI Player',
+                      avatar: aiStudent.avatar || '🤖',
+                      rank: aiStudent.currentRank || 'Silver III',
+                    },
+                    true // isAI
+                  ).catch((error) => {
+                    console.error('❌ MATCHMAKING - Failed to add AI player to session:', error);
+                  });
+                }
+                
                 aiIndex++;
                 return [...prev, aiPlayer];
               });
-            }, 10000); // Every 10 seconds
+            }, 5000); // Every 5 seconds
           }, 15000); // Wait 15 seconds before adding first AI
         };
         
@@ -286,7 +341,7 @@ export default function MatchmakingContent() {
         );
       }
     };
-  }, [user, userProfile, userId, userName, userAvatar, userRank, trait, buildAIPlayer]);
+  }, [user, userProfile, userId, userName, userAvatar, userRank, trait, buildAIPlayer, findOrJoinSession, addPlayerToSession, currentSessionId, players]);
 
   useEffect(() => {
     if (typeof window === 'undefined') return undefined;
@@ -378,165 +433,84 @@ export default function MatchmakingContent() {
       const timer = setTimeout(() => setCountdown(countdown - 1), 1000);
       return () => clearTimeout(timer);
     } else {
-      console.log('🚀 MATCHMAKING - Starting match!');
-      
-      // Determine if this is a multi-player match
-      const realPlayersInQueue = queueSnapshot.filter(p => finalPlayersRef.current.some(fp => fp.userId === p.userId));
-      const isMultiPlayer = realPlayersInQueue.length >= 2;
-      
-      // Get a truly random prompt from the library
-      const randomPrompt = getRandomPrompt();
-      
-      // If multiple real players, coordinate matchId (use earliest player's ID as leader)
-      let matchId: string;
-      let amILeader = false;
-      
-      if (isMultiPlayer) {
-        // Sort by join time and use earliest player as leader
-        const sortedPlayers = [...realPlayersInQueue].sort((a, b) => {
-          const aTime = a.joinedAt?.toMillis() || 0;
-          const bTime = b.joinedAt?.toMillis() || 0;
-          return aTime - bTime;
-        });
-        const leaderId = sortedPlayers[0].userId;
-        const leaderJoinTime = sortedPlayers[0].joinedAt?.toMillis() || Date.now();
-        matchId = `match-${leaderId}-${leaderJoinTime}`;
-        amILeader = leaderId === userId;
+      (async () => {
+        console.log('🚀 MATCHMAKING - Starting match!');
         
-        console.log('👥 MATCHMAKING - Multi-player match, leader:', leaderId, 'I am leader:', amILeader, 'matchId:', matchId);
-        setIsLeader(amILeader);
-        setSharedMatchId(matchId);
-      } else {
-        // Single player match
-        matchId = `match-${userId}-${Date.now()}`;
-        amILeader = true;
-        console.log('👤 MATCHMAKING - Single player match, matchId:', matchId);
-      }
-      
-      console.log('📝 MATCHMAKING - Selected prompt:', randomPrompt.id, randomPrompt.title);
-      console.log('🎮 MATCHMAKING - Match ID:', matchId);
-      
-      // Note: AI students and players are now stored in Firestore session, not sessionStorage
-      // Session page will fetch from Firestore via useSession hook
-      
-      // If multi-player match, leader creates lobby and all navigate
-      if (isMultiPlayer && amILeader) {
-        console.log('👑 MATCHMAKING - I am leader, creating shared lobby...');
+        // Determine if this is a multi-player match
+        const realPlayersInQueue = queueSnapshot.filter(p => finalPlayersRef.current.some(fp => fp.userId === p.userId));
+        const isMultiPlayer = realPlayersInQueue.length >= 2;
         
-        // Convert players to proper format (use finalPlayersRef which has the saved party)
-        const playersToSave = finalPlayersRef.current.length > 0 ? finalPlayersRef.current : players;
-        const lobbyPlayers = playersToSave
-          .filter((p: any) => p && (p.userId || p.isYou || p.id)) // Include AI with 'id'
-          .map((p: any) => ({
-            userId: p.userId || p.id || (p.isYou ? userId : `ai-${p.name}`),
-          displayName: p.name === 'You' ? userName : p.name,
-            avatar: p.avatar || '🤖',
-            rank: p.currentRank || p.rank || 'Silver III', // AI has currentRank
-            isAI: p.isAI || false,
-          }));
+        // Get a truly random prompt from the library
+        const randomPrompt = getRandomPrompt();
         
-        console.log('👥 MATCHMAKING - Lobby with', lobbyPlayers.length, 'players:', lobbyPlayers.map(p => p.displayName).join(', '));
+        // If multiple real players, coordinate matchId (use earliest player's ID as leader)
+        let matchId: string;
+        let amILeader = false;
         
-        // NEW: Create session using new architecture
-        console.log('👑 MATCHMAKING - Creating session as leader with matchId:', matchId);
-        createSession({
-          mode: 'ranked',
-          matchId, // Pass existing matchId for backward compatibility
-          config: {
-            trait,
-            promptId: randomPrompt.id,
-            promptType: randomPrompt.type,
-            phase: 1,
-            phaseDuration: SCORING.PHASE1_DURATION,
-          },
-          players: lobbyPlayers.map(p => ({
-            userId: p.userId,
-            displayName: 'name' in p ? p.name : p.userId,
-            avatar: p.avatar,
-            rank: p.rank,
-            isAI: p.isAI,
-          })),
-        })
-          .then((session) => {
-            console.log('✅ MATCHMAKING - Session created:', session.sessionId);
-            // Create lobby for backward compatibility
+        if (isMultiPlayer) {
+          // Sort by join time and use earliest player as leader
+          const sortedPlayers = [...realPlayersInQueue].sort((a, b) => {
+            const aTime = a.joinedAt?.toMillis() || 0;
+            const bTime = b.joinedAt?.toMillis() || 0;
+            return aTime - bTime;
+          });
+          const leaderId = sortedPlayers[0].userId;
+          const leaderJoinTime = sortedPlayers[0].joinedAt?.toMillis() || Date.now();
+          matchId = `match-${leaderId}-${leaderJoinTime}`;
+          amILeader = leaderId === userId;
+          
+          console.log('👥 MATCHMAKING - Multi-player match, leader:', leaderId, 'I am leader:', amILeader, 'matchId:', matchId);
+          setIsLeader(amILeader);
+          setSharedMatchId(matchId);
+        } else {
+          // Single player match
+          matchId = `match-${userId}-${Date.now()}`;
+          amILeader = true;
+          console.log('👤 MATCHMAKING - Single player match, matchId:', matchId);
+        }
+        
+        console.log('📝 MATCHMAKING - Selected prompt:', randomPrompt.id, randomPrompt.title);
+        
+        // Session already exists (created when user joined queue)
+        // Now we need to start it (transition from 'forming' to 'active')
+        if (!currentSessionId) {
+          console.error('❌ MATCHMAKING - No session ID available!');
+          return;
+        }
+
+        // Start the session (set prompt, phase duration, start time)
+        try {
+          await startSession(
+            currentSessionId,
+            randomPrompt.id,
+            randomPrompt.type,
+            SCORING.PHASE1_DURATION
+          );
+          console.log('✅ MATCHMAKING - Session started:', currentSessionId);
+          
+          // Create lobby for backward compatibility (if multi-player)
+          if (isMultiPlayer && amILeader) {
+            const playersToSave = finalPlayersRef.current.length > 0 ? finalPlayersRef.current : players;
+            const lobbyPlayers = playersToSave
+              .filter((p: any) => p && (p.userId || p.isYou || p.id))
+              .map((p: any) => ({
+                userId: p.userId || p.id || (p.isYou ? userId : `ai-${p.name}`),
+                displayName: p.name === 'You' ? userName : p.name,
+                avatar: p.avatar || '🤖',
+                rank: p.currentRank || p.rank || 'Silver III',
+                isAI: p.isAI || false,
+              }));
             createMatchLobby(matchId, lobbyPlayers, trait, randomPrompt.id).catch(console.error);
-            router.push(`/session/${session.sessionId}`);
-          })
-          .catch(err => {
-            console.error('❌ MATCHMAKING - Failed to create session:', err);
-          });
-      } else if (isMultiPlayer && !amILeader) {
-        console.log('👤 MATCHMAKING - I am follower, waiting for leader to create session...');
-        
-        // Listen for leader to create lobby (contains sessionId)
-        lobbyListenerRef.current = listenToMatchLobby(matchId, (lobbyData) => {
-          console.log('✅ MATCHMAKING - Leader created session, navigating...');
-          if (lobbyListenerRef.current) {
-            lobbyListenerRef.current();
-            lobbyListenerRef.current = null;
           }
-          // TODO: Extract sessionId from lobby data once available
-          // For now, navigate to old route temporarily
-          router.push(`/ranked/session?trait=${trait}&promptId=${randomPrompt.id}&matchId=${matchId}`);
-        });
-        
-        // Timeout after 10 seconds if lobby not created
-        setTimeout(() => {
-          if (lobbyListenerRef.current) {
-            console.warn('⚠️ MATCHMAKING - Lobby timeout, navigating anyway...');
-            lobbyListenerRef.current();
-            lobbyListenerRef.current = null;
-            router.push(`/ranked/session?trait=${trait}&promptId=${randomPrompt.id}&matchId=${matchId}`);
-          }
-        }, 10000);
-      } else {
-        // Single player with AI - create session immediately
-        console.log('🤖 MATCHMAKING - Creating single-player session...');
-        
-        const singlePlayerPlayers = [
-          {
-            userId,
-            displayName: userName,
-            avatar: userAvatar,
-            rank: userRank,
-            isAI: false,
-          },
-          ...selectedAIStudents
-            .filter(ai => ai && (ai.userId || ai.id)) // AI students have 'id' not 'userId'
-            .map(ai => ({
-              userId: ai.id || ai.userId || `ai-${ai.displayName}`, // Use 'id' first (that's what AI students have)
-              displayName: ai.displayName || ai.name || 'AI Player',
-              avatar: ai.avatar || '🤖',
-              rank: ai.currentRank || ai.rank || 'Silver III', // AI students have 'currentRank'
-              isAI: true,
-            }))
-        ];
-        
-        console.log('👥 MATCHMAKING - Single player session with', singlePlayerPlayers.length, 'players:', singlePlayerPlayers.map(p => p.displayName).join(', '));
-        
-        createSession({
-          mode: 'ranked',
-          matchId, // Pass existing matchId for backward compatibility
-          config: {
-            trait,
-            promptId: randomPrompt.id,
-            promptType: randomPrompt.type,
-            phase: 1,
-            phaseDuration: SCORING.PHASE1_DURATION,
-          },
-          players: singlePlayerPlayers,
-        })
-          .then((session) => {
-            console.log('✅ MATCHMAKING - Session created:', session.sessionId, 'with matchId:', session.matchId);
-            router.push(`/session/${session.sessionId}`);
-          })
-          .catch(err => {
-            console.error('❌ MATCHMAKING - Failed to create session:', err);
-          });
-      }
+          
+          // Navigate to session
+          router.push(`/session/${currentSessionId}`);
+        } catch (err) {
+          console.error('❌ MATCHMAKING - Failed to start session:', err);
+        }
+      })();
     }
-  }, [countdown, router, trait, userId, userName, players, selectedAIStudents, queueSnapshot, createSession, userAvatar, userRank]);
+  }, [countdown, router, trait, userId, userName, players, selectedAIStudents, queueSnapshot, startSession, currentSessionId, finalPlayersRef, createMatchLobby]);
 
   return (
     <div className="min-h-screen bg-[#0c141d] text-white">
