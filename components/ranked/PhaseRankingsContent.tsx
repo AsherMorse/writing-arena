@@ -202,17 +202,13 @@ export default function PhaseRankingsContent() {
       const timer = setTimeout(() => setCountdown(countdown - 1), 1000);
       return () => clearTimeout(timer);
     } else {
-      // Navigate to next phase using sessionId (only once)
+      // Navigate back to session page - it will automatically show the next phase
+      // Only navigate once
       let navigated = false;
       const navigate = () => {
-        if (navigated) return;
+        if (navigated || !sessionId) return;
         navigated = true;
-        
-        if (phase === 1) {
-          router.push(`/ranked/peer-feedback?sessionId=${sessionId}`);
-        } else if (phase === 2) {
-          router.push(`/ranked/revision?sessionId=${sessionId}`);
-        }
+        router.push(`/session/${sessionId}`);
       };
       
       navigate();

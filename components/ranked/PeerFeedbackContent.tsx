@@ -232,25 +232,8 @@ export default function PeerFeedbackContent() {
       // Submit phase first
       await submitPhase(phase, data);
       
-      // Then navigate to rankings page
-      const originalContent = user && sessionPlayers ? (sessionPlayers[user.uid]?.phases.phase1?.content || '') : '';
-      const wordCount = user && sessionPlayers ? (sessionPlayers[user.uid]?.phases.phase1?.wordCount || 0) : 0;
-      const writingScore = user && sessionPlayers ? (sessionPlayers[user.uid]?.phases.phase1?.score || 0) : 0;
-      
-      const rankingsUrl = `/ranked/phase-rankings?` +
-        `sessionId=${activeSessionId || sessionId}&` +
-        `phase=${phase}&` +
-        `matchId=${matchId || ''}&` +
-        `trait=${sessionConfig?.trait || 'all'}&` +
-        `promptId=${sessionConfig?.promptId || ''}&` +
-        `promptType=${sessionConfig?.promptType || 'narrative'}&` +
-        `content=${encodeURIComponent(originalContent)}&` +
-        `wordCount=${wordCount}&` +
-        `yourScore=${writingScore}&` +
-        `feedbackScore=${data.score || 0}`;
-      
-      console.log('📊 PEER FEEDBACK - Navigating to rankings page:', rankingsUrl);
-      router.push(rankingsUrl);
+      // Don't navigate - stay on session page and let it handle phase transitions
+      // The session page will automatically show the next phase when Firestore updates
     },
     validateSubmission: () => validateFeedbackSubmission(responses),
     onEmptySubmission: async (isEmpty) => {

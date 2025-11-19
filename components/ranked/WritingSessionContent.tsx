@@ -309,20 +309,8 @@ export default function WritingSessionContent() {
       // Submit phase first
       await submitPhase(phase, data);
       
-      // Then navigate to rankings page
-      const rankingsUrl = `/ranked/phase-rankings?` +
-        `sessionId=${activeSessionId || sessionId}&` +
-        `phase=${phase}&` +
-        `matchId=${sessionMatchId || sessionId}&` +
-        `trait=${trait}&` +
-        `promptId=${sessionConfig?.promptId || ''}&` +
-        `promptType=${sessionConfig?.promptType || 'narrative'}&` +
-        `content=${encodeURIComponent(writingContent)}&` +
-        `wordCount=${wordCount}&` +
-        `yourScore=${data.score || 0}`;
-      
-      console.log('📊 WRITING SESSION - Navigating to rankings page:', rankingsUrl);
-      router.push(rankingsUrl);
+      // Don't navigate - stay on session page and let it handle phase transitions
+      // The session page will automatically show the next phase when Firestore updates
     },
     validateSubmission: () => validateWritingSubmission(writingContent, wordCount),
     onEmptySubmission: async (isEmpty) => {
