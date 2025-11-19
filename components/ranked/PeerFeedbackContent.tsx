@@ -238,6 +238,11 @@ export default function PeerFeedbackContent() {
       const matchState = matchDoc.data();
       const aiFeedbacks = matchState?.aiFeedbacks?.phase2 || [];
       
+      if (aiFeedbacks.length === 0) {
+        console.warn('⚠️ PEER FEEDBACK - No AI feedback found, falling back to individual evaluation');
+        throw new Error('AI feedback not available');
+      }
+      
       // Prepare all feedback submissions for batch ranking
       const allFeedbackSubmissions = [
         {
@@ -289,15 +294,35 @@ export default function PeerFeedbackContent() {
     } catch (error) {
       console.error('❌ PEER FEEDBACK - Batch ranking failed, using fallback:', error);
       
-      // Fallback to basic local scoring
-      const feedbackQuality = isFormComplete(responses) 
-        ? 80 + Math.random() * 15
-        : 60 + Math.random() * 20;
-      
-      await submitPhase(2, {
-        responses,
-        score: clampScore(feedbackQuality),
-      }).catch(console.error);
+      try {
+        const response = await fetch('/api/evaluate-peer-feedback', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            responses,
+            peerWriting: currentPeer?.content || '',
+          }),
+        });
+        
+        const data = await response.json();
+        const feedbackScore = data.score || getDefaultScore(2);
+        console.log('✅ PEER FEEDBACK - Fallback evaluation complete, score:', feedbackScore);
+        
+        await submitPhase(2, {
+          responses,
+          score: clampScore(feedbackScore),
+        });
+      } catch (fallbackError) {
+        console.error('❌ PEER FEEDBACK - Even fallback failed:', fallbackError);
+        const feedbackQuality = isFormComplete(responses) 
+          ? SCORING.DEFAULT_FEEDBACK_SCORE + Math.random() * 20 
+          : 50 + Math.random() * 30;
+        
+        await submitPhase(2, {
+          responses,
+          score: clampScore(feedbackQuality),
+        }).catch(console.error);
+      }
     } finally {
       setIsEvaluating(false);
     }
