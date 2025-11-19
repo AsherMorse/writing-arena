@@ -1,7 +1,7 @@
 'use client';
 
 import { useRouter, useParams, useSearchParams } from 'next/navigation';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import WritingTipsModal from '@/components/shared/WritingTipsModal';
 import PhaseInstructions from '@/components/shared/PhaseInstructions';
 import { useAuth } from '@/contexts/AuthContext';
@@ -390,12 +390,31 @@ export default function RevisionContent() {
   // Paste prevention handlers
   const { handlePaste, handleCut, handleCopy } = usePastePrevention({ showWarning: false });
 
+  // Track when component mounted to prevent immediate modal on load
+  const componentMountedTimeRef = useRef<number | null>(null);
+  useEffect(() => {
+    if (componentMountedTimeRef.current === null) {
+      componentMountedTimeRef.current = Date.now();
+    }
+  }, []);
+
   // Show calculating modal when timer expires
   useEffect(() => {
-    if (timeRemaining === 0 && !hasSubmitted()) {
+    // Don't show modal immediately on load - wait at least 3 seconds after mount
+    const timeSinceMount = componentMountedTimeRef.current 
+      ? Date.now() - componentMountedTimeRef.current 
+      : Infinity;
+    
+    const minPhaseAge = 3000; // 3 seconds minimum before showing modal
+    
+    // Only show if timer expired AND component has been mounted for at least minPhaseAge
+    if (timeRemaining === 0 && !hasSubmitted() && timeSinceMount >= minPhaseAge) {
       setShowRankingModal(true);
+    } else if (!isEvaluating && !isBatchSubmitting) {
+      // Ensure modal is closed if not evaluating/submitting
+      setShowRankingModal(false);
     }
-  }, [timeRemaining, hasSubmitted, setShowRankingModal]);
+  }, [timeRemaining, hasSubmitted, isEvaluating, isBatchSubmitting, setShowRankingModal]);
 
   const hasRevised = revisedContent !== originalContent;
 

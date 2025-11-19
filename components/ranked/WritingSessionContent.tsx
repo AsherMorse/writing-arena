@@ -426,13 +426,33 @@ export default function WritingSessionContent() {
   // Note: Phase transitions now happen via rankings page countdown
   // No need to navigate directly here - rankings page handles it
 
+  // Track when component mounted and phase start time to prevent immediate modal on load
+  const componentMountedTimeRef = useRef<number | null>(null);
+  useEffect(() => {
+    if (componentMountedTimeRef.current === null) {
+      componentMountedTimeRef.current = Date.now();
+    }
+  }, []);
+
   // Show calculating modal when timer expires or batch ranking is in progress
   useEffect(() => {
-    if (timeRemaining === 0 && !hasSubmitted()) {
-      // Timer expired but not submitted yet - show calculating modal
+    // Don't show modal immediately on load - wait at least 3 seconds after mount
+    const timeSinceMount = componentMountedTimeRef.current 
+      ? Date.now() - componentMountedTimeRef.current 
+      : Infinity;
+    
+    const minPhaseAge = 3000; // 3 seconds minimum before showing modal
+    
+    // Only show if:
+    // 1. Timer expired (timeRemaining === 0)
+    // 2. User hasn't submitted
+    // 3. Component has been mounted for at least minPhaseAge (prevents immediate show on load)
+    // 4. OR batch ranking is in progress
+    if (isBatchSubmitting) {
+      // Batch ranking in progress - always show modal
       setShowRankingModal(true);
-    } else if (isBatchSubmitting) {
-      // Batch ranking in progress - keep modal open
+    } else if (timeRemaining === 0 && !hasSubmitted() && timeSinceMount >= minPhaseAge) {
+      // Timer expired but not submitted yet - show calculating modal
       setShowRankingModal(true);
     } else if (hasSubmitted() && !isBatchSubmitting) {
       // Submission complete - close modal after brief delay
@@ -440,6 +460,9 @@ export default function WritingSessionContent() {
         setShowRankingModal(false);
       }, 500);
       return () => clearTimeout(timer);
+    } else {
+      // Ensure modal is closed if none of the conditions are met
+      setShowRankingModal(false);
     }
   }, [timeRemaining, isBatchSubmitting, hasSubmitted, setShowRankingModal]);
 

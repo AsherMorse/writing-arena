@@ -1,7 +1,7 @@
 'use client';
 
 import { useRouter, useParams, useSearchParams } from 'next/navigation';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import WritingTipsModal from '@/components/shared/WritingTipsModal';
 import PhaseInstructions from '@/components/shared/PhaseInstructions';
 import FeedbackValidator from '@/components/shared/FeedbackValidator';
@@ -292,12 +292,31 @@ export default function PeerFeedbackContent() {
     }
   };
 
-  // Show calculating modal when timer expires
+  // Track when component mounted to prevent immediate modal on load
+  const componentMountedTimeRef = useRef<number | null>(null);
   useEffect(() => {
-    if (timeRemaining === 0 && !hasSubmitted()) {
-      setShowRankingModal(true);
+    if (componentMountedTimeRef.current === null) {
+      componentMountedTimeRef.current = Date.now();
     }
-  }, [timeRemaining, hasSubmitted, setShowRankingModal]);
+  }, []);
+
+  // Show calculating modal when timer expires or batch ranking is in progress
+  useEffect(() => {
+    // Don't show modal immediately on load - wait at least 3 seconds after mount
+    const timeSinceMount = componentMountedTimeRef.current 
+      ? Date.now() - componentMountedTimeRef.current 
+      : Infinity;
+    
+    const minPhaseAge = 3000; // 3 seconds minimum before showing modal
+    
+    // Only show if timer expired AND component has been mounted for at least minPhaseAge
+    if (timeRemaining === 0 && !hasSubmitted() && timeSinceMount >= minPhaseAge) {
+      setShowRankingModal(true);
+    } else if (!isBatchSubmitting && !isEvaluating) {
+      // Ensure modal is closed if not submitting/evaluating
+      setShowRankingModal(false);
+    }
+  }, [timeRemaining, hasSubmitted, isBatchSubmitting, isEvaluating, setShowRankingModal]);
 
   // Auto-submit when time runs out
   useAutoSubmit({
