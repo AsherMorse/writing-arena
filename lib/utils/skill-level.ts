@@ -20,15 +20,51 @@ export function getSkillLevelFromRank(rank: string): SkillLevel {
 
 /**
  * Get grade level from rank string
+ * Supports grades 3rd-12th
  */
 export function getGradeLevelFromRank(rank: string): string {
+  // Map ranks to grade levels (3rd-12th grade)
+  if (rank.includes('Bronze I') || rank.includes('Bronze II')) return '3rd-4th';
+  if (rank.includes('Bronze III')) return '5th';
   if (rank.includes('Bronze')) return '6th';
+  if (rank.includes('Silver I') || rank.includes('Silver II')) return '7th';
+  if (rank.includes('Silver III')) return '8th';
   if (rank.includes('Silver')) return '7th-8th';
+  if (rank.includes('Gold I') || rank.includes('Gold II')) return '9th';
+  if (rank.includes('Gold III')) return '10th';
   if (rank.includes('Gold')) return '9th-10th';
   if (rank.includes('Platinum')) return '11th';
   if (rank.includes('Diamond')) return '12th';
   if (rank.includes('Master') || rank.includes('Grand')) return '12th';
+  // Default fallback - assume middle school if unknown
   return '7th-8th';
+}
+
+/**
+ * Get approximate grade level number for age-appropriate instruction
+ * Returns a number between 3-12
+ */
+export function getGradeLevelNumber(rank: string): number {
+  const gradeLevel = getGradeLevelFromRank(rank);
+  
+  // Extract number from grade level string
+  if (gradeLevel.includes('3rd')) return 3;
+  if (gradeLevel.includes('4th')) return 4;
+  if (gradeLevel.includes('5th')) return 5;
+  if (gradeLevel.includes('6th')) return 6;
+  if (gradeLevel.includes('7th')) return 7;
+  if (gradeLevel.includes('8th')) return 8;
+  if (gradeLevel.includes('9th')) return 9;
+  if (gradeLevel.includes('10th')) return 10;
+  if (gradeLevel.includes('11th')) return 11;
+  if (gradeLevel.includes('12th')) return 12;
+  
+  // Handle ranges - take the lower bound
+  if (gradeLevel.includes('7th-8th')) return 7;
+  if (gradeLevel.includes('9th-10th')) return 9;
+  if (gradeLevel.includes('3rd-4th')) return 3;
+  
+  return 7; // Default to 7th grade
 }
 
 /**

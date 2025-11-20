@@ -34,6 +34,7 @@ export interface WritingSession {
   lpChange?: number; // For ranked only
   placement?: number; // For competitive modes
   timestamp: Timestamp;
+  matchId?: string; // For ranked matches - links to matchStates collection
 }
 
 // Create or update user profile
@@ -291,5 +292,85 @@ export async function getUserSessions(uid: string, limitCount = 10) {
   
   const snapshot = await getDocs(q);
   return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+}
+
+// Get user's completed ranked matches
+export async function getCompletedRankedMatches(uid: string, limitCount = 5): Promise<WritingSession[]> {
+  const { query, where, orderBy, getDocs, limit } = await import('firebase/firestore');
+  const sessionsRef = collection(db, 'sessions');
+  
+  try {
+    // Query with both userId and mode filters, ordered by timestamp
+    // Note: This requires a composite index in Firestore
+    const q = query(
+      sessionsRef,
+      where('userId', '==', uid),
+      where('mode', '==', 'ranked'),
+      orderBy('timestamp', 'desc'),
+      limit(limitCount)
+    );
+    
+    const snapshot = await getDocs(q);
+    return snapshot.docs.map(doc => ({ 
+      id: doc.id, 
+      ...doc.data() 
+    } as WritingSession));
+  } catch (error: any) {
+    // If index doesn't exist, fallback to querying all user sessions and filtering client-side
+    if (error?.code === 'failed-precondition') {
+      console.warn('⚠️ FIRESTORE - Composite index missing, using fallback query');
+      const q = query(
+        sessionsRef,
+        where('userId', '==', uid),
+        orderBy('timestamp', 'desc'),
+        limit(50) // Get more to filter client-side
+      );
+      
+      const snapshot = await getDocs(q);
+      const allSessions = snapshot.docs.map(doc => ({ 
+        id: doc.id, 
+        ...doc.data() 
+      } as WritingSession));
+      
+      // Filter for ranked matches client-side
+      return allSessions
+        .filter(session => session.mode === 'ranked')
+        .slice(0, limitCount);
+    }
+    throw error;
+  }
+}
+
+// Count user's completed ranked matches
+export async function countCompletedRankedMatches(uid: string): Promise<number> {
+  const { query, where, getDocs } = await import('firebase/firestore');
+  const sessionsRef = collection(db, 'sessions');
+  
+  try {
+    const q = query(
+      sessionsRef,
+      where('userId', '==', uid),
+      where('mode', '==', 'ranked')
+    );
+    
+    const snapshot = await getDocs(q);
+    return snapshot.size;
+  } catch (error: any) {
+    // If index doesn't exist, fallback to querying all user sessions and filtering client-side
+    if (error?.code === 'failed-precondition') {
+      console.warn('⚠️ FIRESTORE - Composite index missing, using fallback query');
+      const q = query(
+        sessionsRef,
+        where('userId', '==', uid)
+      );
+      
+      const snapshot = await getDocs(q);
+      const allSessions = snapshot.docs.map(doc => doc.data() as WritingSession);
+      
+      // Count ranked matches client-side
+      return allSessions.filter(session => session.mode === 'ranked').length;
+    }
+    throw error;
+  }
 }
 

@@ -28,10 +28,7 @@ function parseBatchRankings(claudeResponse: string, writings: WritingSubmission[
     parsed.rankings,
     writings,
     (ranking, idx, actualPlayer) => {
-      // Note: mapRankingsToPlayers handles index matching internally, 
-      // but we can add robustness there if needed.
-      if (!actualPlayer) return null;
-      
+      // mapRankingsToPlayers ensures actualPlayer is always defined
       return {
         playerId: actualPlayer.playerId,
         playerName: actualPlayer.playerName,
@@ -45,7 +42,7 @@ function parseBatchRankings(claudeResponse: string, writings: WritingSubmission[
         traitFeedback: ranking.traitFeedback || {},
       };
     }
-  ).filter(Boolean);
+  );
   
   return rankings;
 }

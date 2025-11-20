@@ -1,6 +1,9 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
+import { useEffect, useState } from 'react';
+import { useAuth } from '@/contexts/AuthContext';
+import { countCompletedRankedMatches } from '@/lib/services/firestore';
 
 interface MatchSelectionModalProps {
   isOpen: boolean;
@@ -9,17 +12,36 @@ interface MatchSelectionModalProps {
 
 export default function MatchSelectionModal({ isOpen, onClose }: MatchSelectionModalProps) {
   const router = useRouter();
+  const { user } = useAuth();
+  const [completedMatches, setCompletedMatches] = useState<number | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (isOpen && user) {
+      const fetchMatchCount = async () => {
+        try {
+          const count = await countCompletedRankedMatches(user.uid);
+          setCompletedMatches(count);
+        } catch (error) {
+          console.error('Error fetching match count:', error);
+          setCompletedMatches(0);
+        } finally {
+          setLoading(false);
+        }
+      };
+      fetchMatchCount();
+    } else if (!isOpen) {
+      setLoading(true);
+      setCompletedMatches(null);
+    }
+  }, [isOpen, user]);
 
   if (!isOpen) return null;
 
+  const hasEnoughMatches = completedMatches !== null && completedMatches >= 5;
+  const matchesRemaining = completedMatches !== null ? Math.max(0, 5 - completedMatches) : 0;
+
   const modes = [
-    {
-      label: 'Quick Match',
-      icon: '⚡',
-      summary: 'Jump into a four minute duel with instant party fill.',
-      route: '/quick-match',
-      disabled: true,
-    },
     {
       label: 'Ranked',
       icon: '🏆',
@@ -28,11 +50,21 @@ export default function MatchSelectionModal({ isOpen, onClose }: MatchSelectionM
       disabled: false,
     },
     {
-      label: 'Practice',
-      icon: '📝',
-      summary: 'Solo training with guided prompts and instant AI feedback.',
-      route: '/practice',
-      disabled: true,
+      label: 'Improve',
+      icon: '📈',
+      summary: hasEnoughMatches 
+        ? 'Personalized writing exercises based on your last 5 ranked matches.'
+        : `Complete ${matchesRemaining} more ranked match${matchesRemaining !== 1 ? 'es' : ''} to unlock personalized practice.`,
+      route: '/improve',
+      disabled: !hasEnoughMatches,
+      matchesRemaining: matchesRemaining,
+    },
+    {
+      label: 'AP Lang Grader',
+      icon: '📚',
+      summary: 'Grade your AP Language essays or practice with authentic AP prompts and a 40-minute timer.',
+      route: '/ap-lang',
+      disabled: false,
     },
   ];
 
@@ -71,10 +103,10 @@ export default function MatchSelectionModal({ isOpen, onClose }: MatchSelectionM
                   : 'bg-[#192430] border-white/10 hover:border-emerald-300/40'
               }`}
             >
-              {option.disabled && (
-                <div className="absolute top-3 right-3 px-2 py-1 bg-amber-500/20 border border-amber-400/30 rounded-full">
-                  <span className="text-[10px] uppercase tracking-wider text-amber-300 font-semibold">
-                    Coming Soon
+              {option.disabled && option.label === 'Improve' && (
+                <div className="absolute top-3 right-3 px-2 py-1 bg-blue-500/20 border border-blue-400/30 rounded-full">
+                  <span className="text-[10px] uppercase tracking-wider text-blue-300 font-semibold">
+                    {loading ? 'Loading...' : `${matchesRemaining} More`}
                   </span>
                 </div>
               )}
@@ -90,6 +122,20 @@ export default function MatchSelectionModal({ isOpen, onClose }: MatchSelectionM
                 <p className={`text-base ${option.disabled ? 'text-white/40' : 'text-white/80'}`}>
                   {option.summary}
                 </p>
+                {option.label === 'Improve' && !hasEnoughMatches && completedMatches !== null && (
+                  <div className="pt-2">
+                    <div className="flex items-center justify-between text-xs text-blue-300 mb-2">
+                      <span>Progress</span>
+                      <span>{completedMatches}/5 matches</span>
+                    </div>
+                    <div className="w-full bg-white/10 rounded-full h-2">
+                      <div 
+                        className="bg-blue-400 h-2 rounded-full transition-all duration-300"
+                        style={{ width: `${(completedMatches / 5) * 100}%` }}
+                      />
+                    </div>
+                  </div>
+                )}
                 {!option.disabled && (
                   <div className="flex items-center justify-between pt-2 text-sm text-emerald-200">
                     Enter

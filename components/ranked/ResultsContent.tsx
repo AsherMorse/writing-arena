@@ -256,6 +256,7 @@ export default function ResultsContent({ session }: ResultsContentProps = {}) {
               lpChange,
               placement: yourRank,
               timestamp: new Date() as any,
+              matchId: matchId, // Store matchId to link to matchStates for detailed feedback
             });
             console.log('✅ RESULTS - Session saved');
 
