@@ -4,6 +4,7 @@ import { useState, useRef, useEffect } from 'react';
 import { WritingSession } from '@/lib/services/firestore';
 import { useAuth } from '@/contexts/AuthContext';
 import { getGradeLevelFromRank } from '@/lib/utils/skill-level';
+import { MarkdownRenderer } from '@/lib/utils/markdown-renderer';
 
 interface Message {
   id: string;
@@ -56,12 +57,18 @@ Let me analyze your performance...`,
 
   const generateInitialAnalysis = async () => {
     setIsLoading(true);
+    console.log('📊 IMPROVE - Starting initial analysis...', {
+      matchesCount: rankedMatches.length,
+      userId: user?.uid,
+    });
     
     try {
       // Get user's grade level from rank
       const gradeLevel = userProfile?.currentRank 
         ? getGradeLevelFromRank(userProfile.currentRank)
         : '7th-8th'; // Default fallback
+
+      console.log('📤 IMPROVE - Sending analyze request...', { gradeLevel });
 
       // Analyze the matches and generate TWR-based recommendations
       const response = await fetch('/api/improve/analyze', {
@@ -74,18 +81,64 @@ Let me analyze your performance...`,
         }),
       });
       
-      const data = await response.json();
+      console.log('📥 IMPROVE - Analyze response received:', {
+        status: response.status,
+        ok: response.ok,
+        contentType: response.headers.get('content-type'),
+      });
       
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error('❌ IMPROVE - Analyze error:', errorData);
+        throw new Error(errorData.error || 'Failed to analyze');
+      }
+      
+      // Stream the response
+      const reader = response.body?.getReader();
+      const decoder = new TextDecoder();
+      
+      if (!reader) {
+        throw new Error('No response body');
+      }
+      
+      // Create a new message for streaming
+      const messageId = `analysis-${Date.now()}`;
       const analysisMessage: Message = {
-        id: `analysis-${Date.now()}`,
+        id: messageId,
         role: 'assistant',
-        content: data.analysis || 'Analysis coming soon...',
+        content: '',
         timestamp: new Date(),
       };
       
       setMessages(prev => [...prev, analysisMessage]);
+      
+      let accumulatedText = '';
+      
+      while (true) {
+        const { done, value } = await reader.read();
+        
+        if (done) {
+          console.log('✅ IMPROVE - Analysis stream complete');
+          break;
+        }
+        
+        const chunk = decoder.decode(value, { stream: true });
+        accumulatedText += chunk;
+        
+        console.log('📝 IMPROVE - Received chunk:', {
+          chunkLength: chunk.length,
+          totalLength: accumulatedText.length,
+        });
+        
+        // Update the message with accumulated text
+        setMessages(prev => prev.map(msg => 
+          msg.id === messageId 
+            ? { ...msg, content: accumulatedText }
+            : msg
+        ));
+      }
     } catch (error) {
-      console.error('Error generating analysis:', error);
+      console.error('❌ IMPROVE - Error generating analysis:', error);
       const errorMessage: Message = {
         id: `error-${Date.now()}`,
         role: 'assistant',
@@ -101,10 +154,16 @@ Let me analyze your performance...`,
   const handleSend = async () => {
     if (!input.trim() || isLoading) return;
 
+    const userMessageText = input.trim();
+    console.log('💬 IMPROVE - Sending message:', {
+      messageLength: userMessageText.length,
+      messagesCount: messages.length,
+    });
+
     const userMessage: Message = {
       id: `user-${Date.now()}`,
       role: 'user',
-      content: input.trim(),
+      content: userMessageText,
       timestamp: new Date(),
     };
 
@@ -118,11 +177,16 @@ Let me analyze your performance...`,
         ? getGradeLevelFromRank(userProfile.currentRank)
         : '7th-8th'; // Default fallback
 
+      console.log('📤 IMPROVE - Sending chat request...', {
+        gradeLevel,
+        historyLength: messages.length,
+      });
+
       const response = await fetch('/api/improve/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          message: input.trim(),
+          message: userMessageText,
           matches: rankedMatches,
           conversationHistory: messages.slice(-10), // Last 10 messages for context
           userId: user?.uid,
@@ -130,18 +194,64 @@ Let me analyze your performance...`,
         }),
       });
 
-      const data = await response.json();
+      console.log('📥 IMPROVE - Chat response received:', {
+        status: response.status,
+        ok: response.ok,
+        contentType: response.headers.get('content-type'),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error('❌ IMPROVE - Chat error:', errorData);
+        throw new Error(errorData.error || 'Failed to generate response');
+      }
+
+      // Stream the response
+      const reader = response.body?.getReader();
+      const decoder = new TextDecoder();
       
+      if (!reader) {
+        throw new Error('No response body');
+      }
+      
+      // Create a new message for streaming
+      const messageId = `assistant-${Date.now()}`;
       const assistantMessage: Message = {
-        id: `assistant-${Date.now()}`,
+        id: messageId,
         role: 'assistant',
-        content: data.response || 'I apologize, but I encountered an error. Please try again.',
+        content: '',
         timestamp: new Date(),
       };
-
+      
       setMessages(prev => [...prev, assistantMessage]);
+      
+      let accumulatedText = '';
+      
+      while (true) {
+        const { done, value } = await reader.read();
+        
+        if (done) {
+          console.log('✅ IMPROVE - Chat stream complete');
+          break;
+        }
+        
+        const chunk = decoder.decode(value, { stream: true });
+        accumulatedText += chunk;
+        
+        console.log('📝 IMPROVE - Received chunk:', {
+          chunkLength: chunk.length,
+          totalLength: accumulatedText.length,
+        });
+        
+        // Update the message with accumulated text
+        setMessages(prev => prev.map(msg => 
+          msg.id === messageId 
+            ? { ...msg, content: accumulatedText }
+            : msg
+        ));
+      }
     } catch (error) {
-      console.error('Error sending message:', error);
+      console.error('❌ IMPROVE - Error sending message:', error);
       const errorMessage: Message = {
         id: `error-${Date.now()}`,
         role: 'assistant',
@@ -161,6 +271,121 @@ Let me analyze your performance...`,
     }
   };
 
+  const handleQuickAction = async (action: string) => {
+    console.log('⚡ IMPROVE - Quick action:', action);
+    
+    // Create user message
+    const userMessage: Message = {
+      id: `user-${Date.now()}`,
+      role: 'user',
+      content: action,
+      timestamp: new Date(),
+    };
+
+    setMessages(prev => [...prev, userMessage]);
+    setIsLoading(true);
+
+    try {
+      // Get user's grade level from rank
+      const gradeLevel = userProfile?.currentRank 
+        ? getGradeLevelFromRank(userProfile.currentRank)
+        : '7th-8th'; // Default fallback
+
+      console.log('📤 IMPROVE - Sending quick action chat request...', {
+        action,
+        gradeLevel,
+        historyLength: messages.length,
+      });
+
+      const response = await fetch('/api/improve/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          message: action,
+          matches: rankedMatches,
+          conversationHistory: messages.slice(-10), // Last 10 messages for context
+          userId: user?.uid,
+          gradeLevel: gradeLevel,
+        }),
+      });
+
+      console.log('📥 IMPROVE - Quick action response received:', {
+        status: response.status,
+        ok: response.ok,
+        contentType: response.headers.get('content-type'),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error('❌ IMPROVE - Quick action error:', errorData);
+        throw new Error(errorData.error || 'Failed to generate response');
+      }
+
+      // Stream the response
+      const reader = response.body?.getReader();
+      const decoder = new TextDecoder();
+      
+      if (!reader) {
+        throw new Error('No response body');
+      }
+      
+      // Create a new message for streaming
+      const messageId = `assistant-${Date.now()}`;
+      const assistantMessage: Message = {
+        id: messageId,
+        role: 'assistant',
+        content: '',
+        timestamp: new Date(),
+      };
+      
+      setMessages(prev => [...prev, assistantMessage]);
+      
+      let accumulatedText = '';
+      
+      while (true) {
+        const { done, value } = await reader.read();
+        
+        if (done) {
+          console.log('✅ IMPROVE - Quick action stream complete');
+          break;
+        }
+        
+        const chunk = decoder.decode(value, { stream: true });
+        accumulatedText += chunk;
+        
+        console.log('📝 IMPROVE - Received chunk:', {
+          chunkLength: chunk.length,
+          totalLength: accumulatedText.length,
+        });
+        
+        // Update the message with accumulated text
+        setMessages(prev => prev.map(msg => 
+          msg.id === messageId 
+            ? { ...msg, content: accumulatedText }
+            : msg
+        ));
+      }
+    } catch (error) {
+      console.error('❌ IMPROVE - Error with quick action:', error);
+      const errorMessage: Message = {
+        id: `error-${Date.now()}`,
+        role: 'assistant',
+        content: 'Sorry, I encountered an error. Please try again.',
+        timestamp: new Date(),
+      };
+      setMessages(prev => [...prev, errorMessage]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const quickActions = [
+    'Give me exercises to practice',
+    'Explain this more',
+    'Show me examples',
+    'I want to try a writing exercise',
+  ];
+
   return (
     <div className="flex flex-col h-[calc(100vh-80px)] max-w-4xl mx-auto px-6 py-6">
       {/* Header */}
@@ -173,32 +398,59 @@ Let me analyze your performance...`,
 
       {/* Messages */}
       <div className="flex-1 overflow-y-auto space-y-6 mb-6 pr-2">
-        {messages.map((message) => (
-          <div
-            key={message.id}
-            className={`flex gap-4 ${
-              message.role === 'user' ? 'justify-end' : 'justify-start'
-            }`}
-          >
-            {message.role === 'assistant' && (
-              <div className="w-8 h-8 rounded-full bg-emerald-500/20 flex items-center justify-center text-emerald-300 flex-shrink-0">
-                📚
-              </div>
-            )}
+        {messages.map((message, index) => (
+          <div key={message.id} className="space-y-3">
             <div
-              className={`max-w-[80%] rounded-2xl p-4 ${
-                message.role === 'user'
-                  ? 'bg-emerald-500/20 border border-emerald-400/30 text-white'
-                  : 'bg-white/5 border border-white/10 text-white/90'
+              className={`flex gap-4 ${
+                message.role === 'user' ? 'justify-end' : 'justify-start'
               }`}
             >
-              <div className="whitespace-pre-wrap text-sm leading-relaxed">
-                {message.content}
+              {message.role === 'assistant' && (
+                <div className="w-8 h-8 rounded-full bg-emerald-500/20 flex items-center justify-center text-emerald-300 flex-shrink-0">
+                  📚
+                </div>
+              )}
+              <div
+                className={`max-w-[80%] rounded-2xl p-4 ${
+                  message.role === 'user'
+                    ? 'bg-emerald-500/20 border border-emerald-400/30 text-white'
+                    : 'bg-white/5 border border-white/10 text-white/90'
+                }`}
+              >
+                <div className="text-sm leading-relaxed">
+                  {message.role === 'assistant' ? (
+                    <MarkdownRenderer content={message.content} />
+                  ) : (
+                    <div className="whitespace-pre-wrap">{message.content}</div>
+                  )}
+                </div>
               </div>
+              {message.role === 'user' && (
+                <div className="w-8 h-8 rounded-full bg-purple-500/20 flex items-center justify-center text-purple-300 flex-shrink-0">
+                  {userProfile?.avatar || '👤'}
+                </div>
+              )}
             </div>
-            {message.role === 'user' && (
-              <div className="w-8 h-8 rounded-full bg-purple-500/20 flex items-center justify-center text-purple-300 flex-shrink-0">
-                {userProfile?.avatar || '👤'}
+            
+            {/* Quick action buttons - show after assistant messages, before user response */}
+            {message.role === 'assistant' && 
+             !isLoading && 
+             index === messages.length - 1 && 
+             message.content.trim().length > 0 && (
+              <div className="ml-12 space-y-2">
+                <p className="text-xs text-white/50 mb-2">Quick actions:</p>
+                <div className="flex flex-wrap gap-2">
+                  {quickActions.map((action) => (
+                    <button
+                      key={action}
+                      onClick={() => handleQuickAction(action)}
+                      disabled={isLoading}
+                      className="px-4 py-2 text-xs font-medium bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-400/30 text-emerald-300 rounded-lg transition-all hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
+                    >
+                      {action}
+                    </button>
+                  ))}
+                </div>
               </div>
             )}
           </div>

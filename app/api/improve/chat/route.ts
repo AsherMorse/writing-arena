@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getAnthropicApiKey, logApiKeyStatus, callAnthropicAPI } from '@/lib/utils/api-helpers';
+import { getAnthropicApiKey, logApiKeyStatus, streamAnthropicAPI } from '@/lib/utils/api-helpers';
 import { WritingSession } from '@/lib/services/firestore';
 import { getAIFeedback } from '@/lib/services/match-sync';
 
@@ -7,7 +7,19 @@ export async function POST(request: NextRequest) {
   try {
     const { message, matches, conversationHistory, userId, gradeLevel = '7th-8th' } = await request.json();
     
+    console.log('💬 IMPROVE CHAT - Request received:', {
+      messageLength: message?.length,
+      matchesCount: matches?.length,
+      historyLength: conversationHistory?.length,
+      userId,
+      gradeLevel,
+    });
+    
     if (!message || !matches || matches.length < 5) {
+      console.error('❌ IMPROVE CHAT - Invalid request:', {
+        hasMessage: !!message,
+        matchesCount: matches?.length,
+      });
       return NextResponse.json(
         { error: 'Invalid request' },
         { status: 400 }
@@ -18,11 +30,14 @@ export async function POST(request: NextRequest) {
     const apiKey = getAnthropicApiKey();
     
     if (!apiKey) {
+      console.error('❌ IMPROVE CHAT - API key missing');
       return NextResponse.json(
         { error: 'API key missing' },
         { status: 500 }
       );
     }
+    
+    console.log('✅ IMPROVE CHAT - API key found, starting chat response...');
 
     // Prepare context from matches with feedback if available
     const matchContext = await Promise.all(
@@ -119,12 +134,89 @@ CRITICAL: Adjust your language complexity, examples, and TWR strategies to match
 
 Keep responses conversational, encouraging, and focused on TWR principles. Be specific with age-appropriate examples.
 
+IMPORTANT: After providing your answer or explanation, always end with a call to action asking what the student would like to do next. Offer options like:
+- "Would you like me to give you some exercises to practice this?"
+- "Do you need more explanation about this concept?"
+- "Would you like to see examples?"
+- "Are you ready to try a writing exercise?"
+
+Make it natural and encouraging, matching the ${gradeLevel} grade level.
+
 Respond naturally (not JSON format).`;
 
-    const aiResponse = await callAnthropicAPI(apiKey, prompt, 1500);
-    const response = aiResponse.content[0].text;
+    console.log('🚀 IMPROVE CHAT - Starting streaming API call...');
+    const stream = await streamAnthropicAPI(apiKey, prompt, 1500);
+    
+    // Create a readable stream that parses SSE events and extracts text
+    const encoder = new TextEncoder();
+    const decoder = new TextDecoder();
+    
+    const readableStream = new ReadableStream({
+      async start(controller) {
+        const reader = stream.getReader();
+        let buffer = '';
+        
+        try {
+          while (true) {
+            const { done, value } = await reader.read();
+            
+            if (done) {
+              console.log('✅ IMPROVE CHAT - Stream complete');
+              controller.close();
+              break;
+            }
+            
+            // Decode the chunk
+            buffer += decoder.decode(value, { stream: true });
+            
+            // Process complete SSE events (lines end with \n\n)
+            const events = buffer.split('\n\n');
+            buffer = events.pop() || ''; // Keep incomplete event in buffer
+            
+            for (const event of events) {
+              if (!event.trim()) continue;
+              
+              // Parse SSE format: "data: {...}"
+              const lines = event.split('\n');
+              for (const line of lines) {
+                if (line.startsWith('data: ')) {
+                  const data = line.slice(6).trim();
+                  
+                  if (data === '[DONE]') {
+                    controller.close();
+                    return;
+                  }
+                  
+                  try {
+                    const json = JSON.parse(data);
+                    
+                    // Extract text from content_block_delta events
+                    if (json.type === 'content_block_delta' && json.delta?.text) {
+                      const text = json.delta.text;
+                      controller.enqueue(encoder.encode(text));
+                    }
+                  } catch (e) {
+                    // Ignore parse errors for non-JSON lines
+                    console.warn('⚠️ IMPROVE CHAT - Failed to parse SSE data:', data);
+                  }
+                }
+              }
+            }
+          }
+        } catch (error) {
+          console.error('❌ IMPROVE CHAT - Stream error:', error);
+          controller.error(error);
+        }
+      },
+    });
 
-    return NextResponse.json({ response });
+    return new Response(readableStream, {
+      headers: {
+        'Content-Type': 'text/plain; charset=utf-8',
+        'Cache-Control': 'no-cache',
+        'Connection': 'keep-alive',
+      },
+    });
   } catch (error) {
     console.error('❌ IMPROVE CHAT - Error:', error);
     return NextResponse.json(

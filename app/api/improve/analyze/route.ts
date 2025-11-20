@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getAnthropicApiKey, logApiKeyStatus, callAnthropicAPI } from '@/lib/utils/api-helpers';
+import { getAnthropicApiKey, logApiKeyStatus, streamAnthropicAPI } from '@/lib/utils/api-helpers';
 import { WritingSession } from '@/lib/services/firestore';
 import { getAIFeedback } from '@/lib/services/match-sync';
 
@@ -7,7 +7,14 @@ export async function POST(request: NextRequest) {
   try {
     const { matches, userId, gradeLevel = '7th-8th' } = await request.json();
     
+    console.log('📊 IMPROVE ANALYZE - Request received:', {
+      matchesCount: matches?.length,
+      userId,
+      gradeLevel,
+    });
+    
     if (!matches || !Array.isArray(matches) || matches.length < 5) {
+      console.error('❌ IMPROVE ANALYZE - Invalid request:', { matchesCount: matches?.length });
       return NextResponse.json(
         { error: 'Need at least 5 ranked matches' },
         { status: 400 }
@@ -18,11 +25,14 @@ export async function POST(request: NextRequest) {
     const apiKey = getAnthropicApiKey();
     
     if (!apiKey) {
+      console.error('❌ IMPROVE ANALYZE - API key missing');
       return NextResponse.json(
         { error: 'API key missing' },
         { status: 500 }
       );
     }
+    
+    console.log('✅ IMPROVE ANALYZE - API key found, starting analysis...');
 
     // Fetch detailed feedback for each match if matchId is available
     const matchesWithFeedback = await Promise.all(
@@ -165,12 +175,89 @@ CRITICAL INSTRUCTIONS:
 - Be encouraging and supportive - focus on growth and progress
 - Use the strengths and improvements from their match feedback to identify patterns
 
-Format your response as a friendly, conversational analysis (not JSON). Use clear sections with emojis for visual breaks. Adjust your language complexity to match ${gradeLevel} grade level.`;
+Format your response as a friendly, conversational analysis (not JSON). Use clear sections with emojis for visual breaks. Adjust your language complexity to match ${gradeLevel} grade level.
 
-    const aiResponse = await callAnthropicAPI(apiKey, prompt, 2000);
-    const analysis = aiResponse.content[0].text;
+CRITICAL: Always end your response with a call to action asking the student what they'd like to do next. Offer options like:
+- "Would you like me to give you some specific exercises to practice?"
+- "Do you want more explanation about any of these areas?"
+- "Would you like to see examples of how to improve?"
+- "Are you ready to try a writing exercise?"
 
-    return NextResponse.json({ analysis });
+Make it conversational and encouraging, matching the ${gradeLevel} grade level.`;
+
+    console.log('🚀 IMPROVE ANALYZE - Starting streaming API call...');
+    const stream = await streamAnthropicAPI(apiKey, prompt, 2000);
+    
+    // Create a readable stream that parses SSE events and extracts text
+    const encoder = new TextEncoder();
+    const decoder = new TextDecoder();
+    
+    const readableStream = new ReadableStream({
+      async start(controller) {
+        const reader = stream.getReader();
+        let buffer = '';
+        
+        try {
+          while (true) {
+            const { done, value } = await reader.read();
+            
+            if (done) {
+              console.log('✅ IMPROVE ANALYZE - Stream complete');
+              controller.close();
+              break;
+            }
+            
+            // Decode the chunk
+            buffer += decoder.decode(value, { stream: true });
+            
+            // Process complete SSE events (lines end with \n\n)
+            const events = buffer.split('\n\n');
+            buffer = events.pop() || ''; // Keep incomplete event in buffer
+            
+            for (const event of events) {
+              if (!event.trim()) continue;
+              
+              // Parse SSE format: "data: {...}"
+              const lines = event.split('\n');
+              for (const line of lines) {
+                if (line.startsWith('data: ')) {
+                  const data = line.slice(6).trim();
+                  
+                  if (data === '[DONE]') {
+                    controller.close();
+                    return;
+                  }
+                  
+                  try {
+                    const json = JSON.parse(data);
+                    
+                    // Extract text from content_block_delta events
+                    if (json.type === 'content_block_delta' && json.delta?.text) {
+                      const text = json.delta.text;
+                      controller.enqueue(encoder.encode(text));
+                    }
+                  } catch (e) {
+                    // Ignore parse errors for non-JSON lines
+                    console.warn('⚠️ IMPROVE ANALYZE - Failed to parse SSE data:', data);
+                  }
+                }
+              }
+            }
+          }
+        } catch (error) {
+          console.error('❌ IMPROVE ANALYZE - Stream error:', error);
+          controller.error(error);
+        }
+      },
+    });
+
+    return new Response(readableStream, {
+      headers: {
+        'Content-Type': 'text/plain; charset=utf-8',
+        'Cache-Control': 'no-cache',
+        'Connection': 'keep-alive',
+      },
+    });
   } catch (error) {
     console.error('❌ IMPROVE ANALYZE - Error:', error);
     return NextResponse.json(

@@ -63,3 +63,39 @@ export async function callAnthropicAPI(
   return response.json();
 }
 
+/**
+ * Stream responses from Anthropic Claude API
+ * Returns a ReadableStream that yields text chunks
+ */
+export async function streamAnthropicAPI(
+  apiKey: string,
+  prompt: string,
+  maxTokens: number = 2000
+): Promise<ReadableStream<Uint8Array>> {
+  const response = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-api-key': apiKey,
+      'anthropic-version': '2023-06-01',
+    },
+    body: JSON.stringify({
+      model: 'claude-sonnet-4-5-20250929',
+      max_tokens: maxTokens,
+      messages: [{ role: 'user', content: prompt }],
+      stream: true,
+    }),
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Claude API request failed: ${response.status} - ${errorText}`);
+  }
+
+  if (!response.body) {
+    throw new Error('Response body is null');
+  }
+
+  return response.body;
+}
+
