@@ -200,6 +200,8 @@ export default function WritingSessionContent() {
         
         // Generate writing for each AI player in parallel
         const aiWritingPromises = aiPlayers.map(async (aiPlayer, index) => {
+          // Fire and forget - let the server handle DB storage
+          // We pass matchId so the server can save it directly
           const response = await fetch('/api/generate-ai-writing', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -208,6 +210,8 @@ export default function WritingSessionContent() {
               promptType: prompt.type,
               rank: aiPlayer.rank,
               playerName: aiPlayer.displayName,
+              matchId: sessionMatchId || sessionId, // Pass matchId for server-side storage
+              playerId: aiPlayer.userId,
             }),
           });
           
@@ -227,19 +231,11 @@ export default function WritingSessionContent() {
           };
         });
         
+        // We wait for them here just to update the UI with word counts
+        // The server handles the actual storage to Firestore
         const aiWritings = await Promise.all(aiWritingPromises);
         
-        // Store AI writings in matchStates for backward compatibility
-        // Use setDoc with merge to create if doesn't exist
-        const { setDoc } = await import('firebase/firestore');
-        await setDoc(matchRef, {
-          aiWritings: {
-            phase1: aiWritings,
-          },
-        }, { merge: true });
-        
         // Update AI word counts for UI
-        // STORE TARGETS
         aiTargetCountsRef.current = aiWritings.map(w => w.wordCount);
         console.log('[ST] Set targets from generated:', aiTargetCountsRef.current);
         setGeneratingAI(false);

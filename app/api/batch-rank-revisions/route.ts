@@ -25,7 +25,36 @@ function parseBatchRevisionRankings(claudeResponse: string, revisionSubmissions:
   console.log('✅ BATCH RANK REVISIONS - Successfully parsed AI response');
   
   const rankings = parsed.rankings.map((ranking: any) => {
-    const index = ranking.writerIndex || 0;
+    let index = ranking.writerIndex !== undefined ? ranking.writerIndex : -1;
+
+    // Fix off-by-one errors (AI sometimes uses 1-based indexing)
+    if (index === revisionSubmissions.length) {
+      console.warn(`⚠️ BATCH RANK REVISIONS - AI returned index ${index} for length ${revisionSubmissions.length}, adjusting to ${index - 1}`);
+      index = index - 1;
+    }
+
+    if (index < 0 || index >= revisionSubmissions.length) {
+      console.error(`❌ BATCH RANK REVISIONS - Index out of bounds: ${index} for length ${revisionSubmissions.length}`);
+      // Try to find by player name as fallback
+      const fallback = revisionSubmissions.find(s => s.playerName === ranking.playerName);
+      if (fallback) {
+        return {
+          playerId: fallback.playerId,
+          playerName: fallback.playerName,
+          isAI: fallback.isAI,
+          score: ranking.score,
+          rank: ranking.rank,
+          improvements: ranking.improvements || [],
+          strengths: ranking.strengths || [],
+          suggestions: ranking.suggestions || [],
+          originalContent: fallback.originalContent,
+          revisedContent: fallback.revisedContent,
+          wordCount: fallback.wordCount,
+        };
+      }
+      return null;
+    }
+
     const actualSubmission = revisionSubmissions[index];
     
     return {
@@ -41,7 +70,7 @@ function parseBatchRevisionRankings(claudeResponse: string, revisionSubmissions:
       revisedContent: actualSubmission.revisedContent,
       wordCount: actualSubmission.wordCount,
     };
-  });
+  }).filter(Boolean);
   
   return rankings;
 }

@@ -3,17 +3,19 @@ import { getAnthropicApiKey, logApiKeyStatus, callAnthropicAPI } from '@/lib/uti
 import { countWords } from '@/lib/utils/text-utils';
 import { generateMockAIWriting } from '@/lib/utils/mock-data';
 import { getSkillLevelFromRank, getGradeLevelFromRank, getSkillCharacteristics } from '@/lib/utils/skill-level';
+import { db } from '@/lib/config/firebase';
+import { doc, updateDoc, arrayUnion, setDoc, getDoc } from 'firebase/firestore';
 
 export async function POST(request: NextRequest) {
   const requestBody = await request.json();
-  const { prompt, promptType, rank, playerName } = requestBody;
+  const { prompt, promptType, rank, playerName, matchId, playerId } = requestBody;
   
   try {
     logApiKeyStatus('GENERATE AI WRITING');
     
     const apiKey = getAnthropicApiKey();
     if (!apiKey) {
-      console.warn('⚠️ GENERATE AI WRITING - API key missing, using mock');
+      console.error('❌ GENERATE AI WRITING - API key missing');
       return NextResponse.json(generateMockAIWriting(rank));
     }
 
@@ -22,6 +24,58 @@ export async function POST(request: NextRequest) {
     const aiResponse = await callAnthropicAPI(apiKey, promptText, 1000);
     const writingContent = aiResponse.content[0].text.trim();
     const wordCount = countWords(writingContent);
+
+    // Store in Firestore immediately if matchId is provided
+    if (matchId && playerId) {
+      try {
+        console.log(`💾 Saving AI writing for ${playerName} to match ${matchId}`);
+        const matchRef = doc(db, 'matchStates', matchId);
+        
+        // Create writing object
+        const aiWriting = {
+          playerId,
+          playerName,
+          content: writingContent,
+          wordCount,
+          isAI: true,
+          rank
+        };
+
+        // Use arrayUnion to append to the list safely
+        // First check if doc exists to decide set vs update
+        const docSnap = await getDoc(matchRef);
+        
+        if (docSnap.exists()) {
+          // Update existing doc - we need to handle the nested array field
+          // Since we can't easily "append" to a map field 'aiWritings.phase1' with arrayUnion directly if it doesn't exist as an array yet
+          // We'll read, append, and write back for safety or use a safer update strategy
+          const currentData = docSnap.data();
+          const currentPhase1 = currentData.aiWritings?.phase1 || [];
+          
+          // Check if already exists to avoid dups
+          if (!currentPhase1.find((w: any) => w.playerId === playerId)) {
+            await setDoc(matchRef, {
+              aiWritings: {
+                phase1: [...currentPhase1, aiWriting]
+              }
+            }, { merge: true });
+          }
+        } else {
+          // Create new doc
+          await setDoc(matchRef, {
+            matchId,
+            aiWritings: {
+              phase1: [aiWriting]
+            }
+          }, { merge: true });
+        }
+        
+        console.log(`✅ Saved AI writing for ${playerName}`);
+      } catch (dbError) {
+        console.error('❌ Failed to save AI writing to Firestore:', dbError);
+        // Continue to return response so client can handle it if needed
+      }
+    }
 
     return NextResponse.json({
       content: writingContent,

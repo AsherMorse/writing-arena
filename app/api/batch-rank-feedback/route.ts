@@ -29,7 +29,33 @@ function parseBatchFeedbackRankings(claudeResponse: string, feedbackSubmissions:
   console.log('✅ BATCH RANK FEEDBACK - Successfully parsed AI response');
   
   const rankings = parsed.rankings.map((ranking: any) => {
-    const index = ranking.evaluatorIndex || 0;
+    let index = ranking.evaluatorIndex !== undefined ? ranking.evaluatorIndex : -1;
+
+    // Fix off-by-one errors (AI sometimes uses 1-based indexing)
+    if (index === feedbackSubmissions.length) {
+      console.warn(`⚠️ BATCH RANK FEEDBACK - AI returned index ${index} for length ${feedbackSubmissions.length}, adjusting to ${index - 1}`);
+      index = index - 1;
+    }
+
+    if (index < 0 || index >= feedbackSubmissions.length) {
+      console.error(`❌ BATCH RANK FEEDBACK - Index out of bounds: ${index} for length ${feedbackSubmissions.length}`);
+      // Try to find by player name as fallback
+      const fallback = feedbackSubmissions.find(s => s.playerName === ranking.playerName);
+      if (fallback) {
+        return {
+          playerId: fallback.playerId,
+          playerName: fallback.playerName,
+          isAI: fallback.isAI,
+          score: ranking.score,
+          rank: ranking.rank,
+          strengths: ranking.strengths || [],
+          improvements: ranking.improvements || [],
+          responses: fallback.responses,
+        };
+      }
+      return null;
+    }
+
     const actualSubmission = feedbackSubmissions[index];
     
     return {
@@ -42,7 +68,7 @@ function parseBatchFeedbackRankings(claudeResponse: string, feedbackSubmissions:
       improvements: ranking.improvements || [],
       responses: actualSubmission.responses,
     };
-  });
+  }).filter(Boolean);
   
   return rankings;
 }

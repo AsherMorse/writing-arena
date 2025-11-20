@@ -27,19 +27,25 @@ function parseBatchRankings(claudeResponse: string, writings: WritingSubmission[
   const rankings = mapRankingsToPlayers(
     parsed.rankings,
     writings,
-    (ranking, idx, actualPlayer) => ({
-      playerId: actualPlayer.playerId,
-      playerName: actualPlayer.playerName,
-      isAI: actualPlayer.isAI,
-      content: actualPlayer.content,  // Include content for peer review
-      wordCount: actualPlayer.wordCount,
-      rank: ranking.rank,
-      score: ranking.score,
-      strengths: ranking.strengths || [],
-      improvements: ranking.improvements || [],
-      traitFeedback: ranking.traitFeedback || {},
-    })
-  );
+    (ranking, idx, actualPlayer) => {
+      // Note: mapRankingsToPlayers handles index matching internally, 
+      // but we can add robustness there if needed.
+      if (!actualPlayer) return null;
+      
+      return {
+        playerId: actualPlayer.playerId,
+        playerName: actualPlayer.playerName,
+        isAI: actualPlayer.isAI,
+        content: actualPlayer.content,  // Include content for peer review
+        wordCount: actualPlayer.wordCount,
+        rank: ranking.rank,
+        score: ranking.score,
+        strengths: ranking.strengths || [],
+        improvements: ranking.improvements || [],
+        traitFeedback: ranking.traitFeedback || {},
+      };
+    }
+  ).filter(Boolean);
   
   return rankings;
 }

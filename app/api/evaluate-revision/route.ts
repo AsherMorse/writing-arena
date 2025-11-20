@@ -14,8 +14,8 @@ export async function POST(request: NextRequest) {
     
     const apiKey = getAnthropicApiKey();
     if (!apiKey) {
-      console.warn('⚠️ EVALUATE REVISION - API key missing, using mock');
-      return NextResponse.json(generateMockRevisionScore(originalContent, revisedContent));
+      console.error('❌ EVALUATE REVISION - API key missing');
+      return NextResponse.json({ error: 'API key missing' }, { status: 500 });
     }
 
     // Call Claude API to evaluate the revision
@@ -26,7 +26,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(evaluation);
   } catch (error) {
     console.error('❌ EVALUATE REVISION - Error:', error);
-    return NextResponse.json(generateMockRevisionScore(originalContent, revisedContent));
+    return NextResponse.json({ error: 'Failed to evaluate revision' }, { status: 500 });
   }
 }
 
@@ -65,8 +65,8 @@ function parseRevisionEvaluation(claudeResponse: string): any {
   const parsed = parseClaudeJSON<any>(claudeResponse);
   
   if (!parsed) {
-    console.warn('⚠️ EVALUATE REVISION - Failed to parse Claude response, using mock');
-    return generateMockRevisionScore('', '');
+    console.error('⚠️ EVALUATE REVISION - Failed to parse Claude response');
+    throw new Error('Failed to parse AI response');
   }
   
   return parsed;

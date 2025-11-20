@@ -11,7 +11,7 @@ export async function POST(request: NextRequest) {
     payload = await request.json();
   } catch (error) {
     console.error('Error parsing analyze-writing body:', error);
-    return NextResponse.json(generateMockFeedback(null, 0));
+    return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 });
   }
 
   const content = payload.content || '';
@@ -19,13 +19,50 @@ export async function POST(request: NextRequest) {
   const promptType = payload.promptType || null;
   const wordCount = countWords(content);
 
+  // Check for empty or very short content to prevent high scores for nothing
+  if (wordCount < 5) {
+    return NextResponse.json({
+      overallScore: 10,
+      xpEarned: 0,
+      traits: {
+        content: 10,
+        organization: 10,
+        grammar: 10,
+        vocabulary: 10,
+        mechanics: 10,
+      },
+      strengths: [
+        "You've started the session",
+        "Waiting for your ideas",
+        "Ready to analyze your writing"
+      ],
+      improvements: [
+        "Please write at least a few sentences so I can provide meaningful feedback",
+        "Try to address the prompt topic directly",
+        "Don't be afraid to make mistakes - just get your ideas down"
+      ],
+      specificFeedback: {
+        content: "There isn't enough content here yet to analyze. Try to write at least 2-3 sentences.",
+        organization: "Once you write more, I'll help you organize your thoughts.",
+        grammar: "I need more text to help you with grammar.",
+        vocabulary: "Keep writing to show off your vocabulary!",
+        mechanics: "I'll check your punctuation and spelling once you write more.",
+      },
+      nextSteps: [
+        "Write at least 3 sentences about the prompt",
+        "Focus on getting your main idea down first",
+        "Use the 'Hint' button if you're stuck"
+      ],
+    });
+  }
+
   try {
     logApiKeyStatus('ANALYZE WRITING');
     
     const apiKey = getAnthropicApiKey();
     if (!apiKey) {
-      console.warn('⚠️ ANALYZE WRITING - API key missing, using mock feedback');
-      return NextResponse.json(generateMockFeedback(trait, wordCount));
+      console.error('❌ ANALYZE WRITING - API key missing');
+      return NextResponse.json({ error: 'API key missing' }, { status: 500 });
     }
 
     // Call Claude API for real feedback
@@ -36,7 +73,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(feedback);
   } catch (error) {
     console.error('❌ ANALYZE WRITING - Error:', error);
-    return NextResponse.json(generateMockFeedback(trait, wordCount));
+    return NextResponse.json({ error: 'Failed to analyze writing' }, { status: 500 });
   }
 }
 
@@ -107,8 +144,8 @@ function parseClaudioFeedback(claudeResponse: string, trait: string, wordCount: 
   const parsed = parseClaudeJSON<any>(claudeResponse);
   
   if (!parsed) {
-    console.warn('⚠️ ANALYZE WRITING - Failed to parse Claude response, using mock');
-    return generateMockFeedback(trait, wordCount);
+    console.error('❌ ANALYZE WRITING - Failed to parse Claude response');
+    throw new Error('Failed to parse AI response');
   }
   
   return {

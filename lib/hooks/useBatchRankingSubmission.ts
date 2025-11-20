@@ -3,7 +3,7 @@ import { getDoc, doc, updateDoc } from 'firebase/firestore';
 import { db } from '@/lib/config/firebase';
 import { clampScore } from '@/lib/constants/scoring';
 import { Phase } from '@/lib/types/session';
-import { retryUntilSuccess } from '@/lib/utils/retry';
+import { retryUntilSuccess, retryWithBackoff } from '@/lib/utils/retry';
 
 /**
  * Helper to get nested value from object using dot notation path
@@ -97,17 +97,50 @@ export function useBatchRankingSubmission<TSubmission, TSubmissionData>(
         }
       }
 
-      // Get AI submissions from Firestore
-      const matchDoc = await getDoc(doc(db, 'matchStates', options.matchId));
-      if (!matchDoc.exists()) {
-        throw new Error('Match state not found');
+      // Get AI submissions from Firestore with polling
+      // This ensures we wait for AI content to be generated if user submits quickly
+      let aiSubmissions: any[] = [];
+      let matchState: any = null;
+
+      try {
+        await retryWithBackoff(
+          async () => {
+            const matchDoc = await getDoc(doc(db, 'matchStates', options.matchId));
+            if (!matchDoc.exists()) {
+              throw new Error('Match state not found');
+            }
+
+            matchState = matchDoc.data();
+            const submissions = getNestedValue(matchState, options.firestoreKey) || [];
+
+            if (submissions.length === 0) {
+              console.log(`⏳ Phase ${options.phase} - Waiting for AI submissions to be generated...`);
+              throw new Error('AI submissions not ready'); // Force retry
+            }
+
+            aiSubmissions = submissions;
+            return true;
+          },
+          {
+            maxAttempts: 10, // Wait up to ~15 seconds total
+            delayMs: 1000,
+            exponentialBackoff: false, // Linear polling
+            onRetry: (attempt) => {
+              console.log(`🔄 Phase ${options.phase} - Polling for AI data (attempt ${attempt}/10)...`);
+            },
+          }
+        );
+      } catch (err) {
+        console.warn(`⚠️ Phase ${options.phase} - Timeout waiting for AI submissions. Proceeding with available data or failing over.`);
+        // We don't throw here immediately, we check aiSubmissions length below
       }
 
-      const matchState = matchDoc.data();
-      const aiSubmissions = getNestedValue(matchState, options.firestoreKey) || [];
-
       if (aiSubmissions.length === 0) {
-        throw new Error('AI submissions not available');
+        console.error(`❌ Phase ${options.phase} - Failed to retrieve AI submissions after waiting.`);
+        // Proceeding with empty AI submissions will likely cause the batch API to just rank the user alone,
+        // or we can throw error to trigger fallback.
+        // Throwing error is safer to ensure we don't get a "Rank 1 of 1" result incorrectly.
+        throw new Error('AI submissions not available after waiting');
       }
 
       // Prepare all submissions

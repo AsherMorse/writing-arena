@@ -39,18 +39,11 @@ export function createBatchRankingHandler<TSubmission, TRanking>(
 
       const apiKey = getAnthropicApiKey();
       if (!apiKey) {
-        console.warn(`⚠️ ${options.endpointName} - API key missing, using MOCK rankings`);
-        console.warn(`⚠️ ${options.endpointName} - MOCK rankings will be used - scores may not reflect actual quality`);
-        console.warn(`⚠️ ${options.endpointName} - To use real AI evaluation, set ANTHROPIC_API_KEY environment variable`);
-        const mockRankings = options.generateMockRankings(submissions);
-        console.log(`📊 ${options.endpointName} - Mock rankings generated:`, 
-          mockRankings.rankings?.map((r: any) => ({ 
-            player: r.playerName, 
-            score: r.score, 
-            isEmpty: !r.content || r.content.trim().length === 0 || r.wordCount === 0 
-          }))
+        console.error(`❌ ${options.endpointName} - API key missing`);
+        return NextResponse.json(
+          { error: 'API key missing - Set ANTHROPIC_API_KEY environment variable' },
+          { status: 500 }
         );
-        return NextResponse.json(mockRankings);
       }
 
       console.log(`✅ ${options.endpointName} - Using real AI evaluation for ${submissions.length} submissions`);
@@ -71,9 +64,10 @@ export function createBatchRankingHandler<TSubmission, TRanking>(
       return NextResponse.json({ rankings: rankingsArray });
     } catch (error) {
       console.error(`❌ ${options.endpointName} - Error:`, error);
-      console.warn(`⚠️ ${options.endpointName} - Falling back to MOCK rankings`);
-      return NextResponse.json(options.generateMockRankings(submissions));
+      return NextResponse.json(
+        { error: 'Failed to rank submissions', details: error instanceof Error ? error.message : String(error) },
+        { status: 500 }
+      );
     }
   };
 }
-

@@ -13,8 +13,8 @@ export async function POST(request: NextRequest) {
     
     const apiKey = getAnthropicApiKey();
     if (!apiKey) {
-      console.warn('⚠️ EVALUATE PEER FEEDBACK - API key missing, using mock');
-      return NextResponse.json(generateMockFeedbackScore(responses));
+      console.error('❌ EVALUATE PEER FEEDBACK - API key missing');
+      return NextResponse.json({ error: 'API key missing' }, { status: 500 });
     }
 
     // Call Claude API to evaluate the quality of peer feedback
@@ -25,7 +25,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(evaluation);
   } catch (error) {
     console.error('❌ EVALUATE PEER FEEDBACK - Error:', error);
-    return NextResponse.json(generateMockFeedbackScore(responses));
+    return NextResponse.json({ error: 'Failed to evaluate peer feedback' }, { status: 500 });
   }
 }
 
@@ -73,8 +73,8 @@ function parsePeerFeedbackEvaluation(claudeResponse: string): any {
   const parsed = parseClaudeJSON<any>(claudeResponse);
   
   if (!parsed) {
-    console.warn('⚠️ EVALUATE PEER FEEDBACK - Failed to parse Claude response, using mock');
-    return generateMockFeedbackScore({});
+    console.error('❌ EVALUATE PEER FEEDBACK - Failed to parse Claude response');
+    throw new Error('Failed to parse AI response');
   }
   
   return parsed;
