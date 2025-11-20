@@ -8,7 +8,7 @@ interface ModalProps {
   title?: string;
   children: React.ReactNode;
   variant?: 'default' | 'ranking' | 'tips';
-  size?: 'sm' | 'md' | 'lg';
+  size?: 'sm' | 'md' | 'lg' | 'xl';
   showCloseButton?: boolean;
 }
 
@@ -44,6 +44,7 @@ export function Modal({
     sm: 'max-w-sm',
     md: 'max-w-md',
     lg: 'max-w-lg',
+    xl: 'max-w-2xl',
   };
 
   const variantClasses = {
@@ -58,13 +59,13 @@ export function Modal({
       onClick={onClose}
     >
       <div 
-        className={`rounded-3xl border bg-[#141e27] p-12 shadow-2xl text-center mx-4 ${sizeClasses[size]} ${variantClasses[variant]}`}
+        className={`rounded-3xl border bg-[#141e27] p-12 shadow-2xl mx-4 relative max-h-[90vh] overflow-y-auto ${sizeClasses[size]} ${variantClasses[variant]}`}
         onClick={(e) => e.stopPropagation()}
       >
         {showCloseButton && (
           <button
             onClick={onClose}
-            className="absolute top-4 right-4 text-white/60 hover:text-white transition-colors"
+            className="absolute top-4 right-4 text-white/60 hover:text-white transition-colors z-10"
             aria-label="Close modal"
           >
             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -74,7 +75,7 @@ export function Modal({
         )}
         
         {title && (
-          <h2 className="text-3xl font-bold text-white mb-3">{title}</h2>
+          <h2 className="text-3xl font-bold text-white mb-6 text-center">{title}</h2>
         )}
         
         {children}

@@ -467,6 +467,19 @@ service cloud.firestore {
     }
     
     // ============================================================================
+    // IMPROVE CONVERSATIONS - Writing improvement chat history
+    // ============================================================================
+    
+    match /improveConversations/{conversationId} {
+      // Users can read their own conversations
+      allow read: if isAuthenticated() && resource.data.userId == request.auth.uid;
+      // Users can create conversations with their own userId
+      allow create: if isAuthenticated() && request.resource.data.userId == request.auth.uid;
+      // Users can update their own conversations
+      allow update: if isAuthenticated() && resource.data.userId == request.auth.uid;
+    }
+    
+    // ============================================================================
     // DEFAULT RULE - ALL OTHER COLLECTIONS (OTHER PLATFORMS)
     // This keeps existing behavior for shared collections
     // ============================================================================
