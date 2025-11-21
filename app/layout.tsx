@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 import { AuthProvider } from "@/contexts/AuthContext";
 import DebugMenu from "@/components/shared/DebugMenu";
+import { RequireAuth } from "@/components/auth/RequireAuth";
 
 export const metadata: Metadata = {
   title: "Writing Arena - Competitive Writing Platform",
@@ -15,12 +16,14 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className="antialiased" suppressHydrationWarning>
-        <AuthProvider>
+    <body className="antialiased" suppressHydrationWarning>
+      <AuthProvider>
+        <RequireAuth>
           {children}
-          <DebugMenu />
-        </AuthProvider>
-      </body>
+        </RequireAuth>
+        <DebugMenu />
+      </AuthProvider>
+    </body>
     </html>
   );
 }

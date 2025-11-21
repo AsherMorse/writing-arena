@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
+import { MarkdownRenderer } from '@/lib/utils/markdown-renderer';
 
 // Format seconds to MM:SS
 const formatTime = (seconds: number): string => {
@@ -163,8 +164,8 @@ export default function APLangWriter() {
                 </button>
               )}
             </div>
-            <div className="text-white/90 leading-relaxed whitespace-pre-wrap">
-              {prompt}
+            <div className="text-white/90 leading-relaxed">
+              <MarkdownRenderer content={prompt} />
             </div>
           </div>
         )}

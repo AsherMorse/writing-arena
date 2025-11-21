@@ -200,8 +200,7 @@ export default function WritingSessionContent() {
         
         // Generate writing for each AI player in parallel
         const aiWritingPromises = aiPlayers.map(async (aiPlayer, index) => {
-          // Fire and forget - let the server handle DB storage
-          // We pass matchId so the server can save it directly
+          // Pass matchId so the server can generate the content, but we will save it
           const response = await fetch('/api/generate-ai-writing', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -210,8 +209,8 @@ export default function WritingSessionContent() {
               promptType: prompt.type,
               rank: aiPlayer.rank,
               playerName: aiPlayer.displayName,
-              matchId: sessionMatchId || sessionId, // Pass matchId for server-side storage
-              playerId: aiPlayer.userId,
+              // We DON'T pass matchId/playerId here anymore to prevent server-side save attempts
+              // The server will just return the content
             }),
           });
           
@@ -231,8 +230,7 @@ export default function WritingSessionContent() {
           };
         });
         
-        // We wait for them here just to update the UI with word counts
-        // The server handles the actual storage to Firestore
+        // Wait for all generations to complete
         const aiWritings = await Promise.all(aiWritingPromises);
         
         // Update AI word counts for UI
@@ -241,7 +239,48 @@ export default function WritingSessionContent() {
         setGeneratingAI(false);
         setAiGenerationProgress(100);
         
-        console.log('[ST] Stored AI writings for match');
+        // CLIENT-SIDE SAVE: Store generated AI writings to Firestore
+        // This uses the client SDK which is authenticated
+        try {
+            const { setDoc, doc } = await import('firebase/firestore');
+            const matchRef = doc(db, 'matchStates', sessionMatchId || sessionId);
+            
+            // We need to update the document with the new writings
+            // For simplicity and robustness, we'll read the current doc first
+            // (though we technically did that at the start of this function)
+            const matchDoc = await getDoc(matchRef);
+            
+            if (matchDoc.exists()) {
+                const currentData = matchDoc.data();
+                const currentPhase1 = currentData.aiWritings?.phase1 || [];
+                
+                // Merge new writings with existing ones, avoiding duplicates
+                const mergedWritings = [...currentPhase1];
+                
+                for (const newWriting of aiWritings) {
+                    if (!mergedWritings.some((w: any) => w.playerId === newWriting.playerId)) {
+                        mergedWritings.push(newWriting);
+                    }
+                }
+                
+                await setDoc(matchRef, {
+                    aiWritings: {
+                        phase1: mergedWritings
+                    }
+                }, { merge: true });
+            } else {
+                // Should exist, but create if not
+                await setDoc(matchRef, {
+                    matchId: sessionMatchId || sessionId,
+                    aiWritings: {
+                        phase1: aiWritings
+                    }
+                }, { merge: true });
+            }
+            console.log('[ST] Stored AI writings for match (client-side)');
+        } catch (saveError) {
+            console.error('[ST] Failed to save AI writings to Firestore:', saveError);
+        }
         
         // AUTO-SUBMIT AI PLAYERS (they've "finished writing")
         // Submit each AI player's work to the session after a short delay (5-15 seconds)

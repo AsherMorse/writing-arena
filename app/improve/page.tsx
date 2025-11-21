@@ -8,19 +8,23 @@ import { getCompletedRankedMatches } from '@/lib/services/firestore';
 import { WritingSession } from '@/lib/services/firestore';
 import { LoadingState } from '@/components/shared/LoadingState';
 import ImproveChatInterface from '@/components/improve/ImproveChatInterface';
+import RequireAuth from '@/components/auth/RequireAuth';
 
 export default function ImprovePage() {
-  const { user, loading: authLoading } = useAuth();
+  return (
+    <RequireAuth>
+      <ImprovePageContent />
+    </RequireAuth>
+  );
+}
+
+function ImprovePageContent() {
+  const { user } = useAuth();
   const router = useRouter();
   const [rankedMatches, setRankedMatches] = useState<WritingSession[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!authLoading && !user) {
-      router.push('/');
-      return;
-    }
-
     if (user) {
       const fetchMatches = async () => {
         try {
@@ -39,9 +43,9 @@ export default function ImprovePage() {
       };
       fetchMatches();
     }
-  }, [user, authLoading, router]);
+  }, [user, router]);
 
-  if (authLoading || loading) {
+  if (loading) {
     return (
       <div className="min-h-screen bg-[#0c141d]">
         <Header />
@@ -50,7 +54,7 @@ export default function ImprovePage() {
     );
   }
 
-  if (!user || rankedMatches.length < 5) {
+  if (rankedMatches.length < 5) {
     return null; // Will redirect
   }
 

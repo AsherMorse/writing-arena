@@ -3,8 +3,7 @@ import { getAnthropicApiKey, logApiKeyStatus, callAnthropicAPI } from '@/lib/uti
 import { countWords } from '@/lib/utils/text-utils';
 import { generateMockAIWriting } from '@/lib/utils/mock-data';
 import { getSkillLevelFromRank, getGradeLevelFromRank, getSkillCharacteristics } from '@/lib/utils/skill-level';
-import { db } from '@/lib/config/firebase';
-import { doc, updateDoc, arrayUnion, setDoc, getDoc } from 'firebase/firestore';
+import { adminDb } from '@/lib/config/firebase-admin';
 
 export async function POST(request: NextRequest) {
   const requestBody = await request.json();
@@ -29,7 +28,8 @@ export async function POST(request: NextRequest) {
     if (matchId && playerId) {
       try {
         console.log(`💾 Saving AI writing for ${playerName} to match ${matchId}`);
-        const matchRef = doc(db, 'matchStates', matchId);
+        
+        const matchRef = adminDb.collection('matchStates').doc(matchId);
         
         // Create writing object
         const aiWriting = {
@@ -41,34 +41,38 @@ export async function POST(request: NextRequest) {
           rank
         };
 
-        // Use arrayUnion to append to the list safely
-        // First check if doc exists to decide set vs update
-        const docSnap = await getDoc(matchRef);
+        // Use admin SDK for array updates
+        // Since this runs on the server, we bypass client-side auth rules
+        // We need to use a transaction or update to handle the nested array
         
-        if (docSnap.exists()) {
-          // Update existing doc - we need to handle the nested array field
-          // Since we can't easily "append" to a map field 'aiWritings.phase1' with arrayUnion directly if it doesn't exist as an array yet
-          // We'll read, append, and write back for safety or use a safer update strategy
-          const currentData = docSnap.data();
-          const currentPhase1 = currentData.aiWritings?.phase1 || [];
+        await adminDb.runTransaction(async (transaction) => {
+          const docSnap = await transaction.get(matchRef);
           
-          // Check if already exists to avoid dups
-          if (!currentPhase1.find((w: any) => w.playerId === playerId)) {
-            await setDoc(matchRef, {
+          if (!docSnap.exists) {
+            transaction.set(matchRef, {
+              matchId,
               aiWritings: {
-                phase1: [...currentPhase1, aiWriting]
+                phase1: [aiWriting]
               }
             }, { merge: true });
-          }
-        } else {
-          // Create new doc
-          await setDoc(matchRef, {
-            matchId,
-            aiWritings: {
-              phase1: [aiWriting]
+          } else {
+            const data = docSnap.data();
+            const currentPhase1 = data?.aiWritings?.phase1 || [];
+            
+            // Check if already exists to avoid dups
+            if (!currentPhase1.find((w: any) => w.playerId === playerId)) {
+              // Create updated aiWritings object (preserving other phases if they existed)
+              const updatedAiWritings = {
+                ...(data?.aiWritings || {}),
+                phase1: [...currentPhase1, aiWriting]
+              };
+              
+              transaction.update(matchRef, {
+                aiWritings: updatedAiWritings
+              });
             }
-          }, { merge: true });
-        }
+          }
+        });
         
         console.log(`✅ Saved AI writing for ${playerName}`);
       } catch (dbError) {
@@ -123,8 +127,3 @@ Important:
 
 Begin writing now:`;
 }
-
-// Skill level utilities moved to lib/utils/skill-level.ts
-
-// Mock data generation moved to lib/utils/mock-data.ts
-

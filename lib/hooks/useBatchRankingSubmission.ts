@@ -245,10 +245,12 @@ export function useBatchRankingSubmission<TSubmission, TSubmissionData>(
         [options.rankingsKey]: rankings,
         [`feedback.${options.userId}.phase${options.phase}`]: userFeedback,
       });
-
+      
       console.log(`✅ Stored feedback for phase ${options.phase}:`, {
-        hasStrengths: userFeedback.strengths?.length > 0,
-        hasImprovements: userFeedback.improvements?.length > 0,
+        userId: options.userId,
+        phase: options.phase,
+        feedbackPath: `feedback.${options.userId}.phase${options.phase}`,
+        feedbackData: userFeedback
       });
 
       // Submit phase with clamped score

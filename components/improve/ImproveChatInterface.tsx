@@ -24,6 +24,7 @@ export default function ImproveChatInterface({ rankedMatches }: ImproveChatInter
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [initialized, setInitialized] = useState(false);
+  const analysisStarted = useRef(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   
   // Modal states
@@ -86,12 +87,15 @@ export default function ImproveChatInterface({ rankedMatches }: ImproveChatInter
     setMessages([]);
     setCurrentConversationId(null);
     setInitialized(false);
+    analysisStarted.current = false;
     setShowHistory(false);
   };
 
   // Initialize with welcome message and analysis
   useEffect(() => {
-    if (!initialized && rankedMatches.length >= 5) {
+    if (!initialized && !analysisStarted.current && rankedMatches.length >= 5) {
+      analysisStarted.current = true;
+
       const welcomeMessage: Message = {
         id: 'welcome',
         role: 'assistant',
