@@ -41,7 +41,8 @@ export function useAsyncData<T>(
     if (immediate) {
       fetchData();
     }
-  }, dependencies);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [...dependencies, fetchData]);
 
   const refetch = useCallback(() => {
     return fetchData();

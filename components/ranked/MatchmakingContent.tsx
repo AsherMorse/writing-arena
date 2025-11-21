@@ -501,7 +501,7 @@ export default function MatchmakingContent() {
         }
       })();
     }
-  }, [countdown, router, trait, userId, userName, players, selectedAIStudents, queueSnapshot, startSession, currentSessionId, finalPlayersRef, createMatchLobby]);
+  }, [countdown, router, trait, userId, userName, players, selectedAIStudents, queueSnapshot, startSession, currentSessionId, finalPlayersRef]);
 
   return (
     <div className="min-h-screen bg-[#0c141d] text-white">

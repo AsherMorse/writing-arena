@@ -8,7 +8,7 @@ import { getCompletedRankedMatches } from '@/lib/services/firestore';
 import { WritingSession } from '@/lib/services/firestore';
 import { LoadingState } from '@/components/shared/LoadingState';
 import ImproveChatInterface from '@/components/improve/ImproveChatInterface';
-import RequireAuth from '@/components/auth/RequireAuth';
+import { RequireAuth } from '@/components/auth/RequireAuth';
 
 export default function ImprovePage() {
   return (

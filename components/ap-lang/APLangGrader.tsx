@@ -3,8 +3,11 @@
 import { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 
+type EssayType = 'argument' | 'rhetorical-analysis' | 'synthesis';
+
 export default function APLangGrader() {
   const { user } = useAuth();
+  const [essayType, setEssayType] = useState<EssayType>('argument');
   const [prompt, setPrompt] = useState('');
   const [essay, setEssay] = useState('');
   const [isGrading, setIsGrading] = useState(false);
@@ -28,6 +31,7 @@ export default function APLangGrader() {
         body: JSON.stringify({
           prompt,
           essay,
+          essayType,
         }),
       });
 
@@ -54,6 +58,63 @@ export default function APLangGrader() {
       </div>
 
       <div className="space-y-6">
+        {/* Essay Type Selector */}
+        <div>
+          <label className="block text-sm font-semibold text-white mb-3">
+            Essay Type
+          </label>
+          <div className="grid grid-cols-3 gap-3">
+            <button
+              onClick={() => setEssayType('argument')}
+              className={`px-4 py-3 rounded-xl font-medium transition ${
+                essayType === 'argument'
+                  ? 'bg-emerald-500 text-[#0c141d]'
+                  : 'bg-white/5 text-white/70 hover:bg-white/10'
+              }`}
+            >
+              Argument
+            </button>
+            <button
+              onClick={() => setEssayType('rhetorical-analysis')}
+              className={`px-4 py-3 rounded-xl font-medium transition ${
+                essayType === 'rhetorical-analysis'
+                  ? 'bg-emerald-500 text-[#0c141d]'
+                  : 'bg-white/5 text-white/70 hover:bg-white/10'
+              }`}
+            >
+              Rhetorical Analysis
+            </button>
+            <button
+              onClick={() => setEssayType('synthesis')}
+              className={`px-4 py-3 rounded-xl font-medium transition ${
+                essayType === 'synthesis'
+                  ? 'bg-emerald-500 text-[#0c141d]'
+                  : 'bg-white/5 text-white/70 hover:bg-white/10'
+              }`}
+            >
+              Synthesis
+            </button>
+          </div>
+          
+          {/* Essay Type Description */}
+          <div className="mt-3 bg-white/5 rounded-lg p-3 text-xs text-white/70">
+            {essayType === 'argument' && (
+              <>
+                <strong className="text-white">Argument Essay:</strong> Develop an evidence-based argument on a given topic. Your thesis should establish a clear line of reasoning supported by specific evidence and commentary.
+              </>
+            )}
+            {essayType === 'rhetorical-analysis' && (
+              <>
+                <strong className="text-white">Rhetorical Analysis Essay:</strong> Analyze how an author uses rhetorical strategies to achieve their purpose. Focus on explaining HOW and WHY the choices work, not just identifying them.
+              </>
+            )}
+            {essayType === 'synthesis' && (
+              <>
+                <strong className="text-white">Synthesis Essay:</strong> Develop an argument that synthesizes information from at least 3 provided sources. Integrate sources to support your position, don&apos;t just summarize them.
+              </>
+            )}
+          </div>
+        </div>
         {/* Prompt Input */}
         <div>
           <label className="block text-sm font-semibold text-white mb-2">
@@ -113,12 +174,23 @@ export default function APLangGrader() {
             {/* Scoring Breakdown */}
             <div className="grid md:grid-cols-3 gap-4">
               <div className="bg-white/5 rounded-lg p-4">
-                <div className="text-xs text-white/60 mb-1">Thesis</div>
+                <div className="text-xs text-white/60 mb-1">
+                  {essayType === 'rhetorical-analysis' 
+                    ? 'Thesis (Rhetorical Choices)' 
+                    : essayType === 'synthesis'
+                    ? 'Thesis (Position)'
+                    : 'Thesis'}
+                </div>
                 <div className="text-2xl font-bold text-white">{result.thesisScore}/1</div>
               </div>
               <div className="bg-white/5 rounded-lg p-4">
                 <div className="text-xs text-white/60 mb-1">Evidence & Commentary</div>
                 <div className="text-2xl font-bold text-white">{result.evidenceScore}/4</div>
+                {essayType === 'synthesis' && (
+                  <div className="text-xs text-white/40 mt-1">
+                    (Must cite 3+ sources for 4 pts)
+                  </div>
+                )}
               </div>
               <div className="bg-white/5 rounded-lg p-4">
                 <div className="text-xs text-white/60 mb-1">Sophistication</div>

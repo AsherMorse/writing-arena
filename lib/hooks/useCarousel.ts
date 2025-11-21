@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 
 interface UseCarouselOptions<T> {
   items: T[];
@@ -14,9 +14,9 @@ export function useCarousel<T>(options: UseCarouselOptions<T>) {
   const { items, interval = 5000, autoPlay = true } = options;
   const [currentIndex, setCurrentIndex] = useState(0);
   
-  const next = () => {
+  const next = useCallback(() => {
     setCurrentIndex(prev => (prev + 1) % items.length);
-  };
+  }, [items.length]);
   
   const prev = () => {
     setCurrentIndex(prev => (prev - 1 + items.length) % items.length);
@@ -31,7 +31,7 @@ export function useCarousel<T>(options: UseCarouselOptions<T>) {
     
     const timer = setInterval(next, interval);
     return () => clearInterval(timer);
-  }, [items.length, interval, autoPlay]);
+  }, [items.length, interval, autoPlay, next]);
   
   return {
     currentIndex,

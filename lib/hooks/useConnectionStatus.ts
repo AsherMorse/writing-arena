@@ -80,7 +80,9 @@ export function useConnectionStatus(): ConnectionStatus {
     return () => {
       if (heartbeatInterval) clearInterval(heartbeatInterval);
       if (heartbeatInterval2) clearInterval(heartbeatInterval2);
-      if (reconnectTimeoutRef.current) clearTimeout(reconnectTimeoutRef.current);
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+      const timeout = reconnectTimeoutRef.current;
+      if (timeout) clearTimeout(timeout);
     };
   }, [isConnected]);
 

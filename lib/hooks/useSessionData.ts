@@ -8,7 +8,7 @@ import { GameSession, SessionPlayer } from '@/lib/types/session';
 export function useSessionData(session: GameSession | null) {
   const matchId = session?.matchId || '';
   const config = session?.config;
-  const players = session?.players || {};
+  const players = useMemo(() => session?.players || {}, [session?.players]);
   const coordination = session?.coordination;
   const sessionId = session?.sessionId || '';
   const state = session?.state;

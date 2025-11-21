@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useEffect, useMemo } from 'react';
+import { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import { WritingSession, saveImproveConversation, updateImproveConversation, getImproveConversations, ImproveConversation } from '@/lib/services/firestore';
 import { useAuth } from '@/contexts/AuthContext';
 import { getGradeLevelFromRank } from '@/lib/utils/skill-level';
@@ -91,39 +91,8 @@ export default function ImproveChatInterface({ rankedMatches }: ImproveChatInter
     setShowHistory(false);
   };
 
-  // Initialize with welcome message and analysis
-  useEffect(() => {
-    if (!initialized && !analysisStarted.current && rankedMatches.length >= 5) {
-      analysisStarted.current = true;
-
-      const welcomeMessage: Message = {
-        id: 'welcome',
-        role: 'assistant',
-        content: `Hi ${user?.displayName || 'there'}! 👋
-
-I've reviewed your last 5 ranked matches and I'm here to help you improve your writing using The Writing Revolution (TWR) methodology.
-
-Let me analyze your performance...`,
-        timestamp: new Date(),
-      };
-      
-      setMessages([welcomeMessage]);
-      setInitialized(true);
-      
-      // Generate initial analysis
-      generateInitialAnalysis();
-    }
-  }, [rankedMatches, initialized, user]);
-
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  };
-
-  useEffect(() => {
-    scrollToBottom();
-  }, [messages]);
-
-  const generateInitialAnalysis = async () => {
+  // Generate initial analysis function (defined before useEffect that uses it)
+  const generateInitialAnalysis = useCallback(async () => {
     setIsLoading(true);
     console.log('📊 IMPROVE - Starting initial analysis...', {
       matchesCount: rankedMatches.length,
@@ -217,7 +186,39 @@ Let me analyze your performance...`,
     } finally {
       setIsLoading(false);
     }
+  }, [rankedMatches, user, userProfile]);
+
+  // Initialize with welcome message and analysis
+  useEffect(() => {
+    if (!initialized && !analysisStarted.current && rankedMatches.length >= 5) {
+      analysisStarted.current = true;
+
+      const welcomeMessage: Message = {
+        id: 'welcome',
+        role: 'assistant',
+        content: `Hi ${user?.displayName || 'there'}! 👋
+
+I've reviewed your last 5 ranked matches and I'm here to help you improve your writing using The Writing Revolution (TWR) methodology.
+
+Let me analyze your performance...`,
+        timestamp: new Date(),
+      };
+      
+      setMessages([welcomeMessage]);
+      setInitialized(true);
+      
+      // Generate initial analysis
+      generateInitialAnalysis();
+    }
+  }, [rankedMatches, initialized, user, generateInitialAnalysis]);
+
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
+
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages]);
 
   const handleSend = async () => {
     if (!input.trim() || isLoading) return;
