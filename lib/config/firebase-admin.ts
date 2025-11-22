@@ -1,3 +1,9 @@
+// This file should only be imported in server-side code (API routes)
+// Marking as server-only to prevent client bundling
+if (typeof window !== 'undefined') {
+  throw new Error('firebase-admin can only be used in server-side code');
+}
+
 import { initializeApp, getApps, cert, App } from 'firebase-admin/app';
 import { getFirestore } from 'firebase-admin/firestore';
 

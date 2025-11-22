@@ -17,30 +17,22 @@ export default function AuthContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
-  // Get redirect URL from query params or sessionStorage
-  const getRedirectUrl = (): string => {
-    const redirectParam = searchParams.get('redirect');
-    const storedRedirect = sessionStorage.getItem('authRedirect');
-    return redirectParam 
-      ? decodeURIComponent(redirectParam)
-      : storedRedirect 
-        ? decodeURIComponent(storedRedirect)
-        : '/dashboard';
-  };
-
-  // Handle redirect after successful auth
-  const handleAuthSuccess = () => {
-    const redirectTo = getRedirectUrl();
-    sessionStorage.removeItem('authRedirect');
-    router.push(redirectTo);
-  };
-
   // Redirect if already logged in
   useEffect(() => {
     if (user) {
       setLoading(false);
-      const redirectTo = getRedirectUrl();
-      sessionStorage.removeItem('authRedirect');
+      // Get redirect URL from query params or sessionStorage
+      const redirectParam = searchParams.get('redirect');
+      const storedRedirect = typeof window !== 'undefined' ? sessionStorage.getItem('authRedirect') : null;
+      const redirectTo = redirectParam 
+        ? decodeURIComponent(redirectParam)
+        : storedRedirect 
+          ? decodeURIComponent(storedRedirect)
+          : '/dashboard';
+      
+      if (typeof window !== 'undefined') {
+        sessionStorage.removeItem('authRedirect');
+      }
       router.push(redirectTo);
     }
   }, [user, router, searchParams]);

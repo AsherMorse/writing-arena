@@ -1,8 +1,10 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import "./globals.css";
 import { AuthProvider } from "@/contexts/AuthContext";
 import DebugMenu from "@/components/shared/DebugMenu";
 import { RequireAuth } from "@/components/auth/RequireAuth";
+import { LoadingState } from "@/components/shared/LoadingState";
 
 export const metadata: Metadata = {
   title: "Writing Arena - Competitive Writing Platform",
@@ -18,9 +20,11 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning>
     <body className="antialiased" suppressHydrationWarning>
       <AuthProvider>
-        <RequireAuth>
-          {children}
-        </RequireAuth>
+        <Suspense fallback={<LoadingState message="Loading..." />}>
+          <RequireAuth>
+            {children}
+          </RequireAuth>
+        </Suspense>
         <DebugMenu />
       </AuthProvider>
     </body>
