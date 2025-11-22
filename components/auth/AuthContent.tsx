@@ -1,7 +1,7 @@
 'use client';
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useEffect } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import Link from 'next/link';
 
@@ -13,8 +13,37 @@ export default function AuthContent() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   
-  const { signIn, signUp, signInWithGoogle } = useAuth();
+  const { signIn, signUp, signInWithGoogle, user } = useAuth();
   const router = useRouter();
+  const searchParams = useSearchParams();
+
+  // Get redirect URL from query params or sessionStorage
+  const getRedirectUrl = (): string => {
+    const redirectParam = searchParams.get('redirect');
+    const storedRedirect = sessionStorage.getItem('authRedirect');
+    return redirectParam 
+      ? decodeURIComponent(redirectParam)
+      : storedRedirect 
+        ? decodeURIComponent(storedRedirect)
+        : '/dashboard';
+  };
+
+  // Handle redirect after successful auth
+  const handleAuthSuccess = () => {
+    const redirectTo = getRedirectUrl();
+    sessionStorage.removeItem('authRedirect');
+    router.push(redirectTo);
+  };
+
+  // Redirect if already logged in
+  useEffect(() => {
+    if (user) {
+      setLoading(false);
+      const redirectTo = getRedirectUrl();
+      sessionStorage.removeItem('authRedirect');
+      router.push(redirectTo);
+    }
+  }, [user, router, searchParams]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -30,10 +59,10 @@ export default function AuthContent() {
       } else {
         await signIn(email, password);
       }
-      router.push('/dashboard');
+      // Auth success will be handled by useEffect watching user state
+      // Don't setLoading(false) here - let useEffect handle redirect
     } catch (err: any) {
       setError(err.message || 'Authentication failed');
-    } finally {
       setLoading(false);
     }
   };
@@ -44,10 +73,10 @@ export default function AuthContent() {
     
     try {
       await signInWithGoogle();
-      router.push('/dashboard');
+      // Auth success will be handled by useEffect watching user state
+      // Don't setLoading(false) here - let useEffect handle redirect
     } catch (err: any) {
       setError(err.message || 'Google sign-in failed');
-    } finally {
       setLoading(false);
     }
   };
@@ -66,10 +95,10 @@ export default function AuthContent() {
           throw signUpError;
         }
       }
-      router.push('/dashboard');
+      // Auth success will be handled by useEffect watching user state
+      // Don't setLoading(false) here - let useEffect handle redirect
     } catch (err: any) {
       setError(err.message || 'Demo account failed');
-    } finally {
       setLoading(false);
     }
   };

@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useRouter, usePathname } from 'next/navigation';
+import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { LoadingState } from '@/components/shared/LoadingState';
 
@@ -9,22 +9,22 @@ export function RequireAuth({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
+  const searchParams = useSearchParams();
   const [isAuthorized, setIsAuthorized] = useState(false);
 
   useEffect(() => {
     if (!loading) {
       if (!user) {
         // Public routes that don't require auth
-        const publicRoutes = ['/', '/auth', '/ap-lang', '/improve'];
-        const isPublicRoute = publicRoutes.includes(pathname) || 
-                             pathname.startsWith('/auth') || 
-                             pathname === '/';
+        const publicRoutes = ['/', '/auth'];
+        const isPublicRoute = publicRoutes.includes(pathname) || pathname.startsWith('/auth');
         
         if (!isPublicRoute) {
           console.log('🔒 Redirecting to auth page from:', pathname);
           // Store the attempted URL to redirect back after login
-          // We could use a query param or sessionStorage for this
-          router.push('/auth');
+          const redirectUrl = encodeURIComponent(pathname + (searchParams.toString() ? `?${searchParams.toString()}` : ''));
+          sessionStorage.setItem('authRedirect', redirectUrl);
+          router.push(`/auth?redirect=${redirectUrl}`);
         } else {
           setIsAuthorized(true);
         }
@@ -32,13 +32,23 @@ export function RequireAuth({ children }: { children: React.ReactNode }) {
         // User is authenticated
         setIsAuthorized(true);
         
-        // If on auth page and logged in, redirect to dashboard
+        // If on auth page and logged in, check for redirect or go to dashboard
         if (pathname === '/auth') {
-          router.push('/dashboard');
+          const redirectParam = searchParams.get('redirect');
+          const storedRedirect = sessionStorage.getItem('authRedirect');
+          const redirectTo = redirectParam 
+            ? decodeURIComponent(redirectParam)
+            : storedRedirect 
+              ? decodeURIComponent(storedRedirect)
+              : '/dashboard';
+          
+          // Clear the stored redirect
+          sessionStorage.removeItem('authRedirect');
+          router.push(redirectTo);
         }
       }
     }
-  }, [user, loading, router, pathname]);
+  }, [user, loading, router, pathname, searchParams]);
 
   if (loading) {
     return <LoadingState message="Checking authentication..." />;
