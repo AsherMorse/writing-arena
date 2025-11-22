@@ -8,6 +8,7 @@
 import { randomScore } from './random-utils';
 import { SCORING } from '@/lib/constants/scoring';
 import { countWords } from './text-utils';
+import { calculateXPEarned } from './score-calculator';
 
 export function generateMockRanking(
   playerId: string,
@@ -113,7 +114,7 @@ export function generateMockPracticeFeedback(wordCount: number): any {
   const base = Math.min(100, Math.max(45, 60 + wordCount / 8));
   return {
     overallScore: Math.round(base),
-    xpEarned: Math.round(base * 1.2),
+    xpEarned: calculateXPEarned(base, 'practice'),
     traits: {
       content: Math.round(base + Math.random() * 10 - 5),
       organization: Math.round(base + Math.random() * 10 - 5),

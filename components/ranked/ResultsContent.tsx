@@ -292,7 +292,7 @@ export default function ResultsContent({ session }: ResultsContentProps = {}) {
                 aiPlacement === 3 ? 12 : 
                 aiPlacement === 4 ? -5 : -15;
               
-              const aiXP = Math.round(aiComposite * 2.5);
+              const aiXP = calculateXPEarned(aiComposite, 'ranked');
               const aiIsWin = aiPlacement === 1;
               
               // Extract AI student ID from their data

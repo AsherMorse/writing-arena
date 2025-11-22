@@ -4,6 +4,7 @@ import { Suspense, useState } from 'react';
 import Link from 'next/link';
 import { useAuth } from '@/contexts/AuthContext';
 import { saveWritingSession, updateUserStatsAfterSession } from '@/lib/services/firestore';
+import { calculateXPEarned } from '@/lib/utils/score-calculator';
 import { getMedalEmoji } from '@/lib/utils/rank-utils';
 import { rankPlayers, getPlayerRank } from '@/lib/utils/ranking-utils';
 import { useAsyncData } from '@/lib/hooks/useAsyncData';
@@ -47,7 +48,9 @@ function ResultsContentInner() {
         
         const rankings = rankPlayers(allPlayers, 'score').map(p => ({ ...p, rank: p.position }));
         const yourRank = getPlayerRank(rankings, user?.uid);
-        const xpEarned = Math.round(yourScore * 1.5) + (rankings.length - yourRank + 1) * 8;
+        const baseXP = calculateXPEarned(yourScore, 'quick-match');
+        const placementBonus = (rankings.length - yourRank + 1) * 2;
+        const xpEarned = baseXP + placementBonus;
         const pointsEarned = Math.round(yourScore) + (yourRank === 1 ? 25 : 0);
         const isVictory = yourRank === 1;
 
@@ -90,7 +93,7 @@ function ResultsContentInner() {
           setResults({ 
             rankings, 
             yourRank, 
-            xpEarned: Math.round(fallbackScore * 1.5), 
+            xpEarned: calculateXPEarned(fallbackScore, 'quick-match'), 
             pointsEarned: Math.round(fallbackScore), 
             isVictory: yourRank === 1 
           });

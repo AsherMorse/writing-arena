@@ -4,6 +4,7 @@ import { getAnthropicApiKey, logApiKeyStatus, callAnthropicAPI } from '@/lib/uti
 import { parseClaudeJSON } from '@/lib/utils/claude-parser';
 import { countWords } from '@/lib/utils/text-utils';
 import { randomScore } from '@/lib/utils/random-utils';
+import { calculateXPEarned } from '@/lib/utils/score-calculator';
 
 export async function POST(request: NextRequest) {
   let payload: { content?: string; trait?: string | null; promptType?: string | null };
@@ -150,7 +151,7 @@ function parseClaudioFeedback(claudeResponse: string, trait: string, wordCount: 
   
   return {
     ...parsed,
-    xpEarned: Math.round(parsed.overallScore * 1.5),
+    xpEarned: calculateXPEarned(parsed.overallScore, 'practice'),
   };
 }
 
@@ -159,7 +160,7 @@ function generateMockFeedback(focusTrait: string | null, words: number) {
   
   return {
     overallScore: Math.round(baseScore),
-    xpEarned: Math.round(baseScore * 1.5),
+    xpEarned: calculateXPEarned(baseScore, 'practice'),
     traits: {
       content: randomScore(baseScore, 5),
       organization: randomScore(baseScore, 5),

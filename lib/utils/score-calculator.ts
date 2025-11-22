@@ -43,9 +43,9 @@ export function calculateLPChange(rank: number, totalPlayers: number = 5): numbe
  */
 export function calculateXPEarned(compositeScore: number, mode: 'ranked' | 'quick-match' | 'practice' = 'ranked'): number {
   const multipliers = {
-    ranked: 2.5,
-    'quick-match': 1.5,
-    practice: 1.2,
+    ranked: 0.3,
+    'quick-match': 0.2,
+    practice: 0.15,
   };
   return Math.round(compositeScore * multipliers[mode]);
 }
