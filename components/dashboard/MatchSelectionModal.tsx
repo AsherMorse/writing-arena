@@ -46,7 +46,7 @@ export default function MatchSelectionModal({ isOpen, onClose }: MatchSelectionM
       label: 'Ranked',
       icon: '🏆',
       summary: 'Fight for leaderboard glory with three competitive phases.',
-      route: '/ranked',
+      route: '/ranked/matchmaking',
       disabled: false,
     },
     {

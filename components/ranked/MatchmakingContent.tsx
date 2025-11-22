@@ -57,6 +57,8 @@ export default function MatchmakingContent() {
   const [sharedMatchId, setSharedMatchId] = useState<string | null>(null);
   const lobbyListenerRef = useRef<(() => void) | null>(null);
   const [hasFilledWithAI, setHasFilledWithAI] = useState(false);
+  const [showStartModal, setShowStartModal] = useState(true);
+  const startModalChoiceRef = useRef<'wait' | 'ai' | null>(null);
 
   const buildAIPlayer = useCallback(
     (student: any, fallbackRank: string = userRank) => ({
@@ -68,6 +70,87 @@ export default function MatchmakingContent() {
     }),
     [userRank],
   );
+
+  // Function to fill lobby with AI players (extracted for reuse)
+  const fillLobbyWithAI = useCallback(async () => {
+    console.log('🚀 MATCHMAKING - Filling with AI players...');
+    setHasFilledWithAI(true);
+    
+    // Stop AI backfill interval
+    if (aiBackfillIntervalRef.current) {
+      clearInterval(aiBackfillIntervalRef.current);
+      aiBackfillIntervalRef.current = null;
+    }
+    
+    // Ensure we have AI students loaded
+    let aiStudents = selectedAIStudents;
+    if (aiStudents.length === 0) {
+      console.log('🤖 MATCHMAKING - Fetching AI students...');
+      aiStudents = await getRandomAIStudents(userRank, 4);
+      if (aiStudents.length > 0) {
+        setSelectedAIStudents(aiStudents);
+      }
+    }
+    
+    if (aiStudents.length === 0) {
+      console.warn('⚠️ MATCHMAKING - No AI students available');
+      setHasFilledWithAI(false);
+      return;
+    }
+    
+    // Leave queue since we're not waiting for real players
+    if (user) {
+      leaveQueue(userId).catch(err => 
+        console.error('Error leaving queue:', err)
+      );
+    }
+    
+    // Calculate how many AI players to add
+    const currentPlayerCount = players.length;
+    const slotsRemaining = 5 - currentPlayerCount;
+    if (slotsRemaining <= 0) return;
+      
+    const aiToAdd = aiStudents
+      .slice(0, slotsRemaining)
+      .map(ai => buildAIPlayer(ai));
+      
+    // Add AI players to Firestore session FIRST (before updating local state)
+    if (!currentSessionId) {
+      console.error('❌ MATCHMAKING - No session ID available!');
+      setHasFilledWithAI(false);
+      return;
+    }
+    
+    try {
+      await Promise.all(
+        aiToAdd.map((aiPlayer, index) => {
+          const aiStudent = aiStudents[index];
+          if (aiStudent) {
+            return addPlayerToSession(
+              currentSessionId,
+              aiPlayer.userId,
+              {
+                displayName: aiStudent.displayName || 'AI Player',
+                avatar: aiStudent.avatar || '🤖',
+                rank: aiStudent.currentRank || 'Silver III',
+              },
+              true // isAI
+            );
+          }
+          return Promise.resolve();
+        })
+      );
+    } catch (error) {
+      console.error('❌ MATCHMAKING - Failed to add AI players:', error);
+      setHasFilledWithAI(false);
+      return;
+    }
+    
+    // Now update local state (this will trigger countdown)
+    setPlayers(prev => {
+      return [...prev, ...aiToAdd].slice(0, 5);
+    });
+  }, [selectedAIStudents, userRank, userId, user, players, currentSessionId, buildAIPlayer, addPlayerToSession]);
 
   const displayPlayers = useMemo(() => {
     const hasSelf = players.some(p => p.userId === userId);
@@ -148,9 +231,40 @@ export default function MatchmakingContent() {
     autoPlay: countdown === null, // Stop auto-play when countdown starts
   });
 
-  // Join queue and listen for players
+  // Handle AI choice: create session and fill with AI (skip queue)
   useEffect(() => {
-    if (!user || !userProfile || hasJoinedQueueRef.current) return;
+    if (!user || !userProfile || showStartModal || startModalChoiceRef.current !== 'ai' || hasJoinedQueueRef.current) return;
+    
+    const startAIMatch = async () => {
+      hasJoinedQueueRef.current = true;
+      console.log('🤖 MATCHMAKING - Starting AI match...');
+      
+      try {
+        // Create session without joining queue
+        const playerInfo = {
+          displayName: userName,
+          avatar: userAvatar,
+          rank: userRank,
+        };
+        
+        const session = await findOrJoinSession(userId, playerInfo, trait);
+        setCurrentSessionId(session.sessionId);
+        
+        // Wait a moment for session to be set, then fill with AI
+        setTimeout(async () => {
+          await fillLobbyWithAI();
+        }, 500);
+      } catch (error) {
+        console.error('❌ MATCHMAKING - Failed to start AI match:', error);
+      }
+    };
+    
+    startAIMatch();
+  }, [user, userProfile, showStartModal, userId, userName, userAvatar, userRank, trait, findOrJoinSession, fillLobbyWithAI]);
+
+  // Join queue and listen for players (only after modal choice to wait)
+  useEffect(() => {
+    if (!user || !userProfile || hasJoinedQueueRef.current || showStartModal || startModalChoiceRef.current !== 'wait') return;
 
     console.log('🎮 MATCHMAKING - Starting matchmaking for:', userName);
     hasJoinedQueueRef.current = true;
@@ -342,7 +456,7 @@ export default function MatchmakingContent() {
         );
       }
     };
-  }, [user, userProfile, userId, userName, userAvatar, userRank, trait, buildAIPlayer, findOrJoinSession, addPlayerToSession, currentSessionId, players]);
+  }, [user, userProfile, userId, userName, userAvatar, userRank, trait, buildAIPlayer, findOrJoinSession, addPlayerToSession, currentSessionId, players, showStartModal, fillLobbyWithAI]);
 
   useEffect(() => {
     if (typeof window === 'undefined') return undefined;
@@ -503,8 +617,61 @@ export default function MatchmakingContent() {
     }
   }, [countdown, router, trait, userId, userName, players, selectedAIStudents, queueSnapshot, startSession, currentSessionId, finalPlayersRef]);
 
+  // Handle modal choice
+  const handleStartChoice = async (choice: 'wait' | 'ai') => {
+    startModalChoiceRef.current = choice;
+    setShowStartModal(false);
+    
+    // If AI chosen, we'll fill after session is created (handled in useEffect)
+    // If wait chosen, normal matchmaking proceeds
+  };
+
   return (
     <div className="min-h-screen bg-[#0c141d] text-white">
+      {/* Start Modal */}
+      {showStartModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm">
+          <div className="rounded-3xl border border-white/20 bg-[#141e27] p-12 shadow-2xl mx-4 max-w-2xl w-full">
+            <h2 className="text-3xl font-bold text-white mb-4 text-center">Start Ranked Match</h2>
+            <p className="text-white/60 text-center mb-8">
+              Choose how you want to play
+            </p>
+            
+            <div className="grid md:grid-cols-2 gap-6">
+              <button
+                onClick={() => handleStartChoice('wait')}
+                className="group rounded-2xl border border-purple-400/30 bg-purple-500/10 hover:bg-purple-500/20 p-8 text-left transition-all duration-200 hover:scale-105 hover:border-purple-400/50"
+              >
+                <div className="text-4xl mb-4">⏳</div>
+                <h3 className="text-xl font-semibold text-white mb-2">Wait for Players</h3>
+                <p className="text-white/70 text-sm">
+                  Match with other real players for a competitive ranked experience
+                </p>
+                <div className="mt-4 flex items-center text-purple-300 text-sm">
+                  <span>Start matchmaking</span>
+                  <span className="ml-2 transition group-hover:translate-x-1">→</span>
+                </div>
+              </button>
+              
+              <button
+                onClick={() => handleStartChoice('ai')}
+                className="group rounded-2xl border border-emerald-400/30 bg-emerald-500/10 hover:bg-emerald-500/20 p-8 text-left transition-all duration-200 hover:scale-105 hover:border-emerald-400/50"
+              >
+                <div className="text-4xl mb-4">🤖</div>
+                <h3 className="text-xl font-semibold text-white mb-2">Compete Against AI</h3>
+                <p className="text-white/70 text-sm">
+                  Start immediately with AI opponents - perfect for quick practice
+                </p>
+                <div className="mt-4 flex items-center text-emerald-300 text-sm">
+                  <span>Start now</span>
+                  <span className="ml-2 transition group-hover:translate-x-1">→</span>
+                </div>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <header className="border-b border-white/10">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-6">
           <Link href="/ranked" className="flex items-center gap-3">
@@ -627,89 +794,11 @@ export default function MatchmakingContent() {
                   <span className="text-white font-bold text-lg">{displayPlayers.length}/5</span>
                 </div>
                 
-                {/* Fast Track Button - Only show if not full and not already filled */}
-                {displayPlayers.length < 5 && !hasFilledWithAI && (
+                {/* Fast Track Button - Only show if not full, not already filled, and user chose to wait */}
+                {displayPlayers.length < 5 && !hasFilledWithAI && startModalChoiceRef.current === 'wait' && (
                   <div>
                     <button
-                      onClick={async () => {
-                        console.log('🚀 MATCHMAKING - Fast track: Filling with AI players...');
-                        setHasFilledWithAI(true);
-                        
-                        // Stop AI backfill interval
-                        if (aiBackfillIntervalRef.current) {
-                          clearInterval(aiBackfillIntervalRef.current);
-                          aiBackfillIntervalRef.current = null;
-                        }
-                        
-                        // Ensure we have AI students loaded
-                        let aiStudents = selectedAIStudents;
-                        if (aiStudents.length === 0) {
-                          console.log('🤖 MATCHMAKING - Fetching AI students for fast track...');
-                          aiStudents = await getRandomAIStudents(userRank, 4);
-                          if (aiStudents.length > 0) {
-                            setSelectedAIStudents(aiStudents);
-                          }
-                        }
-                        
-                        if (aiStudents.length === 0) {
-                          console.warn('⚠️ MATCHMAKING - No AI students available');
-                          setHasFilledWithAI(false);
-                          return;
-                        }
-                        
-                        // Leave queue since we're not waiting for real players
-                        if (user) {
-                          leaveQueue(userId).catch(err => 
-                            console.error('Error leaving queue:', err)
-                          );
-                        }
-                        
-                        // Calculate how many AI players to add
-                        const currentPlayerCount = players.length;
-                        const slotsRemaining = 5 - currentPlayerCount;
-                        if (slotsRemaining <= 0) return;
-                          
-                          const aiToAdd = aiStudents
-                            .slice(0, slotsRemaining)
-                            .map(ai => buildAIPlayer(ai));
-                          
-                        // Add AI players to Firestore session FIRST (before updating local state)
-                        if (!currentSessionId) {
-                          console.error('❌ MATCHMAKING - Fast track: No session ID available!');
-                          setHasFilledWithAI(false);
-                          return;
-                        }
-                        
-                        try {
-                          await Promise.all(
-                            aiToAdd.map((aiPlayer, index) => {
-                              const aiStudent = aiStudents[index];
-                              if (aiStudent) {
-                                return addPlayerToSession(
-                                  currentSessionId,
-                                  aiPlayer.userId,
-                                  {
-                                    displayName: aiStudent.displayName || 'AI Player',
-                                    avatar: aiStudent.avatar || '🤖',
-                                    rank: aiStudent.currentRank || 'Silver III',
-                                  },
-                                  true // isAI
-                                );
-                              }
-                              return Promise.resolve();
-                            })
-                          );
-                        } catch (error) {
-                          console.error('❌ MATCHMAKING - Failed to add AI players:', error);
-                          setHasFilledWithAI(false);
-                          return;
-                        }
-                        
-                        // Now update local state (this will trigger countdown)
-                        setPlayers(prev => {
-                          return [...prev, ...aiToAdd].slice(0, 5);
-                        });
-                      }}
+                      onClick={fillLobbyWithAI}
                       className="inline-flex items-center gap-2 rounded-full border border-emerald-400/50 bg-emerald-500/20 hover:bg-emerald-500/30 px-6 py-3 text-emerald-200 font-semibold transition-all duration-200 hover:scale-105 hover:shadow-lg hover:shadow-emerald-500/20"
                     >
                       <span className="text-xl">🤖</span>
