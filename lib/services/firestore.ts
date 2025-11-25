@@ -12,7 +12,6 @@ import {
 import { promoteRank, demoteRank } from './ai-students';
 import { UserProfile } from '@/lib/types';
 
-// Session Interface
 export interface WritingSession {
   id?: string;
   userId: string;
@@ -31,15 +30,13 @@ export interface WritingSession {
   };
   xpEarned: number;
   pointsEarned: number;
-  lpChange?: number; // For ranked only
-  placement?: number; // For competitive modes
+  lpChange?: number;
+  placement?: number;
   timestamp: Timestamp;
-  matchId?: string; // For ranked matches - links to matchStates collection
+  matchId?: string;
 }
 
-// Create or update user profile
 export async function createUserProfile(uid: string, data: Partial<UserProfile>) {
-  console.log('💾 FIRESTORE - Creating profile for:', uid, data);
   const userRef = doc(db, 'users', uid);
   
   const profileData = {
@@ -69,35 +66,17 @@ export async function createUserProfile(uid: string, data: Partial<UserProfile>)
     updatedAt: serverTimestamp(),
   };
   
-  console.log('💾 FIRESTORE - Profile data to write:', {
-    uid: profileData.uid,
-    hasTraits: !!profileData.traits,
-    traitsContent: profileData.traits.content
-  });
-  
   await setDoc(userRef, profileData, { merge: true });
-  console.log('✅ FIRESTORE - Profile write complete');
 }
 
-// Get user profile
 export async function getUserProfile(uid: string): Promise<UserProfile | null> {
-  console.log('📖 FIRESTORE - Fetching profile for:', uid);
   const userRef = doc(db, 'users', uid);
   const userSnap = await getDoc(userRef);
   
   if (userSnap.exists()) {
     let rawData = userSnap.data();
-    console.log('📖 FIRESTORE - Profile found:');
-    console.log('  - uid:', rawData.uid);
-    console.log('  - displayName:', rawData.displayName);
-    console.log('  - hasTraits:', !!rawData.traits);
-    console.log('  - traits:', rawData.traits);
-    console.log('  - ALL KEYS:', Object.keys(rawData));
-    console.log('  - FULL RAW DATA:', JSON.stringify(rawData, null, 2));
     
-    // If profile is missing traits (old profile), update it
     if (!rawData.traits || !rawData.traits.content) {
-      console.log('⚠️ FIRESTORE - Profile missing traits, updating...');
       await setDoc(userRef, {
         traits: {
           content: 2,
@@ -121,26 +100,17 @@ export async function getUserProfile(uid: string): Promise<UserProfile | null> {
         updatedAt: serverTimestamp(),
       }, { merge: true });
       
-      console.log('✅ FIRESTORE - Profile updated with traits, refetching...');
       const updatedSnap = await getDoc(userRef);
       rawData = updatedSnap.exists() ? updatedSnap.data() : rawData;
-      console.log('✅ FIRESTORE - Updated profile, keys:', Object.keys(rawData));
     }
     
-    // Handle avatar - could be a string or an object from old schema
     const avatarValue = (() => {
       if (!rawData.avatar) return '🌿';
       if (typeof rawData.avatar === 'string') return rawData.avatar;
       if (rawData.avatar.photoURL) return '🌿';
       return '🌿';
     })();
-    console.log('🎨 Avatar processing:', { 
-      type: typeof rawData.avatar, 
-      isObject: typeof rawData.avatar === 'object',
-      final: avatarValue 
-    });
     
-    // Return only expected UserProfile fields to avoid rendering issues
     const cleanProfile: UserProfile = {
       uid: rawData.uid || rawData.id || uid,
       displayName: rawData.displayName || 'Student Writer',
@@ -168,33 +138,20 @@ export async function getUserProfile(uid: string): Promise<UserProfile | null> {
       updatedAt: rawData.updatedAt,
     };
     
-    console.log('✅ FIRESTORE - Returning clean profile:');
-    console.log('  - uid:', cleanProfile.uid);
-    console.log('  - displayName:', cleanProfile.displayName);
-    console.log('  - traits:', cleanProfile.traits);
-    console.log('  - stats:', cleanProfile.stats);
-    console.log('  - CLEAN PROFILE KEYS:', Object.keys(cleanProfile));
-    console.log('  - CLEAN PROFILE JSON:', JSON.stringify(cleanProfile, null, 2));
-    
     return cleanProfile;
   }
   
-  console.log('📖 FIRESTORE - No profile found for:', uid);
   return null;
 }
 
-// Update user profile
 export async function updateUserProfile(uid: string, updates: Partial<UserProfile>) {
-  console.log('💾 FIRESTORE - Updating user profile:', uid, updates);
   const userRef = doc(db, 'users', uid);
   await updateDoc(userRef, {
     ...updates,
     updatedAt: serverTimestamp(),
   });
-  console.log('✅ FIRESTORE - Profile updated successfully');
 }
 
-// Save writing session
 export async function saveWritingSession(session: WritingSession) {
   const sessionsRef = collection(db, 'sessions');
   const sessionRef = doc(sessionsRef);
@@ -207,7 +164,6 @@ export async function saveWritingSession(session: WritingSession) {
   return sessionRef.id;
 }
 
-// Update user stats after session
 export async function updateUserStatsAfterSession(
   uid: string, 
   xpEarned: number, 
@@ -216,24 +172,14 @@ export async function updateUserStatsAfterSession(
   isWin?: boolean,
   wordCount?: number
 ) {
-  console.log('💾 FIRESTORE - Updating user stats:', { uid, xpEarned, pointsEarned, lpChange, isWin, wordCount });
-  
   const userRef = doc(db, 'users', uid);
   const userSnap = await getDoc(userRef);
   
   if (!userSnap.exists()) {
-    console.error('❌ FIRESTORE - User profile not found in users collection:', uid);
     return;
   }
   
   const userData = userSnap.data() as UserProfile;
-  console.log('📖 FIRESTORE - Current user data:', {
-    currentRank: userData.currentRank,
-    currentLP: userData.rankLP,
-    currentXP: userData.totalXP,
-    currentPoints: userData.totalPoints,
-  });
-  
   const newLP = Math.max(0, userData.rankLP + (lpChange || 0));
   
   const updates: any = {
@@ -250,36 +196,21 @@ export async function updateUserStatsAfterSession(
   
   if (lpChange !== undefined) {
     updates.rankLP = newLP;
-    console.log(`📊 FIRESTORE - LP change: ${userData.rankLP} → ${newLP} (${lpChange > 0 ? '+' : ''}${lpChange})`);
     
-    // Check for rank up/down (every 100 LP)
     if (newLP >= 100 && userData.rankLP < 100) {
-      // Rank up!
       const newRank = promoteRank(userData.currentRank);
       updates.currentRank = newRank;
       updates.rankLP = newLP - 100;
-      console.log('⬆️ FIRESTORE - Rank up!', userData.displayName, ':', userData.currentRank, '→', newRank);
     } else if (newLP < 0 && userData.rankLP >= 0) {
-      // Rank down
       const newRank = demoteRank(userData.currentRank);
       updates.currentRank = newRank;
       updates.rankLP = 100 + newLP;
-      console.log('⬇️ FIRESTORE - Rank down!', userData.displayName, ':', userData.currentRank, '→', newRank);
     }
   }
   
-  console.log('💾 FIRESTORE - Applying updates:', updates);
-  
-  try {
-    await updateDoc(userRef, updates);
-    console.log('✅ FIRESTORE - User stats updated successfully');
-  } catch (error) {
-    console.error('❌ FIRESTORE - Error updating user stats:', error);
-    throw error;
-  }
+  await updateDoc(userRef, updates);
 }
 
-// Get user's recent sessions
 export async function getUserSessions(uid: string, limitCount = 10) {
   const { query, where, orderBy, getDocs, limit } = await import('firebase/firestore');
   const sessionsRef = collection(db, 'sessions');
@@ -294,14 +225,11 @@ export async function getUserSessions(uid: string, limitCount = 10) {
   return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 }
 
-// Get user's completed ranked matches
 export async function getCompletedRankedMatches(uid: string, limitCount = 5): Promise<WritingSession[]> {
   const { query, where, orderBy, getDocs, limit } = await import('firebase/firestore');
   const sessionsRef = collection(db, 'sessions');
   
   try {
-    // Query with both userId and mode filters, ordered by timestamp
-    // Note: This requires a composite index in Firestore
     const q = query(
       sessionsRef,
       where('userId', '==', uid),
@@ -316,14 +244,12 @@ export async function getCompletedRankedMatches(uid: string, limitCount = 5): Pr
       ...doc.data() 
     } as WritingSession));
   } catch (error: any) {
-    // If index doesn't exist, fallback to querying all user sessions and filtering client-side
     if (error?.code === 'failed-precondition') {
-      console.warn('⚠️ FIRESTORE - Composite index missing, using fallback query');
       const q = query(
         sessionsRef,
         where('userId', '==', uid),
         orderBy('timestamp', 'desc'),
-        limit(50) // Get more to filter client-side
+        limit(50)
       );
       
       const snapshot = await getDocs(q);
@@ -332,7 +258,6 @@ export async function getCompletedRankedMatches(uid: string, limitCount = 5): Pr
         ...doc.data() 
       } as WritingSession));
       
-      // Filter for ranked matches client-side
       return allSessions
         .filter(session => session.mode === 'ranked')
         .slice(0, limitCount);
@@ -341,7 +266,6 @@ export async function getCompletedRankedMatches(uid: string, limitCount = 5): Pr
   }
 }
 
-// Count user's completed ranked matches
 export async function countCompletedRankedMatches(uid: string): Promise<number> {
   const { query, where, getDocs } = await import('firebase/firestore');
   const sessionsRef = collection(db, 'sessions');
@@ -356,9 +280,7 @@ export async function countCompletedRankedMatches(uid: string): Promise<number> 
     const snapshot = await getDocs(q);
     return snapshot.size;
   } catch (error: any) {
-    // If index doesn't exist, fallback to querying all user sessions and filtering client-side
     if (error?.code === 'failed-precondition') {
-      console.warn('⚠️ FIRESTORE - Composite index missing, using fallback query');
       const q = query(
         sessionsRef,
         where('userId', '==', uid)
@@ -367,14 +289,12 @@ export async function countCompletedRankedMatches(uid: string): Promise<number> 
       const snapshot = await getDocs(q);
       const allSessions = snapshot.docs.map(doc => doc.data() as WritingSession);
       
-      // Count ranked matches client-side
       return allSessions.filter(session => session.mode === 'ranked').length;
     }
     throw error;
   }
 }
 
-// Improve Conversation Interface
 export interface ImproveConversation {
   id?: string;
   userId: string;
@@ -388,7 +308,6 @@ export interface ImproveConversation {
   updatedAt: Timestamp;
 }
 
-// Save improve conversation
 export async function saveImproveConversation(
   uid: string,
   messages: Array<{ id: string; role: 'user' | 'assistant'; content: string; timestamp: Date }>
@@ -412,7 +331,6 @@ export async function saveImproveConversation(
   return conversationRef.id;
 }
 
-// Update existing improve conversation
 export async function updateImproveConversation(
   conversationId: string,
   messages: Array<{ id: string; role: 'user' | 'assistant'; content: string; timestamp: Date }>
@@ -430,7 +348,6 @@ export async function updateImproveConversation(
   });
 }
 
-// Get user's improve conversations
 export async function getImproveConversations(uid: string, limitCount = 10): Promise<ImproveConversation[]> {
   const { query, where, orderBy, getDocs, limit } = await import('firebase/firestore');
   const conversationsRef = collection(db, 'improveConversations');
@@ -453,7 +370,6 @@ export async function getImproveConversations(uid: string, limitCount = 10): Pro
   } as ImproveConversation));
 }
 
-// Get single improve conversation
 export async function getImproveConversation(conversationId: string): Promise<ImproveConversation | null> {
   const conversationRef = doc(db, 'improveConversations', conversationId);
   const snapshot = await getDoc(conversationRef);
@@ -472,4 +388,3 @@ export async function getImproveConversation(conversationId: string): Promise<Im
     })),
   } as ImproveConversation;
 }
-

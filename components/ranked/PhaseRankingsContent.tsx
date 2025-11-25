@@ -83,13 +83,10 @@ export default function PhaseRankingsContent() {
         const rankings = matchState?.rankings?.[phaseKey];
         
         if (rankings && rankings.length > 0) {
-          console.log('✅ PHASE RANKINGS - Using real rankings from Firestore:', rankings.length, 'players');
           setRealRankings(rankings);
         } else {
-          console.log('⚠️ PHASE RANKINGS - No real rankings found, will use fallback');
         }
       } catch (error) {
-        console.error('❌ PHASE RANKINGS - Error fetching rankings:', error);
       }
     };
     
@@ -100,7 +97,6 @@ export default function PhaseRankingsContent() {
   const rankings = useMemo(() => {
     // If we have real rankings from batch evaluation, use those
     if (realRankings.length > 0) {
-      console.log('📊 PHASE RANKINGS - Displaying real batch-ranked results');
       return realRankings.map((r, idx) => ({
         name: r.playerName || (r.isAI ? r.playerId : 'You'),
         avatar: r.isAI ? ['🎯', '📖', '✨', '🏅'][idx % 4] : '🌿',
@@ -112,7 +108,6 @@ export default function PhaseRankingsContent() {
     }
     
     // Fallback: Generate rankings (old behavior)
-    console.log('⚠️ PHASE RANKINGS - Using fallback rankings generation');
     const score = parseFloat(
       phase === 1 ? yourScore : 
       phase === 2 ? feedbackScore || yourScore : 

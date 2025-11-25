@@ -31,67 +31,6 @@ export default function WaitingForPlayers({
 }: WaitingForPlayersProps) {
   const [displayMembers, setDisplayMembers] = useState(partyMembers);
   const submittedSet = new Set(submittedPlayerIds);
-  
-  // Writing Revolution tips for educational moments
-  const writingTips = [
-    {
-      title: 'Sentence Expansion',
-      tip: 'Expand simple sentences with because, but, or so to show deeper thinking.',
-      example: '"She opened the door" → "She opened the door because the golden light intrigued her"',
-      icon: '🔗',
-    },
-    {
-      title: 'Appositives',
-      tip: 'Add description using commas without new sentences.',
-      example: '"The lighthouse" → "The lighthouse, a weathered stone tower, stood tall"',
-      icon: '✏️',
-    },
-    {
-      title: 'Show, Don\'t Tell',
-      tip: 'Use specific details instead of general statements.',
-      example: 'Instead of "She was scared" → "Her hands trembled as she reached for the handle"',
-      icon: '🎭',
-    },
-    {
-      title: 'Transition Words',
-      tip: 'Connect ideas with signal words to improve flow.',
-      example: 'First, Then, However, Therefore, For example, In contrast',
-      icon: '➡️',
-    },
-    {
-      title: 'Sentence Combining',
-      tip: 'Join short choppy sentences for better flow.',
-      example: '"The door was rusty. It creaked." → "The rusty door creaked open"',
-      icon: '🔀',
-    },
-    {
-      title: 'Five Senses',
-      tip: 'Include what you see, hear, smell, taste, and feel.',
-      example: '"It smelled bad" → "The musty odor of mildew filled the air"',
-      icon: '👁️',
-    },
-    {
-      title: 'Subordinating Conjunctions',
-      tip: 'Add complexity with although, since, while, when.',
-      example: '"I was tired. I kept going." → "Although I was tired, I kept going"',
-      icon: '🔄',
-    },
-    {
-      title: 'Specific Details',
-      tip: 'Replace vague words with precise descriptions.',
-      example: 'Instead of "pretty flower" → "crimson rose with velvet petals"',
-      icon: '🎨',
-    },
-  ];
-
-  // Rotate writing tips every 6 seconds using carousel hook
-  const { currentIndex: currentTipIndex, goTo } = useCarousel({
-    items: writingTips,
-    interval: 6000,
-    autoPlay: true,
-  });
-  
-  const currentTip = writingTips[currentTipIndex];
 
   useEffect(() => {
     if (partyMembers.length > 0) {

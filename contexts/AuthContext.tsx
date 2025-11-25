@@ -43,96 +43,52 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   const refreshProfile = useCallback(async () => {
-    console.log('🔄 REFRESH PROFILE - Called for user:', user?.uid);
     if (user) {
       const profile = await getUserProfile(user.uid);
-      console.log('🔄 REFRESH PROFILE - Fetched:', {
-        found: !!profile,
-        hasTraits: !!profile?.traits,
-        traitsContent: profile?.traits?.content
-      });
       setUserProfile(profile);
-      console.log('🔄 REFRESH PROFILE - Set in context');
-    } else {
-      console.log('🔄 REFRESH PROFILE - No user, skipping');
     }
   }, [user]);
 
   useEffect(() => {
-    // If auth is not initialized, set loading to false immediately
     if (!auth) {
-      console.error('Firebase auth not initialized');
       setLoading(false);
       return;
     }
 
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       try {
-        console.log('🔐 AUTH STATE CHANGE:', { 
-          hasUser: !!user, 
-          uid: user?.uid,
-          email: user?.email,
-          displayName: user?.displayName 
-        });
-        
         setUser(user);
         
         if (user) {
-          // Get or create user profile with retry
-          console.log('📥 Fetching profile for user:', user.uid);
           let profile = await getUserProfile(user.uid);
-          console.log('📦 Profile fetch result:', { 
-            found: !!profile,
-            hasTraits: !!profile?.traits,
-            traits: profile?.traits 
-          });
           
           if (!profile) {
-            console.log('❌ No profile found, creating new profile...');
             await createUserProfile(user.uid, {
               displayName: user.displayName || 'Student Writer',
               email: user.email || '',
             });
-            console.log('✅ Profile created, fetching...');
             
-            // Retry a few times to get the profile
             const { retryUntilSuccess } = await import('@/lib/utils/retry');
             const retriedProfile = await retryUntilSuccess(
               async () => {
                 const p = await getUserProfile(user.uid);
-                if (p) {
-                  console.log('✅ Profile found');
-                  return p;
-                }
+                if (p) return p;
                 throw new Error('Profile not found');
               },
-              {
-                maxAttempts: 3,
-                delayMs: 500,
-                onRetry: (attempt) => {
-                  console.log(`🔄 Retry ${attempt}/3 fetching profile...`);
-                },
-              }
+              { maxAttempts: 3, delayMs: 500 }
             );
             if (retriedProfile) {
               profile = retriedProfile;
             }
           }
           
-          console.log('📤 Setting profile in context:', {
-            hasProfile: !!profile,
-            hasTraits: !!profile?.traits,
-            traitsContent: profile?.traits?.content
-          });
           setUserProfile(profile);
         } else {
-          console.log('🚪 No user, clearing profile');
           setUserProfile(null);
         }
       } catch (error) {
-        console.error('❌ Error in auth state change:', error);
+        console.error('Auth state change error:', error);
       } finally {
-        console.log('⏹️ Setting loading to false');
         setLoading(false);
       }
     });
@@ -142,37 +98,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signIn = async (email: string, password: string) => {
     try {
-      console.log('🔑 SIGN IN - Starting:', email);
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
-      console.log('✅ SIGN IN - Firebase auth success');
       
-      // Check if user profile exists, create if it doesn't
-      console.log('📥 SIGN IN - Fetching profile...');
       let profile = await getUserProfile(userCredential.user.uid);
-      console.log('📦 SIGN IN - Profile result:', { found: !!profile, hasTraits: !!profile?.traits });
       
       if (!profile) {
-        console.log('⚠️ SIGN IN - Profile not found, creating...');
         await createUserProfile(userCredential.user.uid, {
           displayName: userCredential.user.displayName || userCredential.user.email?.split('@')[0] || 'Student Writer',
           email: userCredential.user.email || '',
         });
-        console.log('✅ SIGN IN - Profile created, waiting and fetching...');
         
-        // Wait and fetch the new profile
         await new Promise(resolve => setTimeout(resolve, 500));
         profile = await getUserProfile(userCredential.user.uid);
-        console.log('📦 SIGN IN - After wait, profile:', { found: !!profile, hasTraits: !!profile?.traits });
       }
       
       if (profile) {
-        console.log('📤 SIGN IN - Setting profile in context');
         setUserProfile(profile);
-      } else {
-        console.error('❌ SIGN IN - Still no profile after creation!');
       }
     } catch (error: any) {
-      console.error('❌ SIGN IN - Error:', error);
       throw new Error(getAuthErrorMessage(error.code));
     }
   };
@@ -181,27 +124,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       
-      // Update display name
-      await updateProfile(userCredential.user, {
-        displayName: displayName
-      });
+      await updateProfile(userCredential.user, { displayName });
 
-      // Create user profile in Firestore and wait for it
       await createUserProfile(userCredential.user.uid, {
-        displayName: displayName,
-        email: email,
+        displayName,
+        email,
       });
       
-      // Wait a moment to ensure profile is created
       await new Promise(resolve => setTimeout(resolve, 500));
       
-      // Fetch the profile to verify it was created
       const profile = await getUserProfile(userCredential.user.uid);
       if (profile) {
         setUserProfile(profile);
       }
     } catch (error: any) {
-      console.error('Error signing up:', error);
       throw new Error(getAuthErrorMessage(error.code));
     }
   };
@@ -211,7 +147,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const provider = new GoogleAuthProvider();
       const result = await signInWithPopup(auth, provider);
       
-      // Check if user profile exists, if not create it
       let profile = await getUserProfile(result.user.uid);
       if (!profile) {
         await createUserProfile(result.user.uid, {
@@ -219,7 +154,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           email: result.user.email || '',
         });
         
-        // Wait for profile to be created
         await new Promise(resolve => setTimeout(resolve, 500));
         profile = await getUserProfile(result.user.uid);
       }
@@ -228,7 +162,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setUserProfile(profile);
       }
     } catch (error: any) {
-      console.error('Error signing in with Google:', error);
       if (error.code === 'auth/popup-closed-by-user') {
         throw new Error('Sign-in cancelled');
       }
@@ -237,12 +170,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const signOut = async () => {
-    try {
-      await firebaseSignOut(auth);
-    } catch (error) {
-      console.error('Error signing out:', error);
-      throw error;
-    }
+    await firebaseSignOut(auth);
   };
 
   return (
@@ -254,7 +182,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
 export const useAuth = () => useContext(AuthContext);
 
-// Helper function to convert Firebase auth error codes to user-friendly messages
 function getAuthErrorMessage(code: string): string {
   switch (code) {
     case 'auth/email-already-in-use':

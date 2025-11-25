@@ -10,7 +10,6 @@ import { AnalyzingState } from '@/components/shared/AnalyzingState';
 import { ResultsLayout } from '@/components/shared/ResultsLayout';
 import { ScoreDisplay } from '@/components/shared/ScoreDisplay';
 import { generateMockPracticeFeedback } from '@/lib/utils/mock-data';
-import { useTimeout } from '@/lib/hooks/useTimer';
 
 function ResultsContentInner() {
   const { user } = useAuth();

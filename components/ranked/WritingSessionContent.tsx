@@ -149,7 +149,6 @@ export default function WritingSessionContent() {
     if (!session || aiWritingsGenerated || !user || !prompt) return;
     
     const generateAIWritings = async () => {
-      console.log('[ST] Checking for existing AI writings...');
       
       try {
         // Check if AI writings already exist in matchStates (backward compatibility)
@@ -161,16 +160,13 @@ export default function WritingSessionContent() {
           const existingWritings = matchState?.aiWritings?.phase1;
           
           if (existingWritings && existingWritings.length > 0) {
-            console.log('[ST] Found existing AI writings:', existingWritings.length);
             // STORE TARGETS, NOT IMMEDIATE STATE
             aiTargetCountsRef.current = existingWritings.map((w: any) => w.wordCount);
-            console.log('[ST] Set targets from existing:', aiTargetCountsRef.current);
             setAiWritingsGenerated(true);
             return;
           }
         } else {
           // Create matchStates document for backward compatibility
-          console.log('[ST] Creating matchStates document for backward compatibility');
           const { setDoc } = await import('firebase/firestore');
           await setDoc(matchRef, {
             matchId: sessionMatchId || sessionId,
@@ -188,14 +184,12 @@ export default function WritingSessionContent() {
         }
         
         // Generate new AI writings
-        console.log('[ST] Generating new AI writings for prompt:', prompt.id);
         
         // Get AI players
         const aiPlayers = players.filter(p => p.isAI);
         
         // Show loading state
         setGeneratingAI(true);
-        console.log(`[ST] Generating ${aiPlayers.length} AI writings`);
         setAiWritingsGenerated(true);
         
         // Generate writing for each AI player in parallel
@@ -215,7 +209,6 @@ export default function WritingSessionContent() {
           });
           
           const data = await response.json();
-          console.log(`[ST] Generated writing for ${aiPlayer.displayName}:`, data.wordCount);
           
           // Update progress
           setAiGenerationProgress(((index + 1) / aiPlayers.length) * 100);
@@ -235,7 +228,6 @@ export default function WritingSessionContent() {
         
         // Update AI word counts for UI
         aiTargetCountsRef.current = aiWritings.map(w => w.wordCount);
-        console.log('[ST] Set targets from generated:', aiTargetCountsRef.current);
         setGeneratingAI(false);
         setAiGenerationProgress(100);
         
@@ -277,9 +269,7 @@ export default function WritingSessionContent() {
                     }
                 }, { merge: true });
             }
-            console.log('[ST] Stored AI writings for match (client-side)');
         } catch (saveError) {
-            console.error('[ST] Failed to save AI writings to Firestore:', saveError);
         }
         
         // AUTO-SUBMIT AI PLAYERS (they've "finished writing")
@@ -292,7 +282,6 @@ export default function WritingSessionContent() {
               const aiWriting = aiWritings.find(w => w.playerId === aiPlayer.userId);
               if (!aiWriting) return;
               
-              console.log(`[ST] Auto-submitting AI player ${aiPlayer.displayName} after delay ${delay}`);
               
               // Submit directly to sessions collection
               const { updateDoc, doc, serverTimestamp } = await import('firebase/firestore');
@@ -309,18 +298,14 @@ export default function WritingSessionContent() {
                 updatedAt: serverTimestamp(),
               });
               
-              console.log(`[ST] AI player ${aiPlayer.displayName} submission saved`);
             } catch (error) {
-              console.error(`❌ SESSION - Failed to auto-submit AI player ${aiPlayer.displayName}:`, error);
             }
           }, delay);
         });
         
       } catch (error) {
-        console.error('[ST] Failed to generate AI writings:', error);
         // Continue with fallback word counts
         aiTargetCountsRef.current = [40, 55, 48, 62];
-        console.log('[ST] Set fallback targets:', aiTargetCountsRef.current);
         setAiWritingsGenerated(true);
       }
     };
@@ -397,13 +382,11 @@ export default function WritingSessionContent() {
     validateSubmission: () => validateWritingSubmission(writingContent, wordCount),
     onEmptySubmission: async (isEmpty) => {
       if (isEmpty) {
-        console.warn('⚠️ SESSION - Empty submission detected, scoring as 0');
         await submitPhase(1, {
           content: '',
           wordCount: 0,
           score: 0,
         });
-        console.log('✅ SESSION - Empty submission recorded');
       }
     },
     fallbackEvaluation: async () => {
@@ -457,7 +440,6 @@ export default function WritingSessionContent() {
           textarea.setSelectionRange(cursorPosition, cursorPosition);
         });
       } catch (error) {
-        console.error('❌ DEBUG - Failed to paste from clipboard:', error);
       }
     };
 

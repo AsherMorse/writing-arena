@@ -7,20 +7,16 @@ interface UsePhaseTransitionOptions {
   currentPhase: Phase;
   hasSubmitted: () => boolean;
   sessionId: string;
-  checkInterval?: number; // How often to check (ms)
+  checkInterval?: number;
   onTransition?: (nextPhase: Phase) => void;
 }
 
-/**
- * Hook to monitor phase transitions when all players have submitted
- * Uses client-side Firestore checks instead of Cloud Functions
- */
 export function usePhaseTransition({
   session,
   currentPhase,
   hasSubmitted,
   sessionId,
-  checkInterval = 1000, // Check every second
+  checkInterval = 1000,
   onTransition,
 }: UsePhaseTransitionOptions) {
   const checkIntervalRef = useRef<NodeJS.Timeout | null>(null);
@@ -28,7 +24,6 @@ export function usePhaseTransition({
 
   useEffect(() => {
     if (!session || !hasSubmitted()) {
-      // Clear interval if user hasn't submitted
       if (checkIntervalRef.current) {
         clearInterval(checkIntervalRef.current);
         checkIntervalRef.current = null;
@@ -36,7 +31,6 @@ export function usePhaseTransition({
       return;
     }
 
-    // Only check if we're still in the current phase
     if (session.config?.phase !== currentPhase) {
       if (checkIntervalRef.current) {
         clearInterval(checkIntervalRef.current);
@@ -45,7 +39,6 @@ export function usePhaseTransition({
       return;
     }
 
-    // Don't check if already transitioning
     if (isTransitioningRef.current) {
       return;
     }
@@ -53,51 +46,35 @@ export function usePhaseTransition({
     const allPlayers = Object.values(session.players || {});
     const realPlayers = allPlayers.filter((p) => !p.isAI);
     
-    // Get submitted players for current phase
     const phaseKey = `phase${currentPhase}` as 'phase1' | 'phase2' | 'phase3';
     const submittedRealPlayers = realPlayers.filter(
       (p) => p.phases[phaseKey]?.submitted
     );
 
-    console.log(`🔍 PHASE MONITOR - Phase ${currentPhase} submissions:`, {
-      currentPhase: session.config?.phase,
-      real: realPlayers.length,
-      submitted: submittedRealPlayers.length,
-      coordFlag: session.coordination?.allPlayersReady,
-    });
-
-    // Check if all real players have submitted
     if (
       submittedRealPlayers.length === realPlayers.length &&
       !session.coordination?.allPlayersReady &&
       realPlayers.length > 0
     ) {
-      // Try immediate transition first
       if (!checkIntervalRef.current && !isTransitioningRef.current) {
-        console.log(`⏱️ PHASE MONITOR - All submitted, attempting immediate phase transition...`);
-        
-        // Try immediately
         (async () => {
           try {
             isTransitioningRef.current = true;
             const transitioned = await checkAndTransitionPhase(sessionId, currentPhase);
             
             if (transitioned) {
-          const nextPhase = (currentPhase + 1) as Phase;
+              const nextPhase = (currentPhase + 1) as Phase;
               onTransition?.(nextPhase);
               isTransitioningRef.current = false;
-              return; // Success, don't start polling
+              return;
             }
           } catch (error) {
-            console.error('❌ PHASE MONITOR - Immediate transition failed:', error);
+            // Silent fail
           } finally {
             isTransitioningRef.current = false;
           }
           
-          // If immediate transition didn't work, start polling
-          console.log(`⏱️ PHASE MONITOR - Starting polling for phase transition...`);
           checkIntervalRef.current = setInterval(async () => {
-            // Prevent multiple simultaneous transitions
             if (isTransitioningRef.current) return;
             
             try {
@@ -105,25 +82,23 @@ export function usePhaseTransition({
               const transitioned = await checkAndTransitionPhase(sessionId, currentPhase);
               
               if (transitioned) {
-                // Clear interval
                 if (checkIntervalRef.current) {
                   clearInterval(checkIntervalRef.current);
                   checkIntervalRef.current = null;
                 }
                 
                 const nextPhase = (currentPhase + 1) as Phase;
-          onTransition?.(nextPhase);
+                onTransition?.(nextPhase);
               }
-        } catch (error) {
-              console.error('❌ PHASE MONITOR - Transition check failed:', error);
-        } finally {
+            } catch (error) {
+              // Silent fail
+            } finally {
               isTransitioningRef.current = false;
-        }
+            }
           }, checkInterval);
         })();
       }
     } else {
-      // Clear interval if not all players submitted
       if (checkIntervalRef.current) {
         clearInterval(checkIntervalRef.current);
         checkIntervalRef.current = null;
@@ -145,4 +120,3 @@ export function usePhaseTransition({
     onTransition,
   ]);
 }
-
