@@ -97,11 +97,9 @@ export default function PeerFeedbackContent() {
   
   // Feedback questions and responses
   const [responses, setResponses] = useState({
-    clarity: '',
-    strengths: '',
-    improvements: '',
-    organization: '',
-    engagement: ''
+    mainIdea: '',
+    strength: '',
+    suggestion: ''
   });
 
   // Generate AI peer feedback when phase starts
@@ -456,7 +454,7 @@ export default function PeerFeedbackContent() {
         <div className="container mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4">
-              <div className={`text-3xl font-bold ${getTimeColor(timeRemaining)}`}>
+              <div className={`text-3xl font-bold ${getTimeColor(timeRemaining, { green: SCORING.TIME_PHASE2_GREEN, yellow: SCORING.TIME_PHASE2_GREEN / 2 })}`}>
                 {formatTime(timeRemaining)}
               </div>
               <div className="text-white/60">
@@ -474,7 +472,7 @@ export default function PeerFeedbackContent() {
 
           <div className="mt-4 w-full bg-white/10 rounded-full h-2 overflow-hidden">
             <div 
-              className={`h-full transition-all duration-1000 ${getTimeProgressColor(timeRemaining)}`}
+              className={`h-full transition-all duration-1000 ${getTimeProgressColor(timeRemaining, { green: SCORING.TIME_PHASE2_GREEN, yellow: SCORING.TIME_PHASE2_GREEN / 2 })}`}
               style={{ width: `${Math.min(100, Math.max(0, (timeRemaining / SCORING.PHASE2_DURATION) * 100))}%` }}
             />
           </div>
@@ -521,16 +519,17 @@ export default function PeerFeedbackContent() {
               <div className="space-y-4">
                 <div>
                   <label className="text-white font-semibold mb-2 block">
-                    1. What is the main idea or message? Is it clear?
+                    1. What is the main idea?
                   </label>
+                  <p className="text-white/50 text-sm mb-2">Identify the central point or message of the writing.</p>
                   <textarea
-                    value={responses.clarity}
-                    onChange={(e) => setResponses({...responses, clarity: e.target.value})}
+                    value={responses.mainIdea}
+                    onChange={(e) => setResponses({...responses, mainIdea: e.target.value})}
                     onPaste={handlePaste}
                     onCopy={handleCopy}
                     onCut={handleCut}
-                    placeholder="Explain what the writing is about and whether it's easy to understand..."
-                    className="w-full p-3 rounded-lg bg-white/10 text-white placeholder-white/40 border border-white/20 focus:border-blue-400 focus:outline-none min-h-[80px] disabled:opacity-50 disabled:cursor-not-allowed"
+                    placeholder="The main idea of this writing is..."
+                    className="w-full p-3 rounded-lg bg-white/10 text-white placeholder-white/40 border border-white/20 focus:border-blue-400 focus:outline-none min-h-[100px] disabled:opacity-50 disabled:cursor-not-allowed"
                     disabled={timeRemaining === 0}
                     data-gramm="false"
                     data-gramm_editor="false"
@@ -541,53 +540,43 @@ export default function PeerFeedbackContent() {
 
                 <div>
                   <label className="text-white font-semibold mb-2 block">
-                    2. What are the strongest parts of this writing?
+                    2. What is one strength?
                   </label>
+                  <p className="text-white/50 text-sm mb-2">Point out something specific the writer did well. Quote the text!</p>
                   <textarea
-                    value={responses.strengths}
-                    onChange={(e) => setResponses({...responses, strengths: e.target.value})}
-                    placeholder="Point out specific examples of what works well..."
-                    className="w-full p-3 rounded-lg bg-white/10 text-white placeholder-white/40 border border-white/20 focus:border-blue-400 focus:outline-none min-h-[80px] disabled:opacity-50 disabled:cursor-not-allowed"
+                    value={responses.strength}
+                    onChange={(e) => setResponses({...responses, strength: e.target.value})}
+                    onPaste={handlePaste}
+                    onCopy={handleCopy}
+                    onCut={handleCut}
+                    placeholder='One strength is the phrase "..." because it...'
+                    className="w-full p-3 rounded-lg bg-white/10 text-white placeholder-white/40 border border-white/20 focus:border-blue-400 focus:outline-none min-h-[100px] disabled:opacity-50 disabled:cursor-not-allowed"
                     disabled={timeRemaining === 0}
+                    data-gramm="false"
+                    data-gramm_editor="false"
+                    data-enable-grammarly="false"
+                    spellCheck="true"
                   />
                 </div>
 
                 <div>
                   <label className="text-white font-semibold mb-2 block">
-                    3. What could be improved? Be specific.
+                    3. What is one specific suggestion?
                   </label>
+                  <p className="text-white/50 text-sm mb-2">Give one concrete improvement. Be actionable!</p>
                   <textarea
-                    value={responses.improvements}
-                    onChange={(e) => setResponses({...responses, improvements: e.target.value})}
-                    placeholder="Give constructive suggestions for improvement..."
-                    className="w-full p-3 rounded-lg bg-white/10 text-white placeholder-white/40 border border-white/20 focus:border-blue-400 focus:outline-none min-h-[80px] disabled:opacity-50 disabled:cursor-not-allowed"
+                    value={responses.suggestion}
+                    onChange={(e) => setResponses({...responses, suggestion: e.target.value})}
+                    onPaste={handlePaste}
+                    onCopy={handleCopy}
+                    onCut={handleCut}
+                    placeholder="Try adding... / Consider using because/but/so to... / You could improve..."
+                    className="w-full p-3 rounded-lg bg-white/10 text-white placeholder-white/40 border border-white/20 focus:border-blue-400 focus:outline-none min-h-[100px] disabled:opacity-50 disabled:cursor-not-allowed"
                     disabled={timeRemaining === 0}
-                  />
-                </div>
-
-                <div>
-                  <label className="text-white font-semibold mb-2 block">
-                    4. How well is the writing organized?
-                  </label>
-                  <textarea
-                    value={responses.organization}
-                    onChange={(e) => setResponses({...responses, organization: e.target.value})}
-                    placeholder="Comment on the structure, flow, and logical order..."
-                    className="w-full p-3 rounded-lg bg-white/10 text-white placeholder-white/40 border border-white/20 focus:border-blue-400 focus:outline-none min-h-[80px] disabled:opacity-50 disabled:cursor-not-allowed"
-                    disabled={timeRemaining === 0}
-                  />
-                </div>
-
-                <div>
-                  <label className="text-white font-semibold mb-2 block">
-                    5. How engaging is this piece? Does it hold your attention?
-                  </label>
-                  <textarea
-                    value={responses.engagement}
-                    onChange={(e) => setResponses({...responses, engagement: e.target.value})}
-                    placeholder="Describe how the writing makes you feel and why..."
-                    className="w-full p-3 rounded-lg bg-white/10 text-white placeholder-white/40 border border-white/20 focus:border-blue-400 focus:outline-none min-h-[80px] disabled:opacity-50 disabled:cursor-not-allowed"
-                    disabled={timeRemaining === 0}
+                    data-gramm="false"
+                    data-gramm_editor="false"
+                    data-enable-grammarly="false"
+                    spellCheck="true"
                   />
                 </div>
               </div>

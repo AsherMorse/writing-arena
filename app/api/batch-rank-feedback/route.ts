@@ -8,11 +8,9 @@ interface FeedbackSubmission {
   playerId: string;
   playerName: string;
   responses: {
-    clarity: string;
-    strengths: string;
-    improvements: string;
-    organization: string;
-    engagement: string;
+    mainIdea: string;
+    strength: string;
+    suggestion: string;
   };
   peerWriting: string;
   isAI: boolean;

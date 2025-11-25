@@ -35,12 +35,10 @@ function generatePeerFeedbackPrompt(responses: any, peerWriting: string): string
 PEER'S WRITING THAT WAS EVALUATED:
 ${peerWriting}
 
-STUDENT'S PEER FEEDBACK:
-1. Main idea clarity: ${responses.clarity}
-2. Strengths noted: ${responses.strengths}
-3. Improvements suggested: ${responses.improvements}
-4. Organization feedback: ${responses.organization}
-5. Engagement feedback: ${responses.engagement}
+STUDENT'S PEER FEEDBACK (3 Targeted Questions):
+1. What is the main idea?: ${responses.mainIdea || responses.clarity || ''}
+2. What is one strength?: ${responses.strength || responses.strengths || ''}
+3. What is one specific suggestion?: ${responses.suggestion || responses.improvements || ''}
 
 TASK:
 Evaluate this peer feedback with EMPHASIS ON SPECIFICITY. 

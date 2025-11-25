@@ -20,14 +20,15 @@ export const SCORING = {
   MOCK_RANDOM_MAX: 15,
   
   // Time thresholds (seconds)
-  TIME_GREEN_THRESHOLD: 30,
-  TIME_YELLOW_THRESHOLD: 15,
-  TIME_PHASE1_GREEN: 60,
+  TIME_GREEN_THRESHOLD: 60,
+  TIME_YELLOW_THRESHOLD: 30,
+  TIME_PHASE1_GREEN: 150,
+  TIME_PHASE2_GREEN: 90,
+  TIME_PHASE3_GREEN: 120,
   
-  // Phase durations (seconds)
-  PHASE1_DURATION: 120,
-  PHASE2_DURATION: 90,
-  PHASE3_DURATION: 90,
+  PHASE1_DURATION: 300,
+  PHASE2_DURATION: 180,
+  PHASE3_DURATION: 240,
 } as const;
 
 export function getDefaultScore(phase: 1 | 2 | 3): number {

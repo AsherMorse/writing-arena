@@ -572,7 +572,7 @@ export default function RevisionContent() {
         <div className="container mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4">
-              <div className={`text-3xl font-bold ${getTimeColor(timeRemaining)}`}>
+              <div className={`text-3xl font-bold ${getTimeColor(timeRemaining, { green: SCORING.TIME_PHASE3_GREEN, yellow: SCORING.TIME_PHASE3_GREEN / 2 })}`}>
                 {formatTime(timeRemaining)}
               </div>
               <div className="text-white/60">
@@ -600,7 +600,7 @@ export default function RevisionContent() {
 
           <div className="mt-4 w-full bg-white/10 rounded-full h-2 overflow-hidden">
             <div 
-              className={`h-full transition-all duration-1000 ${getTimeProgressColor(timeRemaining)}`}
+              className={`h-full transition-all duration-1000 ${getTimeProgressColor(timeRemaining, { green: SCORING.TIME_PHASE3_GREEN, yellow: SCORING.TIME_PHASE3_GREEN / 2 })}`}
               style={{ width: `${(timeRemaining / SCORING.PHASE3_DURATION) * 100}%` }}
             />
           </div>
@@ -684,37 +684,23 @@ export default function RevisionContent() {
                 ) : realPeerFeedback ? (
                   <div className="space-y-3">
                     <div>
-                      <div className="text-blue-400 text-xs font-semibold mb-1">Main Idea Clarity:</div>
+                      <div className="text-blue-400 text-xs font-semibold mb-1">Main Idea:</div>
                       <p className="text-white/80 text-sm leading-relaxed break-words">
-                        {realPeerFeedback.responses.clarity}
+                        {realPeerFeedback.responses.mainIdea || realPeerFeedback.responses.clarity}
                       </p>
                     </div>
 
                     <div>
-                      <div className="text-emerald-400 text-xs font-semibold mb-1">Strengths noted:</div>
+                      <div className="text-emerald-400 text-xs font-semibold mb-1">Strength:</div>
                       <p className="text-white/80 text-sm leading-relaxed break-words">
-                        {realPeerFeedback.responses.strengths}
+                        {realPeerFeedback.responses.strength || realPeerFeedback.responses.strengths}
                       </p>
                     </div>
 
                     <div>
-                      <div className="text-yellow-400 text-xs font-semibold mb-1">Suggestions:</div>
+                      <div className="text-yellow-400 text-xs font-semibold mb-1">Suggestion:</div>
                       <p className="text-white/80 text-sm leading-relaxed break-words">
-                        {realPeerFeedback.responses.improvements}
-                      </p>
-                    </div>
-
-                    <div>
-                      <div className="text-purple-400 text-xs font-semibold mb-1">Organization:</div>
-                      <p className="text-white/80 text-sm leading-relaxed break-words">
-                        {realPeerFeedback.responses.organization}
-                      </p>
-                    </div>
-
-                    <div>
-                      <div className="text-cyan-400 text-xs font-semibold mb-1">Engagement:</div>
-                      <p className="text-white/80 text-sm leading-relaxed break-words">
-                        {realPeerFeedback.responses.engagement}
+                        {realPeerFeedback.responses.suggestion || realPeerFeedback.responses.improvements}
                       </p>
                     </div>
                   </div>

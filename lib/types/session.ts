@@ -105,11 +105,9 @@ export interface Phase1SubmissionData {
 
 export interface Phase2SubmissionData {
   responses: {
-    clarity: string;
-    strengths: string;
-    improvements: string;
-    organization: string;
-    engagement: string;
+    mainIdea: string;
+    strength: string;
+    suggestion: string;
   };
   score?: number;
 }

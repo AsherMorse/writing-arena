@@ -111,11 +111,9 @@ export function getPhase2PeerFeedbackPrompt(
     playerName: string;
     peerWriting: string;
     responses: {
-      clarity: string;
-      strengths: string;
-      improvements: string;
-      organization: string;
-      engagement: string;
+      mainIdea: string;
+      strength: string;
+      suggestion: string;
     };
   }>
 ): string {
@@ -125,12 +123,10 @@ export function getPhase2PeerFeedbackPrompt(
 Peer Writing They Evaluated:
 ${f.peerWriting.substring(0, 500)}...
 
-Their Feedback:
-- Main idea clarity: ${f.responses.clarity}
-- Strengths noted: ${f.responses.strengths}
-- Improvements suggested: ${f.responses.improvements}
-- Organization: ${f.responses.organization}
-- Engagement: ${f.responses.engagement}
+Their Feedback (3 Targeted Questions):
+- What is the main idea?: ${f.responses.mainIdea}
+- What is one strength?: ${f.responses.strength}
+- What is one specific suggestion?: ${f.responses.suggestion}
 ---`;
   }).join('\n\n');
 
@@ -139,19 +135,19 @@ Their Feedback:
 ${feedbackText}
 
 TASK:
-Evaluate each student's peer feedback based on:
-- **Specificity**: Are comments specific with examples, or vague/general?
-- **Constructiveness**: Are suggestions helpful and actionable?
-- **Completeness**: Did they address all aspects thoroughly?
-- **Insight**: Do they demonstrate understanding of good writing?
-- **Writing Revolution principles**: Do they reference specific strategies?
+Evaluate each student's peer feedback based on these 3 targeted questions:
 
-Provide scores 0-100 for each evaluator's feedback quality. Higher scores for:
-- Specific references to sentences/phrases
-- Actionable improvement suggestions
-- Mentions of writing techniques (transitions, sentence variety, etc.)
-- Constructive tone
-- Thorough responses
+1. **Main Idea Identification**: Did they accurately identify and articulate the main idea?
+2. **Strength Recognition**: Did they identify a specific, meaningful strength with examples?
+3. **Actionable Suggestion**: Did they provide a concrete, helpful improvement suggestion?
+
+SCORING CRITERIA:
+- **High scores (85-100)**: Specific quotes from the text, names TWR strategies, actionable advice
+- **Medium scores (70-84)**: Generally specific but could be more concrete
+- **Lower scores (50-69)**: Vague or generic feedback without examples
+- **Low scores (below 50)**: Unhelpful, unclear, or missing responses
+
+Provide scores 0-100 for each evaluator's feedback quality.
 
 Respond in JSON format:
 {

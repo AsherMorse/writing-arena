@@ -202,58 +202,42 @@ export function generateTWRPeerFeedbackPrompt(responses: any, peerWriting: strin
 PEER'S WRITING THAT WAS REVIEWED:
 ${peerWriting}
 
-STUDENT'S PEER FEEDBACK PROVIDED:
-1. Main idea clarity: ${responses.clarity || 'Not provided'}
-2. Strengths noted: ${responses.strengths || 'Not provided'}
-3. Improvements suggested: ${responses.improvements || 'Not provided'}
-4. Organization feedback: ${responses.organization || 'Not provided'}
-5. Engagement feedback: ${responses.engagement || 'Not provided'}
+STUDENT'S PEER FEEDBACK (3 Targeted Questions):
+1. Main Idea: ${responses.mainIdea || 'Not provided'}
+2. One Strength: ${responses.strength || 'Not provided'}
+3. One Suggestion: ${responses.suggestion || 'Not provided'}
 
-EVALUATE USING TWR PEER FEEDBACK STANDARDS:
+EVALUATE EACH RESPONSE:
 
-**HIGH QUALITY PEER FEEDBACK** (80-100) includes:
-✓ QUOTES specific sentences/phrases from peer's writing
-✓ Names TWR strategies peer used: "You used an appositive in sentence 2"
-✓ Points to EXACT locations: "In your third sentence...", "The word 'X' in line 2..."
-✓ Gives CONCRETE TWR suggestions: "Expand 'She ran' to 'She ran because...'"
-✓ References TWR terms: sentence expansion, appositives, transition words, combining, etc.
+**1. Main Idea (Was it accurate and clear?)**
+- Did they correctly identify the central point?
+- Did they explain it in their own words?
 
-**LOW QUALITY PEER FEEDBACK** (below 70) has:
-✗ Vague comments: "good writing", "nice job", "interesting"
-✗ No quotes or examples from the text
-✗ General advice: "add more details" (WHERE? WHAT details?)
-✗ No reference to specific sentences
-✗ No TWR strategies mentioned
+**2. Strength (Was it specific and text-based?)**
+- Did they quote or reference specific text?
+- Did they explain WHY it was effective?
 
-EXAMPLES OF GOOD PEER FEEDBACK:
-✓ "Your appositive 'a weathered stone sentinel' adds vivid description (TWR strategy)"
-✓ "In sentence 3, expand 'She went in' with because: 'She went in because the light beckoned'"
-✓ "Combine sentences 2 and 3 (TWR): 'The old door, though rusty, opened easily'"
+**3. Suggestion (Was it actionable and constructive?)**
+- Is the suggestion specific and concrete?
+- Can the writer actually implement it?
 
-EXAMPLES OF BAD PEER FEEDBACK:
-✗ "Good use of description"
-✗ "Add more transitions"
-✗ "Nice vocabulary"
-
-TASK:
-Evaluate if this student's feedback:
-1. Quotes the peer's actual text
-2. References specific TWR strategies
-3. Gives concrete, actionable suggestions
-4. Points to exact locations
+SCORING CRITERIA:
+- **90-100**: All three responses are specific, text-based, and actionable
+- **80-89**: Two responses are strong, one could be more specific
+- **70-79**: Shows understanding but lacks specificity
+- **60-69**: Vague or generic responses
+- **Below 60**: Incomplete or unhelpful
 
 Return JSON:
 {
   "score": 85,
   "strengths": [
-    "You quoted 'the lighthouse stood sentinel' which shows you read carefully",
-    "You identified the appositive strategy by name (TWR)",
-    "You gave a concrete revision: 'expand with because' - that's actionable"
+    "Correctly identified the main idea",
+    "Quoted specific text when noting strength"
   ],
   "improvements": [
-    "Quote MORE specific phrases - reference at least 3 exact sentences",
-    "Name the TWR strategies you see - say 'I notice you used sentence expansion' not just 'good sentences'",
-    "Give concrete examples: Instead of 'add details,' say 'after lighthouse, add appositive: The lighthouse, a crumbling stone tower, stood...'"
+    "Make suggestions more concrete - say exactly what to add/change",
+    "Try referencing specific sentences by location"
   ]
 }`;
 }

@@ -23,24 +23,20 @@ export async function POST(request: NextRequest) {
 PEER'S WRITING TO EVALUATE:
 ${peerWriting}
 
-Give feedback AS IF you are a ${skillLevel} student. Provide responses to these questions:
+Give feedback AS IF you are a ${skillLevel} student. Answer these 3 targeted questions:
 
-1. Main idea clarity: What is the main idea? Is it clear?
-2. Strengths: What did the writer do well?
-3. Improvements: What could be better?
-4. Organization: How is the writing organized?
-5. Engagement: Does it hold your interest?
+1. What is the main idea? (Identify the central point of the writing)
+2. What is one strength? (Point out something specific the writer did well)
+3. What is one specific suggestion? (Give one concrete improvement)
 
 Guidelines for ${skillLevel} level feedback:
 ${getFeedbackCharacteristics(skillLevel)}
 
 Respond in JSON:
 {
-  "clarity": "response about main idea",
-  "strengths": "what they did well",
-  "improvements": "suggestions",
-  "organization": "how it's organized",
-  "engagement": "interest level"
+  "mainIdea": "what the writing is about",
+  "strength": "one specific thing done well",
+  "suggestion": "one concrete improvement"
 }`;
 
     const aiResponse = await callAnthropicAPI(apiKey, prompt, 800);
@@ -67,27 +63,21 @@ function generateMockFeedback(rank: string): any {
   
   const mockFeedback: Record<string, any> = {
     beginner: {
-      clarity: "I think the main idea is about a lighthouse. It's pretty clear.",
-      strengths: "I like the description. It's interesting.",
-      improvements: "Maybe add more details about what happens next.",
-      organization: "It goes in order and makes sense.",
-      engagement: "Yeah it's interesting. I want to know what's in the chest.",
+      mainIdea: "I think the main idea is about a lighthouse. It's pretty clear.",
+      strength: "I like the description. It's interesting.",
+      suggestion: "Maybe add more details about what happens next.",
     },
     
     intermediate: {
-      clarity: "The main idea is about discovering a mysterious chest in an abandoned lighthouse. It's mostly clear, though I wondered why the character went inside.",
-      strengths: "Good use of descriptive words like 'weathered' and 'sentinel'. The mystery element is engaging.",
-      improvements: "Could add more about what the character is feeling. Also, maybe use some transitions between ideas.",
-      organization: "The writing flows well from seeing the lighthouse to going inside to finding the chest.",
-      engagement: "Yes, it definitely holds my interest. The golden light and glowing chest create suspense.",
+      mainIdea: "The main idea is about discovering a mysterious chest in an abandoned lighthouse. It's mostly clear, though I wondered why the character went inside.",
+      strength: "Good use of descriptive words like 'weathered' and 'sentinel'. The mystery element is engaging.",
+      suggestion: "Could add more about what the character is feeling. Also, maybe use some transitions between ideas.",
     },
     
     proficient: {
-      clarity: "The main idea centers on a curious discovery in an old lighthouse. The clarity is strong, with the character's motivation (curiosity) clearly established.",
-      strengths: "Excellent use of descriptive language ('weathered stones telling stories'). Strong narrative hook with the mysterious golden light. Good pacing.",
-      improvements: "Consider expanding sentences with subordinating conjunctions to show cause-effect relationships. Could add more sensory details (sounds, smells) to enhance immersion.",
-      organization: "Well-organized with clear progression: familiar setting → unusual change → investigation → discovery. Transitions are smooth.",
-      engagement: "Highly engaging. The mystery element and vivid descriptions create strong reader interest. The cliffhanger ending is effective.",
+      mainIdea: "The main idea centers on a curious discovery in an old lighthouse. The clarity is strong, with the character's motivation (curiosity) clearly established.",
+      strength: "Excellent use of descriptive language ('weathered stones telling stories'). Strong narrative hook with the mysterious golden light. Good pacing.",
+      suggestion: "Consider expanding sentences with subordinating conjunctions to show cause-effect relationships. Could add more sensory details (sounds, smells) to enhance immersion.",
     },
   };
   
