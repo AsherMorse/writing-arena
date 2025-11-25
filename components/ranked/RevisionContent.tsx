@@ -117,12 +117,17 @@ export default function RevisionContent() {
   ], []);
   
   // Fetch real peer feedback from Phase 2
+  const peerFeedbackFetchedRef = useRef(false);
   useEffect(() => {
+    if (peerFeedbackFetchedRef.current) return;
+    
     const fetchPeerFeedback = async () => {
       if (!user || !matchId) {
         setLoadingPeerFeedback(false);
         return;
       }
+      
+      peerFeedbackFetchedRef.current = true;
       
       try {
         const peerFeedbackData = await getPeerFeedbackResponses(matchId, user.uid);
@@ -141,10 +146,14 @@ export default function RevisionContent() {
   }, [user, matchId]);
 
   // Generate REAL AI feedback for user's writing
+  const feedbackGeneratedRef = useRef<string | null>(null);
   useEffect(() => {
-    if (!originalContent || !session || loadingFeedback === false) return;
+    // Only generate feedback once per content
+    const contentKey = `${originalContent}-${promptType}`;
+    if (!originalContent || !session || loadingFeedback === false || feedbackGeneratedRef.current === contentKey) return;
     
     const generateRealFeedback = async () => {
+      feedbackGeneratedRef.current = contentKey;
       
       try {
         // Call the generate-feedback API with YOUR actual writing
@@ -172,7 +181,7 @@ export default function RevisionContent() {
     };
     
     generateRealFeedback();
-  }, [originalContent, promptType, session, loadingFeedback]);
+  }, [originalContent, promptType]);
 
   // Generate AI revisions when phase starts
   useEffect(() => {
@@ -448,6 +457,10 @@ export default function RevisionContent() {
 
   const hasRevised = revisedContent !== originalContent;
 
+  // Memoize feedback arrays to prevent unnecessary re-renders
+  const strengthsList = useMemo(() => aiFeedback.strengths || [], [aiFeedback.strengths]);
+  const improvementsList = useMemo(() => aiFeedback.improvements || [], [aiFeedback.improvements]);
+
   if (isReconnecting || !session) {
     return <LoadingState message="Loading revision phase..." />;
   }
@@ -627,8 +640,8 @@ export default function RevisionContent() {
                     <div className="text-white/60 text-sm">Loading AI feedback...</div>
                   ) : (
                     <ul className="space-y-1">
-                      {aiFeedback.strengths.map((strength, i) => (
-                        <li key={i} className="text-white/80 text-sm leading-relaxed">
+                      {strengthsList.map((strength, i) => (
+                        <li key={`strength-${i}-${strength.substring(0, 20)}`} className="text-white/80 text-sm leading-relaxed">
                           • {strength}
                         </li>
                       ))}
@@ -642,8 +655,8 @@ export default function RevisionContent() {
                       <div className="text-white/60 text-sm">Loading AI feedback...</div>
                     ) : (
                       <ul className="space-y-1">
-                        {aiFeedback.improvements.map((improvement, i) => (
-                          <li key={i} className="text-white/80 text-sm leading-relaxed">
+                        {improvementsList.map((improvement, i) => (
+                          <li key={`improvement-${i}-${improvement.substring(0, 20)}`} className="text-white/80 text-sm leading-relaxed">
                             • {improvement}
                           </li>
                         ))}
