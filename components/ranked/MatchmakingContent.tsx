@@ -66,6 +66,14 @@ export default function MatchmakingContent() {
 
   const fillLobbyWithAI = useCallback(async (sessionIdOverride?: string) => {
     const sessionId = sessionIdOverride || currentSessionId;
+    
+    if (!sessionId) {
+      console.error('❌ fillLobbyWithAI: No sessionId provided');
+      setHasFilledWithAI(false);
+      return;
+    }
+    
+    console.log('🤖 fillLobbyWithAI: Starting with sessionId:', sessionId);
     setHasFilledWithAI(true);
     
     if (aiBackfillIntervalRef.current) {
@@ -82,6 +90,7 @@ export default function MatchmakingContent() {
     }
     
     if (aiStudents.length === 0) {
+      console.error('❌ fillLobbyWithAI: No AI students available');
       setHasFilledWithAI(false);
       return;
     }
@@ -93,6 +102,7 @@ export default function MatchmakingContent() {
     const currentPlayerCount = players.length;
     const slotsRemaining = 5 - currentPlayerCount;
     if (slotsRemaining <= 0) {
+      console.log('✅ fillLobbyWithAI: Lobby already full');
       setHasFilledWithAI(false);
       return;
     }
@@ -100,13 +110,9 @@ export default function MatchmakingContent() {
     const aiToAdd = aiStudents
       .slice(0, slotsRemaining)
       .map(ai => buildAIPlayer(ai));
-      
-    if (!sessionId) {
-      setHasFilledWithAI(false);
-      return;
-    }
     
     try {
+      console.log(`🤖 Adding ${aiToAdd.length} AI players to session ${sessionId}`);
       await Promise.all(
         aiToAdd.map((aiPlayer, index) => {
           const aiStudent = aiStudents[index];
@@ -125,7 +131,9 @@ export default function MatchmakingContent() {
           return Promise.resolve();
         })
       );
+      console.log('✅ Successfully added AI players to session');
     } catch (error) {
+      console.error('❌ Failed to add AI players to session:', error);
       setHasFilledWithAI(false);
       return;
     }
@@ -226,11 +234,31 @@ export default function MatchmakingContent() {
         };
         
         const session = await findOrJoinSession(userId, playerInfo, trait);
+        if (!session || !session.sessionId) {
+          console.error('❌ Failed to create session: session or sessionId is missing', session);
+          return;
+        }
+        console.log('✅ Session created/joined:', session.sessionId);
         setCurrentSessionId(session.sessionId);
+        
+        // Ensure user is in players state
+        setPlayers(prev => {
+          const hasUser = prev.some(p => p.userId === userId);
+          if (!hasUser) {
+            return [{
+              userId: userId,
+              name: 'You',
+              avatar: userAvatar,
+              rank: userRank,
+              isAI: false,
+            }, ...prev];
+          }
+          return prev;
+        });
         
         await fillLobbyWithAI(session.sessionId);
       } catch (error) {
-        // Silent fail
+        console.error('❌ Failed to start AI match:', error);
       }
     };
     
@@ -255,6 +283,11 @@ export default function MatchmakingContent() {
         };
         
         const session = await findOrJoinSession(userId, playerInfo, trait);
+        if (!session || !session.sessionId) {
+          console.error('❌ Failed to create session: session or sessionId is missing', session);
+          return;
+        }
+        console.log('✅ Session created/joined:', session.sessionId);
         setCurrentSessionId(session.sessionId);
 
         unsubscribeQueue = listenToQueue(trait, userId, (queuePlayers: QueueEntry[]) => {
@@ -383,7 +416,7 @@ export default function MatchmakingContent() {
         fetchAndAddAIStudents();
 
       } catch (error) {
-        // Silent fail
+        console.error('❌ Failed to start matchmaking:', error);
       }
     };
 

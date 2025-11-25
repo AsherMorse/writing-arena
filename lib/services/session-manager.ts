@@ -65,7 +65,12 @@ export class SessionManager {
     
     if (sessionSnap.exists()) {
       await this.reconnectToSession(sessionRef, playerInfo);
-      this.currentSession = sessionSnap.data() as GameSession;
+      const sessionData = sessionSnap.data() as GameSession;
+      // Ensure sessionId matches the document ID (Firestore doesn't include doc ID in data)
+      this.currentSession = {
+        ...sessionData,
+        sessionId: sessionSnap.id,
+      };
     } else {
       throw new Error('Session not found');
     }
@@ -94,14 +99,19 @@ export class SessionManager {
       const snapshot = await getDocs(formingQuery);
       
       if (!snapshot.empty) {
-        const existingSession = snapshot.docs[0].data() as GameSession;
         const existingSessionId = snapshot.docs[0].id;
         
         await this.addPlayerToSession(existingSessionId, userId, playerInfo);
         
-        return await this.joinSession(existingSessionId, userId, playerInfo);
+        const joinedSession = await this.joinSession(existingSessionId, userId, playerInfo);
+        // Ensure sessionId is set correctly
+        return {
+          ...joinedSession,
+          sessionId: existingSessionId,
+        };
       }
     } catch (error) {
+      console.error('Error finding existing session:', error);
       // Continue to create new session
     }
     
@@ -155,9 +165,19 @@ export class SessionManager {
     };
     
     const sessionRef = doc(db, 'sessions', sessionId);
-    await setDoc(sessionRef, session);
+    try {
+      await setDoc(sessionRef, session);
+      console.log('✅ Created forming session:', sessionId);
+    } catch (error) {
+      console.error('❌ Failed to create session in Firestore:', error);
+      throw error;
+    }
     
-    return session;
+    // Ensure sessionId is set correctly in the returned object
+    return {
+      ...session,
+      sessionId, // Explicitly ensure sessionId is set
+    };
   }
 
   async addPlayerToSession(
@@ -338,7 +358,11 @@ export class SessionManager {
         const sessionSnap = await getDoc(sessionRef);
         
         if (sessionSnap.exists()) {
-          const updatedSession = sessionSnap.data() as GameSession;
+          const sessionData = sessionSnap.data() as GameSession;
+          const updatedSession = {
+            ...sessionData,
+            sessionId: sessionSnap.id,
+          };
           if (JSON.stringify(updatedSession) !== JSON.stringify(this.currentSession)) {
             this.currentSession = updatedSession;
             this.eventHandlers.onSessionUpdate?.(updatedSession);
@@ -363,7 +387,11 @@ export class SessionManager {
           return;
         }
         
-        const session = snapshot.data() as GameSession;
+        const sessionData = snapshot.data() as GameSession;
+        const session = {
+          ...sessionData,
+          sessionId: snapshot.id,
+        };
         const previousSession = this.currentSession;
         this.currentSession = session;
         
