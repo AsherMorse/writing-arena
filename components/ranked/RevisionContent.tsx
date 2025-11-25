@@ -124,18 +124,14 @@ export default function RevisionContent() {
         return;
       }
       
-      console.log('👥 REVISION - Fetching peer feedback from Phase 2...');
       try {
         const peerFeedbackData = await getPeerFeedbackResponses(matchId, user.uid);
         
         if (peerFeedbackData) {
-          console.log('✅ REVISION - Loaded peer feedback from:', peerFeedbackData.reviewerName);
           setRealPeerFeedback(peerFeedbackData);
         } else {
-          console.warn('⚠️ REVISION - No peer feedback found, will show placeholder');
         }
       } catch (error) {
-        console.error('❌ REVISION - Error loading peer feedback:', error);
       } finally {
         setLoadingPeerFeedback(false);
       }
@@ -149,7 +145,6 @@ export default function RevisionContent() {
     if (!originalContent || !session || loadingFeedback === false) return;
     
     const generateRealFeedback = async () => {
-      console.log('🤖 REVISION - Generating REAL AI feedback for your writing...');
       
       try {
         // Call the generate-feedback API with YOUR actual writing
@@ -163,7 +158,6 @@ export default function RevisionContent() {
         });
         
         const feedback = await response.json();
-        console.log('✅ REVISION - Real AI feedback generated:', feedback);
         
         setAiFeedback({
           strengths: feedback.strengths || [],
@@ -171,7 +165,6 @@ export default function RevisionContent() {
           score: feedback.score || getDefaultScore(2),
         });
       } catch (error) {
-        console.error('❌ REVISION - Failed to generate feedback:', error);
         setAiFeedback(MOCK_AI_FEEDBACK);
       } finally {
         setLoadingFeedback(false);
@@ -186,7 +179,6 @@ export default function RevisionContent() {
     const generateAIRevisions = async () => {
       if (!matchId || !user || aiRevisionsGenerated) return;
       
-      console.log('🤖 REVISION - Generating AI revisions...');
       setAiRevisionsGenerated(true);
       
       try {
@@ -219,7 +211,6 @@ export default function RevisionContent() {
             score: aiRanking?.score || 70,
           };
           
-          console.log(`🤖 Using Phase 1 feedback for ${aiPlayer.displayName}:`, feedbackData);
           
           // Generate revision
           const revisionResponse = await fetch('/api/generate-ai-revision', {
@@ -234,7 +225,6 @@ export default function RevisionContent() {
           });
           
           const revisionData = await revisionResponse.json();
-          console.log(`✅ Generated revision for ${aiPlayer.displayName}:`, revisionData.wordCount, 'words');
           
           return {
             playerId: aiPlayer.userId,
@@ -255,9 +245,7 @@ export default function RevisionContent() {
           'aiRevisions.phase3': aiRevisions,
         });
         
-        console.log('✅ REVISION - All AI revisions generated and stored');
       } catch (error) {
-        console.error('❌ REVISION - Failed to generate AI revisions:', error);
       }
     };
     
@@ -321,14 +309,12 @@ export default function RevisionContent() {
     validateSubmission: () => validateRevisionSubmission(originalContent, revisedContent, wordCountRevised),
     onEmptySubmission: async (isEmpty, unchanged) => {
       if (isEmpty || unchanged) {
-        console.warn('⚠️ REVISION - Empty or unchanged submission, scoring low');
         const score = isEmpty ? SCORING.MIN_SCORE : 40;
         await submitPhase(3, {
           revisedContent: revisedContent || originalContent,
           wordCount: wordCountRevised,
           score,
           });
-        console.log('✅ REVISION - Low-effort submission recorded');
         
         // Navigate to results even for empty submission
         router.push(
@@ -383,7 +369,6 @@ export default function RevisionContent() {
         return rankings.find((r: any) => r.playerId === user?.uid);
       }
     } catch (error) {
-      console.error('Error getting ranking:', error);
     }
     return null;
   };
@@ -417,7 +402,6 @@ export default function RevisionContent() {
     hasSubmitted,
     sessionId: activeSessionId || sessionId,
     onTransition: (nextPhase) => {
-      console.log('🔄 REVISION - Phase transition detected:', nextPhase);
       if (session?.state === 'completed') {
         router.push(`/ranked/results?sessionId=${activeSessionId || sessionId}`);
       }
@@ -429,7 +413,6 @@ export default function RevisionContent() {
     if (!session || !hasSubmitted()) return;
     
     if (session.state === 'completed') {
-      console.log('🎉 REVISION - Session completed, navigating to results...');
       router.push(`/ranked/results/${activeSessionId || sessionId}`);
     }
   }, [session, hasSubmitted, router, activeSessionId, sessionId]);

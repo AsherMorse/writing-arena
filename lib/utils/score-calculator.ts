@@ -3,7 +3,7 @@
  * Centralizes scoring logic for consistency
  */
 
-export const PHASE_WEIGHTS = {
+const PHASE_WEIGHTS = {
   PHASE1: 0.4,
   PHASE2: 0.3,
   PHASE3: 0.3,
@@ -27,7 +27,7 @@ export function calculateCompositeScore(
 /**
  * Calculate LP change based on final rank
  */
-export function calculateLPChange(rank: number, totalPlayers: number = 5): number {
+export function calculateLPChange(rank: number): number {
   const lpChanges: Record<number, number> = {
     1: 35,
     2: 22,

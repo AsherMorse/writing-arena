@@ -5,16 +5,10 @@ import { clampScore } from '@/lib/constants/scoring';
 import { Phase } from '@/lib/types/session';
 import { retryUntilSuccess, retryWithBackoff } from '@/lib/utils/retry';
 
-/**
- * Helper to get nested value from object using dot notation path
- */
 function getNestedValue(obj: any, path: string): any {
   return path.split('.').reduce((current, key) => current?.[key], obj);
 }
 
-/**
- * Get request body key based on endpoint
- */
 function getRequestBodyKey(endpoint: string): string {
   if (endpoint.includes('writings')) return 'writings';
   if (endpoint.includes('feedback')) return 'feedbackSubmissions';
@@ -22,9 +16,6 @@ function getRequestBodyKey(endpoint: string): string {
   throw new Error(`Unknown endpoint: ${endpoint}`);
 }
 
-/**
- * Get additional body parameters based on endpoint
- */
 function getAdditionalBodyParams(endpoint: string, matchState: any): Record<string, any> {
   if (endpoint.includes('writings')) {
     return {
@@ -40,9 +31,9 @@ interface UseBatchRankingSubmissionOptions<TSubmission, TSubmissionData> {
   phase: Phase;
   matchId: string;
   userId: string;
-  endpoint: string; // '/api/batch-rank-writings' | '/api/batch-rank-feedback' | '/api/batch-rank-revisions'
-  firestoreKey: string; // 'aiWritings.phase1' | 'aiFeedbacks.phase2' | 'aiRevisions.phase3'
-  rankingsKey: string; // 'rankings.phase1' | 'rankings.phase2' | 'rankings.phase3'
+  endpoint: string;
+  firestoreKey: string;
+  rankingsKey: string;
   prepareUserSubmission: () => TSubmission;
   prepareSubmissionData: (score: number) => TSubmissionData;
   submitPhase: (phase: Phase, data: TSubmissionData) => Promise<void>;
@@ -51,17 +42,6 @@ interface UseBatchRankingSubmissionOptions<TSubmission, TSubmissionData> {
   onEmptySubmission?: (isEmpty: boolean, unchanged?: boolean) => Promise<void>;
 }
 
-/**
- * Hook for handling batch ranking submissions
- * Consolidates the common pattern of:
- * 1. Getting AI submissions from Firestore
- * 2. Preparing user + AI submissions
- * 3. Calling batch ranking API
- * 4. Finding user's ranking
- * 5. Storing rankings in Firestore
- * 6. Submitting phase with score
- * 7. Fallback to individual evaluation on error
- */
 export function useBatchRankingSubmission<TSubmission, TSubmissionData>(
   options: UseBatchRankingSubmissionOptions<TSubmission, TSubmissionData>
 ) {
@@ -69,9 +49,7 @@ export function useBatchRankingSubmission<TSubmission, TSubmissionData>(
   const [error, setError] = useState<Error | null>(null);
 
   const submit = async () => {
-    // Prevent duplicate submissions
     if (isSubmitting) {
-      console.warn(`⚠️ Phase ${options.phase} - Already submitting, ignoring duplicate call`);
       return;
     }
     
@@ -79,14 +57,10 @@ export function useBatchRankingSubmission<TSubmission, TSubmissionData>(
     setError(null);
 
     try {
-      // Validation
       if (options.validateSubmission) {
         const validation = options.validateSubmission();
-        console.log(`🔍 Phase ${options.phase} - Validation result:`, validation);
         if (!validation.isValid) {
-          // Handle empty/unchanged submission
           if (options.onEmptySubmission) {
-            console.warn(`⚠️ Phase ${options.phase} - Invalid submission detected, handling empty submission`);
             await options.onEmptySubmission(
               validation.isEmpty || false,
               validation.unchanged
@@ -97,8 +71,6 @@ export function useBatchRankingSubmission<TSubmission, TSubmissionData>(
         }
       }
 
-      // Get AI submissions from Firestore with polling
-      // This ensures we wait for AI content to be generated if user submits quickly
       let aiSubmissions: any[] = [];
       let matchState: any = null;
 
@@ -114,56 +86,34 @@ export function useBatchRankingSubmission<TSubmission, TSubmissionData>(
             const submissions = getNestedValue(matchState, options.firestoreKey) || [];
 
             if (submissions.length === 0) {
-              console.log(`⏳ Phase ${options.phase} - Waiting for AI submissions to be generated...`);
-              throw new Error('AI submissions not ready'); // Force retry
+              throw new Error('AI submissions not ready');
             }
 
             aiSubmissions = submissions;
             return true;
           },
           {
-            maxAttempts: 10, // Wait up to ~15 seconds total
+            maxAttempts: 10,
             delayMs: 1000,
-            exponentialBackoff: false, // Linear polling
-            onRetry: (attempt) => {
-              console.log(`🔄 Phase ${options.phase} - Polling for AI data (attempt ${attempt}/10)...`);
-            },
+            exponentialBackoff: false,
           }
         );
       } catch (err) {
-        console.warn(`⚠️ Phase ${options.phase} - Timeout waiting for AI submissions. Proceeding with available data or failing over.`);
-        // We don't throw here immediately, we check aiSubmissions length below
+        // Silent timeout
       }
 
       if (aiSubmissions.length === 0) {
-        console.error(`❌ Phase ${options.phase} - Failed to retrieve AI submissions after waiting.`);
-        // Proceeding with empty AI submissions will likely cause the batch API to just rank the user alone,
-        // or we can throw error to trigger fallback.
-        // Throwing error is safer to ensure we don't get a "Rank 1 of 1" result incorrectly.
         throw new Error('AI submissions not available after waiting');
       }
 
-      // Prepare all submissions
       const userSubmission = options.prepareUserSubmission();
-      const submissionAny = userSubmission as any;
-      console.log(`📝 Phase ${options.phase} - User submission prepared:`, {
-        hasContent: !!submissionAny.content,
-        contentLength: submissionAny.content?.length || 0,
-        contentPreview: submissionAny.content?.substring(0, 50) || '',
-        wordCount: submissionAny.wordCount || 'N/A',
-      });
-      
       const allSubmissions = [userSubmission, ...aiSubmissions];
 
-      console.log(`📊 Batch ranking ${allSubmissions.length} submissions for phase ${options.phase}...`);
-
-      // Call batch ranking API with retry logic
       const requestBody: Record<string, any> = {
         [getRequestBodyKey(options.endpoint)]: allSubmissions,
         ...getAdditionalBodyParams(options.endpoint, matchState),
       };
 
-      // Retry API call up to 3 times with exponential backoff
       const apiCall = async () => {
         const response = await fetch(options.endpoint, {
           method: 'POST',
@@ -189,37 +139,27 @@ export function useBatchRankingSubmission<TSubmission, TSubmissionData>(
         maxAttempts: 3,
         delayMs: 1000,
         exponentialBackoff: true,
-        onRetry: (attempt) => {
-          console.log(`🔄 Phase ${options.phase} - Retrying batch ranking API (attempt ${attempt}/3)...`);
-        },
       });
 
       if (!rankings) {
         throw new Error('Batch ranking API failed after 3 attempts');
       }
 
-      // Find user's ranking
       const yourRanking = rankings.find((r: any) => r.playerId === options.userId);
       if (!yourRanking) {
         throw new Error('Your ranking not found');
       }
 
       const score = yourRanking.score;
-      console.log(`🎯 You ranked #${yourRanking.rank} with score ${score}`);
 
-      // Extract user's feedback from ranking
       const userFeedback: any = {
         strengths: yourRanking.strengths || [],
         improvements: yourRanking.improvements || [],
       };
       
-      // Phase-specific feedback fields
       if (options.phase === 1) {
-        // Phase 1: Writing - includes traitFeedback and can generate nextSteps
         userFeedback.traitFeedback = yourRanking.traitFeedback || {};
-        // Generate nextSteps from improvements
         userFeedback.nextSteps = (yourRanking.improvements || []).slice(0, 3).map((imp: string) => {
-          // Extract TWR strategy mentioned and create actionable step
           if (imp.includes('because/but/so') || imp.includes('sentence expansion')) {
             return 'Practice sentence expansion: Add "because", "but", or "so" to show deeper thinking';
           }
@@ -231,59 +171,36 @@ export function useBatchRankingSubmission<TSubmission, TSubmissionData>(
           }
           return imp;
         });
-      } else if (options.phase === 2) {
-        // Phase 2: Peer Feedback - feedback on feedback quality
-        // No additional fields needed
       } else if (options.phase === 3) {
-        // Phase 3: Revision - includes suggestions
         userFeedback.suggestions = yourRanking.suggestions || [];
       }
 
-      // Store rankings AND user's feedback in Firestore
       const matchRef = doc(db, 'matchStates', options.matchId);
       await updateDoc(matchRef, {
         [options.rankingsKey]: rankings,
         [`feedback.${options.userId}.phase${options.phase}`]: userFeedback,
       });
-      
-      console.log(`✅ Stored feedback for phase ${options.phase}:`, {
-        userId: options.userId,
-        phase: options.phase,
-        feedbackPath: `feedback.${options.userId}.phase${options.phase}`,
-        feedbackData: userFeedback
-      });
 
-      // Submit phase with clamped score
       await options.submitPhase(options.phase, options.prepareSubmissionData(clampScore(score)));
 
-      console.log(`✅ Batch ranking submission complete for phase ${options.phase}`);
     } catch (error) {
-      console.error(`❌ Batch ranking failed for phase ${options.phase}:`, error);
       setError(error as Error);
 
-      // Don't retry if session is not initialized - this is a fatal error
       if (error instanceof Error && error.message === 'Session not initialized') {
-        console.error('❌ Session not initialized - cannot submit phase');
         throw error;
       }
 
-      // Fallback to individual evaluation if provided
       if (options.fallbackEvaluation) {
         try {
-          console.log('🔄 Attempting fallback evaluation...');
           const fallbackScore = await options.fallbackEvaluation();
           await options.submitPhase(
             options.phase,
             options.prepareSubmissionData(clampScore(fallbackScore))
           );
-          console.log('✅ Fallback evaluation complete');
         } catch (fallbackError) {
-          // Don't retry if session is not initialized
           if (fallbackError instanceof Error && fallbackError.message === 'Session not initialized') {
-            console.error('❌ Session not initialized - cannot use fallback');
             throw fallbackError;
           }
-          console.error('❌ Fallback evaluation failed:', fallbackError);
           throw fallbackError;
         }
       } else {
@@ -296,4 +213,3 @@ export function useBatchRankingSubmission<TSubmission, TSubmissionData>(
 
   return { submit, isSubmitting, error };
 }
-

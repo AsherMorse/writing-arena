@@ -27,18 +27,15 @@ export default function ImproveChatInterface({ rankedMatches }: ImproveChatInter
   const analysisStarted = useRef(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   
-  // Modal states
   const [showMatchSummary, setShowMatchSummary] = useState(false);
   const [showProgress, setShowProgress] = useState(false);
   const [showExport, setShowExport] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
   
-  // Conversation persistence
   const [currentConversationId, setCurrentConversationId] = useState<string | null>(null);
   const [pastConversations, setPastConversations] = useState<ImproveConversation[]>([]);
   const [loadingHistory, setLoadingHistory] = useState(false);
   
-  // Auto-save conversation when messages change (debounced)
   useEffect(() => {
     if (messages.length === 0 || !user) return;
     
@@ -51,14 +48,13 @@ export default function ImproveChatInterface({ rankedMatches }: ImproveChatInter
           setCurrentConversationId(id);
         }
       } catch (error) {
-        console.error('Failed to save conversation:', error);
+        // Silent fail for conversation save
       }
-    }, 2000); // Save 2 seconds after last message change
+    }, 2000);
     
     return () => clearTimeout(saveTimer);
   }, [messages, user, currentConversationId]);
   
-  // Load conversation history
   const loadConversationHistory = async () => {
     if (!user) return;
     setLoadingHistory(true);
@@ -66,13 +62,12 @@ export default function ImproveChatInterface({ rankedMatches }: ImproveChatInter
       const conversations = await getImproveConversations(user.uid, 20);
       setPastConversations(conversations);
     } catch (error) {
-      console.error('Failed to load conversation history:', error);
+      // Silent fail for history load
     } finally {
       setLoadingHistory(false);
     }
   };
   
-  // Load a past conversation
   const loadConversation = (conversation: ImproveConversation) => {
     setMessages(conversation.messages.map(msg => ({
       ...msg,
@@ -82,7 +77,6 @@ export default function ImproveChatInterface({ rankedMatches }: ImproveChatInter
     setShowHistory(false);
   };
   
-  // Start new conversation
   const startNewConversation = () => {
     setMessages([]);
     setCurrentConversationId(null);
@@ -91,23 +85,14 @@ export default function ImproveChatInterface({ rankedMatches }: ImproveChatInter
     setShowHistory(false);
   };
 
-  // Generate initial analysis function (defined before useEffect that uses it)
   const generateInitialAnalysis = useCallback(async () => {
     setIsLoading(true);
-    console.log('📊 IMPROVE - Starting initial analysis...', {
-      matchesCount: rankedMatches.length,
-      userId: user?.uid,
-    });
     
     try {
-      // Get user's grade level from rank
       const gradeLevel = userProfile?.currentRank 
         ? getGradeLevelFromRank(userProfile.currentRank)
-        : '7th-8th'; // Default fallback
+        : '7th-8th';
 
-      console.log('📤 IMPROVE - Sending analyze request...', { gradeLevel });
-
-      // Analyze the matches and generate TWR-based recommendations
       const response = await fetch('/api/improve/analyze', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -118,19 +103,11 @@ export default function ImproveChatInterface({ rankedMatches }: ImproveChatInter
         }),
       });
       
-      console.log('📥 IMPROVE - Analyze response received:', {
-        status: response.status,
-        ok: response.ok,
-        contentType: response.headers.get('content-type'),
-      });
-      
       if (!response.ok) {
         const errorData = await response.json();
-        console.error('❌ IMPROVE - Analyze error:', errorData);
         throw new Error(errorData.error || 'Failed to analyze');
       }
       
-      // Stream the response
       const reader = response.body?.getReader();
       const decoder = new TextDecoder();
       
@@ -138,7 +115,6 @@ export default function ImproveChatInterface({ rankedMatches }: ImproveChatInter
         throw new Error('No response body');
       }
       
-      // Create a new message for streaming
       const messageId = `analysis-${Date.now()}`;
       const analysisMessage: Message = {
         id: messageId,
@@ -154,20 +130,11 @@ export default function ImproveChatInterface({ rankedMatches }: ImproveChatInter
       while (true) {
         const { done, value } = await reader.read();
         
-        if (done) {
-          console.log('✅ IMPROVE - Analysis stream complete');
-          break;
-        }
+        if (done) break;
         
         const chunk = decoder.decode(value, { stream: true });
         accumulatedText += chunk;
         
-        console.log('📝 IMPROVE - Received chunk:', {
-          chunkLength: chunk.length,
-          totalLength: accumulatedText.length,
-        });
-        
-        // Update the message with accumulated text
         setMessages(prev => prev.map(msg => 
           msg.id === messageId 
             ? { ...msg, content: accumulatedText }
@@ -175,7 +142,6 @@ export default function ImproveChatInterface({ rankedMatches }: ImproveChatInter
         ));
       }
     } catch (error) {
-      console.error('❌ IMPROVE - Error generating analysis:', error);
       const errorMessage: Message = {
         id: `error-${Date.now()}`,
         role: 'assistant',
@@ -188,7 +154,6 @@ export default function ImproveChatInterface({ rankedMatches }: ImproveChatInter
     }
   }, [rankedMatches, user, userProfile]);
 
-  // Initialize with welcome message and analysis
   useEffect(() => {
     if (!initialized && !analysisStarted.current && rankedMatches.length >= 5) {
       analysisStarted.current = true;
@@ -207,7 +172,6 @@ Let me analyze your performance...`,
       setMessages([welcomeMessage]);
       setInitialized(true);
       
-      // Generate initial analysis
       generateInitialAnalysis();
     }
   }, [rankedMatches, initialized, user, generateInitialAnalysis]);
@@ -224,10 +188,6 @@ Let me analyze your performance...`,
     if (!input.trim() || isLoading) return;
 
     const userMessageText = input.trim();
-    console.log('💬 IMPROVE - Sending message:', {
-      messageLength: userMessageText.length,
-      messagesCount: messages.length,
-    });
 
     const userMessage: Message = {
       id: `user-${Date.now()}`,
@@ -241,15 +201,9 @@ Let me analyze your performance...`,
     setIsLoading(true);
 
     try {
-      // Get user's grade level from rank
       const gradeLevel = userProfile?.currentRank 
         ? getGradeLevelFromRank(userProfile.currentRank)
-        : '7th-8th'; // Default fallback
-
-      console.log('📤 IMPROVE - Sending chat request...', {
-        gradeLevel,
-        historyLength: messages.length,
-      });
+        : '7th-8th';
 
       const response = await fetch('/api/improve/chat', {
         method: 'POST',
@@ -257,25 +211,17 @@ Let me analyze your performance...`,
         body: JSON.stringify({
           message: userMessageText,
           matches: rankedMatches,
-          conversationHistory: messages.slice(-10), // Last 10 messages for context
+          conversationHistory: messages.slice(-10),
           userId: user?.uid,
           gradeLevel: gradeLevel,
         }),
       });
 
-      console.log('📥 IMPROVE - Chat response received:', {
-        status: response.status,
-        ok: response.ok,
-        contentType: response.headers.get('content-type'),
-      });
-
       if (!response.ok) {
         const errorData = await response.json();
-        console.error('❌ IMPROVE - Chat error:', errorData);
         throw new Error(errorData.error || 'Failed to generate response');
       }
 
-      // Stream the response
       const reader = response.body?.getReader();
       const decoder = new TextDecoder();
       
@@ -283,7 +229,6 @@ Let me analyze your performance...`,
         throw new Error('No response body');
       }
       
-      // Create a new message for streaming
       const messageId = `assistant-${Date.now()}`;
       const assistantMessage: Message = {
         id: messageId,
@@ -299,20 +244,11 @@ Let me analyze your performance...`,
       while (true) {
         const { done, value } = await reader.read();
         
-        if (done) {
-          console.log('✅ IMPROVE - Chat stream complete');
-          break;
-        }
+        if (done) break;
         
         const chunk = decoder.decode(value, { stream: true });
         accumulatedText += chunk;
         
-        console.log('📝 IMPROVE - Received chunk:', {
-          chunkLength: chunk.length,
-          totalLength: accumulatedText.length,
-        });
-        
-        // Update the message with accumulated text
         setMessages(prev => prev.map(msg => 
           msg.id === messageId 
             ? { ...msg, content: accumulatedText }
@@ -320,7 +256,6 @@ Let me analyze your performance...`,
         ));
       }
     } catch (error) {
-      console.error('❌ IMPROVE - Error sending message:', error);
       const errorMessage: Message = {
         id: `error-${Date.now()}`,
         role: 'assistant',
@@ -341,9 +276,6 @@ Let me analyze your performance...`,
   };
 
   const handleQuickAction = async (action: string) => {
-    console.log('⚡ IMPROVE - Quick action:', action);
-    
-    // Create user message
     const userMessage: Message = {
       id: `user-${Date.now()}`,
       role: 'user',
@@ -355,16 +287,9 @@ Let me analyze your performance...`,
     setIsLoading(true);
 
     try {
-      // Get user's grade level from rank
       const gradeLevel = userProfile?.currentRank 
         ? getGradeLevelFromRank(userProfile.currentRank)
-        : '7th-8th'; // Default fallback
-
-      console.log('📤 IMPROVE - Sending quick action chat request...', {
-        action,
-        gradeLevel,
-        historyLength: messages.length,
-      });
+        : '7th-8th';
 
       const response = await fetch('/api/improve/chat', {
         method: 'POST',
@@ -372,25 +297,17 @@ Let me analyze your performance...`,
         body: JSON.stringify({
           message: action,
           matches: rankedMatches,
-          conversationHistory: messages.slice(-10), // Last 10 messages for context
+          conversationHistory: messages.slice(-10),
           userId: user?.uid,
           gradeLevel: gradeLevel,
         }),
       });
 
-      console.log('📥 IMPROVE - Quick action response received:', {
-        status: response.status,
-        ok: response.ok,
-        contentType: response.headers.get('content-type'),
-      });
-
       if (!response.ok) {
         const errorData = await response.json();
-        console.error('❌ IMPROVE - Quick action error:', errorData);
         throw new Error(errorData.error || 'Failed to generate response');
       }
 
-      // Stream the response
       const reader = response.body?.getReader();
       const decoder = new TextDecoder();
       
@@ -398,7 +315,6 @@ Let me analyze your performance...`,
         throw new Error('No response body');
       }
       
-      // Create a new message for streaming
       const messageId = `assistant-${Date.now()}`;
       const assistantMessage: Message = {
         id: messageId,
@@ -414,20 +330,11 @@ Let me analyze your performance...`,
       while (true) {
         const { done, value } = await reader.read();
         
-        if (done) {
-          console.log('✅ IMPROVE - Quick action stream complete');
-          break;
-        }
+        if (done) break;
         
         const chunk = decoder.decode(value, { stream: true });
         accumulatedText += chunk;
         
-        console.log('📝 IMPROVE - Received chunk:', {
-          chunkLength: chunk.length,
-          totalLength: accumulatedText.length,
-        });
-        
-        // Update the message with accumulated text
         setMessages(prev => prev.map(msg => 
           msg.id === messageId 
             ? { ...msg, content: accumulatedText }
@@ -435,7 +342,6 @@ Let me analyze your performance...`,
         ));
       }
     } catch (error) {
-      console.error('❌ IMPROVE - Error with quick action:', error);
       const errorMessage: Message = {
         id: `error-${Date.now()}`,
         role: 'assistant',
@@ -455,7 +361,6 @@ Let me analyze your performance...`,
     'I want to try a writing exercise',
   ];
 
-  // Calculate progress metrics
   const progressMetrics = useMemo(() => {
     if (rankedMatches.length === 0) return null;
     
@@ -469,7 +374,6 @@ Let me analyze your performance...`,
     
     const overallAvg = rankedMatches.reduce((sum, m) => sum + m.score, 0) / rankedMatches.length;
     
-    // Find trends (comparing first 2 vs last 2 matches)
     const firstHalf = rankedMatches.slice(0, 2);
     const lastHalf = rankedMatches.slice(-2);
     
@@ -480,7 +384,6 @@ Let me analyze your performance...`,
     return { avgScores, overallAvg, trend, trendDiff: Math.abs(lastHalfAvg - firstHalfAvg) };
   }, [rankedMatches]);
 
-  // Export conversation
   const handleExport = () => {
     const conversationText = messages.map(msg => {
       const role = msg.role === 'user' ? 'You' : 'Coach';
@@ -502,7 +405,6 @@ Let me analyze your performance...`,
 
   return (
     <div className="flex flex-col h-[calc(100vh-80px)] max-w-4xl mx-auto px-6 py-6">
-      {/* Header */}
       <div className="mb-6">
         <div className="flex items-start justify-between mb-2">
           <div>
@@ -549,7 +451,6 @@ Let me analyze your performance...`,
         </div>
       </div>
 
-      {/* Messages */}
       <div className="flex-1 overflow-y-auto space-y-6 mb-6 pr-2">
         {messages.map((message, index) => (
           <div key={message.id} className="space-y-3">
@@ -585,7 +486,6 @@ Let me analyze your performance...`,
               )}
             </div>
             
-            {/* Quick action buttons - show after assistant messages, before user response */}
             {message.role === 'assistant' && 
              !isLoading && 
              index === messages.length - 1 && 
@@ -627,7 +527,6 @@ Let me analyze your performance...`,
         <div ref={messagesEndRef} />
       </div>
 
-      {/* Input */}
       <div className="border-t border-white/10 pt-4">
         <div className="flex gap-3">
           <textarea
@@ -652,7 +551,6 @@ Let me analyze your performance...`,
         </p>
       </div>
 
-      {/* Match Summary Modal */}
       <Modal
         isOpen={showMatchSummary}
         onClose={() => setShowMatchSummary(false)}
@@ -700,7 +598,6 @@ Let me analyze your performance...`,
         </div>
       </Modal>
 
-      {/* Progress Tracking Modal */}
       <Modal
         isOpen={showProgress}
         onClose={() => setShowProgress(false)}
@@ -750,7 +647,6 @@ Let me analyze your performance...`,
         )}
       </Modal>
 
-      {/* Export Modal */}
       <Modal
         isOpen={showExport}
         onClose={() => setShowExport(false)}
@@ -779,7 +675,6 @@ Let me analyze your performance...`,
         </div>
       </Modal>
 
-      {/* Conversation History Modal */}
       <Modal
         isOpen={showHistory}
         onClose={() => setShowHistory(false)}
@@ -848,4 +743,3 @@ Let me analyze your performance...`,
     </div>
   );
 }
-

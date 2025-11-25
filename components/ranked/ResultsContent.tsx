@@ -12,23 +12,20 @@ import { calculateCompositeScore, calculateLPChange, calculateXPEarned, calculat
 import { LoadingState } from '@/components/shared/LoadingState';
 import { getMedalEmoji } from '@/lib/utils/rank-utils';
 import { rankPlayers, getPlayerRank } from '@/lib/utils/ranking-utils';
-// Removed sessionStorage import - using Firestore session data instead
 import { useExpanded } from '@/lib/hooks/useExpanded';
 import { MOCK_PHASE_FEEDBACK } from '@/lib/utils/mock-data';
 
 interface ResultsContentProps {
-  session?: GameSession; // Optional for backward compatibility
+  session?: GameSession;
 }
 
 export default function ResultsContent({ session }: ResultsContentProps = {}) {
   const { user, refreshProfile } = useAuth();
   
-  // Extract data from session (new architecture) OR URL params (old architecture)
   const matchId = session?.matchId || '';
   const trait = session?.config.trait;
   const promptType = session?.config.promptType;
   
-  // Get user's data from session if available
   const userPlayer = session && user ? session.players[user.uid] : null;
   const originalContent = userPlayer?.phases.phase1?.content || '';
   const revisedContent = (userPlayer?.phases.phase3 as any)?.revisedContent || '';
@@ -38,34 +35,23 @@ export default function ResultsContent({ session }: ResultsContentProps = {}) {
   const feedbackScore = (userPlayer?.phases.phase2 as any)?.score || 80;
   const revisionScore = userPlayer?.phases.phase3?.score || 78;
   
-  // Check for empty submissions
   const hadEmptyWriting = wordCount === 0 || !originalContent;
   const hadEmptyFeedback = feedbackScore === 0;
   const hadEmptyRevision = revisionScore === 0 || revisedWordCount === 0;
   
-  console.log('📊 RESULTS - Session data:', {
-    hasSession: !!session,
-    matchId,
-    userScores: { writingScore, feedbackScore, revisionScore },
-    emptySubmissions: { writing: hadEmptyWriting, feedback: hadEmptyFeedback, revision: hadEmptyRevision },
-  });
-  
   const [isAnalyzing, setIsAnalyzing] = useState(true);
   const [results, setResults] = useState<any>(null);
-  // Use expanded hook for phase sections
-  const { expanded: expandedPhase, toggle: togglePhase, isExpanded } = useExpanded<string>('writing'); // Default to showing Phase 1 feedback
+  const { expanded: expandedPhase, toggle: togglePhase, isExpanded } = useExpanded<string>('writing');
   const [realFeedback, setRealFeedback] = useState<any>({
     writing: null,
     feedback: null,
     revision: null,
   });
 
-  // Fetch real AI feedback from Firestore
   useEffect(() => {
     const fetchAIFeedback = async () => {
       if (!user || !matchId) return;
       
-      console.log('📥 RESULTS - Fetching AI feedback from Firestore...');
       try {
         const [phase1Feedback, phase2Feedback, phase3Feedback] = await Promise.all([
           getAIFeedback(matchId, user.uid, 1),
@@ -73,20 +59,13 @@ export default function ResultsContent({ session }: ResultsContentProps = {}) {
           getAIFeedback(matchId, user.uid, 3),
         ]);
         
-        // Note: Removed sessionStorage fallback - all data comes from Firestore
         setRealFeedback({
           writing: phase1Feedback,
           feedback: phase2Feedback,
           revision: phase3Feedback,
         });
-        
-        console.log('✅ RESULTS - AI feedback loaded:', {
-          hasPhase1: !!phase1Feedback,
-          hasPhase2: !!phase2Feedback,
-          hasPhase3: !!phase3Feedback,
-        });
       } catch (error) {
-        console.error('❌ RESULTS - Error fetching AI feedback:', error);
+        // Silent fail
       }
     };
     
@@ -96,7 +75,6 @@ export default function ResultsContent({ session }: ResultsContentProps = {}) {
   useEffect(() => {
     const analyzeRankedMatch = async () => {
       try {
-        // Try to get real rankings from Firestore
         let realPhase1Rankings: any[] = [];
         let realPhase2Rankings: any[] = [];
         let realPhase3Rankings: any[] = [];
@@ -112,31 +90,20 @@ export default function ResultsContent({ session }: ResultsContentProps = {}) {
               realPhase1Rankings = matchState?.rankings?.phase1 || [];
               realPhase2Rankings = matchState?.rankings?.phase2 || [];
               realPhase3Rankings = matchState?.rankings?.phase3 || [];
-              
-              console.log('✅ RESULTS - Loaded real rankings:', {
-                phase1: realPhase1Rankings.length,
-                phase2: realPhase2Rankings.length,
-                phase3: realPhase3Rankings.length,
-              });
             }
           } catch (error) {
-            console.error('❌ RESULTS - Error loading real rankings:', error);
+            // Silent fail
           }
         }
         
-        // Calculate composite score from all 3 phases
         const yourCompositeScore = calculateCompositeScore(writingScore, feedbackScore, revisionScore);
         
-        // Build AI players data from session or rankings
         let aiPlayers: any[] = [];
         
         if (realPhase1Rankings.length > 0) {
-          // Use real AI scores from batch rankings
-          console.log('📊 RESULTS - Using real AI scores from batch rankings');
           const aiPlayerData = realPhase1Rankings.filter((r: any) => r.isAI);
           
           aiPlayers = aiPlayerData.map((p1: any, idx: number) => {
-            // Find matching player in phase 2 and 3
             const p2 = realPhase2Rankings.find((r: any) => r.playerId === p1.playerId);
             const p3 = realPhase3Rankings.find((r: any) => r.playerId === p1.playerId);
             
@@ -151,8 +118,6 @@ export default function ResultsContent({ session }: ResultsContentProps = {}) {
             };
           });
         } else {
-          // Fallback: Generate mock scores for AI players
-          console.log('⚠️ RESULTS - No real rankings found, using fallback scores');
           aiPlayers = [
             {
               name: 'ProWriter99',
@@ -193,7 +158,6 @@ export default function ResultsContent({ session }: ResultsContentProps = {}) {
           ];
         }
 
-        // Calculate composite scores for AI players
         const allPlayers = [
           {
             name: 'You',
@@ -216,26 +180,19 @@ export default function ResultsContent({ session }: ResultsContentProps = {}) {
           }))
         ];
 
-        // Sort by composite score and assign positions
         const rankings = rankPlayers(allPlayers, 'compositeScore');
         const yourRank = getPlayerRank(rankings, user?.uid);
         
-        // LP calculation based on final placement
         const lpChange = calculateLPChange(yourRank);
         
-        // XP based on performance across all phases
         const xpEarned = calculateXPEarned(yourCompositeScore, 'ranked');
         const pointsEarned = calculatePointsEarned(yourCompositeScore, yourRank);
         const isVictory = yourRank === 1;
 
-        // Calculate improvement from original to revision
         const improvementBonus = calculateImprovementBonus(writingScore, revisionScore);
 
-        // Save session and update user profile
         if (user) {
-          console.log('💾 RESULTS - Saving session data and updating profile...');
           try {
-            // Save writing session
             await saveWritingSession({
               userId: user.uid,
               mode: 'ranked',
@@ -256,11 +213,9 @@ export default function ResultsContent({ session }: ResultsContentProps = {}) {
               lpChange,
               placement: yourRank,
               timestamp: new Date() as any,
-              matchId: matchId, // Store matchId to link to matchStates for detailed feedback
+              matchId: matchId,
             });
-            console.log('✅ RESULTS - Session saved');
 
-            // Update user stats (XP, points, LP, wins, word count)
             await updateUserStatsAfterSession(
               user.uid,
               xpEarned,
@@ -269,19 +224,12 @@ export default function ResultsContent({ session }: ResultsContentProps = {}) {
               isVictory,
               wordCount
             );
-            console.log('✅ RESULTS - Profile updated with LP change:', lpChange);
             
-            // Refresh the profile in AuthContext so dashboard shows updated LP
-            console.log('🔄 RESULTS - Refreshing profile in AuthContext...');
             await refreshProfile();
-            console.log('✅ RESULTS - Profile refreshed, new LP should be visible');
             
-            // Update AI students' ranks and stats
-            console.log('🤖 RESULTS - Updating AI student ranks...');
             for (const aiPlayer of aiPlayers) {
               if (!aiPlayer.name) continue;
               
-              // Determine AI player's LP change based on their placement
               const aiComposite = calculateCompositeScore(aiPlayer.phase1, aiPlayer.phase2, aiPlayer.phase3);
               const aiPlayerData = allPlayers.find(p => p.name === aiPlayer.name);
               const aiPlacement = aiPlayerData?.position || 5;
@@ -295,14 +243,9 @@ export default function ResultsContent({ session }: ResultsContentProps = {}) {
               const aiXP = calculateXPEarned(aiComposite, 'ranked');
               const aiIsWin = aiPlacement === 1;
               
-              // Extract AI student ID from their data
-              // AI player IDs are stored as "ai-student-XXX" from database
-              const aiStudentId = aiPlayer.name; // This will be their userId which is the database ID
+              const aiStudentId = aiPlayer.name;
               
-              // Get AI student ID from session data (stored in Firestore)
-              // AI players have userId that matches their database ID
               if (session && aiPlayer.userId && aiPlayer.userId.startsWith('ai-')) {
-                // Extract AI student ID from userId (format: "ai-student-XXX" or just use userId)
                 const aiStudentId = aiPlayer.userId.replace('ai-', '').replace('student-', '');
                 try {
                     await updateAIStudentAfterMatch(
@@ -311,12 +254,11 @@ export default function ResultsContent({ session }: ResultsContentProps = {}) {
                       aiXP,
                       aiIsWin,
                       aiPlayer.wordCount || 100
-                    ).catch(err => console.error('Error updating AI student:', err));
+                    ).catch(() => {});
                 } catch (e) {
-                  console.warn('Could not update AI student:', e);
+                  // Silent fail
                 }
               } else if (session && aiPlayer.userId) {
-                // Try direct userId if it's already the database ID
                 try {
                   await updateAIStudentAfterMatch(
                     aiPlayer.userId,
@@ -324,16 +266,15 @@ export default function ResultsContent({ session }: ResultsContentProps = {}) {
                     aiXP,
                     aiIsWin,
                     aiPlayer.wordCount || 100
-                  ).catch(err => console.error('Error updating AI student:', err));
+                  ).catch(() => {});
                 } catch (e) {
-                  console.warn('Could not update AI student:', e);
+                  // Silent fail
                 }
               }
             }
-            console.log('✅ RESULTS - AI students updated');
             
           } catch (error) {
-            console.error('❌ RESULTS - Error saving session:', error);
+            // Silent fail
           }
         }
 
@@ -354,13 +295,11 @@ export default function ResultsContent({ session }: ResultsContentProps = {}) {
         });
         setIsAnalyzing(false);
       } catch (error) {
-        console.error('Error analyzing Ranked Match:', error);
         setIsAnalyzing(false);
       }
     };
 
     analyzeRankedMatch();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [wordCount, trait, promptType, writingScore, feedbackScore, revisionScore, session, user]);
 
   if (isAnalyzing) {
@@ -402,7 +341,6 @@ export default function ResultsContent({ session }: ResultsContentProps = {}) {
           </p>
         </div>
 
-        {/* Phase Breakdown - Clickable */}
         <div className="rounded-3xl border border-white/10 bg-[#141e27] p-8 mb-8">
           <h2 className="text-2xl font-bold text-white mb-2 text-center">Your Performance</h2>
           <p className="text-white/80 text-center mb-6 text-sm">Click on each phase to review detailed feedback</p>
@@ -461,33 +399,25 @@ export default function ResultsContent({ session }: ResultsContentProps = {}) {
             </div>
           </div>
 
-          {/* Expanded Feedback Panel */}
           {expandedPhase && (() => {
-            // Get real AI feedback for this phase, fallback to mock if not available
             const phaseFeedbackData = expandedPhase === 'writing' ? realFeedback.writing : 
                                       expandedPhase === 'feedback' ? realFeedback.feedback : 
                                       realFeedback.revision;
             
             const mockFeedback = MOCK_PHASE_FEEDBACK[expandedPhase as keyof typeof MOCK_PHASE_FEEDBACK];
             
-            // Use real feedback if available, otherwise use mock
             const strengths = phaseFeedbackData?.strengths || mockFeedback.strengths;
             const improvements = phaseFeedbackData?.improvements || 
-                                (phaseFeedbackData?.suggestions) || // revision uses 'suggestions'
+                                (phaseFeedbackData?.suggestions) ||
                                 mockFeedback.improvements;
             
-            // Generate nextSteps from improvements if not provided
             let nextSteps = phaseFeedbackData?.nextSteps;
             if (!nextSteps && improvements && Array.isArray(improvements) && improvements.length > 0) {
-              // Generate actionable next steps from improvements
               nextSteps = improvements.slice(0, 3).map((imp: string) => {
-                // Extract actionable advice from improvement
                 if (typeof imp === 'string') {
-                  // If it already contains actionable language, use it
                   if (imp.includes('Try') || imp.includes('Practice') || imp.includes('Add')) {
                     return imp;
                   }
-                  // Otherwise, convert to actionable step
                   if (imp.includes('because/but/so') || imp.includes('sentence expansion')) {
                     return 'Practice sentence expansion: Add "because", "but", or "so" to show deeper thinking';
                   }
@@ -497,21 +427,18 @@ export default function ResultsContent({ session }: ResultsContentProps = {}) {
                   if (imp.includes('transition')) {
                     return 'Use transition words: Connect ideas with "First", "Then", "However", "Therefore"';
                   }
-                  // Default: make it actionable
                   return `Focus on: ${imp}`;
                 }
                 return imp;
               });
             }
             
-            // Fallback to mock if still no nextSteps
             if (!nextSteps || nextSteps.length === 0) {
               nextSteps = phaseFeedbackData?.specificFeedback ? 
                          Object.values(phaseFeedbackData.specificFeedback) : 
                          mockFeedback.writingRevConcepts;
             }
             
-            // Get trait-specific feedback for Phase 1
             const traitFeedback = phaseFeedbackData?.traitFeedback || {};
             
             return (
@@ -529,7 +456,6 @@ export default function ResultsContent({ session }: ResultsContentProps = {}) {
                 </h3>
                 
                 <div className="space-y-4">
-                  {/* Strengths */}
                   <div>
                     <div className="text-emerald-300 font-semibold mb-2 flex items-center space-x-2">
                       <span>✨</span>
@@ -548,7 +474,6 @@ export default function ResultsContent({ session }: ResultsContentProps = {}) {
                     </ul>
                   </div>
 
-                  {/* Areas for Growth */}
                   <div>
                     <div className="text-yellow-300 font-semibold mb-2 flex items-center space-x-2">
                       <span>🎯</span>
@@ -567,7 +492,6 @@ export default function ResultsContent({ session }: ResultsContentProps = {}) {
                     </ul>
                   </div>
                   
-                  {/* Trait-specific feedback for Phase 1 */}
                   {expandedPhase === 'writing' && traitFeedback && Object.keys(traitFeedback).length > 0 && (
                     <div>
                       <div className="text-blue-300 font-semibold mb-2 flex items-center space-x-2">
@@ -585,7 +509,6 @@ export default function ResultsContent({ session }: ResultsContentProps = {}) {
                     </div>
                   )}
 
-                  {/* Next Steps */}
                   <div>
                     <div className="text-blue-300 font-semibold mb-2 flex items-center space-x-2">
                       <span>🚀</span>
@@ -608,7 +531,6 @@ export default function ResultsContent({ session }: ResultsContentProps = {}) {
                     </ul>
                   </div>
                   
-                  {/* Show warning if using mock feedback */}
                   {!phaseFeedbackData && (
                     <div className="bg-yellow-500/20 border border-yellow-500/50 rounded-lg p-3 mt-4">
                       <p className="text-yellow-300 text-xs">
@@ -630,7 +552,6 @@ export default function ResultsContent({ session }: ResultsContentProps = {}) {
           )}
         </div>
 
-        {/* LP Change Banner */}
         <div className={`rounded-3xl border border-white/10 p-8 mb-8 text-center ${
           results.lpChange > 0 
             ? 'bg-gradient-to-r from-green-600 to-emerald-600' 
@@ -645,7 +566,6 @@ export default function ResultsContent({ session }: ResultsContentProps = {}) {
           </div>
         </div>
 
-        {/* Rewards */}
         <div className="rounded-3xl border border-white/10 bg-[#141e27] p-8 mb-8">
           <h2 className="text-2xl font-bold text-white mb-6 text-center">Match Rewards</h2>
           <div className="grid md:grid-cols-3 gap-6">
@@ -670,7 +590,6 @@ export default function ResultsContent({ session }: ResultsContentProps = {}) {
           </div>
         </div>
 
-        {/* Rankings with Phase Breakdown */}
         <div className="rounded-3xl border border-white/10 bg-[#141e27] p-8 mb-8">
           <h2 className="text-2xl font-bold text-white mb-6 flex items-center space-x-2">
             <span>🏆</span>
@@ -722,7 +641,6 @@ export default function ResultsContent({ session }: ResultsContentProps = {}) {
                   </div>
                 </div>
 
-                {/* Phase scores */}
                 <div className="grid grid-cols-3 gap-2 mt-3 pt-3 border-t border-white/10">
                   <div className="text-center">
                     <div className="text-white/40 text-xs mb-1">Writing</div>
@@ -742,7 +660,6 @@ export default function ResultsContent({ session }: ResultsContentProps = {}) {
           </div>
         </div>
 
-        {/* Actions */}
         <div className="flex flex-col sm:flex-row gap-4 justify-center">
           <Link
             href="/ranked"
@@ -761,4 +678,3 @@ export default function ResultsContent({ session }: ResultsContentProps = {}) {
     </div>
   );
 }
-

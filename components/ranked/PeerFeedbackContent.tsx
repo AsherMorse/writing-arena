@@ -109,7 +109,6 @@ export default function PeerFeedbackContent() {
     const generateAIFeedback = async () => {
       if (!matchId || !user || aiFeedbackGenerated) return;
       
-      console.log('🤖 PEER FEEDBACK - Generating AI peer feedback...');
       setAiFeedbackGenerated(true);
       
       try {
@@ -157,7 +156,6 @@ export default function PeerFeedbackContent() {
           });
           
           const data = await response.json();
-          console.log(`✅ Generated feedback from ${aiPlayer.displayName}`);
           
           return {
             playerId: aiPlayer.userId,
@@ -177,9 +175,7 @@ export default function PeerFeedbackContent() {
           'aiFeedbacks.phase2': aiFeedbacks,
         });
         
-        console.log('✅ PEER FEEDBACK - All AI feedback generated and stored');
       } catch (error) {
-        console.error('❌ PEER FEEDBACK - Failed to generate AI feedback:', error);
       }
     };
     
@@ -196,13 +192,11 @@ export default function PeerFeedbackContent() {
         return;
       }
       
-      console.log('[AIR] Loading assigned peer writing...');
       try {
         const assignedPeer = await retryWithBackoff(
           async () => {
             const peer = await getAssignedPeer(matchId, user.uid);
             if (peer) {
-              console.log(`[AIR] Peer writing ready:`, peer.displayName);
             }
             return peer;
           },
@@ -210,7 +204,6 @@ export default function PeerFeedbackContent() {
             maxAttempts: 5,
             delayMs: 1500,
             onRetry: (attempt) => {
-              console.log(`[AIR] Peer writing not ready (attempt ${attempt}/5), retrying...`);
             },
           }
         );
@@ -225,11 +218,9 @@ export default function PeerFeedbackContent() {
             wordCount: assignedPeer.wordCount,
           });
         } else if (!cancelled) {
-          console.warn('[AIR] No assigned peer found after retries, using fallback');
           setCurrentPeer(MOCK_PEER_WRITINGS[0]);
         }
       } catch (error) {
-        console.error('❌ PEER FEEDBACK - Error loading peer:', error);
         if (!cancelled) {
           setCurrentPeer(MOCK_PEER_WRITINGS[0]);
         }
@@ -279,12 +270,10 @@ export default function PeerFeedbackContent() {
     validateSubmission: () => validateFeedbackSubmission(responses),
     onEmptySubmission: async (isEmpty) => {
     if (isEmpty) {
-      console.warn('⚠️ PEER FEEDBACK - Incomplete submission, scoring as 0');
       await submitPhase(2, {
         responses,
         score: 0,
       });
-      console.log('✅ PEER FEEDBACK - Empty submission recorded');
       }
     },
     fallbackEvaluation: async () => {
@@ -363,7 +352,6 @@ export default function PeerFeedbackContent() {
   // Debug time remaining
   useEffect(() => {
     if (process.env.NODE_ENV === 'development') {
-      console.log('⏱️ PEER FEEDBACK - Time remaining:', timeRemaining, 'Duration:', SCORING.PHASE2_DURATION);
     }
   }, [timeRemaining]);
 
