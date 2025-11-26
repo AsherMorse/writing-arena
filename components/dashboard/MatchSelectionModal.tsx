@@ -48,45 +48,55 @@ export default function MatchSelectionModal({ isOpen, onClose }: MatchSelectionM
       summary: 'Fight for leaderboard glory with three competitive phases.',
       route: '/ranked/matchmaking',
       disabled: false,
+      color: '#00e5e5',
+      bgColor: 'rgba(0,229,229,0.12)',
     },
     {
       label: 'Improve',
       icon: '📈',
       summary: hasEnoughMatches 
         ? 'Personalized writing exercises based on your last 5 ranked matches.'
-        : `Complete ${matchesRemaining} more ranked match${matchesRemaining !== 1 ? 'es' : ''} to unlock personalized practice.`,
+        : `Complete ${matchesRemaining} more ranked match${matchesRemaining !== 1 ? 'es' : ''} to unlock.`,
       route: '/improve',
       disabled: !hasEnoughMatches,
       matchesRemaining: matchesRemaining,
+      color: '#ff5f8f',
+      bgColor: 'rgba(255,95,143,0.12)',
     },
     {
-      label: 'AP Lang Grader',
+      label: 'AP Lang',
       icon: '📚',
-      summary: 'Grade your AP Language essays or practice with authentic AP prompts and a 40-minute timer.',
+      summary: 'Grade essays or practice with authentic AP prompts and a 40-minute timer.',
       route: '/ap-lang',
       disabled: false,
+      color: '#ff9030',
+      bgColor: 'rgba(255,144,48,0.12)',
     },
   ];
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4">
-      <div className="w-full max-w-4xl rounded-3xl bg-[#141e27] p-10 shadow-xl border border-white/10 relative">
-        <button
-          onClick={onClose}
-          className="absolute right-6 top-6 flex h-10 w-10 items-center justify-center rounded-full bg-white/5 text-xl text-white transition hover:bg-white/10"
-        >
-          ×
-        </button>
-        <div className="mb-10 text-center space-y-3">
-          <div className="text-xs uppercase tracking-[0.3em] text-emerald-300/70">
-            Start a session
+    <div 
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 px-4"
+      onClick={(e) => e.target === e.currentTarget && onClose()}
+    >
+      <div className="w-full max-w-4xl rounded-[14px] border border-[rgba(255,255,255,0.05)] bg-[#101012] p-8 shadow-2xl">
+        <div className="mb-8 flex items-start justify-between">
+          <div>
+            <div className="mb-1 text-[10px] font-semibold uppercase tracking-[0.08em] text-[rgba(255,255,255,0.22)]">
+              Start a session
+            </div>
+            <h2 className="text-2xl font-semibold text-[rgba(255,255,255,0.8)]">Choose your mode</h2>
+            <p className="mt-1 text-sm text-[rgba(255,255,255,0.4)]">Pick how you want to write today</p>
           </div>
-          <h2 className="text-4xl font-semibold">Choose how you want to write today</h2>
-          <p className="text-white/60 text-sm">
-            Pick a mode to enter the arena. You can always change later.
-          </p>
+          <button
+            onClick={onClose}
+            className="flex h-8 w-8 items-center justify-center rounded-[6px] border border-[rgba(255,255,255,0.05)] text-[rgba(255,255,255,0.4)] transition-all hover:bg-[rgba(255,255,255,0.04)] hover:text-[rgba(255,255,255,0.8)]"
+          >
+            ×
+          </button>
         </div>
-        <div className="grid gap-6 md:grid-cols-3">
+
+        <div className="grid gap-4 md:grid-cols-3">
           {modes.map((option) => (
             <button
               key={option.label}
@@ -97,52 +107,68 @@ export default function MatchSelectionModal({ isOpen, onClose }: MatchSelectionM
                 }
               }}
               disabled={option.disabled}
-              className={`group rounded-2xl p-7 border text-left transition relative ${
+              className={`group relative rounded-[14px] border p-6 text-left transition-all ${
                 option.disabled
-                  ? 'bg-[#192430]/40 border-white/5 cursor-not-allowed opacity-60'
-                  : 'bg-[#192430] border-white/10 hover:border-emerald-300/40'
+                  ? 'cursor-not-allowed border-[rgba(255,255,255,0.03)] bg-[rgba(255,255,255,0.015)] opacity-60'
+                  : 'border-[rgba(255,255,255,0.05)] bg-[rgba(255,255,255,0.025)] hover:bg-[rgba(255,255,255,0.04)]'
               }`}
+              style={!option.disabled ? { ['--hover-border' as string]: option.color } : {}}
+              onMouseEnter={(e) => !option.disabled && (e.currentTarget.style.borderColor = option.color + '40')}
+              onMouseLeave={(e) => !option.disabled && (e.currentTarget.style.borderColor = 'rgba(255,255,255,0.05)')}
             >
               {option.disabled && option.label === 'Improve' && (
-                <div className="absolute top-3 right-3 px-2 py-1 bg-blue-500/20 border border-blue-400/30 rounded-full">
-                  <span className="text-[10px] uppercase tracking-wider text-blue-300 font-semibold">
-                    {loading ? 'Loading...' : `${matchesRemaining} More`}
-                  </span>
+                <div 
+                  className="absolute right-3 top-3 rounded-[20px] px-2 py-1 text-[10px] font-medium uppercase tracking-[0.04em]"
+                  style={{ background: option.bgColor, color: option.color }}
+                >
+                  {loading ? 'Loading' : `${matchesRemaining} more`}
                 </div>
               )}
-              <div className="space-y-5">
-                <div className={`flex items-center justify-between text-xs uppercase tracking-[0.3em] ${
-                  option.disabled ? 'text-white/30' : 'text-emerald-200/70'
-                }`}>
-                  {option.label}
-                  <span className={`text-base ${option.disabled ? 'text-white/30' : 'text-emerald-200'}`}>
-                    {option.icon}
-                  </span>
+
+              <div className="mb-4 flex items-center justify-between">
+                <div 
+                  className="flex h-12 w-12 items-center justify-center rounded-[10px] text-xl"
+                  style={{ background: option.bgColor }}
+                >
+                  {option.icon}
                 </div>
-                <p className={`text-base ${option.disabled ? 'text-white/40' : 'text-white/80'}`}>
-                  {option.summary}
-                </p>
-                {option.label === 'Improve' && !hasEnoughMatches && completedMatches !== null && (
-                  <div className="pt-2">
-                    <div className="flex items-center justify-between text-xs text-blue-300 mb-2">
-                      <span>Progress</span>
-                      <span>{completedMatches}/5 matches</span>
-                    </div>
-                    <div className="w-full bg-white/10 rounded-full h-2">
-                      <div 
-                        className="bg-blue-400 h-2 rounded-full transition-all duration-300"
-                        style={{ width: `${(completedMatches / 5) * 100}%` }}
-                      />
-                    </div>
-                  </div>
-                )}
-                {!option.disabled && (
-                  <div className="flex items-center justify-between pt-2 text-sm text-emerald-200">
-                    Enter
-                    <span className="transition group-hover:translate-x-1">→</span>
-                  </div>
-                )}
               </div>
+
+              <div 
+                className="mb-2 text-[10px] font-semibold uppercase tracking-[0.08em]"
+                style={{ color: option.disabled ? 'rgba(255,255,255,0.22)' : option.color }}
+              >
+                {option.label}
+              </div>
+
+              <p className={`text-sm ${option.disabled ? 'text-[rgba(255,255,255,0.3)]' : 'text-[rgba(255,255,255,0.6)]'}`}>
+                {option.summary}
+              </p>
+
+              {option.label === 'Improve' && !hasEnoughMatches && completedMatches !== null && (
+                <div className="mt-4">
+                  <div className="mb-2 flex items-center justify-between text-xs">
+                    <span className="text-[rgba(255,255,255,0.4)]">Progress</span>
+                    <span className="font-mono" style={{ color: option.color }}>{completedMatches}/5</span>
+                  </div>
+                  <div className="h-[6px] overflow-hidden rounded-[3px] bg-[rgba(255,255,255,0.05)]">
+                    <div 
+                      className="h-full rounded-[3px] transition-all"
+                      style={{ width: `${(completedMatches / 5) * 100}%`, background: option.color }}
+                    />
+                  </div>
+                </div>
+              )}
+
+              {!option.disabled && (
+                <div 
+                  className="mt-4 flex items-center gap-2 text-sm font-medium transition-all"
+                  style={{ color: option.color }}
+                >
+                  Enter
+                  <span className="transition-transform group-hover:translate-x-1">→</span>
+                </div>
+              )}
             </button>
           ))}
         </div>
@@ -150,4 +176,3 @@ export default function MatchSelectionModal({ isOpen, onClose }: MatchSelectionM
     </div>
   );
 }
-

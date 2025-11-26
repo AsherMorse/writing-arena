@@ -1,21 +1,261 @@
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Inter:wght@400;500;600;700&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 :root {
-  --background: #0c141d;
-  --foreground: #f5f7fa;
+  --background: #101012;
+  --foreground: rgba(255, 255, 255, 0.8);
+  --sd-bg: #101012;
+  --sd-card: rgba(255, 255, 255, 0.025);
+  --sd-card-hover: rgba(255, 255, 255, 0.04);
+  --sd-border: rgba(255, 255, 255, 0.05);
+  --sd-text: rgba(255, 255, 255, 0.8);
+  --sd-text-secondary: rgba(255, 255, 255, 0.4);
+  --sd-text-muted: rgba(255, 255, 255, 0.22);
+  --sd-cyan: #00e5e5;
+  --sd-pink: #ff5f8f;
+  --sd-orange: #ff9030;
+  --sd-green: #00d492;
+  --sd-radius: 14px;
+  --sd-radius-sm: 10px;
+  --sd-radius-xs: 6px;
 }
 
 body {
   color: var(--foreground);
   background: var(--background);
-  font-family: 'Inter', 'SF Pro Display', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+@layer components {
+  .sd-card {
+    background: var(--sd-card);
+    border: 1px solid var(--sd-border);
+    border-radius: var(--sd-radius);
+    padding: 20px;
+    transition: background 0.15s ease;
+  }
+
+  .sd-card:hover {
+    background: var(--sd-card-hover);
+  }
+
+  .sd-card-static {
+    background: var(--sd-card);
+    border: 1px solid var(--sd-border);
+    border-radius: var(--sd-radius);
+    padding: 20px;
+  }
+
+  .sd-label {
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--sd-text-muted);
+    margin-bottom: 8px;
+  }
+
+  .sd-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 4px 10px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+
+  .sd-badge-cyan {
+    background: rgba(0, 229, 229, 0.12);
+    color: var(--sd-cyan);
+  }
+
+  .sd-badge-pink {
+    background: rgba(255, 95, 143, 0.12);
+    color: var(--sd-pink);
+  }
+
+  .sd-badge-orange {
+    background: rgba(255, 144, 48, 0.12);
+    color: var(--sd-orange);
+  }
+
+  .sd-badge-green {
+    background: rgba(0, 212, 146, 0.12);
+    color: var(--sd-green);
+  }
+
+  .sd-chip {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    padding: 4px 8px;
+    border-radius: var(--sd-radius-xs);
+  }
+
+  .sd-chip-cyan {
+    background: rgba(0, 229, 229, 0.1);
+    color: var(--sd-cyan);
+  }
+
+  .sd-chip-pink {
+    background: rgba(255, 95, 143, 0.1);
+    color: var(--sd-pink);
+  }
+
+  .sd-chip-orange {
+    background: rgba(255, 144, 48, 0.1);
+    color: var(--sd-orange);
+  }
+
+  .sd-chip-green {
+    background: rgba(0, 212, 146, 0.1);
+    color: var(--sd-green);
+  }
+
+  .sd-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    background: transparent;
+    border: 1px solid var(--sd-border);
+    border-radius: var(--sd-radius-sm);
+    padding: 10px 16px;
+    color: var(--sd-text-secondary);
+    font-family: inherit;
+    font-size: 12px;
+    font-weight: 500;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+
+  .sd-btn:hover {
+    background: var(--sd-card-hover);
+    color: var(--sd-text);
+    border-color: rgba(255, 255, 255, 0.1);
+  }
+
+  .sd-btn-cyan {
+    border-color: var(--sd-cyan);
+    color: var(--sd-cyan);
+  }
+
+  .sd-btn-cyan:hover {
+    background: rgba(0, 229, 229, 0.1);
+    color: var(--sd-cyan);
+  }
+
+  .sd-btn-pink {
+    border-color: var(--sd-pink);
+    color: var(--sd-pink);
+  }
+
+  .sd-btn-pink:hover {
+    background: rgba(255, 95, 143, 0.1);
+    color: var(--sd-pink);
+  }
+
+  .sd-btn-solid-cyan {
+    background: var(--sd-cyan);
+    border-color: var(--sd-cyan);
+    color: var(--sd-bg);
+  }
+
+  .sd-btn-solid-cyan:hover {
+    background: #33ebeb;
+    border-color: #33ebeb;
+    color: var(--sd-bg);
+  }
+
+  .sd-input {
+    width: 100%;
+    box-sizing: border-box;
+    background: var(--sd-bg);
+    border: 1px solid var(--sd-border);
+    border-radius: var(--sd-radius-sm);
+    padding: 12px 14px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 14px;
+    color: var(--sd-text);
+    outline: none;
+    transition: border-color 0.15s ease;
+  }
+
+  .sd-input:focus {
+    border-color: var(--sd-cyan);
+  }
+
+  .sd-input::placeholder {
+    color: var(--sd-text-muted);
+  }
+
+  .sd-progress {
+    height: 6px;
+    background: var(--sd-border);
+    border-radius: 3px;
+    overflow: hidden;
+  }
+
+  .sd-progress-bar {
+    height: 100%;
+    border-radius: 3px;
+    transition: width 0.3s ease;
+  }
+
+  .sd-progress-cyan .sd-progress-bar {
+    background: var(--sd-cyan);
+  }
+
+  .sd-progress-pink .sd-progress-bar {
+    background: var(--sd-pink);
+  }
+
+  .sd-progress-orange .sd-progress-bar {
+    background: var(--sd-orange);
+  }
+
+  .sd-progress-green .sd-progress-bar {
+    background: var(--sd-green);
+  }
+
+  .sd-divider {
+    height: 1px;
+    background: var(--sd-border);
+    margin: 16px 0;
+  }
 }
 
 @layer utilities {
   .text-balance {
     text-wrap: balance;
   }
-}
 
+  .sd-num-xl {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 36px;
+    font-weight: 500;
+    line-height: 1;
+  }
+
+  .sd-num-lg {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 22px;
+    font-weight: 500;
+  }
+
+  .sd-num-md {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 14px;
+  }
+
+  .sd-num-sm {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+  }
+}

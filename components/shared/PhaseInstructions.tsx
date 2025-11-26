@@ -15,7 +15,7 @@ export default function PhaseInstructions({ phase }: PhaseInstructionsProps) {
         '✨ Include sensory details (what you see, hear, feel)',
         '✨ Use transition words to connect ideas',
       ],
-      color: 'emerald',
+      color: '#00e5e5',
     },
     2: {
       title: '🔍 Phase 2: Peer Feedback',
@@ -26,7 +26,7 @@ export default function PhaseInstructions({ phase }: PhaseInstructionsProps) {
         '✨ Give concrete suggestions: "Change X to Y because..."',
         '✨ Be specific - avoid vague comments like "good job"',
       ],
-      color: 'blue',
+      color: '#ff5f8f',
     },
     3: {
       title: '✏️ Phase 3: Revision',
@@ -37,26 +37,29 @@ export default function PhaseInstructions({ phase }: PhaseInstructionsProps) {
         '✨ Add transition words where suggested',
         '✨ Include more specific details and sensory language',
       ],
-      color: 'purple',
+      color: '#00d492',
     },
   };
   
   const current = instructions[phase];
   
   return (
-    <div className={`rounded-2xl border border-${current.color}-400/30 bg-${current.color}-400/10 p-4 mb-6`}>
+    <div 
+      className="mb-6 rounded-[14px] border p-4"
+      style={{ borderColor: `${current.color}30`, background: `${current.color}08` }}
+    >
       <div className="flex items-start gap-3">
-        <div className="flex-shrink-0 text-2xl">💡</div>
+        <div className="flex-shrink-0 text-xl">💡</div>
         <div className="flex-1">
-          <h3 className={`text-${current.color}-200 font-semibold text-sm mb-1`}>
+          <h3 className="mb-1 text-sm font-semibold" style={{ color: current.color }}>
             {current.title}
           </h3>
-          <p className="text-white/70 text-xs mb-3">
+          <p className="mb-3 text-xs text-[rgba(255,255,255,0.5)]">
             {current.description}
           </p>
-          <div className="space-y-1.5">
+          <div className="space-y-1">
             {current.tips.map((tip, i) => (
-              <div key={i} className="text-white/60 text-xs leading-relaxed">
+              <div key={i} className="text-xs text-[rgba(255,255,255,0.4)] leading-relaxed">
                 {tip}
               </div>
             ))}
@@ -66,4 +69,3 @@ export default function PhaseInstructions({ phase }: PhaseInstructionsProps) {
     </div>
   );
 }
-

@@ -30,7 +30,6 @@ export default function PeerFeedbackContent() {
   const sessionId = (params?.sessionId || searchParams?.get('sessionId')) as string;
   const { user } = useAuth();
   
-  // NEW: Use session hook
   const {
     session,
     isReconnecting,
@@ -40,7 +39,6 @@ export default function PeerFeedbackContent() {
     hasSubmitted,
   } = useSession(sessionId);
 
-  // Extract session data using hook
   const {
     matchId,
     config: sessionConfig,
@@ -48,6 +46,7 @@ export default function PeerFeedbackContent() {
     coordination: sessionCoordination,
     sessionId: activeSessionId,
   } = useSessionData(session);
+
   const [currentPeer, setCurrentPeer] = useState<any>(null);
   const [loadingPeer, setLoadingPeer] = useState(true);
   const [showTipsModal, setShowTipsModal] = useState(false);
@@ -55,65 +54,26 @@ export default function PeerFeedbackContent() {
   const [isEvaluating, setIsEvaluating] = useState(false);
   const [aiFeedbackGenerated, setAiFeedbackGenerated] = useState(false);
   
-  // Writing tips carousel for calculating modal
   const writingTips = useMemo(() => [
-    {
-      name: 'Sentence Expansion',
-      tip: 'Use because, but, or so to show why things happen.',
-      example: 'She opened the door because she heard a strange noise.',
-      icon: '🔗',
-    },
-    {
-      name: 'Appositives',
-      tip: 'Add description using commas to provide extra information.',
-      example: 'Sarah, a curious ten-year-old, pushed open the rusty gate.',
-      icon: '✏️',
-    },
-    {
-      name: 'Five Senses',
-      tip: 'Include what you see, hear, smell, taste, and feel.',
-      example: 'The salty air stung my eyes while waves crashed loudly below.',
-      icon: '👁️',
-    },
-    {
-      name: 'Show, Don\'t Tell',
-      tip: 'Use specific details instead of general statements.',
-      example: 'Her hands trembled as she reached for the handle.',
-      icon: '🎭',
-    },
-    {
-      name: 'Transition Words',
-      tip: 'Use signal words to connect ideas smoothly.',
-      example: 'First, Then, However, Therefore, For example',
-      icon: '➡️',
-    },
-    {
-      name: 'Strong Conclusions',
-      tip: 'End with a final thought that ties everything together.',
-      example: 'For these reasons, it is clear that...',
-      icon: '🎯',
-    },
+    { name: 'Sentence Expansion', tip: 'Use because, but, or so to show why things happen.', example: 'She opened the door because she heard a strange noise.', icon: '🔗' },
+    { name: 'Appositives', tip: 'Add description using commas to provide extra information.', example: 'Sarah, a curious ten-year-old, pushed open the rusty gate.', icon: '✏️' },
+    { name: 'Five Senses', tip: 'Include what you see, hear, smell, taste, and feel.', example: 'The salty air stung my eyes while waves crashed loudly below.', icon: '👁️' },
+    { name: 'Show, Don\'t Tell', tip: 'Use specific details instead of general statements.', example: 'Her hands trembled as she reached for the handle.', icon: '🎭' },
+    { name: 'Transition Words', tip: 'Use signal words to connect ideas smoothly.', example: 'First, Then, However, Therefore, For example', icon: '➡️' },
+    { name: 'Strong Conclusions', tip: 'End with a final thought that ties everything together.', example: 'For these reasons, it is clear that...', icon: '🎯' },
   ], []);
   
-  // Feedback questions and responses
-  const [responses, setResponses] = useState({
-    mainIdea: '',
-    strength: '',
-    suggestion: ''
-  });
+  const [responses, setResponses] = useState({ mainIdea: '', strength: '', suggestion: '' });
 
-  // Generate AI peer feedback when phase starts
   useEffect(() => {
     const generateAIFeedback = async () => {
       if (!matchId || !user || aiFeedbackGenerated) return;
-      
       setAiFeedbackGenerated(true);
       
       try {
         const { getDoc, doc, updateDoc } = await import('firebase/firestore');
         const { db } = await import('@/lib/config/firebase');
         
-        // Get match state to find AI players and their assigned peers
         const matchDoc = await getDoc(doc(db, 'matchStates', matchId));
         if (!matchDoc.exists()) return;
         
@@ -122,14 +82,11 @@ export default function PeerFeedbackContent() {
         const aiPlayers = players.filter((p: any) => p.isAI);
         const writings = matchState.aiWritings?.phase1 || [];
         
-        // Generate feedback for each AI player
         const aiFeedbackPromises = aiPlayers.map(async (aiPlayer: any, idx: number) => {
-          // Get AI's assigned peer (round-robin)
           const aiIndex = players.findIndex((p: any) => p.userId === aiPlayer.userId);
           const peerIndex = (aiIndex + 1) % players.length;
           const peer = players[peerIndex];
           
-          // Get peer's writing
           let peerWriting = '';
           if (peer.isAI) {
             const aiWriting = writings.find((w: any) => w.playerId === peer.userId);
@@ -142,68 +99,34 @@ export default function PeerFeedbackContent() {
           
           if (!peerWriting) return null;
           
-          // Generate AI feedback
           const response = await fetch('/api/generate-ai-feedback', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              peerWriting,
-              rank: aiPlayer.rank,
-              playerName: aiPlayer.displayName,
-            }),
+            body: JSON.stringify({ peerWriting, rank: aiPlayer.rank, playerName: aiPlayer.displayName }),
           });
           
           const data = await response.json();
-          
-          return {
-            playerId: aiPlayer.userId,
-            playerName: aiPlayer.displayName,
-            responses: data.responses,
-            peerWriting,
-            isAI: true,
-            rank: aiPlayer.rank,
-          };
+          return { playerId: aiPlayer.userId, playerName: aiPlayer.displayName, responses: data.responses, peerWriting, isAI: true, rank: aiPlayer.rank };
         });
         
         const aiFeedbacks = (await Promise.all(aiFeedbackPromises)).filter(f => f !== null);
-        
-        // Store AI feedback in Firestore
         const matchRef = doc(db, 'matchStates', matchId);
-        await updateDoc(matchRef, {
-          'aiFeedbacks.phase2': aiFeedbacks,
-        });
-        
-      } catch (error) {
-      }
+        await updateDoc(matchRef, { 'aiFeedbacks.phase2': aiFeedbacks });
+      } catch (error) {}
     };
     
     generateAIFeedback();
   }, [matchId, user, aiFeedbackGenerated]);
 
-  // Load assigned peer's writing with retries (AI writes may take a moment to store)
   useEffect(() => {
     let cancelled = false;
-
     const loadPeerWriting = async () => {
-      if (!user || !matchId) {
-        setLoadingPeer(false);
-        return;
-      }
+      if (!user || !matchId) { setLoadingPeer(false); return; }
       
       try {
         const assignedPeer = await retryWithBackoff(
-          async () => {
-            const peer = await getAssignedPeer(matchId, user.uid);
-            if (peer) {
-            }
-            return peer;
-          },
-          {
-            maxAttempts: 5,
-            delayMs: 1500,
-            onRetry: (attempt) => {
-            },
-          }
+          async () => await getAssignedPeer(matchId, user.uid),
+          { maxAttempts: 5, delayMs: 1500, onRetry: () => {} }
         );
         
         if (assignedPeer && !cancelled) {
@@ -219,27 +142,18 @@ export default function PeerFeedbackContent() {
           setCurrentPeer(MOCK_PEER_WRITINGS[0]);
         }
       } catch (error) {
-        if (!cancelled) {
-          setCurrentPeer(MOCK_PEER_WRITINGS[0]);
-        }
+        if (!cancelled) setCurrentPeer(MOCK_PEER_WRITINGS[0]);
       } finally {
-        if (!cancelled) {
-          setLoadingPeer(false);
-        }
+        if (!cancelled) setLoadingPeer(false);
       }
     };
     
     loadPeerWriting();
-    
-    return () => {
-      cancelled = true;
-    };
+    return () => { cancelled = true; };
   }, [user, user?.uid, matchId]);
 
-  // Paste prevention handlers
   const { handlePaste, handleCut, handleCopy } = usePastePrevention({ showWarning: false });
 
-  // Batch ranking submission hook
   const { submit: handleBatchSubmit, isSubmitting: isBatchSubmitting } = useBatchRankingSubmission({
     phase: 2,
     matchId: matchId || '',
@@ -247,343 +161,216 @@ export default function PeerFeedbackContent() {
     endpoint: '/api/batch-rank-feedback',
     firestoreKey: 'aiFeedbacks.phase2',
     rankingsKey: 'rankings.phase2',
-    prepareUserSubmission: () => ({
-      playerId: user?.uid || '',
-      playerName: 'You',
-      responses,
-      peerWriting: currentPeer?.content || '',
-      isAI: false,
-    }),
-    prepareSubmissionData: (score: number) => ({
-      responses,
-      score: score,
-    }),
-    submitPhase: async (phase, data) => {
-      // Submit phase first
-      await submitPhase(phase, data);
-      
-      // Don't navigate - stay on session page and let it handle phase transitions
-      // The session page will automatically show the next phase when Firestore updates
-    },
+    prepareUserSubmission: () => ({ playerId: user?.uid || '', playerName: 'You', responses, peerWriting: currentPeer?.content || '', isAI: false }),
+    prepareSubmissionData: (score: number) => ({ responses, score }),
+    submitPhase: async (phase, data) => { await submitPhase(phase, data); },
     validateSubmission: () => validateFeedbackSubmission(responses),
-    onEmptySubmission: async (isEmpty) => {
-    if (isEmpty) {
-      await submitPhase(2, {
-        responses,
-        score: 0,
-      });
-      }
-    },
+    onEmptySubmission: async (isEmpty) => { if (isEmpty) await submitPhase(2, { responses, score: 0 }); },
     fallbackEvaluation: async () => {
       const response = await fetch('/api/evaluate-peer-feedback', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          responses,
-          peerWriting: currentPeer?.content || '',
-        }),
+        body: JSON.stringify({ responses, peerWriting: currentPeer?.content || '' }),
       });
-      
       const data = await response.json();
       return data.score || getDefaultScore(2);
     },
   });
   
-  // Writing tips carousel for calculating modal (after batch submission hook)
   const { currentIndex: currentTipIndex, goTo: goToTip } = useCarousel({
     items: writingTips,
-    interval: 5000, // Rotate every 5 seconds
-    autoPlay: showRankingModal || isEvaluating || isBatchSubmitting, // Only auto-play when modal is open
+    interval: 5000,
+    autoPlay: showRankingModal || isEvaluating || isBatchSubmitting,
   });
       
   const handleSubmit = async () => {
     setIsEvaluating(true);
-    setShowRankingModal(true); // Show calculating modal
+    setShowRankingModal(true);
     try {
       await handleBatchSubmit();
     } finally {
       setIsEvaluating(false);
-      // Keep modal open briefly after submission completes
-      setTimeout(() => {
-        setShowRankingModal(false);
-      }, 500);
+      setTimeout(() => setShowRankingModal(false), 500);
     }
   };
 
-  // Track when component mounted to prevent immediate modal on load
   const componentMountedTimeRef = useRef<number | null>(null);
-  useEffect(() => {
-    if (componentMountedTimeRef.current === null) {
-      componentMountedTimeRef.current = Date.now();
-    }
-  }, []);
+  useEffect(() => { if (componentMountedTimeRef.current === null) componentMountedTimeRef.current = Date.now(); }, []);
 
-  // Show calculating modal when timer expires or batch ranking is in progress
   useEffect(() => {
-    // Don't show modal immediately on load - wait at least 3 seconds after mount
-    const timeSinceMount = componentMountedTimeRef.current 
-      ? Date.now() - componentMountedTimeRef.current 
-      : Infinity;
+    const timeSinceMount = componentMountedTimeRef.current ? Date.now() - componentMountedTimeRef.current : Infinity;
+    const minPhaseAge = 3000;
     
-    const minPhaseAge = 3000; // 3 seconds minimum before showing modal
-    
-    // Only show if timer expired AND component has been mounted for at least minPhaseAge
     if (timeRemaining === 0 && !hasSubmitted() && timeSinceMount >= minPhaseAge) {
       setShowRankingModal(true);
     } else if (!isBatchSubmitting && !isEvaluating) {
-      // Ensure modal is closed if not submitting/evaluating
       setShowRankingModal(false);
     }
   }, [timeRemaining, hasSubmitted, isBatchSubmitting, isEvaluating, setShowRankingModal]);
 
-  // Auto-submit when time runs out
-  useAutoSubmit({
-    timeRemaining,
-    hasSubmitted,
-    onSubmit: handleSubmit,
-    minPhaseAge: 3000,
-  });
+  useAutoSubmit({ timeRemaining, hasSubmitted, onSubmit: handleSubmit, minPhaseAge: 3000 });
 
-  // Note: Phase transitions now happen via rankings page countdown
-  // No need to navigate directly here - rankings page handles it
+  useEffect(() => { if (process.env.NODE_ENV === 'development') {} }, [timeRemaining]);
 
-  // Debug time remaining
-  useEffect(() => {
-    if (process.env.NODE_ENV === 'development') {
-    }
-  }, [timeRemaining]);
-
-  // Loading state
   if (isReconnecting || !session) {
     return <LoadingState message="Loading feedback phase..." variant={isReconnecting ? 'reconnecting' : 'default'} />;
   }
 
-  return (
-    <div className="min-h-screen bg-[#0c141d] text-white">
-      {/* Calculating Scores Modal */}
-      <Modal
-        isOpen={showRankingModal || isEvaluating || isBatchSubmitting}
-        onClose={() => {}} // Don't allow closing during calculation
-        variant="ranking"
-        showCloseButton={false}
-      >
-        <div className="text-6xl mb-6 animate-bounce">📊</div>
-        <h2 className="text-3xl font-bold text-white mb-3">
-          {timeRemaining === 0 ? "Time's Up!" : "Calculating Scores..."}
-        </h2>
-        <p className="text-white/70 text-lg mb-4">
-          {(isEvaluating || isBatchSubmitting)
-            ? "Evaluating feedback quality and ranking responses..."
-            : "Preparing your results..."}
-        </p>
-        <p className="text-blue-400 text-sm mb-8 font-semibold">
-          ⏱️ This usually takes 1-2 minutes
-        </p>
-        
-        {/* Writing Tips Carousel */}
-        <div className="bg-gradient-to-br from-blue-500/20 to-indigo-500/20 backdrop-blur-sm rounded-xl p-6 border-2 border-blue-400/30 max-w-md mx-auto mb-6">
-          <div className="flex items-center justify-center mb-3">
-            <div className="text-2xl mr-2">{writingTips[currentTipIndex].icon}</div>
-            <h3 className="text-lg font-bold text-white">
-              {writingTips[currentTipIndex].name}
-            </h3>
-          </div>
-          
-          <p className="text-white/90 text-sm text-center mb-4 leading-relaxed">
-            {writingTips[currentTipIndex].tip}
-          </p>
-          
-          <div className="bg-white/10 backdrop-blur-sm rounded-lg p-3 border border-white/20">
-            <div className="text-blue-300 text-xs font-semibold mb-1 text-center">Example:</div>
-            <p className="text-white text-xs italic text-center leading-relaxed">
-              {writingTips[currentTipIndex].example}
-            </p>
-          </div>
+  const progressPercent = (timeRemaining / SCORING.PHASE2_DURATION) * 100;
+  const timeColor = timeRemaining > SCORING.TIME_PHASE2_GREEN ? '#ff5f8f' : timeRemaining > SCORING.TIME_PHASE2_GREEN / 2 ? '#ff9030' : '#ff5f8f';
 
-          {/* Progress dots */}
-          <div className="flex justify-center space-x-1.5 mt-4">
-            {writingTips.map((_, index) => (
-              <button
-                key={index}
-                onClick={() => goToTip(index)}
-                className={`w-1.5 h-1.5 rounded-full transition-all duration-300 ${
-                  index === currentTipIndex 
-                    ? 'bg-blue-400 w-6' 
-                    : 'bg-white/30 hover:bg-white/50'
-                }`}
-                aria-label={`Go to tip ${index + 1}`}
-              />
-            ))}
+  return (
+    <div className="min-h-screen bg-[#101012] text-[rgba(255,255,255,0.8)]">
+      <Modal isOpen={showRankingModal || isEvaluating || isBatchSubmitting} onClose={() => {}} variant="ranking" showCloseButton={false}>
+        <div className="text-center">
+          <div className="mb-4 text-5xl animate-bounce">📊</div>
+          <h2 className="text-xl font-semibold">{timeRemaining === 0 ? "Time's Up!" : "Calculating..."}</h2>
+          <p className="mt-2 text-sm text-[rgba(255,255,255,0.4)]">
+            {(isEvaluating || isBatchSubmitting) ? "Evaluating feedback quality..." : "Preparing results..."}
+          </p>
+          <p className="mt-2 text-xs text-[#ff5f8f]">⏱️ Usually takes 1-2 minutes</p>
+          
+          <div className="mt-6 rounded-[14px] border border-[rgba(255,95,143,0.2)] bg-[rgba(255,95,143,0.05)] p-4">
+            <div className="mb-2 flex items-center justify-center gap-2">
+              <span className="text-lg">{writingTips[currentTipIndex].icon}</span>
+              <span className="font-medium">{writingTips[currentTipIndex].name}</span>
+            </div>
+            <p className="text-sm text-[rgba(255,255,255,0.6)]">{writingTips[currentTipIndex].tip}</p>
+            <div className="mt-3 rounded-[10px] border border-[rgba(255,255,255,0.05)] bg-[#101012] p-3">
+              <div className="mb-1 text-[10px] uppercase text-[#ff5f8f]">Example</div>
+              <p className="text-xs italic text-[rgba(255,255,255,0.6)]">{writingTips[currentTipIndex].example}</p>
+            </div>
+            <div className="mt-3 flex justify-center gap-1">
+              {writingTips.map((_, index) => (
+                <button key={index} onClick={() => goToTip(index)} className={`h-1.5 rounded-full transition-all ${index === currentTipIndex ? 'w-6 bg-[#ff5f8f]' : 'w-1.5 bg-[rgba(255,255,255,0.1)]'}`} />
+              ))}
+            </div>
           </div>
-        </div>
-        
-        <div className="flex items-center justify-center gap-2">
-          <div className="w-2 h-2 bg-blue-400 rounded-full animate-pulse" style={{ animationDelay: '0ms' }}></div>
-          <div className="w-2 h-2 bg-blue-400 rounded-full animate-pulse" style={{ animationDelay: '150ms' }}></div>
-          <div className="w-2 h-2 bg-blue-400 rounded-full animate-pulse" style={{ animationDelay: '300ms' }}></div>
+          
+          <div className="mt-4 flex items-center justify-center gap-2">
+            <div className="h-2 w-2 animate-pulse rounded-full bg-[#ff5f8f]" style={{ animationDelay: '0ms' }} />
+            <div className="h-2 w-2 animate-pulse rounded-full bg-[#ff5f8f]" style={{ animationDelay: '150ms' }} />
+            <div className="h-2 w-2 animate-pulse rounded-full bg-[#ff5f8f]" style={{ animationDelay: '300ms' }} />
+          </div>
         </div>
       </Modal>
 
-      {/* Peer Feedback Tips Modal - using 'informational' type for evaluation guidance */}
-      <WritingTipsModal 
-        isOpen={showTipsModal}
-        onClose={() => setShowTipsModal(false)}
-        promptType="informational"
-      />
+      <WritingTipsModal isOpen={showTipsModal} onClose={() => setShowTipsModal(false)} promptType="informational" />
 
-      {/* Floating Tips Button */}
-      <button
-        onClick={() => setShowTipsModal(true)}
-        className="fixed bottom-8 right-8 z-40 group"
-        title="Feedback Tips"
-      >
+      <button onClick={() => setShowTipsModal(true)} className="fixed bottom-8 right-8 z-40 group" title="Feedback Tips">
         <div className="relative">
-          <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-indigo-500 rounded-full flex items-center justify-center shadow-2xl hover:scale-110 transition-all duration-200 border-2 border-white/20">
+          <div className="flex h-14 w-14 items-center justify-center rounded-full border border-[#ff5f8f] bg-[rgba(255,95,143,0.1)] shadow-lg transition-all hover:scale-110 hover:bg-[rgba(255,95,143,0.2)]">
             <span className="text-2xl">🔍</span>
           </div>
-          <div className="absolute -top-1 -right-1 w-5 h-5 bg-yellow-400 rounded-full flex items-center justify-center animate-pulse">
-            <span className="text-xs">✨</span>
-          </div>
-          <div className="absolute -bottom-12 right-0 bg-black/80 text-white text-xs px-3 py-1 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
-            Feedback Tips
-          </div>
+          <div className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-[#ff9030] text-[10px] animate-pulse">✨</div>
+          <div className="absolute -bottom-10 right-0 rounded-[6px] bg-[rgba(255,255,255,0.025)] px-2 py-1 text-[10px] text-[rgba(255,255,255,0.4)] opacity-0 transition-opacity group-hover:opacity-100 whitespace-nowrap border border-[rgba(255,255,255,0.05)]">Tips</div>
         </div>
       </button>
 
-      <header className="border-b border-white/10 bg-black/30 backdrop-blur-sm sticky top-0 z-10">
-        <div className="container mx-auto px-6 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-4">
-              <div className={`text-3xl font-bold ${getTimeColor(timeRemaining, { green: SCORING.TIME_PHASE2_GREEN, yellow: SCORING.TIME_PHASE2_GREEN / 2 })}`}>
-                {formatTime(timeRemaining)}
-              </div>
-              <div className="text-white/60">
-                {timeRemaining > 0 ? 'Time remaining' : 'Time\'s up!'}
-              </div>
-              <div className="px-3 py-1 bg-blue-500/20 border border-blue-400/30 rounded-full">
-                <span className="text-blue-400 text-sm font-semibold">📝 PHASE 2: PEER FEEDBACK</span>
+      <header className="sticky top-0 z-20 border-b border-[rgba(255,255,255,0.05)] bg-[#101012]/95 backdrop-blur">
+        <div className="mx-auto flex max-w-[1200px] items-center justify-between px-8 py-4">
+          <div className="flex items-center gap-4">
+            <div className="flex h-14 w-14 items-center justify-center rounded-[14px] border border-[rgba(255,255,255,0.05)] bg-[rgba(255,255,255,0.025)] font-mono text-xl font-medium" style={{ color: timeColor }}>
+              {formatTime(timeRemaining)}
+            </div>
+            <div>
+              <div className="text-[10px] font-semibold uppercase tracking-[0.08em] text-[rgba(255,255,255,0.22)]">Phase 2 · Feedback</div>
+              <div className="text-sm font-medium" style={{ color: timeColor }}>
+                {timeRemaining > 0 ? 'Time remaining' : "Time's up!"}
               </div>
             </div>
-
-            <div className="px-6 py-2 text-white/60 text-sm">
-              ⏱️ Submit automatically at 0:00
-            </div>
+            <span className="rounded-[20px] bg-[rgba(255,95,143,0.12)] px-2 py-1 text-[10px] font-medium uppercase text-[#ff5f8f]">
+              Peer Review
+            </span>
           </div>
-
-          <div className="mt-4 w-full bg-white/10 rounded-full h-2 overflow-hidden">
-            <div 
-              className={`h-full transition-all duration-1000 ${getTimeProgressColor(timeRemaining, { green: SCORING.TIME_PHASE2_GREEN, yellow: SCORING.TIME_PHASE2_GREEN / 2 })}`}
-              style={{ width: `${Math.min(100, Math.max(0, (timeRemaining / SCORING.PHASE2_DURATION) * 100))}%` }}
-            />
-          </div>
+          <div className="text-xs text-[rgba(255,255,255,0.4)]">⏱️ Auto-submits at 0:00</div>
+        </div>
+        <div className="mx-auto h-1 max-w-[1200px] rounded-full bg-[rgba(255,255,255,0.05)]">
+          <div className="h-full rounded-full transition-all" style={{ width: `${progressPercent}%`, background: timeColor }} />
         </div>
       </header>
 
-      <main className="container mx-auto px-6 py-8 max-w-6xl">
+      <main className="mx-auto max-w-[1200px] px-8 py-8">
         <PhaseInstructions phase={2} />
 
-        <div className="grid lg:grid-cols-2 gap-6">
-          {/* Left side - Peer's writing */}
-          <div className="space-y-4">
-            <div className="bg-white/5 backdrop-blur-sm rounded-xl p-6 border border-white/10">
-              {loadingPeer || !currentPeer ? (
-                <div className="text-center py-12">
-                  <div className="text-4xl mb-3 animate-spin">📖</div>
-                  <div className="text-white/60">Loading peer&apos;s writing...</div>
+        <div className="grid gap-6 lg:grid-cols-2">
+          <div className="rounded-[14px] border border-[rgba(255,255,255,0.05)] bg-[rgba(255,255,255,0.025)] p-5">
+            {loadingPeer || !currentPeer ? (
+              <div className="py-16 text-center">
+                <div className="mb-3 text-4xl animate-spin">📖</div>
+                <div className="text-[rgba(255,255,255,0.4)]">Loading peer's writing...</div>
+              </div>
+            ) : (
+              <>
+                <div className="mb-4 flex items-center gap-3">
+                  <span className="text-3xl">{currentPeer.avatar}</span>
+                  <div>
+                    <div className="font-semibold">{currentPeer.author}</div>
+                    <div className="text-xs text-[rgba(255,255,255,0.4)]">{currentPeer.rank} · {currentPeer.wordCount} words</div>
+                  </div>
                 </div>
-              ) : (
-                <>
-                  <div className="flex items-center space-x-3 mb-4">
-                    <span className="text-3xl">{currentPeer.avatar}</span>
-                    <div>
-                      <div className="text-white font-bold">{currentPeer.author}</div>
-                      <div className="text-white/60 text-sm">{currentPeer.rank} &bull; {currentPeer.wordCount} words</div>
-                    </div>
-                  </div>
-                  
-                  <div className="bg-white rounded-xl p-6 max-h-[600px] overflow-y-auto">
-                    <p className="text-gray-800 leading-relaxed font-serif whitespace-pre-wrap">
-                      {currentPeer.content}
-                    </p>
-                  </div>
-                </>
-              )}
-            </div>
+                
+                <div className="rounded-[10px] bg-white p-5 max-h-[500px] overflow-y-auto">
+                  <p className="text-[#101012] leading-relaxed whitespace-pre-wrap">{currentPeer.content}</p>
+                </div>
+              </>
+            )}
           </div>
 
-          {/* Right side - Feedback questions */}
-          <div className="space-y-4">
-            <div className="bg-white/5 backdrop-blur-sm rounded-xl p-6 border border-white/10">
-              <h3 className="text-white font-bold text-lg mb-4">Provide Detailed Feedback</h3>
-              
-              <div className="space-y-4">
-                <div>
-                  <label className="text-white font-semibold mb-2 block">
-                    1. What is the main idea?
-                  </label>
-                  <p className="text-white/50 text-sm mb-2">Identify the central point or message of the writing.</p>
-                  <textarea
-                    value={responses.mainIdea}
-                    onChange={(e) => setResponses({...responses, mainIdea: e.target.value})}
-                    onPaste={handlePaste}
-                    onCopy={handleCopy}
-                    onCut={handleCut}
-                    placeholder="The main idea of this writing is..."
-                    className="w-full p-3 rounded-lg bg-white/10 text-white placeholder-white/40 border border-white/20 focus:border-blue-400 focus:outline-none min-h-[100px] disabled:opacity-50 disabled:cursor-not-allowed"
-                    disabled={timeRemaining === 0}
-                    data-gramm="false"
-                    data-gramm_editor="false"
-                    data-enable-grammarly="false"
-                    spellCheck="true"
-                  />
-                </div>
-
-                <div>
-                  <label className="text-white font-semibold mb-2 block">
-                    2. What is one strength?
-                  </label>
-                  <p className="text-white/50 text-sm mb-2">Point out something specific the writer did well. Quote the text!</p>
-                  <textarea
-                    value={responses.strength}
-                    onChange={(e) => setResponses({...responses, strength: e.target.value})}
-                    onPaste={handlePaste}
-                    onCopy={handleCopy}
-                    onCut={handleCut}
-                    placeholder='One strength is the phrase "..." because it...'
-                    className="w-full p-3 rounded-lg bg-white/10 text-white placeholder-white/40 border border-white/20 focus:border-blue-400 focus:outline-none min-h-[100px] disabled:opacity-50 disabled:cursor-not-allowed"
-                    disabled={timeRemaining === 0}
-                    data-gramm="false"
-                    data-gramm_editor="false"
-                    data-enable-grammarly="false"
-                    spellCheck="true"
-                  />
-                </div>
-
-                <div>
-                  <label className="text-white font-semibold mb-2 block">
-                    3. What is one specific suggestion?
-                  </label>
-                  <p className="text-white/50 text-sm mb-2">Give one concrete improvement. Be actionable!</p>
-                  <textarea
-                    value={responses.suggestion}
-                    onChange={(e) => setResponses({...responses, suggestion: e.target.value})}
-                    onPaste={handlePaste}
-                    onCopy={handleCopy}
-                    onCut={handleCut}
-                    placeholder="Try adding... / Consider using because/but/so to... / You could improve..."
-                    className="w-full p-3 rounded-lg bg-white/10 text-white placeholder-white/40 border border-white/20 focus:border-blue-400 focus:outline-none min-h-[100px] disabled:opacity-50 disabled:cursor-not-allowed"
-                    disabled={timeRemaining === 0}
-                    data-gramm="false"
-                    data-gramm_editor="false"
-                    data-enable-grammarly="false"
-                    spellCheck="true"
-                  />
-                </div>
+          <div className="rounded-[14px] border border-[rgba(255,255,255,0.05)] bg-[rgba(255,255,255,0.025)] p-5">
+            <h3 className="mb-4 text-base font-semibold">Provide Feedback</h3>
+            
+            <div className="space-y-4">
+              <div>
+                <label className="mb-2 block text-sm font-medium">1. What is the main idea?</label>
+                <p className="mb-2 text-xs text-[rgba(255,255,255,0.4)]">Identify the central point or message.</p>
+                <textarea
+                  value={responses.mainIdea}
+                  onChange={(e) => setResponses({...responses, mainIdea: e.target.value})}
+                  onPaste={handlePaste}
+                  onCopy={handleCopy}
+                  onCut={handleCut}
+                  placeholder="The main idea is..."
+                  className="h-24 w-full resize-none rounded-[10px] border border-[rgba(255,255,255,0.05)] bg-[#101012] p-3 text-sm placeholder-[rgba(255,255,255,0.22)] focus:border-[#ff5f8f] focus:outline-none disabled:cursor-not-allowed disabled:opacity-50"
+                  disabled={timeRemaining === 0}
+                  spellCheck="true"
+                />
               </div>
-              
-              {/* Feedback Quality Validator */}
-              <FeedbackValidator responses={responses} />
+
+              <div>
+                <label className="mb-2 block text-sm font-medium">2. What is one strength?</label>
+                <p className="mb-2 text-xs text-[rgba(255,255,255,0.4)]">Point out something specific done well. Quote the text!</p>
+                <textarea
+                  value={responses.strength}
+                  onChange={(e) => setResponses({...responses, strength: e.target.value})}
+                  onPaste={handlePaste}
+                  onCopy={handleCopy}
+                  onCut={handleCut}
+                  placeholder='One strength is "..." because...'
+                  className="h-24 w-full resize-none rounded-[10px] border border-[rgba(255,255,255,0.05)] bg-[#101012] p-3 text-sm placeholder-[rgba(255,255,255,0.22)] focus:border-[#ff5f8f] focus:outline-none disabled:cursor-not-allowed disabled:opacity-50"
+                  disabled={timeRemaining === 0}
+                  spellCheck="true"
+                />
+              </div>
+
+              <div>
+                <label className="mb-2 block text-sm font-medium">3. What is one suggestion?</label>
+                <p className="mb-2 text-xs text-[rgba(255,255,255,0.4)]">Give one concrete improvement.</p>
+                <textarea
+                  value={responses.suggestion}
+                  onChange={(e) => setResponses({...responses, suggestion: e.target.value})}
+                  onPaste={handlePaste}
+                  onCopy={handleCopy}
+                  onCut={handleCut}
+                  placeholder="Try adding... / Consider using..."
+                  className="h-24 w-full resize-none rounded-[10px] border border-[rgba(255,255,255,0.05)] bg-[#101012] p-3 text-sm placeholder-[rgba(255,255,255,0.22)] focus:border-[#ff5f8f] focus:outline-none disabled:cursor-not-allowed disabled:opacity-50"
+                  disabled={timeRemaining === 0}
+                  spellCheck="true"
+                />
+              </div>
             </div>
+            
+            <FeedbackValidator responses={responses} />
           </div>
         </div>
       </main>

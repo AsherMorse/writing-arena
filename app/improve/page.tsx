@@ -31,7 +31,6 @@ function ImprovePageContent() {
           const matches = await getCompletedRankedMatches(user.uid, 5);
           setRankedMatches(matches);
           
-          // Redirect if they don't have 5 matches
           if (matches.length < 5) {
             router.push('/dashboard');
           }
@@ -47,7 +46,7 @@ function ImprovePageContent() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#0c141d]">
+      <div className="min-h-screen bg-[#101012]">
         <Header />
         <LoadingState message="Loading your improvement data..." />
       </div>
@@ -55,14 +54,13 @@ function ImprovePageContent() {
   }
 
   if (rankedMatches.length < 5) {
-    return null; // Will redirect
+    return null;
   }
 
   return (
-    <div className="min-h-screen bg-[#0c141d] text-white">
+    <div className="min-h-screen bg-[#101012] text-[rgba(255,255,255,0.8)]">
       <Header />
       <ImproveChatInterface rankedMatches={rankedMatches} />
     </div>
   );
 }
-

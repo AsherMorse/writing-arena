@@ -1,12 +1,9 @@
 'use client';
 
-import Link from 'next/link';
 import { useMemo, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { UserProfile } from '@/lib/types';
-import Card from '@/components/ui/Card';
-import Badge from '@/components/ui/Badge';
 import { countCompletedRankedMatches } from '@/lib/services/firestore';
 
 interface DashboardContentProps {
@@ -41,413 +38,294 @@ export default function DashboardContent({ userProfile }: DashboardContentProps)
 
   const traitCards = useMemo(
     () => [
-      { name: 'Content', level: userProfile.traits.content, icon: '📚' },
-      { name: 'Organization', level: userProfile.traits.organization, icon: '🗂️' },
-      { name: 'Grammar', level: userProfile.traits.grammar, icon: '✏️' },
-      { name: 'Vocabulary', level: userProfile.traits.vocabulary, icon: '📖' },
-      { name: 'Mechanics', level: userProfile.traits.mechanics, icon: '⚙️' },
+      { name: 'Content', level: userProfile.traits.content, color: '#00e5e5' },
+      { name: 'Organization', level: userProfile.traits.organization, color: '#ff5f8f' },
+      { name: 'Grammar', level: userProfile.traits.grammar, color: '#ff9030' },
+      { name: 'Vocabulary', level: userProfile.traits.vocabulary, color: '#00d492' },
+      { name: 'Mechanics', level: userProfile.traits.mechanics, color: '#00e5e5' },
     ],
     [userProfile.traits]
   );
 
-  const objectives = [
-    {
-      title: 'Complete a warm-up session',
-      detail: 'Run one focused drill before queueing.',
-      type: 'Warm-up',
-    },
-    {
-      title: 'Review build notes',
-      detail: 'Glance at last feedback before a ranked match.',
-      type: 'Review',
-    },
-    {
-      title: "Plan tonight's run",
-      detail: 'Pick mode and set a match goal.',
-      type: 'Planning',
-    },
-  ];
-
   const readinessChecklist = useMemo(
     () => [
       { label: 'Profile info current', ready: true },
-      {
-        label: 'Trait balance solid',
-        ready: Object.values(userProfile.traits).every((level) => level >= 6),
-      },
+      { label: 'Trait balance solid', ready: Object.values(userProfile.traits).every((level) => level >= 6) },
       { label: 'Focus trait chosen', ready: true },
       { label: 'Streak bonus active', ready: userProfile.stats.currentStreak > 0 },
     ],
     [userProfile.traits, userProfile.stats.currentStreak]
   );
 
-  const warmupPrompts = [
-    { title: 'Organization Drill', trait: 'Organization', duration: '4 min' },
-    { title: 'Vocabulary Burst', trait: 'Vocabulary', duration: '4 min' },
-    { title: 'Grammar Sprint', trait: 'Grammar', duration: '4 min' },
-  ];
-
-  const upcomingMatches = [
-    { mode: 'Ranked', eta: 'Today · 7:00 PM', teammates: ['Nova', 'Lumen'], route: '/ranked' },
-    {
-      mode: 'Quick Match',
-      eta: 'Tomorrow · 4:30 PM',
-      teammates: ['AutoFill'],
-      route: '/quick-match',
-    },
-  ];
-
   return (
-    <main className="mx-auto max-w-7xl px-6 py-10">
-      {/* Quick Access Buttons */}
-      <section className="mb-10">
-        <div className="grid gap-4 md:grid-cols-3">
-          {/* Ranked Button */}
+    <main className="mx-auto max-w-[1200px] px-8 py-8">
+      <section className="mb-8 grid grid-cols-1 gap-3 md:grid-cols-4">
+        <div className="rounded-[14px] border border-[rgba(255,255,255,0.05)] bg-[rgba(255,255,255,0.025)] p-5 transition-colors hover:bg-[rgba(255,255,255,0.04)]">
+          <div className="mb-2 text-[10px] font-semibold uppercase tracking-[0.08em] text-[rgba(255,255,255,0.22)]">
+            Level
+          </div>
+          <div className="font-mono text-4xl font-medium leading-none text-[#00e5e5]">
+            {userProfile.characterLevel}
+          </div>
+          <div className="mt-1 text-xs text-[rgba(255,255,255,0.4)]">Sapling</div>
+        </div>
+        <div className="rounded-[14px] border border-[rgba(255,255,255,0.05)] bg-[rgba(255,255,255,0.025)] p-5 transition-colors hover:bg-[rgba(255,255,255,0.04)]">
+          <div className="mb-2 text-[10px] font-semibold uppercase tracking-[0.08em] text-[rgba(255,255,255,0.22)]">
+            Total Points
+          </div>
+          <div className="font-mono text-4xl font-medium leading-none text-[#ff5f8f]">
+            {userProfile.totalPoints.toLocaleString()}
+          </div>
+          <div className="mt-1 text-xs text-[rgba(255,255,255,0.4)]">lifetime</div>
+        </div>
+        <div className="rounded-[14px] border border-[rgba(255,255,255,0.05)] bg-[rgba(255,255,255,0.025)] p-5 transition-colors hover:bg-[rgba(255,255,255,0.04)]">
+          <div className="mb-2 text-[10px] font-semibold uppercase tracking-[0.08em] text-[rgba(255,255,255,0.22)]">
+            Win Rate
+          </div>
+          <div className="font-mono text-4xl font-medium leading-none text-[#ff9030]">
+            {userProfile.stats.totalMatches > 0
+              ? Math.round((userProfile.stats.wins / userProfile.stats.totalMatches) * 100)
+              : 0}%
+          </div>
+          <div className="mt-1 text-xs text-[rgba(255,255,255,0.4)]">{userProfile.stats.totalMatches} matches</div>
+        </div>
+        <div className="rounded-[14px] border border-[rgba(255,255,255,0.05)] bg-[rgba(255,255,255,0.025)] p-5 transition-colors hover:bg-[rgba(255,255,255,0.04)]">
+          <div className="mb-2 text-[10px] font-semibold uppercase tracking-[0.08em] text-[rgba(255,255,255,0.22)]">
+            Streak
+          </div>
+          <div className="font-mono text-4xl font-medium leading-none text-[#00d492]">
+            {userProfile.stats.currentStreak}
+          </div>
+          <div className="mt-1 text-xs text-[rgba(255,255,255,0.4)]">days</div>
+        </div>
+      </section>
+
+      <section className="mb-8">
+        <div className="mb-4 text-[10px] font-semibold uppercase tracking-[0.12em] text-[rgba(255,255,255,0.22)]">
+          Quick Actions
+        </div>
+        <div className="grid gap-3 md:grid-cols-3">
           <button
             onClick={() => router.push('/ranked')}
-            className="group relative rounded-2xl border-2 border-emerald-400/40 bg-emerald-500/20 p-6 text-left transition-all hover:border-emerald-400 hover:bg-emerald-500/30"
+            className="group relative rounded-[14px] border border-[rgba(0,229,229,0.3)] bg-[rgba(0,229,229,0.08)] p-6 text-left transition-all hover:border-[rgba(0,229,229,0.5)] hover:bg-[rgba(0,229,229,0.12)]"
           >
-            <div className="flex items-center justify-between mb-3">
-              <span className="text-2xl">🏆</span>
-              <span className="text-xs uppercase tracking-[0.3em] text-emerald-200/70">Ranked</span>
+            <div className="mb-4 flex items-center justify-between">
+              <div className="flex h-10 w-10 items-center justify-center rounded-[10px] bg-[rgba(0,229,229,0.15)] text-lg">
+                🏆
+              </div>
+              <span className="text-[10px] font-semibold uppercase tracking-[0.08em] text-[#00e5e5]">
+                Ranked
+              </span>
             </div>
-            <h3 className="text-xl font-semibold text-white mb-2">Ranked Circuit</h3>
-            <p className="text-sm text-white/70 mb-4">
+            <div className="text-lg font-semibold text-[rgba(255,255,255,0.9)]">Ranked Circuit</div>
+            <p className="mt-1 text-sm text-[rgba(255,255,255,0.5)]">
               Compete in three-phase matches and climb the leaderboard
             </p>
-            <div className="flex items-center text-emerald-200 text-sm font-medium">
+            <div className="mt-4 flex items-center gap-2 text-sm font-medium text-[#00e5e5]">
               Enter ranked
-              <span className="ml-2 transition group-hover:translate-x-1">→</span>
+              <span className="transition-transform group-hover:translate-x-1">→</span>
             </div>
           </button>
 
-          {/* Improve Button */}
           <button
-            onClick={() => {
-              if (hasEnoughMatches) {
-                router.push('/improve');
-              }
-            }}
+            onClick={() => hasEnoughMatches && router.push('/improve')}
             disabled={!hasEnoughMatches}
-            className={`group relative rounded-2xl border-2 p-6 text-left transition-all ${
+            className={`group relative rounded-[14px] border p-6 text-left transition-all ${
               hasEnoughMatches
-                ? 'border-blue-400/40 bg-blue-500/20 hover:border-blue-400 hover:bg-blue-500/30'
-                : 'border-white/10 bg-white/5 opacity-60 cursor-not-allowed'
+                ? 'border-[rgba(255,95,143,0.3)] bg-[rgba(255,95,143,0.08)] hover:border-[rgba(255,95,143,0.5)] hover:bg-[rgba(255,95,143,0.12)]'
+                : 'cursor-not-allowed border-[rgba(255,255,255,0.05)] bg-[rgba(255,255,255,0.02)] opacity-60'
             }`}
           >
             {!hasEnoughMatches && (
-              <div className="absolute top-3 right-3 px-2 py-1 bg-blue-500/20 border border-blue-400/30 rounded-full">
-                <span className="text-[10px] uppercase tracking-wider text-blue-300 font-semibold">
-                  {loadingMatches ? 'Loading...' : `${matchesRemaining} More`}
-                </span>
+              <div className="absolute right-3 top-3 rounded-[20px] bg-[rgba(255,95,143,0.15)] px-2 py-1 text-[10px] font-medium uppercase tracking-[0.04em] text-[#ff5f8f]">
+                {loadingMatches ? 'Loading' : `${matchesRemaining} more`}
               </div>
             )}
-            <div className="flex items-center justify-between mb-3">
-              <span className="text-2xl">📈</span>
-              <span className={`text-xs uppercase tracking-[0.3em] ${
-                hasEnoughMatches ? 'text-blue-200/70' : 'text-white/30'
-              }`}>
+            <div className="mb-4 flex items-center justify-between">
+              <div className="flex h-10 w-10 items-center justify-center rounded-[10px] bg-[rgba(255,95,143,0.15)] text-lg">
+                📈
+              </div>
+              <span className={`text-[10px] font-semibold uppercase tracking-[0.08em] ${hasEnoughMatches ? 'text-[#ff5f8f]' : 'text-[rgba(255,255,255,0.22)]'}`}>
                 Improve
               </span>
             </div>
-            <h3 className={`text-xl font-semibold mb-2 ${
-              hasEnoughMatches ? 'text-white' : 'text-white/50'
-            }`}>
-              Improve Your Writing
-            </h3>
-            <p className={`text-sm mb-4 ${
-              hasEnoughMatches ? 'text-white/70' : 'text-white/40'
-            }`}>
+            <div className={`text-lg font-semibold ${hasEnoughMatches ? 'text-[rgba(255,255,255,0.9)]' : 'text-[rgba(255,255,255,0.4)]'}`}>
+              Improve Writing
+            </div>
+            <p className={`mt-1 text-sm ${hasEnoughMatches ? 'text-[rgba(255,255,255,0.5)]' : 'text-[rgba(255,255,255,0.3)]'}`}>
               {hasEnoughMatches
                 ? 'Personalized exercises based on your last 5 ranked matches'
                 : `Complete ${matchesRemaining} more ranked match${matchesRemaining !== 1 ? 'es' : ''} to unlock`}
             </p>
-            {hasEnoughMatches && (
-              <div className="flex items-center text-blue-200 text-sm font-medium">
-                Start improving
-                <span className="ml-2 transition group-hover:translate-x-1">→</span>
-              </div>
-            )}
             {!hasEnoughMatches && completedMatches !== null && (
-              <div className="pt-2">
-                <div className="flex items-center justify-between text-xs text-blue-300 mb-2">
-                  <span>Progress</span>
-                  <span>{completedMatches}/5 matches</span>
+              <div className="mt-4">
+                <div className="mb-2 flex items-center justify-between text-xs">
+                  <span className="text-[rgba(255,255,255,0.4)]">Progress</span>
+                  <span className="font-mono text-[#ff5f8f]">{completedMatches}/5</span>
                 </div>
-                <div className="w-full bg-white/10 rounded-full h-2">
-                  <div 
-                    className="bg-blue-400 h-2 rounded-full transition-all duration-300"
-                    style={{ width: `${(completedMatches / 5) * 100}%` }}
+                <div className="h-[6px] overflow-hidden rounded-[3px] bg-[rgba(255,255,255,0.05)]">
+                  <div
+                    className="h-full rounded-[3px] transition-all"
+                    style={{ width: `${(completedMatches / 5) * 100}%`, background: '#ff5f8f' }}
                   />
                 </div>
               </div>
             )}
+            {hasEnoughMatches && (
+              <div className="mt-4 flex items-center gap-2 text-sm font-medium text-[#ff5f8f]">
+                Start improving
+                <span className="transition-transform group-hover:translate-x-1">→</span>
+              </div>
+            )}
           </button>
 
-          {/* AP Lang Button */}
           <button
             onClick={() => router.push('/ap-lang')}
-            className="group relative rounded-2xl border-2 border-purple-400/40 bg-purple-500/20 p-6 text-left transition-all hover:border-purple-400 hover:bg-purple-500/30"
+            className="group relative rounded-[14px] border border-[rgba(255,144,48,0.3)] bg-[rgba(255,144,48,0.08)] p-6 text-left transition-all hover:border-[rgba(255,144,48,0.5)] hover:bg-[rgba(255,144,48,0.12)]"
           >
-            <div className="flex items-center justify-between mb-3">
-              <span className="text-2xl">📚</span>
-              <span className="text-xs uppercase tracking-[0.3em] text-purple-200/70">AP Lang</span>
+            <div className="mb-4 flex items-center justify-between">
+              <div className="flex h-10 w-10 items-center justify-center rounded-[10px] bg-[rgba(255,144,48,0.15)] text-lg">
+                📚
+              </div>
+              <span className="text-[10px] font-semibold uppercase tracking-[0.08em] text-[#ff9030]">
+                AP Lang
+              </span>
             </div>
-            <h3 className="text-xl font-semibold text-white mb-2">AP Lang Grader</h3>
-            <p className="text-sm text-white/70 mb-4">
-              Grade your essays or practice with authentic AP prompts and a 40-minute timer
+            <div className="text-lg font-semibold text-[rgba(255,255,255,0.9)]">AP Lang Grader</div>
+            <p className="mt-1 text-sm text-[rgba(255,255,255,0.5)]">
+              Grade essays or practice with authentic AP prompts
             </p>
-            <div className="flex items-center text-purple-200 text-sm font-medium">
+            <div className="mt-4 flex items-center gap-2 text-sm font-medium text-[#ff9030]">
               Open grader
-              <span className="ml-2 transition group-hover:translate-x-1">→</span>
+              <span className="transition-transform group-hover:translate-x-1">→</span>
             </div>
           </button>
         </div>
       </section>
 
-      <section className="grid gap-8 lg:grid-cols-[1.4fr,1fr]">
-        <div className="space-y-8">
-          {/* Match Readiness */}
-          <Card>
-            <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
-              <div>
-                <div className="text-xs uppercase tracking-[0.3em] text-white/50">
-                  Match readiness
-                </div>
-                <h2 className="mt-2 text-2xl font-semibold">Level {userProfile.characterLevel} Sapling</h2>
-                <p className="mt-3 text-sm text-white/60">
-                  Keep momentum to reach Young Oak. Complete prep steps before queueing.
-                </p>
+      <section className="grid gap-6 lg:grid-cols-[1.4fr,1fr]">
+        <div className="space-y-6">
+          <div className="rounded-[14px] border border-[rgba(255,255,255,0.05)] bg-[rgba(255,255,255,0.025)] p-6">
+            <div className="mb-4 flex items-center justify-between">
+              <div className="text-[10px] font-semibold uppercase tracking-[0.08em] text-[rgba(255,255,255,0.22)]">
+                Trait Levels
               </div>
-              <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-emerald-400/15 text-2xl text-emerald-200">
-                {userProfile.avatar}
-              </div>
+              <span className="rounded-[20px] bg-[rgba(0,212,146,0.12)] px-2 py-1 text-[10px] font-medium uppercase tracking-[0.04em] text-[#00d492]">
+                {Object.values(userProfile.traits).filter(l => l >= 8).length}/5 ready
+              </span>
             </div>
-            <div className="mt-6 grid gap-4 sm:grid-cols-3">
-              <button
-                onClick={() => router.push('/ranked')}
-                className="rounded-xl border border-emerald-400/40 bg-emerald-500 px-4 py-3 text-left text-sm font-semibold text-[#0c141d] transition hover:bg-emerald-400"
-              >
-                Join Ranked Queue
-                <div className="mt-1 text-xs font-normal text-[#0c141d]/80">
-                  Recommended for today
-                </div>
-              </button>
-              <button
-                onClick={() => router.push('/quick-match')}
-                className="rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-left text-sm text-white/70 transition hover:bg-white/10"
-              >
-                Quick Match Warm-up
-                <div className="mt-1 text-xs text-white/50">4 min blitz to sharpen pacing</div>
-              </button>
-              <button
-                onClick={() => router.push('/practice')}
-                className="rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-left text-sm text-white/70 transition hover:bg-white/10"
-              >
-                Practice Drill
-                <div className="mt-1 text-xs text-white/50">Organization focus suggested</div>
-              </button>
-            </div>
-          </Card>
-
-          {/* Today's Objectives - Coming Soon */}
-          <Card variant="muted">
-            <div className="flex items-center justify-between">
-              <div>
-                <div className="text-xs uppercase tracking-[0.3em] text-white/50">
-                  Today&apos;s objectives
-                </div>
-                <h2 className="mt-2 text-2xl font-semibold">Stay focused before queueing</h2>
-              </div>
-              <Badge variant="warning">Coming Soon</Badge>
-            </div>
-            <div className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-              {objectives.map((item) => (
-                <div
-                  key={item.title}
-                  className="flex h-full flex-col justify-between rounded-2xl border border-white/10 bg-white/5 px-5 py-5"
-                >
-                  <div>
-                    <div className="text-xs uppercase tracking-[0.3em] text-white/40">
-                      {item.type}
-                    </div>
-                    <div className="mt-2 text-sm font-semibold text-white">{item.title}</div>
-                    <p className="mt-2 text-xs text-white/60">{item.detail}</p>
-                  </div>
-                  <button
-                    disabled
-                    className="mt-4 inline-flex items-center gap-2 rounded-full border border-white/10 px-3 py-1.5 text-xs text-white/40 cursor-not-allowed"
-                  >
-                    Mark complete
-                    <span>→</span>
-                  </button>
-                </div>
-              ))}
-            </div>
-          </Card>
-
-          {/* Trait Readiness */}
-          <Card>
-            <div className="flex items-center justify-between">
-              <div>
-                <div className="text-xs uppercase tracking-[0.3em] text-white/50">
-                  Trait readiness
-                </div>
-                <h2 className="mt-2 text-2xl font-semibold">Strengths snapshot</h2>
-              </div>
-            </div>
-            <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="space-y-3">
               {traitCards.map((trait) => (
                 <div
                   key={trait.name}
-                  className="rounded-2xl border border-white/10 bg-white/5 px-4 py-5"
+                  className="flex items-center justify-between border-b border-[rgba(255,255,255,0.05)] pb-3 last:border-0 last:pb-0"
                 >
-                  <div className="flex items-center justify-between">
-                    <span className="text-2xl">{trait.icon}</span>
-                    <span className="text-xs uppercase tracking-[0.3em] text-white/40">
-                      Lvl {trait.level}
+                  <div className="flex items-center gap-3">
+                    <div
+                      className="h-2 w-2 rounded-full"
+                      style={{ background: trait.color }}
+                    />
+                    <span className="text-sm text-[rgba(255,255,255,0.8)]">{trait.name}</span>
+                  </div>
+                  <div className="flex items-center gap-4">
+                    <div className="h-[6px] w-24 overflow-hidden rounded-[3px] bg-[rgba(255,255,255,0.05)]">
+                      <div
+                        className="h-full rounded-[3px]"
+                        style={{ width: `${(trait.level / 10) * 100}%`, background: trait.color }}
+                      />
+                    </div>
+                    <span className="w-8 text-right font-mono text-sm" style={{ color: trait.color }}>
+                      {trait.level}
                     </span>
                   </div>
-                  <div className="mt-3 text-sm font-semibold text-white">{trait.name}</div>
-                  <div className="mt-2 text-xs text-emerald-200">
-                    {trait.level >= 8 ? 'Match-ready' : 'Warm-up recommended'}
-                  </div>
                 </div>
               ))}
             </div>
-          </Card>
+          </div>
 
-          {/* Upcoming Sessions - Coming Soon */}
-          <Card variant="muted">
-            <div className="flex items-center justify-between">
-              <div>
-                <div className="text-xs uppercase tracking-[0.3em] text-white/50">
-                  Upcoming sessions
-                </div>
-                <h2 className="mt-2 text-2xl font-semibold">Lock in your schedule</h2>
+          <div className="rounded-[14px] border border-[rgba(255,255,255,0.05)] bg-[rgba(255,255,255,0.025)] p-6">
+            <div className="mb-4 flex items-center justify-between">
+              <div className="text-[10px] font-semibold uppercase tracking-[0.08em] text-[rgba(255,255,255,0.22)]">
+                Match Readiness
               </div>
-              <Badge variant="warning">Coming Soon</Badge>
             </div>
-            <div className="mt-6 grid gap-4 md:grid-cols-2">
-              {upcomingMatches.map((match) => (
-                <div
-                  key={match.mode + match.eta}
-                  className="rounded-2xl border border-white/10 bg-white/5 px-4 py-4"
-                >
-                  <div className="text-xs uppercase tracking-[0.3em] text-white/40">
-                    {match.mode}
-                  </div>
-                  <div className="mt-2 text-sm font-semibold text-white">{match.eta}</div>
-                  <div className="mt-3 text-xs text-white/50">
-                    With {match.teammates.join(', ')}
-                  </div>
-                  <button
-                    disabled
-                    className="mt-4 inline-flex items-center gap-2 rounded-full border border-white/10 px-3 py-1.5 text-xs text-white/40 cursor-not-allowed"
-                  >
-                    Open lobby
-                    <span>→</span>
-                  </button>
-                </div>
-              ))}
+            <div className="grid gap-3 sm:grid-cols-3">
+              <button
+                onClick={() => router.push('/ranked')}
+                className="rounded-[10px] border border-[#00e5e5] bg-[#00e5e5] px-4 py-3 text-left transition-all hover:bg-[#33ebeb]"
+              >
+                <div className="text-sm font-semibold text-[#101012]">Join Ranked</div>
+                <div className="mt-1 text-xs text-[#101012]/70">Recommended</div>
+              </button>
+              <button
+                onClick={() => router.push('/quick-match')}
+                className="rounded-[10px] border border-[rgba(255,255,255,0.05)] bg-[rgba(255,255,255,0.025)] px-4 py-3 text-left transition-all hover:bg-[rgba(255,255,255,0.04)]"
+              >
+                <div className="text-sm font-medium text-[rgba(255,255,255,0.8)]">Quick Match</div>
+                <div className="mt-1 text-xs text-[rgba(255,255,255,0.4)]">4 min warmup</div>
+              </button>
+              <button
+                onClick={() => router.push('/practice')}
+                className="rounded-[10px] border border-[rgba(255,255,255,0.05)] bg-[rgba(255,255,255,0.025)] px-4 py-3 text-left transition-all hover:bg-[rgba(255,255,255,0.04)]"
+              >
+                <div className="text-sm font-medium text-[rgba(255,255,255,0.8)]">Practice</div>
+                <div className="mt-1 text-xs text-[rgba(255,255,255,0.4)]">Solo drills</div>
+              </button>
             </div>
-          </Card>
+          </div>
         </div>
 
-        {/* Sidebar */}
-        <aside className="space-y-8">
-          {/* Pre-match Checklist */}
-          <Card>
-            <div className="text-xs uppercase tracking-[0.3em] text-white/50">
-              Pre-match checklist
+        <div className="space-y-6">
+          <div className="rounded-[14px] border border-[rgba(255,255,255,0.05)] bg-[rgba(255,255,255,0.025)] p-6">
+            <div className="mb-4 text-[10px] font-semibold uppercase tracking-[0.08em] text-[rgba(255,255,255,0.22)]">
+              Pre-match Checklist
             </div>
-            <ul className="mt-6 space-y-3 text-sm text-white/70">
+            <div className="space-y-2">
               {readinessChecklist.map((item) => (
-                <li
-                  key={item.label}
-                  className="flex items-center justify-between rounded-2xl border border-white/10 bg-white/5 px-4 py-3"
-                >
-                  <span>{item.label}</span>
-                  <span
-                    className={
-                      item.ready ? 'text-emerald-200 font-semibold' : 'text-white/40'
-                    }
-                  >
-                    {item.ready ? 'Ready' : 'Warm-up recommended'}
-                  </span>
-                </li>
-              ))}
-            </ul>
-          </Card>
-
-          {/* Warm-up Prompts - Coming Soon */}
-          <Card variant="muted">
-            <div className="flex items-center justify-between">
-              <div className="text-xs uppercase tracking-[0.3em] text-white/50">
-                Warm-up prompts
-              </div>
-              <Badge variant="warning">Coming Soon</Badge>
-            </div>
-            <div className="mt-6 space-y-4">
-              {warmupPrompts.map((prompt) => (
                 <div
-                  key={prompt.title}
-                  className="rounded-2xl border border-white/10 bg-white/5 px-4 py-4 text-sm text-white/70"
+                  key={item.label}
+                  className="flex items-center justify-between rounded-[10px] border border-[rgba(255,255,255,0.05)] bg-[#101012] px-4 py-3"
                 >
-                  <div className="text-sm font-semibold text-white">{prompt.title}</div>
-                  <div className="mt-1 text-xs text-white/50">
-                    {prompt.trait} · {prompt.duration}
-                  </div>
-                  <button
-                    disabled
-                    className="mt-4 inline-flex items-center gap-2 rounded-full border border-white/10 px-3 py-1.5 text-xs text-white/40 cursor-not-allowed"
-                  >
-                    Launch drill
-                    <span>→</span>
-                  </button>
+                  <span className="text-sm text-[rgba(255,255,255,0.6)]">{item.label}</span>
+                  {item.ready ? (
+                    <span className="rounded-[20px] bg-[rgba(0,212,146,0.12)] px-2 py-0.5 text-[10px] font-medium uppercase text-[#00d492]">
+                      Ready
+                    </span>
+                  ) : (
+                    <span className="rounded-[20px] bg-[rgba(255,144,48,0.12)] px-2 py-0.5 text-[10px] font-medium uppercase text-[#ff9030]">
+                      Pending
+                    </span>
+                  )}
                 </div>
               ))}
             </div>
-          </Card>
+          </div>
 
-          {/* Match Stats */}
-          <Card>
-            <div className="text-xs uppercase tracking-[0.3em] text-white/50">
-              Match stats snapshot
+          <div className="rounded-[14px] border border-[rgba(255,255,255,0.05)] bg-[rgba(255,255,255,0.025)] p-6">
+            <div className="mb-4 text-[10px] font-semibold uppercase tracking-[0.08em] text-[rgba(255,255,255,0.22)]">
+              Stats
             </div>
-            <div className="mt-6 space-y-3 text-sm text-white/70">
-              <div className="flex items-center justify-between rounded-2xl border border-white/10 bg-white/5 px-4 py-3">
-                <span>Total matches</span>
-                <span className="text-emerald-200 font-semibold">
-                  {userProfile.stats.totalMatches}
-                </span>
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-[rgba(255,255,255,0.4)]">Total Matches</span>
+                <span className="font-mono text-lg text-[#00e5e5]">{userProfile.stats.totalMatches}</span>
               </div>
-              <div className="flex items-center justify-between rounded-2xl border border-white/10 bg-white/5 px-4 py-3">
-                <span>Win rate</span>
-                <span className="text-emerald-200 font-semibold">
-                  {userProfile.stats.totalMatches > 0
-                    ? Math.round((userProfile.stats.wins / userProfile.stats.totalMatches) * 100)
-                    : 0}
-                  %
-                </span>
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-[rgba(255,255,255,0.4)]">Wins</span>
+                <span className="font-mono text-lg text-[#00d492]">{userProfile.stats.wins}</span>
               </div>
-              <div className="flex items-center justify-between rounded-2xl border border-white/10 bg-white/5 px-4 py-3">
-                <span>Current streak</span>
-                <span className="text-emerald-200 font-semibold">
-                  {userProfile.stats.currentStreak} days
-                </span>
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-[rgba(255,255,255,0.4)]">Words Written</span>
+                <span className="font-mono text-lg text-[#ff5f8f]">{userProfile.stats.totalWords.toLocaleString()}</span>
               </div>
-              <div className="flex items-center justify-between rounded-2xl border border-white/10 bg-white/5 px-4 py-3">
-                <span>Words written</span>
-                <span className="text-emerald-200 font-semibold">
-                  {userProfile.stats.totalWords.toLocaleString()}
-                </span>
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-[rgba(255,255,255,0.4)]">Best Streak</span>
+                <span className="font-mono text-lg text-[#ff9030]">{userProfile.stats.longestStreak} days</span>
               </div>
             </div>
-          </Card>
-        </aside>
+          </div>
+        </div>
       </section>
     </main>
   );
 }
-

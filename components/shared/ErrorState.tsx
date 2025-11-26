@@ -10,9 +10,6 @@ interface ErrorStateProps {
   showRetry?: boolean;
 }
 
-/**
- * Reusable error state component
- */
 export function ErrorState({ 
   error, 
   title = 'Error',
@@ -32,16 +29,16 @@ export function ErrorState({
   };
   
   return (
-    <div className="min-h-screen bg-[#0c141d] text-white flex items-center justify-center">
-      <div className="text-center bg-white/10 backdrop-blur-sm rounded-lg p-8 max-w-md">
-        <div className="text-6xl mb-4">❌</div>
-        <h1 className="text-white text-2xl font-bold mb-2">{title}</h1>
-        <p className="text-white/70 mb-6">{errorMessage}</p>
+    <div className="flex min-h-screen items-center justify-center bg-[#101012] text-[rgba(255,255,255,0.8)]">
+      <div className="max-w-md rounded-[14px] border border-[rgba(255,255,255,0.05)] bg-[rgba(255,255,255,0.025)] p-8 text-center">
+        <div className="mb-4 text-5xl">❌</div>
+        <h1 className="mb-2 text-xl font-semibold">{title}</h1>
+        <p className="mb-6 text-sm text-[rgba(255,255,255,0.5)]">{errorMessage}</p>
         {showRetry && (
           <button
             type="button"
             onClick={handleRetry}
-            className="rounded-full border border-white/20 bg-white/10 px-6 py-2 text-sm font-semibold text-white transition hover:bg-white/20"
+            className="rounded-[10px] border border-[rgba(255,255,255,0.05)] bg-[rgba(255,255,255,0.025)] px-6 py-2 text-sm font-medium transition hover:bg-[rgba(255,255,255,0.04)]"
           >
             {retryLabel}
           </button>
@@ -50,4 +47,3 @@ export function ErrorState({
     </div>
   );
 }
-

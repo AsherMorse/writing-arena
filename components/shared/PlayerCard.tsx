@@ -24,10 +24,6 @@ interface PlayerCardProps {
   isSubmitted?: boolean;
 }
 
-/**
- * Reusable player card component
- * Displays player information consistently across the app
- */
 export function PlayerCard({ 
   player, 
   variant = 'default',
@@ -41,84 +37,60 @@ export function PlayerCard({
   const displayRank = player.position || player.rank || '';
   const displayScore = player.compositeScore || player.score || 0;
   
-  // Waiting variant (for WaitingForPlayers component)
   if (variant === 'waiting') {
     return (
-      <div
-        className={`rounded-2xl border px-3 py-4 text-center text-xs font-semibold transition ${
-          isSubmitted
-            ? 'border-emerald-400/40 bg-emerald-500/15 text-emerald-200'
-            : 'border-white/10 bg-white/5 text-white/40'
-        }`}
-      >
-        <div className="text-2xl mb-2">
-          {isSubmitted ? '✅' : avatar}
-        </div>
-        <div className="truncate text-sm text-white/80">
-          {player.name}
-        </div>
-        {showRank && displayRank && (
-          <div className="text-[11px] text-white/40">{displayRank}</div>
-        )}
+      <div className={`rounded-[10px] border px-3 py-4 text-center text-xs font-medium transition ${
+        isSubmitted
+          ? 'border-[rgba(0,212,146,0.3)] bg-[rgba(0,212,146,0.1)] text-[#00d492]'
+          : 'border-[rgba(255,255,255,0.05)] bg-[#101012] text-[rgba(255,255,255,0.4)]'
+      }`}>
+        <div className="mb-2 text-2xl">{isSubmitted ? '✅' : avatar}</div>
+        <div className="truncate text-sm">{player.name}</div>
+        {showRank && displayRank && <div className="text-[10px] text-[rgba(255,255,255,0.3)]">{displayRank}</div>}
       </div>
     );
   }
   
-  // Compact variant (for matchmaking)
   if (variant === 'compact') {
     return (
-      <div
-        className={`flex items-center justify-between rounded-2xl border px-4 py-3 transition ${
-          player.isYou || isSubmitted
-            ? 'border-emerald-300/40 bg-emerald-400/10'
-            : 'border-white/10 bg-white/5'
-        }`}
-      >
+      <div className={`flex items-center justify-between rounded-[10px] border px-4 py-3 transition ${
+        player.isYou || isSubmitted
+          ? 'border-[rgba(0,229,229,0.2)] bg-[rgba(0,229,229,0.08)]'
+          : 'border-[rgba(255,255,255,0.05)] bg-[#101012]'
+      }`}>
         <div className="flex items-center gap-3">
-          <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#0c141d] text-lg">
-            {avatar}
-          </span>
+          <span className="flex h-9 w-9 items-center justify-center rounded-[6px] bg-[rgba(255,255,255,0.025)] text-lg">{avatar}</span>
           <div>
-            <div className={`text-sm font-semibold ${player.isYou ? 'text-white' : 'text-white/40'}`}>
-              {player.name}
-            </div>
+            <div className={`text-sm font-medium ${player.isYou ? '' : 'text-[rgba(255,255,255,0.4)]'}`}>{player.name}</div>
             {player.isAI !== undefined && (
-              <div className="text-[11px] uppercase text-white/40">
-                {player.isAI ? 'AI support' : 'You'}
-              </div>
+              <div className="text-[10px] uppercase text-[rgba(255,255,255,0.3)]">{player.isAI ? 'AI support' : 'You'}</div>
             )}
           </div>
         </div>
         {showPosition && typeof displayRank === 'number' && (
-          <span className="text-[10px] text-white/40">#{displayRank}</span>
+          <span className="text-[10px] text-[rgba(255,255,255,0.3)]">#{displayRank}</span>
         )}
       </div>
     );
   }
   
-  // Ranking variant (for results pages)
   if (variant === 'ranking') {
     const position = typeof displayRank === 'number' ? displayRank : parseInt(String(displayRank)) || 0;
     
     return (
-      <div
-        className={`rounded-2xl border px-5 py-4 transition ${
-          player.isYou
-            ? 'border-emerald-300/40 bg-emerald-400/10'
-            : 'border-white/10 bg-white/5'
-        }`}
-      >
+      <div className={`rounded-[10px] border px-5 py-4 transition ${
+        player.isYou
+          ? 'border-[rgba(0,229,229,0.2)] bg-[rgba(0,229,229,0.08)]'
+          : 'border-[rgba(255,255,255,0.05)] bg-[#101012]'
+      }`}>
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
             {showPosition && (
-              <span className={`flex h-11 w-11 items-center justify-center rounded-xl text-lg font-semibold ${
-                position === 1
-                  ? 'bg-yellow-400 text-[#0c141d]'
-                  : position === 2
-                  ? 'bg-white/80 text-[#0c141d]'
-                  : position === 3
-                  ? 'bg-orange-300 text-[#0c141d]'
-                  : 'bg-white/10 text-white/60'
+              <span className={`flex h-10 w-10 items-center justify-center rounded-[10px] text-base font-semibold ${
+                position === 1 ? 'bg-[#ff9030] text-[#101012]' :
+                position === 2 ? 'bg-[rgba(255,255,255,0.3)] text-[#101012]' :
+                position === 3 ? 'bg-[#ff9030]/60 text-[#101012]' :
+                'bg-[rgba(255,255,255,0.1)] text-[rgba(255,255,255,0.4)]'
               }`}>
                 {getMedalEmoji(position)}
               </span>
@@ -126,24 +98,16 @@ export function PlayerCard({
             <div className="flex items-center gap-3">
               <span className="text-3xl">{avatar}</span>
               <div>
-                <div className={`text-sm font-semibold ${player.isYou ? 'text-emerald-200' : 'text-white'}`}>
-                  {player.name}
-                </div>
-                {showWordCount && player.wordCount !== undefined && (
-                  <div className="text-xs text-white/50">{player.wordCount} words</div>
-                )}
-                {showRank && displayRank && typeof displayRank === 'string' && (
-                  <div className="text-xs text-white/50">{displayRank}</div>
-                )}
+                <div className={`text-sm font-medium ${player.isYou ? 'text-[#00e5e5]' : ''}`}>{player.name}</div>
+                {showWordCount && player.wordCount !== undefined && <div className="text-xs text-[rgba(255,255,255,0.4)]">{player.wordCount} words</div>}
+                {showRank && displayRank && typeof displayRank === 'string' && <div className="text-xs text-[rgba(255,255,255,0.4)]">{displayRank}</div>}
               </div>
             </div>
           </div>
           {showScore && (
             <div className="text-right">
-              <div className={`text-2xl font-semibold ${player.isYou ? 'text-emerald-200' : 'text-white'}`}>
-                {displayScore}
-              </div>
-              <div className="text-xs text-white/50">score</div>
+              <div className={`font-mono text-2xl font-medium ${player.isYou ? 'text-[#00e5e5]' : ''}`}>{displayScore}</div>
+              <div className="text-xs text-[rgba(255,255,255,0.4)]">score</div>
             </div>
           )}
         </div>
@@ -151,56 +115,44 @@ export function PlayerCard({
     );
   }
   
-  // Default variant (for ranked results with composite scores)
   return (
-    <div
-      className={`p-5 rounded-xl transition-all ${
-        player.isYou
-          ? 'bg-gradient-to-r from-purple-500/20 to-blue-500/20 border-2 border-purple-400 scale-105'
-          : 'bg-white/5 border border-white/10'
-      }`}
-    >
-      <div className="flex items-center justify-between mb-3">
-        <div className="flex items-center space-x-4">
+    <div className={`rounded-[10px] p-5 transition-all ${
+      player.isYou
+        ? 'border-2 border-[#00e5e5] bg-[rgba(0,229,229,0.1)] scale-[1.02]'
+        : 'border border-[rgba(255,255,255,0.05)] bg-[#101012]'
+    }`}>
+      <div className="mb-3 flex items-center justify-between">
+        <div className="flex items-center gap-4">
           {showPosition && typeof displayRank === 'number' && (
-            <div className={`w-12 h-12 rounded-full flex items-center justify-center text-2xl font-bold ${
-              displayRank === 1 ? 'bg-yellow-500 text-yellow-900' :
-              displayRank === 2 ? 'bg-gray-300 text-gray-700' :
-              displayRank === 3 ? 'bg-orange-400 text-orange-900' :
-              'bg-white/10 text-white/60'
+            <div className={`flex h-10 w-10 items-center justify-center rounded-full text-lg font-semibold ${
+              displayRank === 1 ? 'bg-[#ff9030] text-[#101012]' :
+              displayRank === 2 ? 'bg-[rgba(255,255,255,0.3)] text-[#101012]' :
+              displayRank === 3 ? 'bg-[#ff9030]/60 text-[#101012]' :
+              'bg-[rgba(255,255,255,0.1)] text-[rgba(255,255,255,0.4)]'
             }`}>
               {getMedalEmoji(displayRank)}
             </div>
           )}
           
-          <div className="flex items-center space-x-3">
-            <span className="text-4xl">{avatar}</span>
+          <div className="flex items-center gap-3">
+            <span className="text-3xl">{avatar}</span>
             <div>
-              <div className="flex items-center space-x-2">
-                <span className={`font-bold ${player.isYou ? 'text-purple-400' : 'text-white'}`}>
-                  {player.name}
-                </span>
-                {player.isYou && (
-                  <span className="text-xs px-2 py-1 bg-purple-500 text-white rounded-full">You</span>
-                )}
+              <div className="flex items-center gap-2">
+                <span className={`font-medium ${player.isYou ? 'text-[#00e5e5]' : ''}`}>{player.name}</span>
+                {player.isYou && <span className="rounded-[20px] bg-[#00e5e5] px-2 py-0.5 text-[10px] font-medium text-[#101012]">You</span>}
               </div>
-              {showRank && displayRank && typeof displayRank === 'string' && (
-                <div className="text-white/60 text-sm">{displayRank}</div>
-              )}
+              {showRank && displayRank && typeof displayRank === 'string' && <div className="text-sm text-[rgba(255,255,255,0.4)]">{displayRank}</div>}
             </div>
           </div>
         </div>
         
         {showScore && (
           <div className="text-right">
-            <div className={`text-3xl font-bold ${player.isYou ? 'text-purple-400' : 'text-white'}`}>
-              {displayScore}
-            </div>
-            <div className="text-white/60 text-sm">composite</div>
+            <div className={`font-mono text-2xl font-medium ${player.isYou ? 'text-[#00e5e5]' : ''}`}>{displayScore}</div>
+            <div className="text-sm text-[rgba(255,255,255,0.4)]">composite</div>
           </div>
         )}
       </div>
     </div>
   );
 }
-

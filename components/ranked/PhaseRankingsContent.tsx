@@ -8,7 +8,6 @@ export default function PhaseRankingsContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   
-  // Current phase info
   const phase = parseInt(searchParams.get('phase') || '1');
   const sessionId = searchParams.get('sessionId') || '';
   const matchId = searchParams.get('matchId') || '';
@@ -26,76 +25,33 @@ export default function PhaseRankingsContent() {
   const [currentTipIndex, setCurrentTipIndex] = useState(0);
   const [realRankings, setRealRankings] = useState<any[]>([]);
   
-  // Writing Revolution concepts carousel
   const writingConcepts = useMemo(() => [
-    {
-      name: 'Sentence Expansion',
-      tip: 'Use because, but, or so to show why things happen.',
-      example: 'She opened the door because she heard a strange noise.',
-      icon: '🔗',
-    },
-    {
-      name: 'Appositives',
-      tip: 'Add description using commas to provide extra information.',
-      example: 'Sarah, a curious ten-year-old, pushed open the rusty gate.',
-      icon: '✏️',
-    },
-    {
-      name: 'Five Senses',
-      tip: 'Include what you see, hear, smell, taste, and feel.',
-      example: 'The salty air stung my eyes while waves crashed loudly below.',
-      icon: '👁️',
-    },
-    {
-      name: 'Show, Don\'t Tell',
-      tip: 'Use specific details instead of general statements.',
-      example: 'Her hands trembled as she reached for the handle.',
-      icon: '🎭',
-    },
-    {
-      name: 'Transition Words',
-      tip: 'Use signal words to connect ideas smoothly.',
-      example: 'First, Then, However, Therefore, For example',
-      icon: '➡️',
-    },
-    {
-      name: 'Strong Conclusions',
-      tip: 'End with a final thought that ties everything together.',
-      example: 'For these reasons, it is clear that...',
-      icon: '🎯',
-    },
+    { name: 'Sentence Expansion', tip: 'Use because, but, or so to show why things happen.', example: 'She opened the door because she heard a strange noise.', icon: '🔗' },
+    { name: 'Appositives', tip: 'Add description using commas to provide extra information.', example: 'Sarah, a curious ten-year-old, pushed open the rusty gate.', icon: '✏️' },
+    { name: 'Five Senses', tip: 'Include what you see, hear, smell, taste, and feel.', example: 'The salty air stung my eyes while waves crashed loudly below.', icon: '👁️' },
+    { name: 'Show, Don\'t Tell', tip: 'Use specific details instead of general statements.', example: 'Her hands trembled as she reached for the handle.', icon: '🎭' },
+    { name: 'Transition Words', tip: 'Use signal words to connect ideas smoothly.', example: 'First, Then, However, Therefore, For example', icon: '➡️' },
+    { name: 'Strong Conclusions', tip: 'End with a final thought that ties everything together.', example: 'For these reasons, it is clear that...', icon: '🎯' },
   ], []);
 
-  // Fetch real rankings from Firestore if available
   useEffect(() => {
     const fetchRankings = async () => {
       if (!matchId) return;
-      
       try {
         const { getDoc, doc } = await import('firebase/firestore');
         const { db } = await import('@/lib/config/firebase');
-        
         const matchDoc = await getDoc(doc(db, 'matchStates', matchId));
         if (!matchDoc.exists()) return;
-        
         const matchState = matchDoc.data();
         const phaseKey = `phase${phase}`;
         const rankings = matchState?.rankings?.[phaseKey];
-        
-        if (rankings && rankings.length > 0) {
-          setRealRankings(rankings);
-        } else {
-        }
-      } catch (error) {
-      }
+        if (rankings && rankings.length > 0) setRealRankings(rankings);
+      } catch (error) {}
     };
-    
     fetchRankings();
   }, [matchId, phase]);
 
-  // Generate rankings for current phase - Use real rankings if available, otherwise fallback
   const rankings = useMemo(() => {
-    // If we have real rankings from batch evaluation, use those
     if (realRankings.length > 0) {
       return realRankings.map((r, idx) => ({
         name: r.playerName || (r.isAI ? r.playerId : 'You'),
@@ -107,232 +63,149 @@ export default function PhaseRankingsContent() {
       }));
     }
     
-    // Fallback: Generate rankings (old behavior)
-    const score = parseFloat(
-      phase === 1 ? yourScore : 
-      phase === 2 ? feedbackScore || yourScore : 
-      yourScore
-    );
-    
-    const aiScoresArray = (aiScores || '0,0,0,0').split(',').map(Number);
-    
+    const score = parseFloat(phase === 1 ? yourScore : phase === 2 ? feedbackScore || yourScore : yourScore);
     const rankedPlayers = [
-      { 
-        name: 'You', 
-        avatar: '🌿', 
-        rank: 'Silver III', 
-        score: Math.round(score),
-        isYou: true,
-        position: 0 
-      },
-      { 
-        name: 'ProWriter99', 
-        avatar: '🎯', 
-        rank: 'Silver II', 
-        score: Math.round(65 + Math.random() * 25),
-        isYou: false,
-        position: 0 
-      },
-      { 
-        name: 'WordMaster', 
-        avatar: '📖', 
-        rank: 'Silver III', 
-        score: Math.round(60 + Math.random() * 30),
-        isYou: false,
-        position: 0 
-      },
-      { 
-        name: 'EliteScribe', 
-        avatar: '✨', 
-        rank: 'Silver II', 
-        score: Math.round(70 + Math.random() * 20),
-        isYou: false,
-        position: 0 
-      },
-      { 
-        name: 'PenChampion', 
-        avatar: '🏅', 
-        rank: 'Silver IV', 
-        score: Math.round(55 + Math.random() * 30),
-        isYou: false,
-        position: 0 
-      },
+      { name: 'You', avatar: '🌿', rank: 'Silver III', score: Math.round(score), isYou: true, position: 0 },
+      { name: 'ProWriter99', avatar: '🎯', rank: 'Silver II', score: Math.round(65 + Math.random() * 25), isYou: false, position: 0 },
+      { name: 'WordMaster', avatar: '📖', rank: 'Silver III', score: Math.round(60 + Math.random() * 30), isYou: false, position: 0 },
+      { name: 'EliteScribe', avatar: '✨', rank: 'Silver II', score: Math.round(70 + Math.random() * 20), isYou: false, position: 0 },
+      { name: 'PenChampion', avatar: '🏅', rank: 'Silver IV', score: Math.round(55 + Math.random() * 30), isYou: false, position: 0 },
     ].sort((a, b) => b.score - a.score).map((player, index) => ({ ...player, position: index + 1 }));
-    
     return rankedPlayers;
-  }, [phase, yourScore, feedbackScore, aiScores, realRankings]); // Include realRankings to update when loaded
+  }, [phase, yourScore, feedbackScore, aiScores, realRankings]);
   
   const yourRank = rankings.find(p => p.isYou)?.position || 5;
   
-  // Phase information
   const phaseInfo = {
-    1: {
-      title: 'Phase 1 Complete: Writing',
-      icon: '📝',
-      nextPhase: 'Peer Feedback',
-      color: 'from-purple-600 to-blue-600'
-    },
-    2: {
-      title: 'Phase 2 Complete: Peer Feedback',
-      icon: '🔍',
-      nextPhase: 'Revision',
-      color: 'from-blue-600 to-indigo-600'
-    },
+    1: { title: 'Phase 1 Complete: Writing', icon: '📝', nextPhase: 'Peer Feedback', color: '#00e5e5' },
+    2: { title: 'Phase 2 Complete: Peer Feedback', icon: '🔍', nextPhase: 'Revision', color: '#ff5f8f' },
   };
   
   const currentPhaseInfo = phaseInfo[phase as keyof typeof phaseInfo] || phaseInfo[1];
   
-  // Rotate writing concepts every 5 seconds
   useEffect(() => {
     const interval = setInterval(() => {
       setCurrentTipIndex(prev => (prev + 1) % writingConcepts.length);
     }, 5000);
-    
     return () => clearInterval(interval);
   }, [writingConcepts.length]);
 
-  // Countdown timer with navigation guard
   useEffect(() => {
     if (countdown > 0) {
       const timer = setTimeout(() => setCountdown(countdown - 1), 1000);
       return () => clearTimeout(timer);
     } else {
-      // Navigate back to session page - it will automatically show the next phase
-      // Only navigate once
       let navigated = false;
       const navigate = () => {
         if (navigated || !sessionId) return;
         navigated = true;
         router.push(`/session/${sessionId}`);
       };
-      
       navigate();
     }
   }, [countdown, phase, router, sessionId]);
   
-  // Medal emoji utility from lib/utils/rank-utils.ts
-  
   return (
-    <div className="min-h-screen bg-[#0c141d] text-white flex items-center justify-center py-6 px-4">
-      <div className="max-w-5xl w-full">
-        {/* Header */}
-        <div className="text-center mb-4">
-          <div className="text-5xl mb-3 animate-bounce">{currentPhaseInfo.icon}</div>
-          <h1 className="text-3xl font-bold text-white mb-1">{currentPhaseInfo.title}</h1>
-          <p className="text-white/70 text-sm mb-4">Current Standings</p>
+    <div className="flex min-h-screen items-center justify-center bg-[#101012] px-4 py-6 text-[rgba(255,255,255,0.8)]">
+      <div className="w-full max-w-[900px]">
+        <div className="mb-4 text-center">
+          <div className="mb-3 text-5xl animate-bounce">{currentPhaseInfo.icon}</div>
+          <h1 className="mb-1 text-2xl font-semibold">{currentPhaseInfo.title}</h1>
+          <p className="mb-4 text-sm text-[rgba(255,255,255,0.4)]">Current Standings</p>
           
-          {/* Countdown Circle */}
           <div className="inline-flex items-center justify-center">
-            <div className={`relative w-20 h-20 bg-gradient-to-br ${currentPhaseInfo.color} rounded-full flex items-center justify-center shadow-2xl`}>
-              <span className="text-4xl font-bold text-white">{countdown}</span>
+            <div className="relative flex h-20 w-20 items-center justify-center rounded-full border-2" style={{ borderColor: currentPhaseInfo.color, background: `${currentPhaseInfo.color}15` }}>
+              <span className="font-mono text-4xl font-medium" style={{ color: currentPhaseInfo.color }}>{countdown}</span>
             </div>
           </div>
-          <p className="text-white/60 mt-2 text-sm">
+          <p className="mt-2 text-sm text-[rgba(255,255,255,0.4)]">
             Preparing {currentPhaseInfo.nextPhase} in {countdown}s...
           </p>
         </div>
 
-        {/* Writing Revolution Carousel */}
-        <div className="mb-4 max-w-3xl mx-auto">
-          <div className="bg-gradient-to-br from-emerald-500/20 to-teal-500/20 backdrop-blur-sm rounded-xl p-4 border-2 border-emerald-400/30 relative overflow-hidden">
-            {/* Animated background */}
-            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent animate-pulse"></div>
-            
-            {/* Content */}
+        <div className="mx-auto mb-4 max-w-3xl">
+          <div className="relative overflow-hidden rounded-[14px] border p-4" style={{ borderColor: `${currentPhaseInfo.color}30`, background: `${currentPhaseInfo.color}08` }}>
             <div className="relative z-10">
-              <div className="flex items-center justify-center mb-2">
-                <div className="text-2xl mr-2">{writingConcepts[currentTipIndex].icon}</div>
-                <h3 className="text-lg font-bold text-white">
-                  {writingConcepts[currentTipIndex].name}
-                </h3>
+              <div className="mb-2 flex items-center justify-center">
+                <div className="mr-2 text-2xl">{writingConcepts[currentTipIndex].icon}</div>
+                <h3 className="text-lg font-semibold">{writingConcepts[currentTipIndex].name}</h3>
               </div>
               
-              <p className="text-white/90 text-sm text-center mb-3 leading-relaxed">
+              <p className="mb-3 text-center text-sm text-[rgba(255,255,255,0.6)] leading-relaxed">
                 {writingConcepts[currentTipIndex].tip}
               </p>
               
-              <div className="bg-white/10 backdrop-blur-sm rounded-lg p-3 border border-white/20">
-                <div className="text-emerald-300 text-xs font-semibold mb-1 text-center">Example:</div>
-                <p className="text-white text-xs italic text-center leading-relaxed">
+              <div className="rounded-[10px] border border-[rgba(255,255,255,0.05)] bg-[#101012] p-3">
+                <div className="mb-1 text-center text-[10px] font-semibold uppercase" style={{ color: currentPhaseInfo.color }}>Example</div>
+                <p className="text-center text-xs italic text-[rgba(255,255,255,0.5)] leading-relaxed">
                   {writingConcepts[currentTipIndex].example}
                 </p>
               </div>
 
-              {/* Progress dots */}
-              <div className="flex justify-center space-x-1.5 mt-3">
+              <div className="mt-3 flex justify-center gap-1">
                 {writingConcepts.map((_, index) => (
                   <button
                     key={index}
                     onClick={() => setCurrentTipIndex(index)}
-                    className={`w-1.5 h-1.5 rounded-full transition-all duration-300 ${
-                      index === currentTipIndex 
-                        ? 'bg-emerald-400 w-6' 
-                        : 'bg-white/30 hover:bg-white/50'
-                    }`}
-                    aria-label={`Go to tip ${index + 1}`}
+                    className={`h-1.5 rounded-full transition-all ${index === currentTipIndex ? 'w-6' : 'w-1.5 bg-[rgba(255,255,255,0.1)] hover:bg-[rgba(255,255,255,0.2)]'}`}
+                    style={index === currentTipIndex ? { background: currentPhaseInfo.color } : {}}
                   />
                 ))}
               </div>
 
-              <div className="text-center mt-2">
-                <p className="text-white/40 text-xs">
-                  💡 The Writing Revolution
-                </p>
+              <div className="mt-2 text-center">
+                <p className="text-xs text-[rgba(255,255,255,0.22)]">💡 Writing tip</p>
               </div>
             </div>
           </div>
         </div>
         
-        {/* Rankings */}
-        <div className="bg-white/5 backdrop-blur-sm rounded-xl p-4 border border-white/10 mb-3">
-          <h2 className="text-lg font-bold text-white mb-3 flex items-center space-x-2">
+        <div className="mb-3 rounded-[14px] border border-[rgba(255,255,255,0.05)] bg-[rgba(255,255,255,0.025)] p-4">
+          <h2 className="mb-3 flex items-center gap-2 font-semibold">
             <span>🏆</span>
             <span>Current Rankings</span>
-            <span className="text-white/40 text-xs font-normal ml-auto">After Phase {phase}</span>
+            <span className="ml-auto text-xs font-normal text-[rgba(255,255,255,0.22)]">After Phase {phase}</span>
           </h2>
           
           <div className="space-y-2">
             {rankings.map((player) => (
               <div
                 key={player.name}
-                className={`p-3 rounded-lg transition-all ${
-                  player.isYou
-                    ? 'bg-gradient-to-r from-purple-500/20 to-blue-500/20 border-2 border-purple-400'
-                    : 'bg-white/5 border border-white/10'
-                }`}
+                className={`rounded-[10px] p-3 transition-all ${player.isYou ? 'border-2 bg-[rgba(0,229,229,0.1)]' : 'border border-[rgba(255,255,255,0.05)] bg-[#101012]'}`}
+                style={player.isYou ? { borderColor: currentPhaseInfo.color } : {}}
               >
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-3">
-                    <div className={`w-8 h-8 rounded-full flex items-center justify-center text-lg font-bold ${
-                      player.position === 1 ? 'bg-yellow-500 text-yellow-900' :
-                      player.position === 2 ? 'bg-gray-300 text-gray-700' :
-                      player.position === 3 ? 'bg-orange-400 text-orange-900' :
-                      'bg-white/10 text-white/60'
+                  <div className="flex items-center gap-3">
+                    <div className={`flex h-8 w-8 items-center justify-center rounded-full text-base font-semibold ${
+                      player.position === 1 ? 'bg-[#ff9030] text-[#101012]' :
+                      player.position === 2 ? 'bg-[rgba(255,255,255,0.3)] text-[#101012]' :
+                      player.position === 3 ? 'bg-[#ff9030]/60 text-[#101012]' :
+                      'bg-[rgba(255,255,255,0.1)] text-[rgba(255,255,255,0.4)]'
                     }`}>
                       {player.position === 1 ? '🥇' : player.position === 2 ? '🥈' : player.position === 3 ? '🥉' : player.position}
                     </div>
 
-                    <div className="flex items-center space-x-2">
+                    <div className="flex items-center gap-2">
                       <span className="text-2xl">{player.avatar}</span>
                       <div>
-                        <div className="flex items-center space-x-2">
-                          <span className={`font-bold text-sm ${player.isYou ? 'text-purple-400' : 'text-white'}`}>
+                        <div className="flex items-center gap-2">
+                          <span className={`text-sm font-medium ${player.isYou ? '' : ''}`} style={player.isYou ? { color: currentPhaseInfo.color } : {}}>
                             {player.name}
                           </span>
                           {player.isYou && (
-                            <span className="text-xs px-1.5 py-0.5 bg-purple-500 text-white rounded-full">You</span>
+                            <span className="rounded-[20px] px-1.5 py-0.5 text-[10px] font-medium text-[#101012]" style={{ background: currentPhaseInfo.color }}>You</span>
                           )}
                         </div>
-                        <div className="text-white/60 text-xs">{player.rank}</div>
+                        <div className="text-xs text-[rgba(255,255,255,0.4)]">{player.rank}</div>
                       </div>
                     </div>
                   </div>
 
                   <div className="text-right">
-                    <div className={`text-xl font-bold ${player.isYou ? 'text-purple-400' : 'text-white'}`}>
+                    <div className="font-mono text-lg font-medium" style={player.isYou ? { color: currentPhaseInfo.color } : {}}>
                       {player.score}
                     </div>
-                    <div className="text-white/60 text-xs">score</div>
+                    <div className="text-[10px] text-[rgba(255,255,255,0.4)]">score</div>
                   </div>
                 </div>
               </div>
@@ -340,25 +213,20 @@ export default function PhaseRankingsContent() {
           </div>
         </div>
         
-        {/* Your Position Banner */}
-        <div className={`rounded-lg p-3 text-center ${
-          yourRank === 1 ? 'bg-gradient-to-r from-yellow-600 to-orange-600' :
-          yourRank <= 3 ? 'bg-gradient-to-r from-green-600 to-emerald-600' :
-          'bg-gradient-to-r from-blue-600 to-purple-600'
+        <div className={`rounded-[10px] p-3 text-center ${
+          yourRank === 1 ? 'bg-[rgba(255,144,48,0.15)] border border-[rgba(255,144,48,0.3)]' :
+          yourRank <= 3 ? 'bg-[rgba(0,212,146,0.15)] border border-[rgba(0,212,146,0.3)]' :
+          'bg-[rgba(0,229,229,0.15)] border border-[rgba(0,229,229,0.3)]'
         }`}>
-          <div className="text-white/90 text-xs mb-1">You&apos;re currently in</div>
-          <div className="text-3xl font-bold text-white mb-1">
+          <div className="mb-1 text-xs text-[rgba(255,255,255,0.5)]">You're currently in</div>
+          <div className="mb-1 font-mono text-2xl font-medium" style={{ color: yourRank === 1 ? '#ff9030' : yourRank <= 3 ? '#00d492' : '#00e5e5' }}>
             {getMedalEmoji(yourRank)} Place
           </div>
-          <div className="text-white/90 text-xs">
-            {yourRank === 1 ? '🔥 Leading the pack!' : 
-             yourRank === 2 ? '💪 Close to the top!' :
-             yourRank === 3 ? '👍 In the top 3!' :
-             '⚔️ Keep pushing!'}
+          <div className="text-xs text-[rgba(255,255,255,0.5)]">
+            {yourRank === 1 ? '🔥 Leading the pack!' : yourRank === 2 ? '💪 Close to the top!' : yourRank === 3 ? '👍 In the top 3!' : '⚔️ Keep pushing!'}
           </div>
         </div>
       </div>
     </div>
   );
 }
-
