@@ -15,19 +15,18 @@ import TWRSentenceStarters from '@/components/shared/TWRSentenceStarters';
 import { Modal } from '@/components/shared/Modal';
 import { db } from '@/lib/config/firebase';
 import { doc, getDoc } from 'firebase/firestore';
-import { formatTime, getTimeColor } from '@/lib/utils/time-utils';
 import { SCORING, getDefaultScore, clampScore, TIMING } from '@/lib/constants/scoring';
-import { getPhaseTimeColor } from '@/lib/utils/phase-colors';
 import { countWords } from '@/lib/utils/text-utils';
-import { usePastePrevention } from '@/lib/hooks/usePastePrevention';
 import { useModals } from '@/lib/hooks/useModals';
 import { LoadingState } from '@/components/shared/LoadingState';
 import { ErrorState } from '@/components/shared/ErrorState';
 import { useDebounce } from '@/lib/hooks/useDebounce';
 import { useBatchRankingSubmission } from '@/lib/hooks/useBatchRankingSubmission';
 import { validateWritingSubmission } from '@/lib/utils/submission-validation';
-import { useCarousel } from '@/lib/hooks/useCarousel';
-import { WRITING_TIPS_WITH_CONCLUSIONS } from '@/lib/constants/writing-tips';
+import WritingTimer from './WritingTimer';
+import WritingEditor from './WritingEditor';
+import WritingTipsCarousel from './WritingTipsCarousel';
+import AIGenerationProgress from './AIGenerationProgress';
 
 export default function WritingSessionContent() {
   const router = useRouter();
@@ -50,22 +49,12 @@ export default function WritingSessionContent() {
   const [showPlanningPhase, setShowPlanningPhase] = useState(true);
   const [planningData, setPlanningData] = useState<PlanningData | null>(null);
   
-  const { showPasteWarning, handlePaste, handleCut, handleCopy, setShowPasteWarning } = usePastePrevention();
   const { showTipsModal, setShowTipsModal, showRankingModal, setShowRankingModal } = useModals();
-  
-  const { currentIndex: currentTipIndex, goTo: goToTip } = useCarousel({
-    items: WRITING_TIPS_WITH_CONCLUSIONS,
-    interval: 5000,
-    autoPlay: showRankingModal,
-  });
-  
-  const writingTips = WRITING_TIPS_WITH_CONCLUSIONS;
   
   const [aiWritingsGenerated, setAiWritingsGenerated] = useState(false);
   const [aiWordCounts, setAiWordCounts] = useState<number[]>([0, 0, 0, 0]);
   const [generatingAI, setGeneratingAI] = useState(false);
   const [aiGenerationProgress, setAiGenerationProgress] = useState(0);
-  const textareaRef = useRef<HTMLTextAreaElement | null>(null);
 
   const {
     matchId: sessionMatchId,
@@ -274,31 +263,6 @@ export default function WritingSessionContent() {
     await handleBatchSubmit();
   }, [hasSubmitted, user, userProfile, session, prompt, sessionId, handleBatchSubmit]);
 
-  useEffect(() => {
-    if (typeof window === 'undefined') return undefined;
-    const handleDebugPaste = async () => {
-      try {
-        const textarea = textareaRef.current;
-        if (!textarea) return;
-        const clipboardText = await navigator.clipboard.readText();
-        if (!clipboardText) return;
-        const { selectionStart, selectionEnd, value } = textarea;
-        const before = value.slice(0, selectionStart ?? value.length);
-        const after = value.slice(selectionEnd ?? value.length);
-        const nextValue = `${before}${clipboardText}${after}`;
-        setShowPasteWarning(false);
-        setWritingContent(nextValue);
-        const cursorPosition = (selectionStart ?? value.length) + clipboardText.length;
-        requestAnimationFrame(() => {
-          textarea.focus();
-          textarea.setSelectionRange(cursorPosition, cursorPosition);
-        });
-      } catch (error) {}
-    };
-    const handler = () => { void handleDebugPaste(); };
-    window.addEventListener('debug-paste-clipboard', handler);
-    return () => { window.removeEventListener('debug-paste-clipboard', handler); };
-  }, [setShowPasteWarning]);
 
   useEffect(() => {
     if (typeof window === 'undefined') return undefined;
@@ -380,8 +344,6 @@ export default function WritingSessionContent() {
     );
   }
  
-  const progressPercent = (timeRemaining / SCORING.PHASE1_DURATION) * 100;
-  const timeColor = getPhaseTimeColor(1, timeRemaining);
 
   return (
     <div className="min-h-screen bg-[#101012] text-[rgba(255,255,255,0.8)]">
@@ -394,25 +356,8 @@ export default function WritingSessionContent() {
           </p>
           <p className="mt-2 text-xs text-[#00e5e5]">⏱️ Usually takes 1-2 minutes</p>
           
-          <div className="mt-6 rounded-[14px] border border-[rgba(0,229,229,0.2)] bg-[rgba(0,229,229,0.05)] p-4">
-            <div className="mb-2 flex items-center justify-center gap-2">
-              <span className="text-lg">{writingTips[currentTipIndex].icon}</span>
-              <span className="font-medium">{writingTips[currentTipIndex].name}</span>
-            </div>
-            <p className="text-sm text-[rgba(255,255,255,0.6)]">{writingTips[currentTipIndex].tip}</p>
-            <div className="mt-3 rounded-[10px] border border-[rgba(255,255,255,0.05)] bg-[#101012] p-3">
-              <div className="mb-1 text-[10px] uppercase text-[#00e5e5]">Example</div>
-              <p className="text-xs italic text-[rgba(255,255,255,0.6)]">{writingTips[currentTipIndex].example}</p>
-            </div>
-            <div className="mt-3 flex justify-center gap-1">
-              {writingTips.map((_, index) => (
-                <button
-                  key={index}
-                  onClick={() => goToTip(index)}
-                  className={`h-1.5 rounded-full transition-all ${index === currentTipIndex ? 'w-6 bg-[#00e5e5]' : 'w-1.5 bg-[rgba(255,255,255,0.1)]'}`}
-                />
-              ))}
-            </div>
+          <div className="mt-6">
+            <WritingTipsCarousel autoPlay={showRankingModal} />
           </div>
           
           <div className="mt-4 flex items-center justify-center gap-2">
@@ -427,20 +372,7 @@ export default function WritingSessionContent() {
 
       <header className="sticky top-0 z-20 border-b border-[rgba(255,255,255,0.05)] bg-[#101012]/95 backdrop-blur">
         <div className="mx-auto flex max-w-[1200px] items-center justify-between px-8 py-4">
-          <div className="flex items-center gap-4">
-            <div className="flex h-14 w-14 items-center justify-center rounded-[14px] border border-[rgba(255,255,255,0.05)] bg-[rgba(255,255,255,0.025)] font-mono text-xl font-medium" style={{ color: timeColor }}>
-              {formatTime(timeRemaining)}
-            </div>
-            <div>
-              <div className="text-[10px] font-semibold uppercase tracking-[0.08em] text-[rgba(255,255,255,0.22)]">Phase 1 · Draft</div>
-              <div className="text-sm font-medium" style={{ color: timeColor }}>
-                {timeRemaining > 0 ? 'Time remaining' : 'Time expired'}
-              </div>
-            </div>
-            <span className="rounded-[20px] bg-[rgba(0,229,229,0.12)] px-2 py-1 text-[10px] font-medium uppercase text-[#00e5e5]">
-              Ranked
-            </span>
-          </div>
+          <WritingTimer timeRemaining={timeRemaining} phase={1} />
           <div className="flex items-center gap-3">
             <div className="rounded-[20px] bg-[rgba(255,255,255,0.025)] px-3 py-1.5">
               <span className="font-mono text-sm text-[#00e5e5]">{wordCount}</span>
@@ -453,9 +385,6 @@ export default function WritingSessionContent() {
               Tips
             </button>
           </div>
-        </div>
-        <div className="mx-auto h-1 max-w-[1200px] rounded-full bg-[rgba(255,255,255,0.05)]">
-          <div className="h-full rounded-full transition-all" style={{ width: `${progressPercent}%`, background: timeColor }} />
         </div>
       </header>
 
@@ -483,6 +412,8 @@ export default function WritingSessionContent() {
             {planningData.becauseButSo && <span className="ml-2">• {planningData.becauseButSo.substring(0, 50)}...</span>}
           </div>
         )}
+        <AIGenerationProgress progress={aiGenerationProgress} isGenerating={generatingAI} />
+        
         <PhaseInstructions 
           phase={1} 
           userRank={userProfile?.currentRank} 
@@ -522,28 +453,20 @@ export default function WritingSessionContent() {
                 <span>Draft</span>
                 <span>{wordCount} words</span>
               </div>
-              <textarea
-                value={writingContent}
-                onChange={(e) => setWritingContent(e.target.value)}
-                onPaste={handlePaste}
-                onCopy={handleCut}
-                onCut={handleCut}
-                ref={textareaRef}
+              <WritingEditor
+                content={writingContent}
+                onChange={setWritingContent}
                 placeholder="Start writing..."
-                className="mt-3 h-[400px] w-full resize-none bg-transparent text-base leading-relaxed focus:outline-none disabled:cursor-not-allowed disabled:opacity-50"
                 autoFocus
-                disabled={timeRemaining === 0}
-                spellCheck="true"
               />
-              {showPasteWarning && (
-                <div className="absolute inset-x-0 top-8 mx-auto w-max rounded-[20px] bg-[rgba(255,95,143,0.15)] px-4 py-2 text-xs font-medium text-[#ff5f8f]">
-                  Paste disabled during ranked drafts
-                </div>
-              )}
             </div>
             
             <div className="rounded-[14px] border border-[rgba(255,255,255,0.05)] bg-[rgba(255,255,255,0.025)] p-4 text-center">
-              <div className="text-sm text-[rgba(255,255,255,0.4)]">⏱️ Auto-submits in <span className="font-mono text-[#00e5e5]">{formatTime(timeRemaining)}</span></div>
+              <div className="text-sm text-[rgba(255,255,255,0.4)]">
+                ⏱️ Auto-submits in <span className="font-mono text-[#00e5e5]">
+                  {Math.floor(timeRemaining / 60)}:{(timeRemaining % 60).toString().padStart(2, '0')}
+                </span>
+              </div>
               <div className="mt-1 text-xs text-[rgba(255,255,255,0.22)]">Write until the timer expires</div>
             </div>
           </div>
