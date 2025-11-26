@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react';
+import { TIMING } from '@/lib/constants/scoring';
 
 interface UseAutoSubmitOptions {
   timeRemaining: number;
@@ -17,7 +18,7 @@ export function useAutoSubmit({
   timeRemaining,
   hasSubmitted,
   onSubmit,
-  minPhaseAge = 3000,
+  minPhaseAge = TIMING.MIN_PHASE_AGE,
   enabled = true,
   isSessionReady,
 }: UseAutoSubmitOptions) {

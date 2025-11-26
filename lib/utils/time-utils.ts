@@ -2,9 +2,16 @@
  * Time formatting and color utilities for phase timers
  */
 
-export function formatTime(seconds: number): string {
+export function formatTime(seconds: number, format: 'short' | 'long' = 'short'): string {
   const mins = Math.floor(seconds / 60);
   const secs = seconds % 60;
+  
+  if (format === 'long') {
+    // MM:SS format (e.g., "05:30")
+    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+  }
+  
+  // M:SS format (e.g., "5:30")
   return `${mins}:${secs.toString().padStart(2, '0')}`;
 }
 

@@ -3,12 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { MarkdownRenderer } from '@/lib/utils/markdown-renderer';
-
-const formatTime = (seconds: number): string => {
-  const mins = Math.floor(seconds / 60);
-  const secs = seconds % 60;
-  return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
-};
+import { formatTime } from '@/lib/utils/time-utils';
 
 const AP_LANG_TIME_LIMIT = 40 * 60;
 
@@ -126,7 +121,7 @@ export default function APLangWriter() {
 
         {prompt && !hasStarted && !result && (
           <div className="rounded-[14px] border border-[rgba(0,229,229,0.2)] bg-[rgba(0,229,229,0.08)] p-6 text-center">
-            <div className="mb-2 font-mono text-4xl font-medium text-[#00e5e5]">{formatTime(AP_LANG_TIME_LIMIT)}</div>
+            <div className="mb-2 font-mono text-4xl font-medium text-[#00e5e5]">{formatTime(AP_LANG_TIME_LIMIT, 'long')}</div>
             <p className="mb-4 text-sm text-[rgba(255,255,255,0.5)]">You&apos;ll have 40 minutes to write your essay</p>
             <button onClick={handleStart} className="rounded-[10px] border border-[#00e5e5] bg-[#00e5e5] px-8 py-3 font-medium text-[#101012] transition hover:bg-[#33ebeb]">
               Start Writing
@@ -136,7 +131,7 @@ export default function APLangWriter() {
 
         {hasStarted && (
           <div className={`rounded-[14px] p-4 text-center ${timeRemaining < 300 ? 'border-2 border-[rgba(255,95,143,0.4)] bg-[rgba(255,95,143,0.1)]' : 'border border-[rgba(255,255,255,0.05)] bg-[rgba(255,255,255,0.025)]'}`}>
-            <div className="mb-1 font-mono text-3xl font-medium" style={{ color: timeColor }}>{formatTime(timeRemaining)}</div>
+            <div className="mb-1 font-mono text-3xl font-medium" style={{ color: timeColor }}>{formatTime(timeRemaining, 'long')}</div>
             <div className="text-sm text-[rgba(255,255,255,0.4)]">{isTimeUp ? "Time's up!" : 'Time remaining'}</div>
             <div className="mt-2 text-xs text-[rgba(255,255,255,0.3)]">{wordCount} words</div>
           </div>

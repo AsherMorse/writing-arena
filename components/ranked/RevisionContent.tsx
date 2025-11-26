@@ -14,7 +14,8 @@ import { useAutoSubmit } from '@/lib/hooks/useAutoSubmit';
 import { getPeerFeedbackResponses } from '@/lib/services/match-sync';
 import { useCarousel } from '@/lib/hooks/useCarousel';
 import { formatTime, getTimeColor, getTimeProgressColor } from '@/lib/utils/time-utils';
-import { SCORING, getDefaultScore } from '@/lib/constants/scoring';
+import { SCORING, getDefaultScore, TIMING } from '@/lib/constants/scoring';
+import { getPhaseTimeColor } from '@/lib/utils/phase-colors';
 import { countWords } from '@/lib/utils/text-utils';
 import { buildResultsURL } from '@/lib/utils/navigation';
 import { usePastePrevention } from '@/lib/hooks/usePastePrevention';
@@ -211,7 +212,7 @@ export default function RevisionContent() {
     }
   };
 
-  useAutoSubmit({ timeRemaining, hasSubmitted, onSubmit: handleSubmit, minPhaseAge: 3000 });
+  useAutoSubmit({ timeRemaining, hasSubmitted, onSubmit: handleSubmit, minPhaseAge: TIMING.MIN_PHASE_AGE });
 
   usePhaseTransition({
     session, currentPhase: 3, hasSubmitted, sessionId: activeSessionId || sessionId,
@@ -230,7 +231,7 @@ export default function RevisionContent() {
 
   useEffect(() => {
     const timeSinceMount = componentMountedTimeRef.current ? Date.now() - componentMountedTimeRef.current : Infinity;
-    const minPhaseAge = 3000;
+    const minPhaseAge = TIMING.MIN_PHASE_AGE;
     if (timeRemaining === 0 && !hasSubmitted() && timeSinceMount >= minPhaseAge) setShowRankingModal(true);
     else if (!isEvaluating && !isBatchSubmitting) setShowRankingModal(false);
   }, [timeRemaining, hasSubmitted, isEvaluating, isBatchSubmitting, setShowRankingModal]);
@@ -243,7 +244,7 @@ export default function RevisionContent() {
   if (error) return <ErrorState error={error} title="Session Error" retryLabel="Return to Dashboard" onRetry={() => router.push('/dashboard')} />;
 
   const progressPercent = (timeRemaining / SCORING.PHASE3_DURATION) * 100;
-  const timeColor = timeRemaining > SCORING.TIME_PHASE3_GREEN ? '#00d492' : timeRemaining > SCORING.TIME_PHASE3_GREEN / 2 ? '#ff9030' : '#ff5f8f';
+  const timeColor = getPhaseTimeColor(3, timeRemaining);
 
   return (
     <div className="min-h-screen bg-[#101012] text-[rgba(255,255,255,0.8)]">

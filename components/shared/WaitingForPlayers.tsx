@@ -2,6 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import { useCarousel } from '@/lib/hooks/useCarousel';
+import { formatTime } from '@/lib/utils/time-utils';
+import { TIMING } from '@/lib/constants/scoring';
 
 interface WaitingForPlayersProps {
   phase: 1 | 2 | 3;
@@ -83,12 +85,6 @@ export default function WaitingForPlayers({
   
   const phaseNames = { 1: 'Writing', 2: 'Peer Feedback', 3: 'Revision' };
   const phaseColors = { 1: '#00e5e5', 2: '#ff5f8f', 3: '#00d492' };
-  
-  const formatTime = (seconds: number) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${mins}:${secs.toString().padStart(2, '0')}`;
-  };
 
   const writingConcepts = [
     { name: 'Sentence Expansion', tip: 'Use because, but, or so to show why things happen.', example: 'She opened the door because she heard a strange noise.', icon: '🔗' },
@@ -101,7 +97,7 @@ export default function WaitingForPlayers({
 
   const { currentIndex: currentConceptIndex, goTo: goToConcept } = useCarousel({
     items: writingConcepts,
-    interval: 6000,
+    interval: TIMING.CAROUSEL_INTERVAL,
     autoPlay: true,
   });
   

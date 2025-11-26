@@ -16,7 +16,8 @@ import { Modal } from '@/components/shared/Modal';
 import { db } from '@/lib/config/firebase';
 import { doc, getDoc } from 'firebase/firestore';
 import { formatTime, getTimeColor } from '@/lib/utils/time-utils';
-import { SCORING, getDefaultScore, clampScore } from '@/lib/constants/scoring';
+import { SCORING, getDefaultScore, clampScore, TIMING } from '@/lib/constants/scoring';
+import { getPhaseTimeColor } from '@/lib/utils/phase-colors';
 import { countWords } from '@/lib/utils/text-utils';
 import { usePastePrevention } from '@/lib/hooks/usePastePrevention';
 import { useModals } from '@/lib/hooks/useModals';
@@ -327,7 +328,7 @@ export default function WritingSessionContent() {
 
   useEffect(() => {
     const timeSinceMount = componentMountedTimeRef.current ? Date.now() - componentMountedTimeRef.current : Infinity;
-    const minPhaseAge = 3000;
+    const minPhaseAge = TIMING.MIN_PHASE_AGE;
     
     if (isBatchSubmitting) {
       setShowRankingModal(true);
@@ -386,7 +387,7 @@ export default function WritingSessionContent() {
   }
  
   const progressPercent = (timeRemaining / SCORING.PHASE1_DURATION) * 100;
-  const timeColor = timeRemaining > SCORING.TIME_PHASE1_GREEN ? '#00e5e5' : timeRemaining > SCORING.TIME_GREEN_THRESHOLD ? '#ff9030' : '#ff5f8f';
+  const timeColor = getPhaseTimeColor(1, timeRemaining);
 
   return (
     <div className="min-h-screen bg-[#101012] text-[rgba(255,255,255,0.8)]">

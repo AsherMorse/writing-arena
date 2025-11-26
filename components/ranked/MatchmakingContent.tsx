@@ -8,7 +8,7 @@ import { joinQueue, leaveQueue, listenToQueue, QueueEntry, createMatchLobby } fr
 import { getRandomPrompt, getRandomPromptForRank } from '@/lib/utils/prompts';
 import { getRandomAIStudents } from '@/lib/services/ai-students';
 import { useCreateSession } from '@/lib/hooks/useSession';
-import { SCORING } from '@/lib/constants/scoring';
+import { SCORING, TIMING } from '@/lib/constants/scoring';
 import { useCarousel } from '@/lib/hooks/useCarousel';
 import { normalizePlayerAvatar, getPlayerDisplayName, getPlayerRank } from '@/lib/utils/player-utils';
 
@@ -209,7 +209,7 @@ export default function MatchmakingContent() {
 
   const { currentIndex: currentTipIndex, goTo: goToTip } = useCarousel({
     items: writingConcepts,
-    interval: 6000,
+    interval: TIMING.CAROUSEL_INTERVAL,
     autoPlay: countdown === null,
   });
 

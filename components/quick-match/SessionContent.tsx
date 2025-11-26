@@ -15,7 +15,7 @@ export default function SessionContent() {
   const [timeLeft, setTimeLeft] = useState(240);
   const [writingContent, setWritingContent] = useState('');
   const [wordCount, setWordCount] = useState(0);
-  const [showPasteWarning, setShowPasteWarning] = useState(false);
+  const { showPasteWarning, handlePaste, handleCut } = usePastePrevention({ warningDuration: 2500 });
 
   const [partyMembers] = useState([
     { name: 'You', avatar: '🌿', wordCount: 0, isYou: true },
@@ -52,8 +52,6 @@ export default function SessionContent() {
   }, []);
 
   const handleSubmit = () => { router.push(`/quick-match/results?trait=${trait}&promptType=${promptType}&content=${encodeURIComponent(writingContent)}&wordCount=${wordCount}&aiScores=${aiWordCounts.join(',')}`); };
-  const handlePaste = (event: React.ClipboardEvent<HTMLTextAreaElement>) => { event.preventDefault(); setShowPasteWarning(true); setTimeout(() => setShowPasteWarning(false), 2500); };
-  const handleCut = (event: React.ClipboardEvent<HTMLTextAreaElement>) => { event.preventDefault(); };
   const timerColor = timeLeft > 120 ? '#00e5e5' : timeLeft > 60 ? '#ff9030' : '#ff5f8f';
 
   return (

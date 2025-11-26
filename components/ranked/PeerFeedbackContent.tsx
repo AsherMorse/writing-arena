@@ -14,7 +14,8 @@ import { usePhaseTransition } from '@/lib/hooks/usePhaseTransition';
 import { useAutoSubmit } from '@/lib/hooks/useAutoSubmit';
 import { getAssignedPeer } from '@/lib/services/match-sync';
 import { formatTime, getTimeColor, getTimeProgressColor } from '@/lib/utils/time-utils';
-import { SCORING, getDefaultScore } from '@/lib/constants/scoring';
+import { SCORING, getDefaultScore, TIMING } from '@/lib/constants/scoring';
+import { getPhaseTimeColor } from '@/lib/utils/phase-colors';
 import { usePastePrevention } from '@/lib/hooks/usePastePrevention';
 import { retryWithBackoff } from '@/lib/utils/retry';
 import { isFormComplete } from '@/lib/utils/validation';
@@ -203,7 +204,7 @@ export default function PeerFeedbackContent() {
 
   useEffect(() => {
     const timeSinceMount = componentMountedTimeRef.current ? Date.now() - componentMountedTimeRef.current : Infinity;
-    const minPhaseAge = 3000;
+    const minPhaseAge = TIMING.MIN_PHASE_AGE;
     
     if (timeRemaining === 0 && !hasSubmitted() && timeSinceMount >= minPhaseAge) {
       setShowRankingModal(true);
@@ -212,7 +213,7 @@ export default function PeerFeedbackContent() {
     }
   }, [timeRemaining, hasSubmitted, isBatchSubmitting, isEvaluating, setShowRankingModal]);
 
-  useAutoSubmit({ timeRemaining, hasSubmitted, onSubmit: handleSubmit, minPhaseAge: 3000 });
+  useAutoSubmit({ timeRemaining, hasSubmitted, onSubmit: handleSubmit, minPhaseAge: TIMING.MIN_PHASE_AGE });
 
   useEffect(() => { if (process.env.NODE_ENV === 'development') {} }, [timeRemaining]);
 
@@ -221,7 +222,7 @@ export default function PeerFeedbackContent() {
   }
 
   const progressPercent = (timeRemaining / SCORING.PHASE2_DURATION) * 100;
-  const timeColor = timeRemaining > SCORING.TIME_PHASE2_GREEN ? '#ff5f8f' : timeRemaining > SCORING.TIME_PHASE2_GREEN / 2 ? '#ff9030' : '#ff5f8f';
+  const timeColor = getPhaseTimeColor(2, timeRemaining);
 
   return (
     <div className="min-h-screen bg-[#101012] text-[rgba(255,255,255,0.8)]">

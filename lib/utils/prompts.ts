@@ -1,6 +1,8 @@
 // Writing Arena - Prompt Library
 // Prompts for competitive writing matches
 
+import { getRandomPromptByRank } from './rank-prompt-filtering';
+
 export interface WritingPrompt {
   id: string;
   type: 'narrative' | 'descriptive' | 'informational' | 'argumentative';
@@ -166,8 +168,6 @@ export function getRandomPromptForRank(rank?: string): WritingPrompt {
     return getRandomPrompt();
   }
   
-  // Import the filtering function
-  const { getRandomPromptByRank } = require('./rank-prompt-filtering');
   return getRandomPromptByRank(rank, PROMPT_LIBRARY);
 }
 

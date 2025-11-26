@@ -33,6 +33,25 @@ export const SCORING = {
   PHASE3_DURATION: 240,
 } as const;
 
+export const TIMING = {
+  // Minimum phase age before allowing auto-submit (prevents immediate submit on load)
+  MIN_PHASE_AGE: 3000,
+  
+  // Carousel/tips rotation interval
+  CAROUSEL_INTERVAL: 6000,
+  
+  // AP Lang warning threshold (5 minutes)
+  AP_LANG_WARNING_THRESHOLD: 300,
+  
+  // Paste warning display duration
+  PASTE_WARNING_DURATION: 2500,
+  
+  // Animation delays for loading dots
+  ANIMATION_DELAY_DOT_1: '0ms',
+  ANIMATION_DELAY_DOT_2: '150ms',
+  ANIMATION_DELAY_DOT_3: '300ms',
+} as const;
+
 export function getDefaultScore(phase: 1 | 2 | 3): number {
   switch (phase) {
     case 1: return SCORING.DEFAULT_WRITING_SCORE;
