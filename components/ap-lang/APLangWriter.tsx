@@ -127,7 +127,7 @@ export default function APLangWriter() {
         {prompt && !hasStarted && !result && (
           <div className="rounded-[14px] border border-[rgba(0,229,229,0.2)] bg-[rgba(0,229,229,0.08)] p-6 text-center">
             <div className="mb-2 font-mono text-4xl font-medium text-[#00e5e5]">{formatTime(AP_LANG_TIME_LIMIT)}</div>
-            <p className="mb-4 text-sm text-[rgba(255,255,255,0.5)]">You'll have 40 minutes to write your essay</p>
+            <p className="mb-4 text-sm text-[rgba(255,255,255,0.5)]">You&apos;ll have 40 minutes to write your essay</p>
             <button onClick={handleStart} className="rounded-[10px] border border-[#00e5e5] bg-[#00e5e5] px-8 py-3 font-medium text-[#101012] transition hover:bg-[#33ebeb]">
               Start Writing
             </button>

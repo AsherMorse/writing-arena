@@ -1,10 +1,14 @@
 'use client';
 
+import RankGuidance from './RankGuidance';
+
 interface PhaseInstructionsProps {
   phase: 1 | 2 | 3;
+  userRank?: string;
+  showRankGuidance?: boolean;
 }
 
-export default function PhaseInstructions({ phase }: PhaseInstructionsProps) {
+export default function PhaseInstructions({ phase, userRank, showRankGuidance = false }: PhaseInstructionsProps) {
   const instructions = {
     1: {
       title: '📝 Phase 1: Writing',
@@ -44,28 +48,33 @@ export default function PhaseInstructions({ phase }: PhaseInstructionsProps) {
   const current = instructions[phase];
   
   return (
-    <div 
-      className="mb-6 rounded-[14px] border p-4"
-      style={{ borderColor: `${current.color}30`, background: `${current.color}08` }}
-    >
-      <div className="flex items-start gap-3">
-        <div className="flex-shrink-0 text-xl">💡</div>
-        <div className="flex-1">
-          <h3 className="mb-1 text-sm font-semibold" style={{ color: current.color }}>
-            {current.title}
-          </h3>
-          <p className="mb-3 text-xs text-[rgba(255,255,255,0.5)]">
-            {current.description}
-          </p>
-          <div className="space-y-1">
-            {current.tips.map((tip, i) => (
-              <div key={i} className="text-xs text-[rgba(255,255,255,0.4)] leading-relaxed">
-                {tip}
-              </div>
-            ))}
+    <>
+      {showRankGuidance && userRank && (
+        <RankGuidance rank={userRank} phase={phase} />
+      )}
+      <div 
+        className="mb-6 rounded-[14px] border p-4"
+        style={{ borderColor: `${current.color}30`, background: `${current.color}08` }}
+      >
+        <div className="flex items-start gap-3">
+          <div className="flex-shrink-0 text-xl">💡</div>
+          <div className="flex-1">
+            <h3 className="mb-1 text-sm font-semibold" style={{ color: current.color }}>
+              {current.title}
+            </h3>
+            <p className="mb-3 text-xs text-[rgba(255,255,255,0.5)]">
+              {current.description}
+            </p>
+            <div className="space-y-1">
+              {current.tips.map((tip, i) => (
+                <div key={i} className="text-xs text-[rgba(255,255,255,0.4)] leading-relaxed">
+                  {tip}
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       </div>
-    </div>
+    </>
   );
 }

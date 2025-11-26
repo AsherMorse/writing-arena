@@ -4,6 +4,8 @@ import { useRouter, useParams, useSearchParams } from 'next/navigation';
 import { useState, useEffect, useRef, useMemo } from 'react';
 import WritingTipsModal from '@/components/shared/WritingTipsModal';
 import PhaseInstructions from '@/components/shared/PhaseInstructions';
+import RevisionChecklist from '@/components/shared/RevisionChecklist';
+import RevisionGuidance from '@/components/shared/RevisionGuidance';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSession } from '@/lib/hooks/useSession';
 import { useSessionData } from '@/lib/hooks/useSessionData';
@@ -29,7 +31,7 @@ export default function RevisionContent() {
   const params = useParams();
   const searchParams = useSearchParams();
   const sessionId = (params?.sessionId || searchParams?.get('sessionId')) as string;
-  const { user } = useAuth();
+  const { user, userProfile } = useAuth();
   
   const { session, isReconnecting, error, timeRemaining, submitPhase, hasSubmitted } = useSession(sessionId);
   const { matchId, config: sessionConfig, players: sessionPlayers, state: sessionState, sessionId: activeSessionId } = useSessionData(session);
@@ -50,6 +52,7 @@ export default function RevisionContent() {
   const [showFeedback, setShowFeedback] = useState(true);
   const [showTipsModal, setShowTipsModal] = useState(false);
   const [showRankingModal, setShowRankingModal] = useState(false);
+  const [showRevisionGuidance, setShowRevisionGuidance] = useState(true);
   const [aiFeedback, setAiFeedback] = useState(MOCK_AI_FEEDBACK);
   const [loadingFeedback, setLoadingFeedback] = useState(true);
   const [isEvaluating, setIsEvaluating] = useState(false);
@@ -321,6 +324,15 @@ export default function RevisionContent() {
       </header>
 
       <main className="mx-auto max-w-[1200px] px-8 py-6">
+        <PhaseInstructions 
+          phase={3} 
+          userRank={userProfile?.currentRank} 
+          showRankGuidance={true} 
+        />
+        {showRevisionGuidance && (
+          <RevisionGuidance onClose={() => setShowRevisionGuidance(false)} />
+        )}
+        <RevisionChecklist />
         <div className="mb-6 rounded-[14px] border border-[rgba(0,212,146,0.2)] bg-[rgba(0,212,146,0.05)] p-5">
           <h1 className="text-xl font-semibold">Revise Your Writing</h1>
           <p className="mt-1 text-sm text-[rgba(255,255,255,0.5)]">Use the feedback to improve your writing. Make meaningful changes!</p>

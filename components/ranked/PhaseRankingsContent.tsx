@@ -218,7 +218,7 @@ export default function PhaseRankingsContent() {
           yourRank <= 3 ? 'bg-[rgba(0,212,146,0.15)] border border-[rgba(0,212,146,0.3)]' :
           'bg-[rgba(0,229,229,0.15)] border border-[rgba(0,229,229,0.3)]'
         }`}>
-          <div className="mb-1 text-xs text-[rgba(255,255,255,0.5)]">You're currently in</div>
+          <div className="mb-1 text-xs text-[rgba(255,255,255,0.5)]">You&apos;re currently in</div>
           <div className="mb-1 font-mono text-2xl font-medium" style={{ color: yourRank === 1 ? '#ff9030' : yourRank <= 3 ? '#00d492' : '#00e5e5' }}>
             {getMedalEmoji(yourRank)} Place
           </div>

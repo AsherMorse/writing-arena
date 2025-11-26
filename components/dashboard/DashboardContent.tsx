@@ -320,7 +320,7 @@ export default function DashboardContent({ userProfile }: DashboardContentProps)
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-sm text-[rgba(255,255,255,0.4)]">Best Streak</span>
-                <span className="font-mono text-lg text-[#ff9030]">{userProfile.stats.longestStreak} days</span>
+                <span className="font-mono text-lg text-[#ff9030]">{userProfile.stats.currentStreak || 0} days</span>
               </div>
             </div>
           </div>

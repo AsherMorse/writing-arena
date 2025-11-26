@@ -173,7 +173,7 @@ export default function WaitingForPlayers({
             </div>
 
             <div className="rounded-[10px] border border-[rgba(255,255,255,0.05)] bg-[#101012] p-3 text-xs text-[rgba(255,255,255,0.4)]">
-              When all submit, we'll proceed to rankings.
+              When all submit, we&apos;ll proceed to rankings.
             </div>
 
             {partyMembers.length > 0 && (

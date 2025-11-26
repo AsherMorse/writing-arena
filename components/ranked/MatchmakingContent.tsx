@@ -5,7 +5,7 @@ import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import Link from 'next/link';
 import { useAuth } from '@/contexts/AuthContext';
 import { joinQueue, leaveQueue, listenToQueue, QueueEntry, createMatchLobby } from '@/lib/services/matchmaking-queue';
-import { getRandomPrompt } from '@/lib/utils/prompts';
+import { getRandomPrompt, getRandomPromptForRank } from '@/lib/utils/prompts';
 import { getRandomAIStudents } from '@/lib/services/ai-students';
 import { useCreateSession } from '@/lib/hooks/useSession';
 import { SCORING } from '@/lib/constants/scoring';
@@ -465,7 +465,8 @@ export default function MatchmakingContent() {
       const realPlayersInQueue = queueSnapshot.filter(p => finalPlayersRef.current.some(fp => fp.userId === p.userId));
       const isMultiPlayer = realPlayersInQueue.length >= 2;
       
-      const randomPrompt = getRandomPrompt();
+      // Use rank-based prompt filtering for appropriate complexity
+      const randomPrompt = getRandomPromptForRank(userProfile?.currentRank);
       
       let matchId: string;
       let amILeader = false;

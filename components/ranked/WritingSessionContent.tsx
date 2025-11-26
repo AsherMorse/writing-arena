@@ -10,6 +10,8 @@ import { getPromptById } from '@/lib/utils/prompts';
 import WritingTipsModal from '@/components/shared/WritingTipsModal';
 import WaitingForPlayers from '@/components/shared/WaitingForPlayers';
 import PhaseInstructions from '@/components/shared/PhaseInstructions';
+import TWRPlanningPhase, { PlanningData } from '@/components/shared/TWRPlanningPhase';
+import TWRSentenceStarters from '@/components/shared/TWRSentenceStarters';
 import { Modal } from '@/components/shared/Modal';
 import { db } from '@/lib/config/firebase';
 import { doc, getDoc } from 'firebase/firestore';
@@ -43,6 +45,8 @@ export default function WritingSessionContent() {
   
   const [writingContent, setWritingContent] = useState('');
   const [wordCount, setWordCount] = useState(0);
+  const [showPlanningPhase, setShowPlanningPhase] = useState(true);
+  const [planningData, setPlanningData] = useState<PlanningData | null>(null);
   
   const { showPasteWarning, handlePaste, handleCut, handleCopy, setShowPasteWarning } = usePastePrevention();
   const { showTipsModal, setShowTipsModal, showRankingModal, setShowRankingModal } = useModals();
@@ -460,8 +464,39 @@ export default function WritingSessionContent() {
         </div>
       </header>
 
+      {showPlanningPhase && prompt && (
+        <TWRPlanningPhase
+          prompt={{
+            title: prompt.title,
+            description: prompt.description,
+            type: prompt.type || 'narrative',
+          }}
+          userRank={userProfile?.currentRank}
+          onComplete={(plan) => {
+            setPlanningData(plan);
+            setShowPlanningPhase(false);
+          }}
+          onSkip={() => setShowPlanningPhase(false)}
+        />
+      )}
+
       <main className="mx-auto max-w-[1200px] px-8 py-8">
-        <PhaseInstructions phase={1} />
+        {planningData && (
+          <div className="mb-4 rounded-[10px] border border-[#00e5e530] bg-[#00e5e508] p-3 text-xs text-[rgba(255,255,255,0.6)]">
+            <strong className="text-[#00e5e5]">📋 Your Plan:</strong>{' '}
+            {planningData.mainIdea && <span>{planningData.mainIdea}</span>}
+            {planningData.becauseButSo && <span className="ml-2">• {planningData.becauseButSo.substring(0, 50)}...</span>}
+          </div>
+        )}
+        <PhaseInstructions 
+          phase={1} 
+          userRank={userProfile?.currentRank} 
+          showRankGuidance={true} 
+        />
+        <TWRSentenceStarters 
+          userRank={userProfile?.currentRank} 
+          promptType={prompt?.type}
+        />
         
         <div className="grid gap-6 lg:grid-cols-[280px,1fr,240px]">
           <div className="space-y-4">

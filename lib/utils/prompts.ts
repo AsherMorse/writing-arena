@@ -160,6 +160,17 @@ export function getRandomPrompt(type?: 'narrative' | 'descriptive' | 'informatio
   return availablePrompts[randomIndex];
 }
 
+// Get a random prompt filtered by rank (uses rank-based complexity filtering)
+export function getRandomPromptForRank(rank?: string): WritingPrompt {
+  if (!rank) {
+    return getRandomPrompt();
+  }
+  
+  // Import the filtering function
+  const { getRandomPromptByRank } = require('./rank-prompt-filtering');
+  return getRandomPromptByRank(rank, PROMPT_LIBRARY);
+}
+
 // Get random prompt ensuring it's different from last used
 export function getRandomPromptExcluding(excludeIds: string[]): WritingPrompt {
   const availablePrompts = PROMPT_LIBRARY.filter(p => !excludeIds.includes(p.id));

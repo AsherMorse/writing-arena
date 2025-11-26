@@ -5,6 +5,8 @@ import { useState, useEffect, useRef, useMemo } from 'react';
 import WritingTipsModal from '@/components/shared/WritingTipsModal';
 import PhaseInstructions from '@/components/shared/PhaseInstructions';
 import FeedbackValidator from '@/components/shared/FeedbackValidator';
+import FeedbackRubric from '@/components/shared/FeedbackRubric';
+import FeedbackExamples from '@/components/shared/FeedbackExamples';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSession } from '@/lib/hooks/useSession';
 import { useSessionData } from '@/lib/hooks/useSessionData';
@@ -28,7 +30,7 @@ export default function PeerFeedbackContent() {
   const params = useParams();
   const searchParams = useSearchParams();
   const sessionId = (params?.sessionId || searchParams?.get('sessionId')) as string;
-  const { user } = useAuth();
+  const { user, userProfile } = useAuth();
   
   const {
     session,
@@ -64,6 +66,8 @@ export default function PeerFeedbackContent() {
   ], []);
   
   const [responses, setResponses] = useState({ mainIdea: '', strength: '', suggestion: '' });
+  const [showRubric, setShowRubric] = useState(true);
+  const [showExamples, setShowExamples] = useState(true);
 
   useEffect(() => {
     const generateAIFeedback = async () => {
@@ -291,14 +295,24 @@ export default function PeerFeedbackContent() {
       </header>
 
       <main className="mx-auto max-w-[1200px] px-8 py-8">
-        <PhaseInstructions phase={2} />
+        <PhaseInstructions 
+          phase={2} 
+          userRank={userProfile?.currentRank} 
+          showRankGuidance={true} 
+        />
+        {showRubric && (
+          <FeedbackRubric onClose={() => setShowRubric(false)} />
+        )}
+        {showExamples && (
+          <FeedbackExamples onClose={() => setShowExamples(false)} />
+        )}
 
         <div className="grid gap-6 lg:grid-cols-2">
           <div className="rounded-[14px] border border-[rgba(255,255,255,0.05)] bg-[rgba(255,255,255,0.025)] p-5">
             {loadingPeer || !currentPeer ? (
               <div className="py-16 text-center">
                 <div className="mb-3 text-4xl animate-spin">📖</div>
-                <div className="text-[rgba(255,255,255,0.4)]">Loading peer's writing...</div>
+                <div className="text-[rgba(255,255,255,0.4)]">Loading peer&apos;s writing...</div>
               </div>
             ) : (
               <>
