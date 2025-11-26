@@ -27,6 +27,7 @@ import { useDebounce } from '@/lib/hooks/useDebounce';
 import { useBatchRankingSubmission } from '@/lib/hooks/useBatchRankingSubmission';
 import { validateWritingSubmission } from '@/lib/utils/submission-validation';
 import { useCarousel } from '@/lib/hooks/useCarousel';
+import { WRITING_TIPS_WITH_CONCLUSIONS } from '@/lib/constants/writing-tips';
 
 export default function WritingSessionContent() {
   const router = useRouter();
@@ -52,20 +53,13 @@ export default function WritingSessionContent() {
   const { showPasteWarning, handlePaste, handleCut, handleCopy, setShowPasteWarning } = usePastePrevention();
   const { showTipsModal, setShowTipsModal, showRankingModal, setShowRankingModal } = useModals();
   
-  const writingTips = useMemo(() => [
-    { name: 'Sentence Expansion', tip: 'Use because, but, or so to show why things happen.', example: 'She opened the door because she heard a strange noise.', icon: '🔗' },
-    { name: 'Appositives', tip: 'Add description using commas to provide extra information.', example: 'Sarah, a curious ten-year-old, pushed open the rusty gate.', icon: '✏️' },
-    { name: 'Five Senses', tip: 'Include what you see, hear, smell, taste, and feel.', example: 'The salty air stung my eyes while waves crashed loudly below.', icon: '👁️' },
-    { name: 'Show, Don\'t Tell', tip: 'Use specific details instead of general statements.', example: 'Her hands trembled as she reached for the handle.', icon: '🎭' },
-    { name: 'Transition Words', tip: 'Use signal words to connect ideas smoothly.', example: 'First, Then, However, Therefore, For example', icon: '➡️' },
-    { name: 'Strong Conclusions', tip: 'End with a final thought that ties everything together.', example: 'For these reasons, it is clear that...', icon: '🎯' },
-  ], []);
-  
   const { currentIndex: currentTipIndex, goTo: goToTip } = useCarousel({
-    items: writingTips,
+    items: WRITING_TIPS_WITH_CONCLUSIONS,
     interval: 5000,
     autoPlay: showRankingModal,
   });
+  
+  const writingTips = WRITING_TIPS_WITH_CONCLUSIONS;
   
   const [aiWritingsGenerated, setAiWritingsGenerated] = useState(false);
   const [aiWordCounts, setAiWordCounts] = useState<number[]>([0, 0, 0, 0]);

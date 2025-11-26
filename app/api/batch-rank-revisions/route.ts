@@ -1,9 +1,9 @@
 import { NextRequest } from 'next/server';
 import { createBatchRankingHandler } from '@/lib/utils/batch-ranking-handler';
 import { getPhase3RevisionPrompt } from '@/lib/prompts/grading-prompts';
-import { parseClaudeJSON } from '@/lib/utils/claude-parser';
 import { generateMockRankings as generateMockRankingsUtil } from '@/lib/utils/mock-ranking-generator';
 import { mapRankingsWithIndexFix } from '@/lib/utils/index-parser';
+import { parseRankings } from '@/lib/utils/parse-rankings';
 import { API_MAX_TOKENS } from '@/lib/constants/api-config';
 
 interface RevisionSubmission {
@@ -17,33 +17,31 @@ interface RevisionSubmission {
 }
 
 function parseBatchRevisionRankings(claudeResponse: string, revisionSubmissions: RevisionSubmission[]): any[] {
-  const parsed = parseClaudeJSON<{ rankings: any[] }>(claudeResponse);
-  
-  if (!parsed || !parsed.rankings) {
-    console.warn('⚠️ BATCH RANK REVISIONS - Falling back to mock rankings due to parse error');
-    return generateMockRankings(revisionSubmissions).rankings;
-  }
-  
-  console.log('✅ BATCH RANK REVISIONS - Successfully parsed AI response');
-  
-  return mapRankingsWithIndexFix(
-    parsed.rankings,
+  return parseRankings(
+    claudeResponse,
     revisionSubmissions,
-    'writerIndex',
     'BATCH RANK REVISIONS',
-    (ranking, submission) => ({
-      playerId: submission.playerId,
-      playerName: submission.playerName,
-      isAI: submission.isAI,
-      score: ranking.score,
-      rank: ranking.rank,
-      improvements: ranking.improvements || [],
-      strengths: ranking.strengths || [],
-      suggestions: ranking.suggestions || [],
-      originalContent: submission.originalContent,
-      revisedContent: submission.revisedContent,
-      wordCount: submission.wordCount,
-    })
+    (parsed, submissions) => {
+      return mapRankingsWithIndexFix(
+        parsed.rankings,
+        submissions,
+        'writerIndex',
+        'BATCH RANK REVISIONS',
+        (ranking, submission) => ({
+          playerId: submission.playerId,
+          playerName: submission.playerName,
+          isAI: submission.isAI,
+          score: ranking.score,
+          rank: ranking.rank,
+          improvements: ranking.improvements || [],
+          strengths: ranking.strengths || [],
+          suggestions: ranking.suggestions || [],
+          originalContent: submission.originalContent,
+          revisedContent: submission.revisedContent,
+          wordCount: submission.wordCount,
+        })
+      );
+    }
   );
 }
 
@@ -89,7 +87,7 @@ export async function POST(request: NextRequest) {
     requestBodyKey: 'revisionSubmissions',
     getPrompt: (revisionSubmissions) => getPhase3RevisionPrompt(revisionSubmissions),
     parseRankings: parseBatchRevisionRankings,
-    generateMockRankings: generateMockRankings,
+    generateMockRankings: generateMockRankings, // Not used anymore but kept for interface compatibility
     maxTokens: API_MAX_TOKENS.BATCH_RANK_REVISIONS,
   })(request);
 }

@@ -3,13 +3,17 @@ import { getAnthropicApiKey, logApiKeyStatus, callAnthropicAPI } from '@/lib/uti
 
 /**
  * Options for creating a batch ranking handler
+ * 
+ * IMPORTANT: This handler NEVER uses mock rankings. If API fails or parsing fails,
+ * it returns an error. Real AI scores are always required.
  */
 interface BatchRankingOptions<TSubmission, TRanking> {
   endpointName: string;
   requestBodyKey: string; // 'writings' | 'feedbackSubmissions' | 'revisionSubmissions'
   getPrompt: (submissions: TSubmission[], ...args: any[]) => string;
   parseRankings: (claudeResponse: string, submissions: TSubmission[]) => TRanking[];
-  generateMockRankings: (submissions: TSubmission[]) => { rankings: TRanking[] };
+  /** @deprecated Mock rankings are never used - kept for backwards compatibility only */
+  generateMockRankings?: (submissions: TSubmission[]) => { rankings: TRanking[] };
   maxTokens?: number;
   getAdditionalBodyParams?: (requestBody: any) => any[];
 }

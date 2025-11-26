@@ -1,9 +1,9 @@
 import { NextRequest } from 'next/server';
 import { createBatchRankingHandler } from '@/lib/utils/batch-ranking-handler';
 import { getPhase2PeerFeedbackPrompt } from '@/lib/prompts/grading-prompts';
-import { parseClaudeJSON } from '@/lib/utils/claude-parser';
 import { generateMockRankings as generateMockRankingsUtil } from '@/lib/utils/mock-ranking-generator';
 import { mapRankingsWithIndexFix } from '@/lib/utils/index-parser';
+import { parseRankings } from '@/lib/utils/parse-rankings';
 import { API_MAX_TOKENS } from '@/lib/constants/api-config';
 
 interface FeedbackSubmission {
@@ -19,30 +19,28 @@ interface FeedbackSubmission {
 }
 
 function parseBatchFeedbackRankings(claudeResponse: string, feedbackSubmissions: FeedbackSubmission[]): any[] {
-  const parsed = parseClaudeJSON<{ rankings: any[] }>(claudeResponse);
-  
-  if (!parsed || !parsed.rankings) {
-    console.warn('⚠️ BATCH RANK FEEDBACK - Falling back to mock rankings due to parse error');
-    return generateMockRankings(feedbackSubmissions).rankings;
-  }
-  
-  console.log('✅ BATCH RANK FEEDBACK - Successfully parsed AI response');
-  
-  return mapRankingsWithIndexFix(
-    parsed.rankings,
+  return parseRankings(
+    claudeResponse,
     feedbackSubmissions,
-    'evaluatorIndex',
     'BATCH RANK FEEDBACK',
-    (ranking, submission) => ({
-      playerId: submission.playerId,
-      playerName: submission.playerName,
-      isAI: submission.isAI,
-      score: ranking.score,
-      rank: ranking.rank,
-      strengths: ranking.strengths || [],
-      improvements: ranking.improvements || [],
-      responses: submission.responses,
-    })
+    (parsed, submissions) => {
+      return mapRankingsWithIndexFix(
+        parsed.rankings,
+        submissions,
+        'evaluatorIndex',
+        'BATCH RANK FEEDBACK',
+        (ranking, submission) => ({
+          playerId: submission.playerId,
+          playerName: submission.playerName,
+          isAI: submission.isAI,
+          score: ranking.score,
+          rank: ranking.rank,
+          strengths: ranking.strengths || [],
+          improvements: ranking.improvements || [],
+          responses: submission.responses,
+        })
+      );
+    }
   );
 }
 
@@ -88,7 +86,7 @@ export async function POST(request: NextRequest) {
     requestBodyKey: 'feedbackSubmissions',
     getPrompt: (feedbackSubmissions) => getPhase2PeerFeedbackPrompt(feedbackSubmissions),
     parseRankings: parseBatchFeedbackRankings,
-    generateMockRankings: generateMockRankings,
+    generateMockRankings: generateMockRankings, // Not used anymore but kept for interface compatibility
     maxTokens: API_MAX_TOKENS.BATCH_RANK_FEEDBACK,
   })(request);
 }

@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useCarousel } from '@/lib/hooks/useCarousel';
 import { formatTime } from '@/lib/utils/time-utils';
 import { TIMING } from '@/lib/constants/scoring';
+import { WRITING_TIPS } from '@/lib/constants/writing-tips';
 
 interface WaitingForPlayersProps {
   phase: 1 | 2 | 3;
@@ -86,17 +87,8 @@ export default function WaitingForPlayers({
   const phaseNames = { 1: 'Writing', 2: 'Peer Feedback', 3: 'Revision' };
   const phaseColors = { 1: '#00e5e5', 2: '#ff5f8f', 3: '#00d492' };
 
-  const writingConcepts = [
-    { name: 'Sentence Expansion', tip: 'Use because, but, or so to show why things happen.', example: 'She opened the door because she heard a strange noise.', icon: '🔗' },
-    { name: 'Appositives', tip: 'Add description using commas to provide extra information.', example: 'Sarah, a curious ten-year-old, pushed open the rusty gate.', icon: '✏️' },
-    { name: 'Five Senses', tip: 'Include what you see, hear, smell, taste, and feel.', example: 'The salty air stung my eyes while waves crashed loudly below.', icon: '👁️' },
-    { name: 'Show, Don\'t Tell', tip: 'Use specific details instead of general statements.', example: 'Her hands trembled as she reached for the handle.', icon: '🎭' },
-    { name: 'Transition Words', tip: 'Use signal words to connect ideas smoothly.', example: 'First, Then, However, Therefore, For example', icon: '➡️' },
-    { name: 'Topic Sentences', tip: 'Start paragraphs with a clear main idea.', example: 'Photosynthesis is how plants make food.', icon: '📝' },
-  ];
-
   const { currentIndex: currentConceptIndex, goTo: goToConcept } = useCarousel({
-    items: writingConcepts,
+    items: WRITING_TIPS,
     interval: TIMING.CAROUSEL_INTERVAL,
     autoPlay: true,
   });
@@ -202,20 +194,20 @@ export default function WaitingForPlayers({
                 Writing tip
               </div>
               <div className="flex items-center gap-3">
-                <div className="text-2xl">{writingConcepts[currentConceptIndex].icon}</div>
-                <h3 className="text-lg font-semibold">{writingConcepts[currentConceptIndex].name}</h3>
+                <div className="text-2xl">{WRITING_TIPS[currentConceptIndex].icon}</div>
+                <h3 className="text-lg font-semibold">{WRITING_TIPS[currentConceptIndex].name}</h3>
               </div>
               <p className="text-sm text-[rgba(255,255,255,0.5)] leading-relaxed">
-                {writingConcepts[currentConceptIndex].tip}
+                {WRITING_TIPS[currentConceptIndex].tip}
               </p>
               <div className="rounded-[10px] border border-[rgba(255,255,255,0.05)] bg-[#101012] p-3">
                 <div className="mb-1 text-[10px] uppercase" style={{ color: phaseColor }}>Example</div>
                 <p className="text-sm italic text-[rgba(255,255,255,0.6)]">
-                  {writingConcepts[currentConceptIndex].example}
+                  {WRITING_TIPS[currentConceptIndex].example}
                 </p>
               </div>
               <div className="flex flex-wrap items-center gap-1 pt-2">
-                {writingConcepts.map((_, index) => (
+                {WRITING_TIPS.map((_, index) => (
                   <button
                     key={index}
                     onClick={() => goToConcept(index)}
@@ -230,7 +222,7 @@ export default function WaitingForPlayers({
                 ))}
               </div>
               <div className="text-[10px] text-[rgba(255,255,255,0.22)]">
-                Tip {currentConceptIndex + 1} of {writingConcepts.length}
+                Tip {currentConceptIndex + 1} of {WRITING_TIPS.length}
               </div>
             </div>
           </div>

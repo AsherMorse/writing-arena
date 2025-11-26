@@ -1,8 +1,10 @@
 import { NextRequest } from 'next/server';
 import { createBatchRankingHandler } from '@/lib/utils/batch-ranking-handler';
 import { getPhase1WritingPrompt } from '@/lib/prompts/grading-prompts';
-import { parseClaudeJSON, mapRankingsToPlayers } from '@/lib/utils/claude-parser';
+import { mapRankingsToPlayers } from '@/lib/utils/claude-parser';
 import { generateMockRankings as generateMockRankingsUtil } from '@/lib/utils/mock-ranking-generator';
+import { parseRankings } from '@/lib/utils/parse-rankings';
+import { logMockRankingsWarning } from '@/lib/utils/ranking-logging';
 import { SCORING } from '@/lib/constants/scoring';
 import { API_MAX_TOKENS } from '@/lib/constants/api-config';
 
@@ -15,41 +17,37 @@ interface WritingSubmission {
 }
 
 function parseBatchRankings(claudeResponse: string, writings: WritingSubmission[]): any[] {
-  const parsed = parseClaudeJSON<{ rankings: any[] }>(claudeResponse);
-  
-  if (!parsed || !parsed.rankings) {
-    console.warn('⚠️ BATCH RANK WRITINGS - Falling back to mock rankings due to parse error');
-    return generateMockRankings(writings).rankings;
-  }
-  
-  console.log('✅ BATCH RANK WRITINGS - Successfully parsed AI response');
-  
-  // Map writer indices back to actual player IDs
-  const rankings = mapRankingsToPlayers(
-    parsed.rankings,
+  return parseRankings(
+    claudeResponse,
     writings,
-    (ranking, idx, actualPlayer) => {
-      // mapRankingsToPlayers ensures actualPlayer is always defined
-      return {
-        playerId: actualPlayer.playerId,
-        playerName: actualPlayer.playerName,
-        isAI: actualPlayer.isAI,
-        content: actualPlayer.content,  // Include content for peer review
-        wordCount: actualPlayer.wordCount,
-        rank: ranking.rank,
-        score: ranking.score,
-        strengths: ranking.strengths || [],
-        improvements: ranking.improvements || [],
-        traitFeedback: ranking.traitFeedback || {},
-      };
+    'BATCH RANK WRITINGS',
+    (parsed, submissions) => {
+      // Map writer indices back to actual player IDs
+      return mapRankingsToPlayers(
+        parsed.rankings,
+        submissions,
+        (ranking, idx, actualPlayer) => {
+          // mapRankingsToPlayers ensures actualPlayer is always defined
+          return {
+            playerId: actualPlayer.playerId,
+            playerName: actualPlayer.playerName,
+            isAI: actualPlayer.isAI,
+            content: actualPlayer.content,  // Include content for peer review
+            wordCount: actualPlayer.wordCount,
+            rank: ranking.rank,
+            score: ranking.score,
+            strengths: ranking.strengths || [],
+            improvements: ranking.improvements || [],
+            traitFeedback: ranking.traitFeedback || {},
+          };
+        }
+      );
     }
   );
-  
-  return rankings;
 }
 
 function generateMockRankings(writings: WritingSubmission[]): { rankings: any[] } {
-  console.warn('⚠️ MOCK RANKINGS - Using fallback scoring (NOT based on actual quality)');
+  logMockRankingsWarning();
   
   return generateMockRankingsUtil(writings, {
     isEmpty: (writing) => !writing.content || writing.content.trim().length === 0 || writing.wordCount === 0,
@@ -110,7 +108,7 @@ export async function POST(request: NextRequest) {
     getPrompt: (writings, prompt, promptType, trait) =>
       getPhase1WritingPrompt(writings, prompt, promptType, trait),
     parseRankings: parseBatchRankings,
-    generateMockRankings: generateMockRankings,
+    generateMockRankings: generateMockRankings, // Not used anymore but kept for interface compatibility
     maxTokens: API_MAX_TOKENS.BATCH_RANK_WRITINGS,
     getAdditionalBodyParams: (requestBody) => [
       requestBody.prompt,
