@@ -1,10 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAnthropicApiKey, logApiKeyStatus, callAnthropicAPI } from '@/lib/utils/api-helpers';
+import { parseClaudeJSON } from '@/lib/utils/claude-parser';
+import { validateAPLangScores, APLangScoreResult } from '@/lib/utils/score-validation';
 import { 
   getAPLangArgumentPrompt, 
   getAPLangRhetoricalAnalysisPrompt, 
   getAPLangSynthesisPrompt 
 } from '@/lib/prompts/grading-prompts';
+import { 
+  AP_LANG_ESSAY_TYPES, 
+  APLangEssayType, 
+  isValidEssayType,
+  getAPLangScoreDescriptor 
+} from '@/lib/constants/ap-lang-scoring';
+import { API_MAX_TOKENS } from '@/lib/constants/api-config';
+import { createErrorResponse, createSuccessResponse } from '@/lib/utils/api-responses';
 
 /**
  * @fileoverview AP Language and Composition Essay Scoring API
@@ -17,23 +27,25 @@ import {
  * Each uses 0-6 scale: Thesis (0-1) + Evidence & Commentary (0-4) + Sophistication (0-1)
  */
 
-type EssayType = 'argument' | 'rhetorical-analysis' | 'synthesis';
+// Map essay types to their prompt functions
+const AP_LANG_PROMPT_FUNCTIONS: Record<APLangEssayType, (prompt: string, essay: string) => string> = {
+  'argument': getAPLangArgumentPrompt,
+  'rhetorical-analysis': getAPLangRhetoricalAnalysisPrompt,
+  'synthesis': getAPLangSynthesisPrompt,
+};
 
 export async function POST(request: NextRequest) {
   try {
     const { prompt, essay, essayType = 'argument' } = await request.json();
 
     if (!prompt || !essay) {
-      return NextResponse.json(
-        { error: 'Both prompt and essay are required' },
-        { status: 400 }
-      );
+      return createErrorResponse('Both prompt and essay are required', 400);
     }
 
-    if (!['argument', 'rhetorical-analysis', 'synthesis'].includes(essayType)) {
-      return NextResponse.json(
-        { error: 'Invalid essay type. Must be argument, rhetorical-analysis, or synthesis' },
-        { status: 400 }
+    if (!isValidEssayType(essayType)) {
+      return createErrorResponse(
+        `Invalid essay type. Must be one of: ${AP_LANG_ESSAY_TYPES.join(', ')}`,
+        400
       );
     }
 
@@ -41,73 +53,37 @@ export async function POST(request: NextRequest) {
     const apiKey = getAnthropicApiKey();
 
     if (!apiKey) {
-      return NextResponse.json(
-        { error: 'API key missing' },
-        { status: 500 }
-      );
+      return createErrorResponse('API key missing', 500);
     }
 
-    // Select the appropriate prompt based on essay type
-    let scoringPrompt: string;
-    switch (essayType as EssayType) {
-      case 'rhetorical-analysis':
-        scoringPrompt = getAPLangRhetoricalAnalysisPrompt(prompt, essay);
-        break;
-      case 'synthesis':
-        scoringPrompt = getAPLangSynthesisPrompt(prompt, essay);
-        break;
-      case 'argument':
-      default:
-        scoringPrompt = getAPLangArgumentPrompt(prompt, essay);
-        break;
-    }
+    // Select the appropriate prompt based on essay type using map pattern
+    const promptFunction = AP_LANG_PROMPT_FUNCTIONS[essayType] || AP_LANG_PROMPT_FUNCTIONS['argument'];
+    const scoringPrompt = promptFunction(prompt, essay);
 
-    const aiResponse = await callAnthropicAPI(apiKey, scoringPrompt, 2500);
+    const aiResponse = await callAnthropicAPI(apiKey, scoringPrompt, API_MAX_TOKENS.AP_LANG_GRADE);
     const responseText = aiResponse.content[0].text;
 
-    // Parse JSON from response
-    const jsonMatch = responseText.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) {
+    // Parse JSON from response using existing utility
+    const result = parseClaudeJSON<APLangScoreResult>(responseText);
+    if (!result) {
       throw new Error('Could not parse AI response');
     }
 
-    const result = JSON.parse(jsonMatch[0]);
-
     // Validate individual component scores
-    if (result.thesisScore < 0 || result.thesisScore > 1) {
-      result.thesisScore = Math.max(0, Math.min(1, result.thesisScore));
-    }
-    if (result.evidenceScore < 0 || result.evidenceScore > 4) {
-      result.evidenceScore = Math.max(0, Math.min(4, result.evidenceScore));
-    }
-    if (result.sophisticationScore < 0 || result.sophisticationScore > 1) {
-      result.sophisticationScore = Math.max(0, Math.min(1, result.sophisticationScore));
-    }
+    validateAPLangScores(result);
 
     // Calculate total score from components (don't trust AI's addition)
     result.score = result.thesisScore + result.evidenceScore + result.sophisticationScore;
 
     // Add score descriptor based on calculated score
     if (!result.scoreDescriptor) {
-      const descriptors: Record<number, string> = {
-        6: 'Excellent',
-        5: 'Strong',
-        4: 'Adequate',
-        3: 'Developing',
-        2: 'Weak',
-        1: 'Very Weak',
-        0: 'Insufficient',
-      };
-      result.scoreDescriptor = descriptors[result.score] || 'Adequate';
+      result.scoreDescriptor = getAPLangScoreDescriptor(result.score);
     }
 
-    return NextResponse.json(result);
+    return createSuccessResponse(result);
   } catch (error) {
     console.error('❌ AP LANG GRADE - Error:', error);
-    return NextResponse.json(
-      { error: 'Failed to grade essay' },
-      { status: 500 }
-    );
+    return createErrorResponse('Failed to grade essay', 500);
   }
 }
 

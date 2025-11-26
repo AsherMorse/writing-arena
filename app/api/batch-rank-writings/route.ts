@@ -4,6 +4,7 @@ import { getPhase1WritingPrompt } from '@/lib/prompts/grading-prompts';
 import { parseClaudeJSON, mapRankingsToPlayers } from '@/lib/utils/claude-parser';
 import { generateMockRankings as generateMockRankingsUtil } from '@/lib/utils/mock-ranking-generator';
 import { SCORING } from '@/lib/constants/scoring';
+import { API_MAX_TOKENS } from '@/lib/constants/api-config';
 
 interface WritingSubmission {
   playerId: string;
@@ -110,7 +111,7 @@ export async function POST(request: NextRequest) {
       getPhase1WritingPrompt(writings, prompt, promptType, trait),
     parseRankings: parseBatchRankings,
     generateMockRankings: generateMockRankings,
-    maxTokens: 3000,
+    maxTokens: API_MAX_TOKENS.BATCH_RANK_WRITINGS,
     getAdditionalBodyParams: (requestBody) => [
       requestBody.prompt,
       requestBody.promptType,

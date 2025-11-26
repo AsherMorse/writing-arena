@@ -4,6 +4,7 @@ import { getPhase3RevisionPrompt } from '@/lib/prompts/grading-prompts';
 import { parseClaudeJSON } from '@/lib/utils/claude-parser';
 import { generateMockRankings as generateMockRankingsUtil } from '@/lib/utils/mock-ranking-generator';
 import { mapRankingsWithIndexFix } from '@/lib/utils/index-parser';
+import { API_MAX_TOKENS } from '@/lib/constants/api-config';
 
 interface RevisionSubmission {
   playerId: string;
@@ -89,7 +90,7 @@ export async function POST(request: NextRequest) {
     getPrompt: (revisionSubmissions) => getPhase3RevisionPrompt(revisionSubmissions),
     parseRankings: parseBatchRevisionRankings,
     generateMockRankings: generateMockRankings,
-    maxTokens: 3500,
+    maxTokens: API_MAX_TOKENS.BATCH_RANK_REVISIONS,
   })(request);
 }
 

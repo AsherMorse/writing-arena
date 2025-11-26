@@ -4,6 +4,7 @@ import { getPhase2PeerFeedbackPrompt } from '@/lib/prompts/grading-prompts';
 import { parseClaudeJSON } from '@/lib/utils/claude-parser';
 import { generateMockRankings as generateMockRankingsUtil } from '@/lib/utils/mock-ranking-generator';
 import { mapRankingsWithIndexFix } from '@/lib/utils/index-parser';
+import { API_MAX_TOKENS } from '@/lib/constants/api-config';
 
 interface FeedbackSubmission {
   playerId: string;
@@ -88,7 +89,7 @@ export async function POST(request: NextRequest) {
     getPrompt: (feedbackSubmissions) => getPhase2PeerFeedbackPrompt(feedbackSubmissions),
     parseRankings: parseBatchFeedbackRankings,
     generateMockRankings: generateMockRankings,
-    maxTokens: 2500,
+    maxTokens: API_MAX_TOKENS.BATCH_RANK_FEEDBACK,
   })(request);
 }
 

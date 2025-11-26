@@ -4,7 +4,7 @@
  */
 
 import { SCORING } from '@/lib/constants/scoring';
-import { PHASE_COLORS } from '@/lib/constants/colors';
+import { PHASE_COLORS, COLORS } from '@/lib/constants/colors';
 
 /**
  * Get time color for a phase based on remaining time
@@ -21,9 +21,9 @@ export function getPhaseTimeColor(phase: 1 | 2 | 3, timeRemaining: number): stri
   };
   
   const colors = {
-    1: { green: PHASE_COLORS[1], yellow: '#ff9030', red: '#ff5f8f' },
-    2: { green: PHASE_COLORS[2], yellow: '#ff9030', red: PHASE_COLORS[2] },
-    3: { green: PHASE_COLORS[3], yellow: '#ff9030', red: '#ff5f8f' },
+    1: { green: PHASE_COLORS[1], yellow: COLORS.primary.orange, red: COLORS.primary.pink },
+    2: { green: PHASE_COLORS[2], yellow: COLORS.primary.orange, red: PHASE_COLORS[2] },
+    3: { green: PHASE_COLORS[3], yellow: COLORS.primary.orange, red: COLORS.primary.pink },
   };
   
   const threshold = thresholds[phase];

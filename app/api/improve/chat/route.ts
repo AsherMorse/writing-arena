@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getAnthropicApiKey, logApiKeyStatus, streamAnthropicAPI } from '@/lib/utils/api-helpers';
 import { WritingSession } from '@/lib/services/firestore';
 import { getAIFeedback } from '@/lib/services/match-sync';
+import { parseGradeLevel, getGradeLevelCategory } from '@/lib/utils/grade-parser';
 
 export async function POST(request: NextRequest) {
   try {
@@ -69,21 +70,12 @@ export async function POST(request: NextRequest) {
       .join('\n\n');
 
     // Determine grade level number for age-appropriate instruction
-    let gradeNum = 7; // Default to 7th grade
-    if (gradeLevel.includes('3rd')) gradeNum = 3;
-    else if (gradeLevel.includes('4th')) gradeNum = 4;
-    else if (gradeLevel.includes('5th')) gradeNum = 5;
-    else if (gradeLevel.includes('6th')) gradeNum = 6;
-    else if (gradeLevel.includes('7th')) gradeNum = 7;
-    else if (gradeLevel.includes('8th')) gradeNum = 8;
-    else if (gradeLevel.includes('9th')) gradeNum = 9;
-    else if (gradeLevel.includes('10th')) gradeNum = 10;
-    else if (gradeLevel.includes('11th')) gradeNum = 11;
-    else if (gradeLevel.includes('12th')) gradeNum = 12;
-
-    const isElementary = gradeNum >= 3 && gradeNum <= 5;
-    const isMiddleSchool = gradeNum >= 6 && gradeNum <= 8;
-    const isHighSchool = gradeNum >= 9 && gradeNum <= 12;
+    const gradeNum = parseGradeLevel(gradeLevel);
+    const category = getGradeLevelCategory(gradeNum);
+    
+    const isElementary = category === 'elementary';
+    const isMiddleSchool = category === 'middle';
+    const isHighSchool = category === 'high';
 
     const prompt = `You are a writing coach helping a ${gradeLevel} grade student improve their writing using The Writing Revolution (TWR) methodology. You work with students from 3rd grade through 12th grade, adapting your instruction to be age-appropriate and developmentally appropriate.
 
