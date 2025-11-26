@@ -25,24 +25,12 @@ import { useBatchRankingSubmission } from '@/lib/hooks/useBatchRankingSubmission
 import { validateWritingSubmission } from '@/lib/utils/submission-validation';
 import { useCarousel } from '@/lib/hooks/useCarousel';
 
-/**
- * WritingSessionContent - Migrated to new session architecture
- * 
- * CHANGES:
- * ✅ No more searchParams or URL-based state
- * ✅ No more sessionStorage scattered everywhere
- * ✅ Uses useSession hook for all state management
- * ✅ Clean navigation without URL params
- * ✅ Automatic reconnection support
- * ✅ Real-time synchronization
- */
 export default function WritingSessionContent() {
   const router = useRouter();
   const params = useParams();
   const sessionId = params?.sessionId as string;
   const { user, userProfile } = useAuth();
   
-  // NEW: Single hook handles all session management
   const {
     session,
     isReconnecting,
@@ -53,58 +41,25 @@ export default function WritingSessionContent() {
     submissionCount,
   } = useSession(sessionId);
   
-  // UI state only (not persisted)
   const [writingContent, setWritingContent] = useState('');
   const [wordCount, setWordCount] = useState(0);
   
-  // Use hooks for paste prevention and modals
   const { showPasteWarning, handlePaste, handleCut, handleCopy, setShowPasteWarning } = usePastePrevention();
   const { showTipsModal, setShowTipsModal, showRankingModal, setShowRankingModal } = useModals();
   
-  // Writing tips carousel for calculating modal
   const writingTips = useMemo(() => [
-    {
-      name: 'Sentence Expansion',
-      tip: 'Use because, but, or so to show why things happen.',
-      example: 'She opened the door because she heard a strange noise.',
-      icon: '🔗',
-    },
-    {
-      name: 'Appositives',
-      tip: 'Add description using commas to provide extra information.',
-      example: 'Sarah, a curious ten-year-old, pushed open the rusty gate.',
-      icon: '✏️',
-    },
-    {
-      name: 'Five Senses',
-      tip: 'Include what you see, hear, smell, taste, and feel.',
-      example: 'The salty air stung my eyes while waves crashed loudly below.',
-      icon: '👁️',
-    },
-    {
-      name: 'Show, Don\'t Tell',
-      tip: 'Use specific details instead of general statements.',
-      example: 'Her hands trembled as she reached for the handle.',
-      icon: '🎭',
-    },
-    {
-      name: 'Transition Words',
-      tip: 'Use signal words to connect ideas smoothly.',
-      example: 'First, Then, However, Therefore, For example',
-      icon: '➡️',
-    },
-    {
-      name: 'Strong Conclusions',
-      tip: 'End with a final thought that ties everything together.',
-      example: 'For these reasons, it is clear that...',
-      icon: '🎯',
-    },
+    { name: 'Sentence Expansion', tip: 'Use because, but, or so to show why things happen.', example: 'She opened the door because she heard a strange noise.', icon: '🔗' },
+    { name: 'Appositives', tip: 'Add description using commas to provide extra information.', example: 'Sarah, a curious ten-year-old, pushed open the rusty gate.', icon: '✏️' },
+    { name: 'Five Senses', tip: 'Include what you see, hear, smell, taste, and feel.', example: 'The salty air stung my eyes while waves crashed loudly below.', icon: '👁️' },
+    { name: 'Show, Don\'t Tell', tip: 'Use specific details instead of general statements.', example: 'Her hands trembled as she reached for the handle.', icon: '🎭' },
+    { name: 'Transition Words', tip: 'Use signal words to connect ideas smoothly.', example: 'First, Then, However, Therefore, For example', icon: '➡️' },
+    { name: 'Strong Conclusions', tip: 'End with a final thought that ties everything together.', example: 'For these reasons, it is clear that...', icon: '🎯' },
   ], []);
   
   const { currentIndex: currentTipIndex, goTo: goToTip } = useCarousel({
     items: writingTips,
-    interval: 5000, // Rotate every 5 seconds
-    autoPlay: showRankingModal, // Only auto-play when modal is open
+    interval: 5000,
+    autoPlay: showRankingModal,
   });
   
   const [aiWritingsGenerated, setAiWritingsGenerated] = useState(false);
@@ -113,7 +68,6 @@ export default function WritingSessionContent() {
   const [aiGenerationProgress, setAiGenerationProgress] = useState(0);
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
 
-  // Extract session data using hook
   const {
     matchId: sessionMatchId,
     sessionId: activeSessionId,
@@ -123,35 +77,18 @@ export default function WritingSessionContent() {
     allPlayers,
   } = useSessionData(session);
   
-  // Get createdAt from session directly (not exposed by hook)
   const sessionCreatedAt = session?.createdAt;
-  
   const prompt = sessionConfig ? getPromptById(sessionConfig.promptId) : null;
   const trait = sessionConfig?.trait || 'all';
-
-  // Calculate players list from session
-  const players = useMemo(
-    () => allPlayers,
-    [allPlayers],
-  );
-  
-  
-  // Get submission tracking
+  const players = useMemo(() => allPlayers, [allPlayers]);
   const { submitted, total } = submissionCount();
-
-  // ALL HOOKS MUST BE CALLED BEFORE ANY CONDITIONAL RETURNS
-
-  // Ref to store the final target word counts for AI players
   const aiTargetCountsRef = useRef<number[]>([]);
 
-  // Generate AI writings once when session initializes
   useEffect(() => {
     if (!session || aiWritingsGenerated || !user || !prompt) return;
     
     const generateAIWritings = async () => {
-      
       try {
-        // Check if AI writings already exist in matchStates (backward compatibility)
         const matchRef = doc(db, 'matchStates', sessionMatchId || sessionId);
         const matchDoc = await getDoc(matchRef);
         
@@ -160,13 +97,11 @@ export default function WritingSessionContent() {
           const existingWritings = matchState?.aiWritings?.phase1;
           
           if (existingWritings && existingWritings.length > 0) {
-            // STORE TARGETS, NOT IMMEDIATE STATE
             aiTargetCountsRef.current = existingWritings.map((w: any) => w.wordCount);
             setAiWritingsGenerated(true);
             return;
           }
         } else {
-          // Create matchStates document for backward compatibility
           const { setDoc } = await import('firebase/firestore');
           await setDoc(matchRef, {
             matchId: sessionMatchId || sessionId,
@@ -183,18 +118,11 @@ export default function WritingSessionContent() {
           });
         }
         
-        // Generate new AI writings
-        
-        // Get AI players
         const aiPlayers = players.filter(p => p.isAI);
-        
-        // Show loading state
         setGeneratingAI(true);
         setAiWritingsGenerated(true);
         
-        // Generate writing for each AI player in parallel
         const aiWritingPromises = aiPlayers.map(async (aiPlayer, index) => {
-          // Pass matchId so the server can generate the content, but we will save it
           const response = await fetch('/api/generate-ai-writing', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -203,14 +131,10 @@ export default function WritingSessionContent() {
               promptType: prompt.type,
               rank: aiPlayer.rank,
               playerName: aiPlayer.displayName,
-              // We DON'T pass matchId/playerId here anymore to prevent server-side save attempts
-              // The server will just return the content
             }),
           });
           
           const data = await response.json();
-          
-          // Update progress
           setAiGenerationProgress(((index + 1) / aiPlayers.length) * 100);
           
           return {
@@ -223,67 +147,41 @@ export default function WritingSessionContent() {
           };
         });
         
-        // Wait for all generations to complete
         const aiWritings = await Promise.all(aiWritingPromises);
-        
-        // Update AI word counts for UI
         aiTargetCountsRef.current = aiWritings.map(w => w.wordCount);
         setGeneratingAI(false);
         setAiGenerationProgress(100);
         
-        // CLIENT-SIDE SAVE: Store generated AI writings to Firestore
-        // This uses the client SDK which is authenticated
         try {
-            const { setDoc, doc } = await import('firebase/firestore');
-            const matchRef = doc(db, 'matchStates', sessionMatchId || sessionId);
+          const { setDoc, doc } = await import('firebase/firestore');
+          const matchRef = doc(db, 'matchStates', sessionMatchId || sessionId);
+          const matchDoc = await getDoc(matchRef);
+          
+          if (matchDoc.exists()) {
+            const currentData = matchDoc.data();
+            const currentPhase1 = currentData.aiWritings?.phase1 || [];
+            const mergedWritings = [...currentPhase1];
             
-            // We need to update the document with the new writings
-            // For simplicity and robustness, we'll read the current doc first
-            // (though we technically did that at the start of this function)
-            const matchDoc = await getDoc(matchRef);
-            
-            if (matchDoc.exists()) {
-                const currentData = matchDoc.data();
-                const currentPhase1 = currentData.aiWritings?.phase1 || [];
-                
-                // Merge new writings with existing ones, avoiding duplicates
-                const mergedWritings = [...currentPhase1];
-                
-                for (const newWriting of aiWritings) {
-                    if (!mergedWritings.some((w: any) => w.playerId === newWriting.playerId)) {
-                        mergedWritings.push(newWriting);
-                    }
-                }
-                
-                await setDoc(matchRef, {
-                    aiWritings: {
-                        phase1: mergedWritings
-                    }
-                }, { merge: true });
-            } else {
-                // Should exist, but create if not
-                await setDoc(matchRef, {
-                    matchId: sessionMatchId || sessionId,
-                    aiWritings: {
-                        phase1: aiWritings
-                    }
-                }, { merge: true });
+            for (const newWriting of aiWritings) {
+              if (!mergedWritings.some((w: any) => w.playerId === newWriting.playerId)) {
+                mergedWritings.push(newWriting);
+              }
             }
-        } catch (saveError) {
-        }
+            
+            await setDoc(matchRef, { aiWritings: { phase1: mergedWritings } }, { merge: true });
+          } else {
+            await setDoc(matchRef, { matchId: sessionMatchId || sessionId, aiWritings: { phase1: aiWritings } }, { merge: true });
+          }
+        } catch (saveError) {}
         
-        // AUTO-SUBMIT AI PLAYERS (they've "finished writing")
-        // Submit each AI player's work to the session after a short delay (5-15 seconds)
         aiPlayers.forEach((aiPlayer, index) => {
-          const delay = 5000 + Math.random() * 10000; // 5-15 seconds
+          const delay = 5000 + Math.random() * 10000;
           
           setTimeout(async () => {
             try {
               const aiWriting = aiWritings.find(w => w.playerId === aiPlayer.userId);
               if (!aiWriting) return;
               
-              
-              // Submit directly to sessions collection
               const { updateDoc, doc, serverTimestamp } = await import('firebase/firestore');
               const sessionRef = doc(db, 'sessions', activeSessionId || sessionId);
               
@@ -297,61 +195,41 @@ export default function WritingSessionContent() {
                 },
                 updatedAt: serverTimestamp(),
               });
-              
-            } catch (error) {
-            }
+            } catch (error) {}
           }, delay);
         });
         
       } catch (error) {
-        // Continue with fallback word counts
         aiTargetCountsRef.current = [40, 55, 48, 62];
         setAiWritingsGenerated(true);
       }
     };
     
     generateAIWritings();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [session, aiWritingsGenerated, user, prompt]);
 
-  // ANIMATION EFFECT - SIMPLIFIED
-  // Just increment word counts slowly towards the target
   useEffect(() => {
     if (!session) return;
-
     const interval = setInterval(() => {
       setAiWordCounts(prevCounts => {
         const aiPlayers = players.filter(p => p.isAI);
-        if (prevCounts.length !== aiPlayers.length) {
-          return new Array(aiPlayers.length).fill(0);
-        }
-
+        if (prevCounts.length !== aiPlayers.length) return new Array(aiPlayers.length).fill(0);
         return prevCounts.map((currentCount, index) => {
           const target = aiTargetCountsRef.current[index] || 100;
-          
-          // If we reached the target, stop
           if (currentCount >= target) return target;
-
-          // Simple random increment: 0.5 to 1.5 words per tick (every 1s)
-          // This simulates a writing speed of ~60 words/min which is realistic
           const increment = 0.5 + Math.random();
-          
           return Math.min(target, currentCount + increment);
         });
       });
     }, 1000);
-
     return () => clearInterval(interval);
   }, [session, players]);
       
-  // Update word count when content changes (debounced for performance)
   const debouncedContent = useDebounce(writingContent, 300);
   useEffect(() => {
     setWordCount(countWords(debouncedContent));
   }, [debouncedContent]);
 
-
-  // Batch ranking submission hook
   const { submit: handleBatchSubmit, isSubmitting: isBatchSubmitting } = useBatchRankingSubmission({
     phase: 1,
     matchId: sessionMatchId || sessionId,
@@ -373,161 +251,96 @@ export default function WritingSessionContent() {
       score: score,
     }),
     submitPhase: async (phase, data) => {
-      // Submit phase first
       await submitPhase(phase, data);
-      
-      // Don't navigate - stay on session page and let it handle phase transitions
-      // The session page will automatically show the next phase when Firestore updates
     },
     validateSubmission: () => validateWritingSubmission(writingContent, wordCount),
     onEmptySubmission: async (isEmpty) => {
       if (isEmpty) {
-        await submitPhase(1, {
-          content: '',
-          wordCount: 0,
-          score: 0,
-        });
+        await submitPhase(1, { content: '', wordCount: 0, score: 0 });
       }
     },
     fallbackEvaluation: async () => {
-      // Fallback to individual evaluation
       const response = await fetch('/api/analyze-writing', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          content: writingContent,
-          trait: trait,
-          promptType: prompt?.type,
-        }),
+        body: JSON.stringify({ content: writingContent, trait: trait, promptType: prompt?.type }),
       });
-      
       const data = await response.json();
       return data.overallScore ?? getDefaultScore(1);
     },
   });
 
   const handleSubmit = useCallback(async () => {
-    // Guard: Don't submit if already submitted, missing data, or session not initialized
-    if (hasSubmitted() || !user || !userProfile || !session || !prompt || !sessionId) {
-      return;
-    }
+    if (hasSubmitted() || !user || !userProfile || !session || !prompt || !sessionId) return;
     await handleBatchSubmit();
   }, [hasSubmitted, user, userProfile, session, prompt, sessionId, handleBatchSubmit]);
 
-  // Paste prevention handlers from usePastePrevention hook (already defined above)
-
   useEffect(() => {
     if (typeof window === 'undefined') return undefined;
-
     const handleDebugPaste = async () => {
       try {
         const textarea = textareaRef.current;
         if (!textarea) return;
         const clipboardText = await navigator.clipboard.readText();
         if (!clipboardText) return;
-
         const { selectionStart, selectionEnd, value } = textarea;
         const before = value.slice(0, selectionStart ?? value.length);
         const after = value.slice(selectionEnd ?? value.length);
         const nextValue = `${before}${clipboardText}${after}`;
-
         setShowPasteWarning(false);
         setWritingContent(nextValue);
-
         const cursorPosition = (selectionStart ?? value.length) + clipboardText.length;
         requestAnimationFrame(() => {
           textarea.focus();
           textarea.setSelectionRange(cursorPosition, cursorPosition);
         });
-      } catch (error) {
-      }
+      } catch (error) {}
     };
-
-    const handler = () => {
-      void handleDebugPaste();
-    };
-
+    const handler = () => { void handleDebugPaste(); };
     window.addEventListener('debug-paste-clipboard', handler);
-    return () => {
-      window.removeEventListener('debug-paste-clipboard', handler);
-    };
+    return () => { window.removeEventListener('debug-paste-clipboard', handler); };
   }, [setShowPasteWarning]);
 
   useEffect(() => {
     if (typeof window === 'undefined') return undefined;
-    const handleForceSubmit = () => {
-      void handleSubmit();
-    };
+    const handleForceSubmit = () => { void handleSubmit(); };
     window.addEventListener('debug-force-submit', handleForceSubmit);
-    return () => {
-      window.removeEventListener('debug-force-submit', handleForceSubmit);
-    };
+    return () => { window.removeEventListener('debug-force-submit', handleForceSubmit); };
   }, [handleSubmit]);
 
-  // Auto-submit when time runs out
   useAutoSubmit({
     timeRemaining,
     hasSubmitted,
     onSubmit: handleSubmit,
-    minPhaseAge: 5000, // 5 seconds for Phase 1
+    minPhaseAge: 5000,
     isSessionReady: () => !!(session && sessionId && user?.uid),
   });
 
-  // Note: Phase transitions now happen via rankings page countdown
-  // No need to navigate directly here - rankings page handles it
-
-  // Track when component mounted and phase start time to prevent immediate modal on load
   const componentMountedTimeRef = useRef<number | null>(null);
   useEffect(() => {
-    if (componentMountedTimeRef.current === null) {
-      componentMountedTimeRef.current = Date.now();
-    }
+    if (componentMountedTimeRef.current === null) componentMountedTimeRef.current = Date.now();
   }, []);
 
-  // Show calculating modal when timer expires or batch ranking is in progress
   useEffect(() => {
-    // Don't show modal immediately on load - wait at least 3 seconds after mount
-    const timeSinceMount = componentMountedTimeRef.current 
-      ? Date.now() - componentMountedTimeRef.current 
-      : Infinity;
+    const timeSinceMount = componentMountedTimeRef.current ? Date.now() - componentMountedTimeRef.current : Infinity;
+    const minPhaseAge = 3000;
     
-    const minPhaseAge = 3000; // 3 seconds minimum before showing modal
-    
-    // Only show if:
-    // 1. Timer expired (timeRemaining === 0)
-    // 2. User hasn't submitted
-    // 3. Component has been mounted for at least minPhaseAge (prevents immediate show on load)
-    // 4. OR batch ranking is in progress
     if (isBatchSubmitting) {
-      // Batch ranking in progress - always show modal
       setShowRankingModal(true);
     } else if (timeRemaining === 0 && !hasSubmitted() && timeSinceMount >= minPhaseAge) {
-      // Timer expired but not submitted yet - show calculating modal
       setShowRankingModal(true);
     } else if (hasSubmitted() && !isBatchSubmitting) {
-      // Submission complete - close modal after brief delay
-      const timer = setTimeout(() => {
-        setShowRankingModal(false);
-      }, 500);
+      const timer = setTimeout(() => setShowRankingModal(false), 500);
       return () => clearTimeout(timer);
     } else {
-      // Ensure modal is closed if none of the conditions are met
       setShowRankingModal(false);
     }
   }, [timeRemaining, isBatchSubmitting, hasSubmitted, setShowRankingModal]);
 
-  // Prepare members list with word counts
-  // CONDITIONAL RENDERS AFTER ALL HOOKS
-  
-  // Loading state
   if (isReconnecting || !session || !prompt) {
-    return <LoadingState 
-      message={isReconnecting ? 'Reconnecting to session...' : 'Loading session...'}
-      variant={isReconnecting ? 'reconnecting' : 'default'}
-    />;
+    return <LoadingState message={isReconnecting ? 'Reconnecting to session...' : 'Loading session...'} variant={isReconnecting ? 'reconnecting' : 'default'} />;
   }
   
-  // Error state
   if (error) {
     return <ErrorState error={error} title="Session Error" />;
   }
@@ -535,7 +348,6 @@ export default function WritingSessionContent() {
   const membersWithCounts = players.map((player, index) => {
     const isYou = player.userId === user?.uid;
     const aiIndex = players.filter((p, i) => i < index && p.isAI).length;
-    
     return {
       name: player.displayName,
       avatar: player.avatar,
@@ -547,9 +359,7 @@ export default function WritingSessionContent() {
     };
   });
 
-  // Show waiting screen if user has submitted
   if (hasSubmitted()) {
-    // Convert session players to WaitingForPlayers format
     const partyMembers = players.map(p => ({
       name: p.displayName,
       userId: p.userId,
@@ -558,12 +368,7 @@ export default function WritingSessionContent() {
       isAI: p.isAI,
       isYou: p.userId === user?.uid,
     }));
-    
-    // Get list of players who have submitted
-    const submittedPlayerIds = players
-      .filter(p => p.phases.phase1?.submitted)
-      .map(p => p.userId);
-    
+    const submittedPlayerIds = players.filter(p => p.phases.phase1?.submitted).map(p => p.userId);
     return (
       <WaitingForPlayers 
         phase={1}
@@ -576,150 +381,115 @@ export default function WritingSessionContent() {
     );
   }
  
-  return (
-    <div className="min-h-screen bg-[#0c141d] text-white">
-      {/* Calculating Scores Modal - Shows when timer expires and scores are being calculated */}
-      <Modal
-        isOpen={showRankingModal}
-        onClose={() => {}} // Don't allow closing during calculation
-        variant="ranking"
-        showCloseButton={false}
-      >
-        <div className="text-6xl mb-6 animate-bounce">📊</div>
-        <h2 className="text-3xl font-bold text-white mb-3">
-          {timeRemaining === 0 ? "Time's Up!" : "Calculating Scores..."}
-        </h2>
-        <p className="text-white/70 text-lg mb-4">
-          {isBatchSubmitting 
-            ? "Evaluating writing quality and ranking responses..."
-            : "Preparing your results..."}
-        </p>
-        <p className="text-emerald-400 text-sm mb-8 font-semibold">
-          ⏱️ This usually takes 1-2 minutes
-        </p>
-        
-        {/* Writing Tips Carousel */}
-        <div className="bg-gradient-to-br from-emerald-500/20 to-teal-500/20 backdrop-blur-sm rounded-xl p-6 border-2 border-emerald-400/30 max-w-md mx-auto mb-6">
-          <div className="flex items-center justify-center mb-3">
-            <div className="text-2xl mr-2">{writingTips[currentTipIndex].icon}</div>
-            <h3 className="text-lg font-bold text-white">
-              {writingTips[currentTipIndex].name}
-            </h3>
-          </div>
-          
-          <p className="text-white/90 text-sm text-center mb-4 leading-relaxed">
-            {writingTips[currentTipIndex].tip}
-          </p>
-          
-          <div className="bg-white/10 backdrop-blur-sm rounded-lg p-3 border border-white/20">
-            <div className="text-emerald-300 text-xs font-semibold mb-1 text-center">Example:</div>
-            <p className="text-white text-xs italic text-center leading-relaxed">
-              {writingTips[currentTipIndex].example}
-            </p>
-          </div>
+  const progressPercent = (timeRemaining / SCORING.PHASE1_DURATION) * 100;
+  const timeColor = timeRemaining > SCORING.TIME_PHASE1_GREEN ? '#00e5e5' : timeRemaining > SCORING.TIME_GREEN_THRESHOLD ? '#ff9030' : '#ff5f8f';
 
-          {/* Progress dots */}
-          <div className="flex justify-center space-x-1.5 mt-4">
-            {writingTips.map((_, index) => (
-              <button
-                key={index}
-                onClick={() => goToTip(index)}
-                className={`w-1.5 h-1.5 rounded-full transition-all duration-300 ${
-                  index === currentTipIndex 
-                    ? 'bg-emerald-400 w-6' 
-                    : 'bg-white/30 hover:bg-white/50'
-                }`}
-                aria-label={`Go to tip ${index + 1}`}
-              />
-            ))}
+  return (
+    <div className="min-h-screen bg-[#101012] text-[rgba(255,255,255,0.8)]">
+      <Modal isOpen={showRankingModal} onClose={() => {}} variant="ranking" showCloseButton={false}>
+        <div className="text-center">
+          <div className="mb-4 text-5xl animate-bounce">📊</div>
+          <h2 className="text-xl font-semibold">{timeRemaining === 0 ? "Time's Up!" : "Calculating..."}</h2>
+          <p className="mt-2 text-sm text-[rgba(255,255,255,0.4)]">
+            {isBatchSubmitting ? "Evaluating writing quality..." : "Preparing results..."}
+          </p>
+          <p className="mt-2 text-xs text-[#00e5e5]">⏱️ Usually takes 1-2 minutes</p>
+          
+          <div className="mt-6 rounded-[14px] border border-[rgba(0,229,229,0.2)] bg-[rgba(0,229,229,0.05)] p-4">
+            <div className="mb-2 flex items-center justify-center gap-2">
+              <span className="text-lg">{writingTips[currentTipIndex].icon}</span>
+              <span className="font-medium">{writingTips[currentTipIndex].name}</span>
+            </div>
+            <p className="text-sm text-[rgba(255,255,255,0.6)]">{writingTips[currentTipIndex].tip}</p>
+            <div className="mt-3 rounded-[10px] border border-[rgba(255,255,255,0.05)] bg-[#101012] p-3">
+              <div className="mb-1 text-[10px] uppercase text-[#00e5e5]">Example</div>
+              <p className="text-xs italic text-[rgba(255,255,255,0.6)]">{writingTips[currentTipIndex].example}</p>
+            </div>
+            <div className="mt-3 flex justify-center gap-1">
+              {writingTips.map((_, index) => (
+                <button
+                  key={index}
+                  onClick={() => goToTip(index)}
+                  className={`h-1.5 rounded-full transition-all ${index === currentTipIndex ? 'w-6 bg-[#00e5e5]' : 'w-1.5 bg-[rgba(255,255,255,0.1)]'}`}
+                />
+              ))}
+            </div>
           </div>
-        </div>
-        
-        <div className="flex items-center justify-center gap-2">
-          <div className="w-2 h-2 bg-emerald-400 rounded-full animate-pulse" style={{ animationDelay: '0ms' }}></div>
-          <div className="w-2 h-2 bg-emerald-400 rounded-full animate-pulse" style={{ animationDelay: '150ms' }}></div>
-          <div className="w-2 h-2 bg-emerald-400 rounded-full animate-pulse" style={{ animationDelay: '300ms' }}></div>
+          
+          <div className="mt-4 flex items-center justify-center gap-2">
+            <div className="h-2 w-2 animate-pulse rounded-full bg-[#00e5e5]" style={{ animationDelay: '0ms' }} />
+            <div className="h-2 w-2 animate-pulse rounded-full bg-[#00e5e5]" style={{ animationDelay: '150ms' }} />
+            <div className="h-2 w-2 animate-pulse rounded-full bg-[#00e5e5]" style={{ animationDelay: '300ms' }} />
+          </div>
         </div>
       </Modal>
       
-      <WritingTipsModal
-        isOpen={showTipsModal}
-        onClose={() => setShowTipsModal(false)}
-        promptType={prompt.type}
-      />
+      <WritingTipsModal isOpen={showTipsModal} onClose={() => setShowTipsModal(false)} promptType={prompt.type} />
 
-      <header className="sticky top-0 z-20 border-b border-white/10 bg-[#0c141d]/90 backdrop-blur">
-        <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
+      <header className="sticky top-0 z-20 border-b border-[rgba(255,255,255,0.05)] bg-[#101012]/95 backdrop-blur">
+        <div className="mx-auto flex max-w-[1200px] items-center justify-between px-8 py-4">
           <div className="flex items-center gap-4">
-            <div className="flex h-14 w-14 items-center justify-center rounded-2xl border border-white/10 bg-[#141e27] text-xl font-semibold">
+            <div className="flex h-14 w-14 items-center justify-center rounded-[14px] border border-[rgba(255,255,255,0.05)] bg-[rgba(255,255,255,0.025)] font-mono text-xl font-medium" style={{ color: timeColor }}>
               {formatTime(timeRemaining)}
             </div>
             <div>
-              <div className="text-xs uppercase tracking-[0.3em] text-white/50">Phase 1 · Draft</div>
-              <div className={`text-sm font-semibold ${timeRemaining > 0 ? getTimeColor(timeRemaining, { green: SCORING.TIME_PHASE1_GREEN, yellow: SCORING.TIME_GREEN_THRESHOLD }) : 'text-red-400'}`}>
+              <div className="text-[10px] font-semibold uppercase tracking-[0.08em] text-[rgba(255,255,255,0.22)]">Phase 1 · Draft</div>
+              <div className="text-sm font-medium" style={{ color: timeColor }}>
                 {timeRemaining > 0 ? 'Time remaining' : 'Time expired'}
               </div>
             </div>
-            <div className="rounded-full border border-emerald-300/30 bg-emerald-400/10 px-3 py-1 text-xs font-semibold text-emerald-200">
-              Ranked circuit
-            </div>
+            <span className="rounded-[20px] bg-[rgba(0,229,229,0.12)] px-2 py-1 text-[10px] font-medium uppercase text-[#00e5e5]">
+              Ranked
+            </span>
           </div>
-          <div className="flex items-center gap-3 text-sm">
-            <div className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-white/60">
-              <span className="font-semibold text-white">{wordCount}</span> words
+          <div className="flex items-center gap-3">
+            <div className="rounded-[20px] bg-[rgba(255,255,255,0.025)] px-3 py-1.5">
+              <span className="font-mono text-sm text-[#00e5e5]">{wordCount}</span>
+              <span className="ml-1 text-xs text-[rgba(255,255,255,0.4)]">words</span>
             </div>
             <button
               onClick={() => setShowTipsModal(true)}
-              className="rounded-full border border-white/15 bg-white/5 px-4 py-2 font-semibold text-white transition hover:bg-white/10"
+              className="rounded-[10px] border border-[rgba(255,255,255,0.05)] px-4 py-2 text-xs font-medium uppercase tracking-[0.04em] text-[rgba(255,255,255,0.4)] transition-all hover:bg-[rgba(255,255,255,0.04)] hover:text-[rgba(255,255,255,0.8)]"
             >
-              Writing tips
+              Tips
             </button>
           </div>
         </div>
-        <div className="mx-auto h-1.5 max-w-6xl rounded-full bg-white/10">
-          <div
-            className={`h-full rounded-full ${timeRemaining > SCORING.TIME_PHASE1_GREEN ? 'bg-emerald-400' : timeRemaining > SCORING.TIME_GREEN_THRESHOLD ? 'bg-yellow-400' : 'bg-red-400'}`}
-            style={{ width: `${(timeRemaining / SCORING.PHASE1_DURATION) * 100}%` }}
-          />
+        <div className="mx-auto h-1 max-w-[1200px] rounded-full bg-[rgba(255,255,255,0.05)]">
+          <div className="h-full rounded-full transition-all" style={{ width: `${progressPercent}%`, background: timeColor }} />
         </div>
       </header>
 
-      <main className="mx-auto max-w-6xl px-6 py-10">
+      <main className="mx-auto max-w-[1200px] px-8 py-8">
         <PhaseInstructions phase={1} />
         
-        <div className="grid gap-6 lg:grid-cols-[0.9fr,1.4fr,0.7fr]">
-          <div className="space-y-6">
-            <div className="rounded-3xl border border-white/10 bg-[#141e27] p-6">
-              <div className="flex items-start gap-4">
-                <div className="text-5xl">{prompt.image}</div>
-                <div className="flex-1 space-y-2">
-                  <div className="space-y-1">
-                    <span className="text-[11px] uppercase text-white/40">{prompt.type}</span>
-                    <h2 className="text-xl font-semibold">{prompt.title}</h2>
-                  </div>
-                  <p className="text-sm text-white/70 leading-relaxed">{prompt.description}</p>
+        <div className="grid gap-6 lg:grid-cols-[280px,1fr,240px]">
+          <div className="space-y-4">
+            <div className="rounded-[14px] border border-[rgba(255,255,255,0.05)] bg-[rgba(255,255,255,0.025)] p-5">
+              <div className="flex gap-4">
+                <div className="text-4xl">{prompt.image}</div>
+                <div>
+                  <div className="text-[10px] uppercase text-[rgba(255,255,255,0.22)]">{prompt.type}</div>
+                  <h2 className="mt-1 text-base font-semibold">{prompt.title}</h2>
                 </div>
               </div>
+              <p className="mt-3 text-sm text-[rgba(255,255,255,0.5)] leading-relaxed">{prompt.description}</p>
             </div>
 
-            <div className="rounded-3xl border border-white/10 bg-[#141e27] p-6 space-y-4 text-sm text-white/60">
-              <div className="text-xs uppercase tracking-[0.3em] text-white/50">Phase reminders</div>
-              <div className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-xs text-white/60">
-                Aim for 60+ words in 2 minutes. Quality over quantity—focus on clarity.
-              </div>
-              <div className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-xs text-white/60">
-                Start with your main idea, then add one supporting detail quickly.
-              </div>
-              <div className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-xs text-white/60">
-                Save 20 seconds for a quick proofread—catch obvious mistakes.
+            <div className="rounded-[14px] border border-[rgba(255,255,255,0.05)] bg-[rgba(255,255,255,0.025)] p-5">
+              <div className="mb-3 text-[10px] font-semibold uppercase tracking-[0.08em] text-[rgba(255,255,255,0.22)]">Tips</div>
+              <div className="space-y-2 text-xs text-[rgba(255,255,255,0.4)]">
+                <div className="rounded-[10px] border border-[rgba(255,255,255,0.05)] bg-[#101012] px-3 py-2">Aim for 60+ words in 2 min</div>
+                <div className="rounded-[10px] border border-[rgba(255,255,255,0.05)] bg-[#101012] px-3 py-2">Start with your main idea</div>
+                <div className="rounded-[10px] border border-[rgba(255,255,255,0.05)] bg-[#101012] px-3 py-2">Save 20s for proofreading</div>
               </div>
             </div>
           </div>
 
-          <div className="space-y-6">
-            <div className="relative rounded-3xl border border-white/10 bg-white p-6 text-[#1b1f24] shadow-xl">
-              <div className="flex items-center justify-between text-xs text-[#1b1f24]/60">
-                <span>Draft in progress</span>
+          <div className="space-y-4">
+            <div className="relative rounded-[14px] border border-[rgba(255,255,255,0.05)] bg-white p-6 text-[#101012]">
+              <div className="flex items-center justify-between text-xs text-[#101012]/50">
+                <span>Draft</span>
                 <span>{wordCount} words</span>
               </div>
               <textarea
@@ -729,68 +499,56 @@ export default function WritingSessionContent() {
                 onCopy={handleCut}
                 onCut={handleCut}
                 ref={textareaRef}
-                placeholder="Start writing your response..."
-                className="mt-4 h-[420px] w-full resize-none bg-transparent text-base leading-relaxed focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed"
+                placeholder="Start writing..."
+                className="mt-3 h-[400px] w-full resize-none bg-transparent text-base leading-relaxed focus:outline-none disabled:cursor-not-allowed disabled:opacity-50"
                 autoFocus
                 disabled={timeRemaining === 0}
-                data-gramm="false"
-                data-gramm_editor="false"
-                data-enable-grammarly="false"
                 spellCheck="true"
               />
               {showPasteWarning && (
-                <div className="absolute inset-x-0 top-6 mx-auto w-max rounded-full border border-red-500/40 bg-red-500/15 px-4 py-2 text-xs font-semibold text-red-200 shadow-lg">
+                <div className="absolute inset-x-0 top-8 mx-auto w-max rounded-[20px] bg-[rgba(255,95,143,0.15)] px-4 py-2 text-xs font-medium text-[#ff5f8f]">
                   Paste disabled during ranked drafts
                 </div>
               )}
             </div>
             
-            {/* No manual submit button - auto-submits when time expires */}
-            <div className="w-full rounded-2xl border border-white/10 bg-white/5 px-6 py-4 text-center">
-              <div className="text-white/60 text-sm mb-2">⏱️ Time-based submission</div>
-              <div className="text-white font-semibold">
-                {hasSubmitted() ? '✅ Submitted' : `Auto-submits in ${formatTime(timeRemaining)}`}
-              </div>
-              <div className="text-white/40 text-xs mt-2">
-                Write until the timer expires. Your work will be automatically submitted.
-                </div>
+            <div className="rounded-[14px] border border-[rgba(255,255,255,0.05)] bg-[rgba(255,255,255,0.025)] p-4 text-center">
+              <div className="text-sm text-[rgba(255,255,255,0.4)]">⏱️ Auto-submits in <span className="font-mono text-[#00e5e5]">{formatTime(timeRemaining)}</span></div>
+              <div className="mt-1 text-xs text-[rgba(255,255,255,0.22)]">Write until the timer expires</div>
             </div>
           </div>
 
-          <aside className="space-y-6">
-            <div className="rounded-3xl border border-white/10 bg-[#141e27] p-6">
-              <div className="text-xs uppercase tracking-[0.3em] text-white/50">Squad tracker</div>
-              <div className="mt-5 space-y-4">
+          <aside className="space-y-4">
+            <div className="rounded-[14px] border border-[rgba(255,255,255,0.05)] bg-[rgba(255,255,255,0.025)] p-5">
+              <div className="mb-4 text-[10px] font-semibold uppercase tracking-[0.08em] text-[rgba(255,255,255,0.22)]">Squad</div>
+              <div className="space-y-3">
                 {membersWithCounts.map((member, index) => (
-                  <div key={member.userId} className="space-y-2 rounded-2xl border border-white/10 bg-white/5 px-4 py-3">
+                  <div key={member.userId} className="rounded-[10px] border border-[rgba(255,255,255,0.05)] bg-[#101012] p-3">
                     <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#0c141d] text-xl">
-                          {member.avatar}
-                        </div>
+                      <div className="flex items-center gap-2">
+                        <div className="text-xl">{member.avatar}</div>
                         <div>
-                          <div className={`text-sm font-semibold ${member.isYou ? 'text-white' : 'text-white/80'}`}>{member.name}</div>
-                          <div className="text-[11px] text-white/50">{member.rank}</div>
+                          <div className="text-xs font-medium">{member.name}</div>
+                          <div className="text-[10px] text-[rgba(255,255,255,0.4)]">{member.rank}</div>
                         </div>
                       </div>
-                      <div className="text-right text-sm font-semibold text-white">
-                        {Math.floor(member.wordCount)}
-                        <span className="ml-1 text-xs text-white/50">w</span>
+                      <div className="text-right">
+                        <div className="font-mono text-sm" style={{ color: member.isYou ? '#00e5e5' : 'rgba(255,255,255,0.6)' }}>
+                          {Math.floor(member.wordCount)}
+                        </div>
+                        <div className="text-[10px] text-[rgba(255,255,255,0.22)]">words</div>
                       </div>
                     </div>
-                    <div className="h-1.5 rounded-full bg-white/10">
+                    <div className="mt-2 h-1 overflow-hidden rounded-full bg-[rgba(255,255,255,0.05)]">
                       <div
-                        className={`${member.isYou ? 'bg-emerald-300' : 'bg-white/40'} h-full rounded-full`}
-                        style={{ width: `${Math.min((member.wordCount / 100) * 100, 100)}%` }}
+                        className="h-full rounded-full"
+                        style={{ width: `${Math.min((member.wordCount / 100) * 100, 100)}%`, background: member.isYou ? '#00e5e5' : 'rgba(255,255,255,0.2)' }}
                       />
                     </div>
-                    <div className="text-[10px] uppercase text-white/40">Slot {index + 1}</div>
                   </div>
                 ))}
               </div>
             </div>
-
-            {/* Removed useless submissions card per user feedback */}
           </aside>
         </div>
       </main>

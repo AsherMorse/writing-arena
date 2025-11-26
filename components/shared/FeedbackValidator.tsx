@@ -48,11 +48,7 @@ export default function FeedbackValidator({ responses }: FeedbackValidatorProps)
     };
   };
   
-  const fieldLabels: Record<string, string> = {
-    mainIdea: 'Main Idea',
-    strength: 'Strength',
-    suggestion: 'Suggestion',
-  };
+  const fieldLabels: Record<string, string> = { mainIdea: 'Main Idea', strength: 'Strength', suggestion: 'Suggestion' };
   
   const allValidations = {
     mainIdea: validateResponse(responses.mainIdea || '', 'mainIdea'),
@@ -63,23 +59,19 @@ export default function FeedbackValidator({ responses }: FeedbackValidatorProps)
   const totalIssues = Object.values(allValidations).reduce((sum, v) => sum + v.issues.length, 0);
   const avgScore = Object.values(allValidations).reduce((sum, v) => sum + v.score, 0) / 3;
   
-  if (totalIssues === 0) {
-    return null;
-  }
+  if (totalIssues === 0) return null;
   
   return (
-    <div className="rounded-xl border border-yellow-400/30 bg-yellow-400/10 p-4 mt-4">
+    <div className="mt-4 rounded-[10px] border border-[rgba(255,144,48,0.3)] bg-[rgba(255,144,48,0.1)] p-4">
       <div className="flex items-start gap-3">
-        <div className="text-2xl">⚠️</div>
+        <div className="text-xl">⚠️</div>
         <div className="flex-1">
-          <h3 className="text-yellow-200 font-semibold text-sm mb-2">
-            Feedback Quality Tips
-          </h3>
-          <div className="space-y-2 text-xs text-white/70">
+          <h3 className="mb-2 text-sm font-semibold text-[#ff9030]">Feedback Quality Tips</h3>
+          <div className="space-y-2 text-xs text-[rgba(255,255,255,0.5)]">
             {totalIssues > 2 && (
-              <div className="bg-yellow-400/10 rounded px-3 py-2 border border-yellow-400/20">
-                <strong className="text-yellow-300">Predicted Score: {Math.round(avgScore)}/100</strong>
-                <div className="text-white/60 mt-1">Your feedback could be more specific</div>
+              <div className="rounded-[6px] border border-[rgba(255,144,48,0.2)] bg-[rgba(255,144,48,0.1)] px-3 py-2">
+                <strong className="text-[#ff9030]">Predicted Score: {Math.round(avgScore)}/100</strong>
+                <div className="mt-1 text-[rgba(255,255,255,0.4)]">Your feedback could be more specific</div>
               </div>
             )}
             
@@ -87,16 +79,14 @@ export default function FeedbackValidator({ responses }: FeedbackValidatorProps)
               if (validation.issues.length === 0) return null;
               return (
                 <div key={field} className="flex items-start gap-2">
-                  <div className="text-yellow-300 mt-0.5">•</div>
-                  <div>
-                    <strong>{fieldLabels[field]}:</strong> {validation.suggestions.join(', ')}
-                  </div>
+                  <div className="mt-0.5 text-[#ff9030]">•</div>
+                  <div><strong>{fieldLabels[field]}:</strong> {validation.suggestions.join(', ')}</div>
                 </div>
               );
             })}
           </div>
           
-          <div className="mt-3 text-xs text-white/50 italic">
+          <div className="mt-3 text-xs italic text-[rgba(255,255,255,0.3)]">
             High scores require: quoting text + specific suggestions
           </div>
         </div>

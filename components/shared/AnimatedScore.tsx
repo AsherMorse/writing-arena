@@ -17,8 +17,7 @@ export default function AnimatedScore({ score, label, delay = 0, maxScore = 100 
     const revealTimer = setTimeout(() => {
       setIsRevealed(true);
       
-      // Animate score counting up
-      const duration = 1000; // 1 second
+      const duration = 1000;
       const steps = 30;
       const increment = score / steps;
       let current = 0;
@@ -40,33 +39,30 @@ export default function AnimatedScore({ score, label, delay = 0, maxScore = 100 
   }, [score, delay]);
   
   const getColor = (score: number) => {
-    if (score >= 85) return 'text-emerald-400';
-    if (score >= 70) return 'text-blue-400';
-    if (score >= 60) return 'text-yellow-400';
-    return 'text-red-400';
+    if (score >= 85) return '#00d492';
+    if (score >= 70) return '#00e5e5';
+    if (score >= 60) return '#ff9030';
+    return '#ff5f8f';
   };
   
-  const getBackgroundColor = (score: number) => {
-    if (score >= 85) return 'bg-emerald-400/10';
-    if (score >= 70) return 'bg-blue-400/10';
-    if (score >= 60) return 'bg-yellow-400/10';
-    return 'bg-red-400/10';
-  };
+  const color = getColor(score);
   
   return (
-    <div className={`rounded-xl border border-white/10 ${getBackgroundColor(score)} p-6 transition-all duration-500 ${isRevealed ? 'opacity-100 scale-100' : 'opacity-0 scale-95'}`}>
-      <div className="text-sm text-white/60 mb-2">{label}</div>
-      <div className={`text-5xl font-bold ${getColor(score)} mb-2`}>
+    <div 
+      className={`rounded-[14px] border p-6 transition-all duration-500 ${isRevealed ? 'opacity-100 scale-100' : 'opacity-0 scale-95'}`}
+      style={{ borderColor: `${color}30`, background: `${color}10` }}
+    >
+      <div className="mb-2 text-xs text-[rgba(255,255,255,0.4)]">{label}</div>
+      <div className="mb-2 font-mono text-4xl font-medium" style={{ color }}>
         {displayScore}
-        <span className="text-2xl text-white/40">/{maxScore}</span>
+        <span className="text-xl text-[rgba(255,255,255,0.3)]">/{maxScore}</span>
       </div>
-      <div className="h-2 bg-white/10 rounded-full overflow-hidden">
+      <div className="h-[6px] overflow-hidden rounded-[3px] bg-[rgba(255,255,255,0.05)]">
         <div 
-          className={`h-full ${getColor(score).replace('text-', 'bg-')} transition-all duration-1000`}
-          style={{ width: `${(displayScore / maxScore) * 100}%` }}
+          className="h-full rounded-[3px] transition-all duration-1000"
+          style={{ width: `${(displayScore / maxScore) * 100}%`, background: color }}
         />
       </div>
     </div>
   );
 }
-

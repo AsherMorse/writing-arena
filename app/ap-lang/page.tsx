@@ -16,10 +16,10 @@ export default function APLangPage() {
 
   if (authLoading) {
     return (
-      <div className="min-h-screen bg-[#0c141d]">
+      <div className="min-h-screen bg-[#101012]">
         <Header />
-        <div className="flex items-center justify-center min-h-[calc(100vh-80px)]">
-          <div className="text-white">Loading...</div>
+        <div className="flex min-h-[calc(100vh-80px)] items-center justify-center">
+          <div className="text-[rgba(255,255,255,0.8)]">Loading...</div>
         </div>
       </div>
     );
@@ -31,28 +31,27 @@ export default function APLangPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#0c141d] text-white">
+    <div className="min-h-screen bg-[#101012] text-[rgba(255,255,255,0.8)]">
       <Header />
       
-      {/* Mode Selector */}
-      <div className="max-w-6xl mx-auto px-6 py-8">
-        <div className="flex gap-4 mb-8">
+      <div className="mx-auto max-w-6xl px-6 py-8">
+        <div className="mb-8 flex gap-3">
           <button
             onClick={() => setViewMode('grader')}
-            className={`px-6 py-3 rounded-xl font-semibold transition ${
+            className={`rounded-[10px] px-6 py-3 font-medium transition ${
               viewMode === 'grader'
-                ? 'bg-emerald-500 text-[#0c141d]'
-                : 'bg-white/5 text-white/70 hover:bg-white/10'
+                ? 'border border-[#ff9030] bg-[#ff9030] text-[#101012]'
+                : 'border border-[rgba(255,255,255,0.05)] bg-[rgba(255,255,255,0.025)] text-[rgba(255,255,255,0.5)] hover:bg-[rgba(255,255,255,0.04)]'
             }`}
           >
             Grade Existing Essay
           </button>
           <button
             onClick={() => setViewMode('writer')}
-            className={`px-6 py-3 rounded-xl font-semibold transition ${
+            className={`rounded-[10px] px-6 py-3 font-medium transition ${
               viewMode === 'writer'
-                ? 'bg-emerald-500 text-[#0c141d]'
-                : 'bg-white/5 text-white/70 hover:bg-white/10'
+                ? 'border border-[#ff9030] bg-[#ff9030] text-[#101012]'
+                : 'border border-[rgba(255,255,255,0.05)] bg-[rgba(255,255,255,0.025)] text-[rgba(255,255,255,0.5)] hover:bg-[rgba(255,255,255,0.04)]'
             }`}
           >
             Practice with New Prompt
@@ -64,4 +63,3 @@ export default function APLangPage() {
     </div>
   );
 }
-

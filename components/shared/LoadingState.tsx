@@ -5,21 +5,18 @@ interface LoadingStateProps {
   variant?: 'default' | 'analyzing' | 'reconnecting';
 }
 
-/**
- * Reusable loading state component
- */
 export function LoadingState({ message, variant = 'default' }: LoadingStateProps) {
   if (variant === 'analyzing') {
     return (
-      <div className="min-h-screen bg-[#0c141d] text-white flex items-center justify-center">
+      <div className="flex min-h-screen items-center justify-center bg-[#101012] text-[rgba(255,255,255,0.8)]">
         <div className="text-center">
-          <div className="inline-block animate-spin text-7xl mb-6">🏆</div>
-          <h2 className="text-3xl font-bold text-white mb-3">Analyzing Complete Battle...</h2>
-          <p className="text-white/60 text-lg mb-6">Calculating scores across all 3 phases</p>
-          <div className="flex justify-center space-x-2">
-            <div className="w-3 h-3 bg-purple-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
-            <div className="w-3 h-3 bg-purple-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
-            <div className="w-3 h-3 bg-purple-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
+          <div className="mb-6 inline-block animate-spin text-6xl">🏆</div>
+          <h2 className="mb-3 text-2xl font-semibold">Analyzing Complete Battle...</h2>
+          <p className="mb-6 text-sm text-[rgba(255,255,255,0.4)]">Calculating scores across all 3 phases</p>
+          <div className="flex justify-center gap-2">
+            <div className="h-2 w-2 animate-bounce rounded-full bg-[#00e5e5]" style={{ animationDelay: '0ms' }} />
+            <div className="h-2 w-2 animate-bounce rounded-full bg-[#00e5e5]" style={{ animationDelay: '150ms' }} />
+            <div className="h-2 w-2 animate-bounce rounded-full bg-[#00e5e5]" style={{ animationDelay: '300ms' }} />
           </div>
         </div>
       </div>
@@ -28,22 +25,21 @@ export function LoadingState({ message, variant = 'default' }: LoadingStateProps
 
   if (variant === 'reconnecting') {
     return (
-      <div className="min-h-screen bg-[#0c141d] text-white flex items-center justify-center">
+      <div className="flex min-h-screen items-center justify-center bg-[#101012] text-[rgba(255,255,255,0.8)]">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-white mx-auto mb-4"></div>
-          <p className="text-white text-xl">Reconnecting to session...</p>
+          <div className="mx-auto mb-4 h-12 w-12 animate-spin rounded-full border-2 border-[rgba(255,255,255,0.1)] border-t-[#00e5e5]" />
+          <p className="text-lg">Reconnecting to session...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-[#0c141d] text-white flex items-center justify-center">
+    <div className="flex min-h-screen items-center justify-center bg-[#101012] text-[rgba(255,255,255,0.8)]">
       <div className="text-center">
-        <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-white mx-auto mb-4"></div>
-        <p className="text-white text-xl">{message || 'Loading...'}</p>
+        <div className="mx-auto mb-4 h-12 w-12 animate-spin rounded-full border-2 border-[rgba(255,255,255,0.1)] border-t-[#00e5e5]" />
+        <p className="text-lg">{message || 'Loading...'}</p>
       </div>
     </div>
   );
 }
-

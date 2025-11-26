@@ -12,9 +12,6 @@ interface ModalProps {
   showCloseButton?: boolean;
 }
 
-/**
- * Reusable modal component with consistent styling
- */
 export function Modal({ 
   isOpen, 
   onClose, 
@@ -24,7 +21,6 @@ export function Modal({
   size = 'md',
   showCloseButton = true,
 }: ModalProps) {
-  // Close on Escape key
   useEffect(() => {
     if (!isOpen) return;
     
@@ -48,34 +44,34 @@ export function Modal({
   };
 
   const variantClasses = {
-    default: 'border-white/20',
-    ranking: 'border-blue-400/30',
-    tips: 'border-emerald-400/30',
+    default: 'border-[rgba(255,255,255,0.05)]',
+    ranking: 'border-[rgba(0,229,229,0.2)]',
+    tips: 'border-[rgba(0,212,146,0.2)]',
   };
 
   return (
     <div 
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm px-4"
       onClick={onClose}
     >
       <div 
-        className={`rounded-3xl border bg-[#141e27] p-12 shadow-2xl mx-4 relative max-h-[90vh] overflow-y-auto ${sizeClasses[size]} ${variantClasses[variant]}`}
+        className={`relative mx-4 max-h-[90vh] overflow-y-auto rounded-[14px] border bg-[#101012] p-8 shadow-2xl ${sizeClasses[size]} ${variantClasses[variant]}`}
         onClick={(e) => e.stopPropagation()}
       >
         {showCloseButton && (
           <button
             onClick={onClose}
-            className="absolute top-4 right-4 text-white/60 hover:text-white transition-colors z-10"
+            className="absolute right-4 top-4 z-10 flex h-8 w-8 items-center justify-center rounded-[6px] border border-[rgba(255,255,255,0.05)] text-[rgba(255,255,255,0.4)] transition-all hover:bg-[rgba(255,255,255,0.04)] hover:text-[rgba(255,255,255,0.8)]"
             aria-label="Close modal"
           >
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
             </svg>
           </button>
         )}
         
         {title && (
-          <h2 className="text-3xl font-bold text-white mb-6 text-center">{title}</h2>
+          <h2 className="mb-6 text-center text-xl font-semibold text-[rgba(255,255,255,0.8)]">{title}</h2>
         )}
         
         {children}
@@ -83,4 +79,3 @@ export function Modal({
     </div>
   );
 }
-

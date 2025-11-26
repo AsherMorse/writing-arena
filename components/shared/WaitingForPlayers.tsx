@@ -81,11 +81,8 @@ export default function WaitingForPlayers({
           userId: `slot-${index}`,
         }));
   
-  const phaseNames = {
-    1: 'Writing',
-    2: 'Peer Feedback',
-    3: 'Revision',
-  };
+  const phaseNames = { 1: 'Writing', 2: 'Peer Feedback', 3: 'Revision' };
+  const phaseColors = { 1: '#00e5e5', 2: '#ff5f8f', 3: '#00d492' };
   
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
@@ -93,192 +90,160 @@ export default function WaitingForPlayers({
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
-  // Writing Revolution concepts carousel
   const writingConcepts = [
-    {
-      name: 'Sentence Expansion',
-      tip: 'Use because, but, or so to show why things happen.',
-      example: 'She opened the door because she heard a strange noise.',
-      icon: '🔗',
-    },
-    {
-      name: 'Appositives',
-      tip: 'Add description using commas to provide extra information.',
-      example: 'Sarah, a curious ten-year-old, pushed open the rusty gate.',
-      icon: '✏️',
-    },
-    {
-      name: 'Five Senses',
-      tip: 'Include what you see, hear, smell, taste, and feel.',
-      example: 'The salty air stung my eyes while waves crashed loudly below.',
-      icon: '👁️',
-    },
-    {
-      name: 'Show, Don\'t Tell',
-      tip: 'Use specific details instead of general statements.',
-      example: 'Her hands trembled as she reached for the handle.',
-      icon: '🎭',
-    },
-    {
-      name: 'Transition Words',
-      tip: 'Use signal words to connect ideas smoothly.',
-      example: 'First, Then, However, Therefore, For example',
-      icon: '➡️',
-    },
-    {
-      name: 'Topic Sentences',
-      tip: 'Start paragraphs with a clear main idea.',
-      example: 'Photosynthesis is how plants make food.',
-      icon: '📝',
-    },
+    { name: 'Sentence Expansion', tip: 'Use because, but, or so to show why things happen.', example: 'She opened the door because she heard a strange noise.', icon: '🔗' },
+    { name: 'Appositives', tip: 'Add description using commas to provide extra information.', example: 'Sarah, a curious ten-year-old, pushed open the rusty gate.', icon: '✏️' },
+    { name: 'Five Senses', tip: 'Include what you see, hear, smell, taste, and feel.', example: 'The salty air stung my eyes while waves crashed loudly below.', icon: '👁️' },
+    { name: 'Show, Don\'t Tell', tip: 'Use specific details instead of general statements.', example: 'Her hands trembled as she reached for the handle.', icon: '🎭' },
+    { name: 'Transition Words', tip: 'Use signal words to connect ideas smoothly.', example: 'First, Then, However, Therefore, For example', icon: '➡️' },
+    { name: 'Topic Sentences', tip: 'Start paragraphs with a clear main idea.', example: 'Photosynthesis is how plants make food.', icon: '📝' },
   ];
 
-  // Rotate concepts every 6 seconds using carousel hook
   const { currentIndex: currentConceptIndex, goTo: goToConcept } = useCarousel({
     items: writingConcepts,
     interval: 6000,
     autoPlay: true,
   });
   
+  const phaseColor = phaseColors[phase];
+  
   return (
-    <div className="min-h-screen bg-[#0c141d] text-white flex items-center justify-center py-10 px-6">
-      <div className="w-full max-w-5xl space-y-6">
-        <div className="rounded-3xl border border-white/10 bg-[#0f1822] p-8 text-center shadow-2xl">
-          <div className="text-4xl mb-4">⏳</div>
-          <div className="text-xs uppercase tracking-[0.3em] text-white/50">
-            Phase {phase} • {phaseNames[phase]}
+    <div className="flex min-h-screen items-center justify-center bg-[#101012] px-6 py-10 text-[rgba(255,255,255,0.8)]">
+      <div className="w-full max-w-[1000px] space-y-6">
+        <div className="rounded-[14px] border border-[rgba(255,255,255,0.05)] bg-[rgba(255,255,255,0.025)] p-8 text-center">
+          <div className="mb-4 text-4xl">⏳</div>
+          <div className="text-[10px] font-semibold uppercase tracking-[0.08em] text-[rgba(255,255,255,0.22)]">
+            Phase {phase} · {phaseNames[phase]}
           </div>
-          <h1 className="mt-3 text-3xl font-semibold text-white">
+          <h1 className="mt-3 text-2xl font-semibold">
             {playersReady === totalPlayers 
-              ? 'All players finished! Evaluating submissions...'
-              : 'Waiting for AI opponents to submit'}
+              ? 'All players finished! Evaluating...'
+              : 'Waiting for AI opponents'}
           </h1>
-          <p className="mt-2 text-sm text-white/60">
+          <p className="mt-2 text-sm text-[rgba(255,255,255,0.4)]">
             {playersReady === totalPlayers
-              ? 'Ranking all submissions and preparing results...'
-              : `You're done! AI players will submit within 5-15 seconds.`}
+              ? 'Ranking submissions and preparing results...'
+              : `You're done! AI players submit within 5-15s.`}
           </p>
         </div>
-        <div className="grid gap-6 lg:grid-cols-[1.1fr,0.9fr]">
-          <div className="rounded-3xl border border-white/10 bg-[#141e27] p-6 space-y-6">
+
+        <div className="grid gap-5 lg:grid-cols-[1.1fr,0.9fr]">
+          <div className="rounded-[14px] border border-[rgba(255,255,255,0.05)] bg-[rgba(255,255,255,0.025)] p-5 space-y-5">
             <div className="flex flex-wrap items-center justify-between gap-4">
               <div>
-                <div className="text-xs uppercase tracking-[0.3em] text-white/50">
-                  Submissions received
+                <div className="text-[10px] font-semibold uppercase tracking-[0.08em] text-[rgba(255,255,255,0.22)]">
+                  Submissions
                 </div>
-                <div className="mt-2 text-3xl font-semibold text-white">
-                  {playersReady} <span className="text-white/40 text-xl">/</span>{' '}
-                  <span className="text-white/60 text-2xl">{totalPlayers}</span>
+                <div className="mt-1 font-mono text-2xl font-medium" style={{ color: phaseColor }}>
+                  {playersReady} <span className="text-[rgba(255,255,255,0.22)]">/</span> {totalPlayers}
                 </div>
               </div>
-              <div className="rounded-2xl border border-white/10 bg-white/5 px-4 py-2 text-sm text-white/70">
-                Phase ends in <span className="font-semibold text-white">{formatTime(timeRemaining)}</span>
+              <div className="rounded-[20px] bg-[rgba(255,255,255,0.025)] px-3 py-1.5 text-xs">
+                Ends in <span className="font-mono" style={{ color: phaseColor }}>{formatTime(timeRemaining)}</span>
               </div>
             </div>
-            <div className="h-2 rounded-full bg-white/10">
+
+            <div className="h-1 overflow-hidden rounded-full bg-[rgba(255,255,255,0.05)]">
               <div
-                className="h-full rounded-full bg-gradient-to-r from-emerald-400 via-purple-400 to-blue-500 transition-all duration-500"
-                style={{ width: `${(playersReady / totalPlayers) * 100}%` }}
+                className="h-full rounded-full transition-all duration-500"
+                style={{ width: `${(playersReady / totalPlayers) * 100}%`, background: phaseColor }}
               />
             </div>
-            <div className="grid grid-cols-5 gap-3">
+
+            <div className="grid grid-cols-5 gap-2">
               {membersToDisplay.map((member, index) => {
                 const isSubmitted = member.userId ? submittedSet.has(member.userId) : index < playersReady;
-                const isAI = 'isAI' in member ? member.isAI : false;
-                const showTyping = isAI && !isSubmitted;
                 return (
                   <div
                     key={`${member.userId || member.name || 'slot'}-${index}`}
-                    className={`rounded-2xl border px-3 py-4 text-center text-xs font-semibold transition ${
+                    className={`rounded-[10px] border p-3 text-center transition ${
                       isSubmitted
-                        ? 'border-emerald-400/40 bg-emerald-500/15 text-emerald-200'
-                        : 'border-white/10 bg-white/5 text-white/40'
+                        ? 'border-[rgba(0,212,146,0.3)] bg-[rgba(0,212,146,0.1)]'
+                        : 'border-[rgba(255,255,255,0.05)] bg-[#101012]'
                     }`}
                   >
-                    <div className="text-2xl mb-2">
+                    <div className="mb-1 text-xl">
                       {isSubmitted ? '✅' : member.avatar || '⌛'}
                     </div>
-                    <div className="truncate text-sm text-white/80">
-                      {member.name || `Slot ${index + 1}`}
-                    </div>
-                    <div className="text-[11px] text-white/40">{'rank' in member ? member.rank : 'Silver III'}</div>
+                    <div className="truncate text-xs">{member.name || `Slot ${index + 1}`}</div>
+                    <div className="text-[10px] text-[rgba(255,255,255,0.22)]">{'rank' in member ? member.rank : 'Silver III'}</div>
                   </div>
                 );
               })}
             </div>
-            <div className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white/60 space-y-2">
-              <div>When a player submits, we’ll move straight into rankings.</div>
-              {partyMembers.length > 0 && (
-                <div className="space-y-2 text-xs text-white/70">
-                  {partyMembers.map((member, index) => {
-                    const isDone = member.userId ? submittedSet.has(member.userId) : index < playersReady;
-                    return (
-                      <div
-                    key={`${member.userId || member.name || 'member'}-${index}`}
-                        className="flex items-center justify-between rounded-2xl border border-white/5 bg-white/0 px-3 py-2"
-                      >
-                        <div className="flex items-center gap-2">
-                          <div className="flex h-7 w-7 items-center justify-center rounded-full bg-[#0c141d] text-base">
-                            {member.avatar || '👤'}
-                          </div>
-                          <div className="text-white/80">{member.name || `Player ${index + 1}`}</div>
-                        </div>
-                        <div className={`text-xs font-semibold ${isDone ? 'text-emerald-300' : 'text-white/40'}`}>
-                          {isDone ? 'Submitted' : 'Waiting'}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
+
+            <div className="rounded-[10px] border border-[rgba(255,255,255,0.05)] bg-[#101012] p-3 text-xs text-[rgba(255,255,255,0.4)]">
+              When all submit, we'll proceed to rankings.
             </div>
+
+            {partyMembers.length > 0 && (
+              <div className="space-y-2">
+                {partyMembers.map((member, index) => {
+                  const isDone = member.userId ? submittedSet.has(member.userId) : index < playersReady;
+                  return (
+                    <div
+                      key={`${member.userId || member.name || 'member'}-${index}`}
+                      className="flex items-center justify-between rounded-[10px] border border-[rgba(255,255,255,0.05)] bg-[#101012] px-3 py-2"
+                    >
+                      <div className="flex items-center gap-2">
+                        <div className="text-xl">{member.avatar || '👤'}</div>
+                        <div className="text-sm">{member.name || `Player ${index + 1}`}</div>
+                      </div>
+                      <div className={`text-[10px] font-medium ${isDone ? 'text-[#00d492]' : 'text-[rgba(255,255,255,0.22)]'}`}>
+                        {isDone ? 'Submitted' : 'Waiting'}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
-          <div className="rounded-3xl border border-white/10 bg-[#141e27] p-6 relative overflow-hidden">
-            <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/10 via-transparent to-purple-500/10 pointer-events-none" />
+
+          <div className="relative overflow-hidden rounded-[14px] border border-[rgba(255,255,255,0.05)] bg-[rgba(255,255,255,0.025)] p-5">
+            <div className="absolute inset-0 pointer-events-none" style={{ background: `radial-gradient(circle at 0% 100%, ${phaseColor}10, transparent 50%)` }} />
             <div className="relative z-10 space-y-4">
-              <div className="text-xs uppercase tracking-[0.3em] text-white/50">
-                Writing revolution tip
+              <div className="text-[10px] font-semibold uppercase tracking-[0.08em] text-[rgba(255,255,255,0.22)]">
+                Writing tip
               </div>
               <div className="flex items-center gap-3">
-                <div className="text-3xl">{writingConcepts[currentConceptIndex].icon}</div>
-                <h3 className="text-xl font-semibold">{writingConcepts[currentConceptIndex].name}</h3>
+                <div className="text-2xl">{writingConcepts[currentConceptIndex].icon}</div>
+                <h3 className="text-lg font-semibold">{writingConcepts[currentConceptIndex].name}</h3>
               </div>
-              <p className="text-sm text-white/80 leading-relaxed">
+              <p className="text-sm text-[rgba(255,255,255,0.5)] leading-relaxed">
                 {writingConcepts[currentConceptIndex].tip}
               </p>
-              <div className="rounded-2xl border border-white/15 bg-white/5 px-4 py-3 text-sm text-white/70">
-                <div className="text-emerald-300 text-xs uppercase tracking-[0.2em] mb-1">
-                  Example
-                </div>
-                <p className="text-white/90 italic text-sm">
+              <div className="rounded-[10px] border border-[rgba(255,255,255,0.05)] bg-[#101012] p-3">
+                <div className="mb-1 text-[10px] uppercase" style={{ color: phaseColor }}>Example</div>
+                <p className="text-sm italic text-[rgba(255,255,255,0.6)]">
                   {writingConcepts[currentConceptIndex].example}
                 </p>
               </div>
-              <div className="flex flex-wrap items-center gap-2 pt-2">
+              <div className="flex flex-wrap items-center gap-1 pt-2">
                 {writingConcepts.map((_, index) => (
                   <button
                     key={index}
-                          onClick={() => goToConcept(index)}
+                    onClick={() => goToConcept(index)}
                     className={`h-1.5 rounded-full transition-all ${
                       index === currentConceptIndex
-                        ? 'w-8 bg-emerald-400'
-                        : 'w-3 bg-white/30 hover:bg-white/50'
+                        ? 'w-6'
+                        : 'w-1.5 bg-[rgba(255,255,255,0.1)] hover:bg-[rgba(255,255,255,0.2)]'
                     }`}
+                    style={index === currentConceptIndex ? { background: phaseColor } : {}}
                     aria-label={`Go to tip ${index + 1}`}
                   />
                 ))}
               </div>
-              <div className="text-xs text-white/50">
-                Tip {currentConceptIndex + 1} of {writingConcepts.length} • The Writing Revolution
+              <div className="text-[10px] text-[rgba(255,255,255,0.22)]">
+                Tip {currentConceptIndex + 1} of {writingConcepts.length}
               </div>
             </div>
           </div>
         </div>
-        <div className="text-center text-xs text-white/40">
-          ✨ Take a breath, review your draft, or get inspired for the next phase.
+
+        <div className="text-center text-xs text-[rgba(255,255,255,0.22)]">
+          ✨ Take a breath, or get inspired for the next phase.
         </div>
       </div>
     </div>
   );
 }
-

@@ -68,12 +68,10 @@ export default function MatchmakingContent() {
     const sessionId = sessionIdOverride || currentSessionId;
     
     if (!sessionId) {
-      console.error('❌ fillLobbyWithAI: No sessionId provided');
       setHasFilledWithAI(false);
       return;
     }
     
-    console.log('🤖 fillLobbyWithAI: Starting with sessionId:', sessionId);
     setHasFilledWithAI(true);
     
     if (aiBackfillIntervalRef.current) {
@@ -90,7 +88,6 @@ export default function MatchmakingContent() {
     }
     
     if (aiStudents.length === 0) {
-      console.error('❌ fillLobbyWithAI: No AI students available');
       setHasFilledWithAI(false);
       return;
     }
@@ -102,7 +99,6 @@ export default function MatchmakingContent() {
     const currentPlayerCount = players.length;
     const slotsRemaining = 5 - currentPlayerCount;
     if (slotsRemaining <= 0) {
-      console.log('✅ fillLobbyWithAI: Lobby already full');
       setHasFilledWithAI(false);
       return;
     }
@@ -112,7 +108,6 @@ export default function MatchmakingContent() {
       .map(ai => buildAIPlayer(ai));
     
     try {
-      console.log(`🤖 Adding ${aiToAdd.length} AI players to session ${sessionId}`);
       await Promise.all(
         aiToAdd.map((aiPlayer, index) => {
           const aiStudent = aiStudents[index];
@@ -131,9 +126,7 @@ export default function MatchmakingContent() {
           return Promise.resolve();
         })
       );
-      console.log('✅ Successfully added AI players to session');
     } catch (error) {
-      console.error('❌ Failed to add AI players to session:', error);
       setHasFilledWithAI(false);
       return;
     }
@@ -235,13 +228,10 @@ export default function MatchmakingContent() {
         
         const session = await findOrJoinSession(userId, playerInfo, trait);
         if (!session || !session.sessionId) {
-          console.error('❌ Failed to create session: session or sessionId is missing', session);
           return;
         }
-        console.log('✅ Session created/joined:', session.sessionId);
         setCurrentSessionId(session.sessionId);
         
-        // Ensure user is in players state
         setPlayers(prev => {
           const hasUser = prev.some(p => p.userId === userId);
           if (!hasUser) {
@@ -258,7 +248,7 @@ export default function MatchmakingContent() {
         
         await fillLobbyWithAI(session.sessionId);
       } catch (error) {
-        console.error('❌ Failed to start AI match:', error);
+        // Silent fail
       }
     };
     
@@ -284,10 +274,8 @@ export default function MatchmakingContent() {
         
         const session = await findOrJoinSession(userId, playerInfo, trait);
         if (!session || !session.sessionId) {
-          console.error('❌ Failed to create session: session or sessionId is missing', session);
           return;
         }
-        console.log('✅ Session created/joined:', session.sessionId);
         setCurrentSessionId(session.sessionId);
 
         unsubscribeQueue = listenToQueue(trait, userId, (queuePlayers: QueueEntry[]) => {
@@ -416,7 +404,7 @@ export default function MatchmakingContent() {
         fetchAndAddAIStudents();
 
       } catch (error) {
-        console.error('❌ Failed to start matchmaking:', error);
+        // Silent fail
       }
     };
 
@@ -507,7 +495,7 @@ export default function MatchmakingContent() {
             randomPrompt.id,
             randomPrompt.type,
             SCORING.PHASE1_DURATION,
-            userRank  // Pass rank for rank-based timing
+            userRank
           );
           
       if (isMultiPlayer && amILeader) {
@@ -538,43 +526,53 @@ export default function MatchmakingContent() {
   };
 
   return (
-    <div className="min-h-screen bg-[#0c141d] text-white">
+    <div className="min-h-screen bg-[#101012] text-[rgba(255,255,255,0.8)]">
       {showStartModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm">
-          <div className="rounded-3xl border border-white/20 bg-[#141e27] p-12 shadow-2xl mx-4 max-w-2xl w-full">
-            <h2 className="text-3xl font-bold text-white mb-4 text-center">Start Ranked Match</h2>
-            <p className="text-white/60 text-center mb-8">
-              Choose how you want to play
-            </p>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 px-4">
+          <div className="w-full max-w-2xl rounded-[14px] border border-[rgba(255,255,255,0.05)] bg-[#101012] p-8">
+            <div className="mb-6 text-center">
+              <div className="text-[10px] font-semibold uppercase tracking-[0.08em] text-[rgba(255,255,255,0.22)]">
+                Start Ranked Match
+              </div>
+              <h2 className="mt-2 text-2xl font-semibold">Choose how you want to play</h2>
+            </div>
             
-            <div className="grid md:grid-cols-2 gap-6">
+            <div className="grid gap-4 md:grid-cols-2">
               <button
                 onClick={() => handleStartChoice('wait')}
-                className="group rounded-2xl border border-purple-400/30 bg-purple-500/10 hover:bg-purple-500/20 p-8 text-left transition-all duration-200 hover:scale-105 hover:border-purple-400/50"
+                className="group rounded-[14px] border border-[rgba(255,95,143,0.2)] bg-[rgba(255,95,143,0.05)] p-6 text-left transition-all hover:border-[rgba(255,95,143,0.4)] hover:bg-[rgba(255,95,143,0.1)]"
               >
-                <div className="text-4xl mb-4">⏳</div>
-                <h3 className="text-xl font-semibold text-white mb-2">Wait for Players</h3>
-                <p className="text-white/70 text-sm">
-                  Match with other real players for a competitive ranked experience
+                <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-[10px] bg-[rgba(255,95,143,0.12)] text-2xl">
+                  ⏳
+                </div>
+                <div className="text-[10px] font-semibold uppercase tracking-[0.08em] text-[#ff5f8f]">
+                  Wait for Players
+                </div>
+                <p className="mt-2 text-sm text-[rgba(255,255,255,0.4)]">
+                  Match with real players for competitive ranked
                 </p>
-                <div className="mt-4 flex items-center text-purple-300 text-sm">
-                  <span>Start matchmaking</span>
-                  <span className="ml-2 transition group-hover:translate-x-1">→</span>
+                <div className="mt-4 flex items-center gap-2 text-sm font-medium text-[#ff5f8f]">
+                  Start matchmaking
+                  <span className="transition-transform group-hover:translate-x-1">→</span>
                 </div>
               </button>
               
               <button
                 onClick={() => handleStartChoice('ai')}
-                className="group rounded-2xl border border-emerald-400/30 bg-emerald-500/10 hover:bg-emerald-500/20 p-8 text-left transition-all duration-200 hover:scale-105 hover:border-emerald-400/50"
+                className="group rounded-[14px] border border-[rgba(0,229,229,0.2)] bg-[rgba(0,229,229,0.05)] p-6 text-left transition-all hover:border-[rgba(0,229,229,0.4)] hover:bg-[rgba(0,229,229,0.1)]"
               >
-                <div className="text-4xl mb-4">🤖</div>
-                <h3 className="text-xl font-semibold text-white mb-2">Compete Against AI</h3>
-                <p className="text-white/70 text-sm">
-                  Start immediately with AI opponents - perfect for quick practice
+                <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-[10px] bg-[rgba(0,229,229,0.12)] text-2xl">
+                  🤖
+                </div>
+                <div className="text-[10px] font-semibold uppercase tracking-[0.08em] text-[#00e5e5]">
+                  Compete Against AI
+                </div>
+                <p className="mt-2 text-sm text-[rgba(255,255,255,0.4)]">
+                  Start immediately with AI opponents
                 </p>
-                <div className="mt-4 flex items-center text-emerald-300 text-sm">
-                  <span>Start now</span>
-                  <span className="ml-2 transition group-hover:translate-x-1">→</span>
+                <div className="mt-4 flex items-center gap-2 text-sm font-medium text-[#00e5e5]">
+                  Start now
+                  <span className="transition-transform group-hover:translate-x-1">→</span>
                 </div>
               </button>
             </div>
@@ -582,113 +580,99 @@ export default function MatchmakingContent() {
         </div>
       )}
 
-      <header className="border-b border-white/10">
-        <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-6">
-          <Link href="/ranked" className="flex items-center gap-3">
-            <div className="flex h-11 w-11 items-center justify-center rounded-lg bg-emerald-400/20 text-xl text-emerald-200">
-              ✶
-            </div>
-            <span className="text-xl font-semibold tracking-wide">Matchmaking</span>
+      <header className="border-b border-[rgba(255,255,255,0.05)]">
+        <div className="mx-auto flex max-w-[1200px] items-center justify-between px-8 py-5">
+          <Link href="/ranked" className="text-base font-semibold tracking-wide">
+            Matchmaking
           </Link>
           <Link 
             href="/ranked"
-            className="rounded-full border border-white/15 bg-white/5 px-4 py-2 text-sm font-semibold text-white transition hover:bg-white/10"
+            className="rounded-[10px] border border-[rgba(255,255,255,0.05)] px-4 py-2 text-xs font-medium uppercase tracking-[0.04em] text-[rgba(255,255,255,0.4)] transition-all hover:bg-[rgba(255,255,255,0.04)] hover:text-[rgba(255,255,255,0.8)]"
           >
             ← Cancel
           </Link>
         </div>
       </header>
 
-      <main className="mx-auto max-w-6xl px-6 py-14 flex flex-col items-center justify-center min-h-[calc(100vh-120px)]">
+      <main className="mx-auto max-w-[1200px] px-8 py-10 flex flex-col items-center justify-center min-h-[calc(100vh-80px)]">
         <div className="w-full max-w-4xl">
           {countdown === null ? (
             <>
-              <div className="text-center mb-8">
-                <div className="inline-block animate-spin text-6xl mb-6">🏆</div>
-                <h1 className="text-4xl font-bold text-white mb-3">
-                  Finding Ranked Match{searchingDots}
+              <div className="mb-8 text-center">
+                <div className="mb-4 inline-block animate-spin text-5xl">🏆</div>
+                <h1 className="text-2xl font-semibold">
+                  Finding Match{searchingDots}
                 </h1>
-                <p className="text-white/60 text-lg">Matching with similar skill level</p>
+                <p className="mt-2 text-sm text-[rgba(255,255,255,0.4)]">Matching with similar skill level</p>
               </div>
 
-              <div className="mb-8 max-w-3xl mx-auto">
-                <div className="rounded-3xl border border-emerald-400/30 bg-emerald-500/10 p-8 relative overflow-hidden">
-                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent animate-pulse"></div>
+              <div className="mb-8">
+                <div className="rounded-[14px] border border-[rgba(0,229,229,0.2)] bg-[rgba(0,229,229,0.05)] p-6">
+                  <div className="mb-4 flex items-center justify-center gap-3">
+                    <span className="text-2xl">{writingConcepts[currentTipIndex].icon}</span>
+                    <span className="text-lg font-semibold">{writingConcepts[currentTipIndex].name}</span>
+                  </div>
                   
-                  <div className="relative z-10">
-                    <div className="flex items-center justify-center mb-4">
-                      <div className="text-3xl mr-3">{writingConcepts[currentTipIndex].icon}</div>
-                      <h3 className="text-2xl font-bold text-white">
-                        {writingConcepts[currentTipIndex].name}
-                      </h3>
+                  <p className="mb-4 text-center text-sm text-[rgba(255,255,255,0.6)]">
+                    {writingConcepts[currentTipIndex].tip}
+                  </p>
+                  
+                  <div className="rounded-[10px] border border-[rgba(255,255,255,0.05)] bg-[#101012] p-4">
+                    <div className="mb-1 text-center text-[10px] font-semibold uppercase tracking-[0.08em] text-[#00e5e5]">
+                      Example
                     </div>
-                    
-                    <p className="text-white/90 text-center mb-4 leading-relaxed">
-                      {writingConcepts[currentTipIndex].tip}
+                    <p className="text-center text-sm italic text-[rgba(255,255,255,0.6)]">
+                      {writingConcepts[currentTipIndex].example}
                     </p>
-                    
-                    <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/20">
-                      <div className="text-emerald-300 text-xs font-semibold mb-2 text-center">Example:</div>
-                      <p className="text-white text-sm italic text-center leading-relaxed">
-                        {writingConcepts[currentTipIndex].example}
-                      </p>
-                    </div>
+                  </div>
 
-                    <div className="flex justify-center space-x-2 mt-4">
-                      {writingConcepts.map((_, index) => (
-                        <button
-                          key={index}
-                          onClick={() => goToTip(index)}
-                          className={`w-2 h-2 rounded-full transition-all duration-300 ${
-                            index === currentTipIndex 
-                              ? 'bg-emerald-400 w-8' 
-                              : 'bg-white/30 hover:bg-white/50'
-                          }`}
-                          aria-label={`Go to tip ${index + 1}`}
-                        />
-                      ))}
-                    </div>
-
-                    <div className="text-center mt-3">
-                      <p className="text-white/50 text-xs">
-                        💡 The Writing Revolution • Tip {currentTipIndex + 1} of {writingConcepts.length}
-                      </p>
-                    </div>
+                  <div className="mt-4 flex justify-center gap-1">
+                    {writingConcepts.map((_, index) => (
+                      <button
+                        key={index}
+                        onClick={() => goToTip(index)}
+                        className={`h-1.5 rounded-full transition-all ${
+                          index === currentTipIndex 
+                            ? 'w-6 bg-[#00e5e5]' 
+                            : 'w-1.5 bg-[rgba(255,255,255,0.1)] hover:bg-[rgba(255,255,255,0.2)]'
+                        }`}
+                      />
+                    ))}
                   </div>
                 </div>
               </div>
 
-              <div className="grid grid-cols-5 gap-4 mb-8">
+              <div className="mb-6 grid grid-cols-5 gap-3">
                 {[...Array(5)].map((_, index) => {
                   const player = displayPlayers[index];
                   return (
                     <div
                       key={index}
-                      className={`relative rounded-3xl border p-6 transition-all duration-500 ${
+                      className={`relative rounded-[14px] border p-4 transition-all ${
                         player 
                           ? player.isAI
-                            ? 'border-emerald-400/30 bg-emerald-500/10 scale-100 opacity-100'
-                            : 'border-purple-400/50 bg-purple-500/10 scale-100 opacity-100'
-                          : 'border-white/10 bg-[#141e27] scale-95 opacity-50'
+                            ? 'border-[rgba(0,229,229,0.2)] bg-[rgba(0,229,229,0.05)]'
+                            : 'border-[rgba(255,95,143,0.2)] bg-[rgba(255,95,143,0.05)]'
+                          : 'border-[rgba(255,255,255,0.05)] bg-[rgba(255,255,255,0.025)] opacity-50'
                       }`}
                     >
                       {player ? (
-                        <div className="text-center animate-in fade-in zoom-in duration-300">
-                          <div className="text-5xl mb-3">{player.avatar}</div>
-                          <div className="text-white font-semibold mb-1">{player.name}</div>
-                          <div className={`text-xs flex items-center justify-center gap-1 ${player.isAI ? 'text-blue-400' : 'text-purple-400'}`}>
+                        <div className="text-center">
+                          <div className="mb-2 text-3xl">{player.avatar}</div>
+                          <div className="text-sm font-medium">{player.name}</div>
+                          <div className="mt-1 flex items-center justify-center gap-1 text-xs" style={{ color: player.isAI ? '#00e5e5' : '#ff5f8f' }}>
                             {player.isAI && <span className="text-[10px]">🤖</span>}
                             <span>{player.rank}</span>
                           </div>
                         </div>
                       ) : (
                         <div className="text-center">
-                          <div className="text-4xl text-white/20 mb-3">👤</div>
-                          <div className="text-white/40 text-sm">Searching...</div>
+                          <div className="mb-2 text-2xl text-[rgba(255,255,255,0.1)]">👤</div>
+                          <div className="text-xs text-[rgba(255,255,255,0.22)]">Searching</div>
                         </div>
                       )}
                       
-                      <div className="absolute top-2 right-2 w-6 h-6 bg-white/10 rounded-full flex items-center justify-center text-white/60 text-xs">
+                      <div className="absolute right-2 top-2 flex h-5 w-5 items-center justify-center rounded-full bg-[rgba(255,255,255,0.05)] font-mono text-[10px] text-[rgba(255,255,255,0.4)]">
                         {index + 1}
                       </div>
                     </div>
@@ -697,58 +681,56 @@ export default function MatchmakingContent() {
               </div>
 
               <div className="text-center space-y-4">
-                <div className="inline-flex items-center gap-3 rounded-full border border-white/10 bg-white/5 px-6 py-3">
-                  <span className="text-white/60 text-sm">Party Size:</span>
-                  <span className="text-white font-bold text-lg">{displayPlayers.length}/5</span>
+                <div className="inline-flex items-center gap-3 rounded-[20px] bg-[rgba(255,255,255,0.025)] px-4 py-2">
+                  <span className="text-xs text-[rgba(255,255,255,0.4)]">Party:</span>
+                  <span className="font-mono text-sm text-[#00e5e5]">{displayPlayers.length}/5</span>
                 </div>
                 
                 {displayPlayers.length < 5 && !hasFilledWithAI && startModalChoiceRef.current === 'wait' && (
                   <div>
                     <button
                       onClick={() => fillLobbyWithAI()}
-                      className="inline-flex items-center gap-2 rounded-full border border-emerald-400/50 bg-emerald-500/20 hover:bg-emerald-500/30 px-6 py-3 text-emerald-200 font-semibold transition-all duration-200 hover:scale-105 hover:shadow-lg hover:shadow-emerald-500/20"
+                      className="inline-flex items-center gap-2 rounded-[10px] border border-[#00e5e5] bg-transparent px-4 py-2 text-xs font-medium uppercase tracking-[0.04em] text-[#00e5e5] transition-all hover:bg-[rgba(0,229,229,0.1)]"
                     >
-                      <span className="text-xl">🤖</span>
+                      <span>🤖</span>
                       <span>Play Against AI Now</span>
                     </button>
-                    <p className="text-white/40 text-xs mt-2">
-                      Skip waiting and start immediately with AI opponents
+                    <p className="mt-2 text-xs text-[rgba(255,255,255,0.22)]">
+                      Skip waiting and start immediately
                     </p>
                   </div>
                 )}
               </div>
             </>
           ) : (
-            <>
-              <div className="text-center">
-                <div className="inline-flex items-center justify-center w-32 h-32 rounded-full mb-6 border-4 border-emerald-400/30 bg-emerald-500/20">
-                  <span className="text-6xl font-bold text-emerald-200">{countdown}</span>
-                </div>
-                <h1 className="text-4xl font-bold text-white mb-4">Ranked Match Found!</h1>
-                <p className="text-white/60 text-lg mb-8">Starting in {countdown}...</p>
+            <div className="text-center">
+              <div className="mb-6 inline-flex h-24 w-24 items-center justify-center rounded-full border-2 border-[#00e5e5] bg-[rgba(0,229,229,0.1)]">
+                <span className="font-mono text-5xl font-medium text-[#00e5e5]">{countdown}</span>
+              </div>
+              <h1 className="text-2xl font-semibold">Match Found!</h1>
+              <p className="mt-2 text-sm text-[rgba(255,255,255,0.4)]">Starting in {countdown}...</p>
 
-                <div className="rounded-3xl border border-white/10 bg-[#141e27] p-8 max-w-2xl mx-auto">
-                  <h3 className="text-white font-bold mb-4">Your Ranked Party</h3>
-                  <div className="grid grid-cols-5 gap-3">
-                    {finalPlayersRef.current.map((player, index) => (
-                      <div key={index} className="text-center">
-                        <div className="text-3xl mb-1">{player.avatar}</div>
-                        <div className="text-white text-xs font-semibold truncate">{player.name}</div>
-                        <div className={`text-[10px] ${player.isAI ? 'text-blue-400' : 'text-purple-400'}`}>
-                          {player.isAI && '🤖 '}
-                          {player.rank}
-                        </div>
+              <div className="mt-8 rounded-[14px] border border-[rgba(255,255,255,0.05)] bg-[rgba(255,255,255,0.025)] p-6">
+                <div className="mb-4 text-[10px] font-semibold uppercase tracking-[0.08em] text-[rgba(255,255,255,0.22)]">
+                  Your Party
+                </div>
+                <div className="grid grid-cols-5 gap-3">
+                  {finalPlayersRef.current.map((player, index) => (
+                    <div key={index} className="text-center">
+                      <div className="mb-1 text-2xl">{player.avatar}</div>
+                      <div className="truncate text-xs font-medium">{player.name}</div>
+                      <div className="text-[10px]" style={{ color: player.isAI ? '#00e5e5' : '#ff5f8f' }}>
+                        {player.isAI && '🤖 '}
+                        {player.rank}
                       </div>
-                    ))}
-                  </div>
-                  <div className="mt-4 pt-4 border-t border-white/10 text-center">
-                    <div className="text-white/60 text-xs">
-                      {finalPlayersRef.current.filter(p => !p.isAI).length} Real Player{finalPlayersRef.current.filter(p => !p.isAI).length !== 1 ? 's' : ''} • {finalPlayersRef.current.filter(p => p.isAI).length} AI
                     </div>
-                  </div>
+                  ))}
+                </div>
+                <div className="mt-4 border-t border-[rgba(255,255,255,0.05)] pt-4 text-center text-xs text-[rgba(255,255,255,0.4)]">
+                  {finalPlayersRef.current.filter(p => !p.isAI).length} Real • {finalPlayersRef.current.filter(p => p.isAI).length} AI
                 </div>
               </div>
-            </>
+            </div>
           )}
         </div>
       </main>

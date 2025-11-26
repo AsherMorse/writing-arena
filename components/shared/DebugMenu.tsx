@@ -62,7 +62,7 @@ export default function DebugMenu() {
 
   return (
     <>
-      <div className="pointer-events-none fixed bottom-4 right-4 z-50">
+      <div className="pointer-events-none fixed bottom-4 left-4 z-50">
         <button
           type="button"
           onClick={() => setIsOpen(true)}
