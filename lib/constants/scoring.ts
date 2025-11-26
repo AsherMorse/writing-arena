@@ -2,6 +2,8 @@
  * Scoring constants and utilities
  */
 
+import { getPhaseDuration } from './rank-timing';
+
 export const SCORING = {
   // Default fallback scores
   DEFAULT_WRITING_SCORE: 75,
@@ -41,5 +43,24 @@ export function getDefaultScore(phase: 1 | 2 | 3): number {
 
 export function clampScore(score: number): number {
   return Math.max(SCORING.MIN_SCORE, Math.min(SCORING.MAX_SCORE, Math.round(score)));
+}
+
+/**
+ * Get phase duration based on rank (if rank provided) or use default
+ * 
+ * @param rank - Optional rank string (e.g., "Silver III")
+ * @param phase - Phase number (1, 2, or 3)
+ * @returns Phase duration in seconds
+ */
+export function getRankPhaseDuration(rank: string | null | undefined, phase: 1 | 2 | 3): number {
+  if (rank) {
+    return getPhaseDuration(rank, phase);
+  }
+  // Fallback to defaults
+  switch (phase) {
+    case 1: return SCORING.PHASE1_DURATION;
+    case 2: return SCORING.PHASE2_DURATION;
+    case 3: return SCORING.PHASE3_DURATION;
+  }
 }
 

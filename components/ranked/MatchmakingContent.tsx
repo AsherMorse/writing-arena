@@ -506,7 +506,8 @@ export default function MatchmakingContent() {
             currentSessionId,
             randomPrompt.id,
             randomPrompt.type,
-            SCORING.PHASE1_DURATION
+            SCORING.PHASE1_DURATION,
+            userRank  // Pass rank for rank-based timing
           );
           
       if (isMultiPlayer && amILeader) {
@@ -529,7 +530,7 @@ export default function MatchmakingContent() {
         }
       })();
     }
-  }, [countdown, router, trait, userId, userName, players, queueSnapshot, startSession, currentSessionId]);
+  }, [countdown, router, trait, userId, userName, players, queueSnapshot, startSession, currentSessionId, userRank]);
 
   const handleStartChoice = async (choice: 'wait' | 'ai') => {
     startModalChoiceRef.current = choice;

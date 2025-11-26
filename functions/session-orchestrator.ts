@@ -20,6 +20,65 @@ if (!admin.apps.length) {
 const db = admin.firestore();
 
 /**
+ * Get rank tier from rank string (duplicated from lib/constants/rank-timing.ts for cloud function)
+ */
+function getRankTier(rank: string): string {
+  const rankLower = rank.toLowerCase();
+  if (rankLower.includes('bronze')) return 'bronze';
+  if (rankLower.includes('silver')) return 'silver';
+  if (rankLower.includes('gold')) return 'gold';
+  if (rankLower.includes('platinum')) return 'platinum';
+  if (rankLower.includes('diamond')) return 'diamond';
+  if (rankLower.includes('master') || rankLower.includes('grand')) return 'master';
+  return 'silver'; // Default
+}
+
+/**
+ * Get phase duration for rank and phase (duplicated from lib/constants/rank-timing.ts)
+ */
+function getRankPhaseDuration(rank: string, phase: number): number {
+  const tier = getRankTier(rank);
+  
+  const RANK_TIMING: Record<string, { phase1: number; phase2: number; phase3: number }> = {
+    bronze: { phase1: 180, phase2: 150, phase3: 150 },
+    silver: { phase1: 240, phase2: 180, phase3: 180 },
+    gold: { phase1: 300, phase2: 210, phase3: 210 },
+    platinum: { phase1: 360, phase2: 240, phase3: 240 },
+    diamond: { phase1: 360, phase2: 240, phase3: 240 },
+    master: { phase1: 360, phase2: 240, phase3: 240 },
+  };
+  
+  const config = RANK_TIMING[tier] || RANK_TIMING.silver;
+  
+  switch (phase) {
+    case 1: return config.phase1;
+    case 2: return config.phase2;
+    case 3: return config.phase3;
+    default: return 180; // Default fallback
+  }
+}
+
+/**
+ * Get average rank from session players (for rank-based timing)
+ */
+function getAverageRank(players: any): string | null {
+  const ranks: string[] = [];
+  
+  for (const [userId, player] of Object.entries(players as Record<string, any>)) {
+    if (player.rank && !player.isAI) {
+      ranks.push(player.rank);
+    }
+  }
+  
+  if (ranks.length === 0) return null;
+  
+  // Use median rank (middle value) for more stable timing
+  ranks.sort();
+  const medianIndex = Math.floor(ranks.length / 2);
+  return ranks[medianIndex];
+}
+
+/**
  * Firestore trigger: When a player submits a phase
  * - Check if all real players have submitted
  * - Trigger phase transition if all ready
@@ -80,6 +139,9 @@ async function transitionToNextPhase(
   const session = sessionDoc.data();
   if (!session) return;
   
+  // Get average rank for rank-based timing
+  const averageRank = getAverageRank(session.players);
+  
   // Determine next phase
   let nextPhase: number | null = null;
   const updates: any = {};
@@ -88,30 +150,40 @@ async function transitionToNextPhase(
     nextPhase = 2;
     const now = admin.firestore.Timestamp.now();
     
+    // Use rank-based duration if rank available, otherwise default
+    const phaseDuration = averageRank 
+      ? getRankPhaseDuration(averageRank, 2)
+      : 180; // Default 3 minutes
+    
     updates['config.phase'] = 2;
-    updates['config.phaseDuration'] = 90; // Phase 2 is 1.5 minutes (5 questions need time)
+    updates['config.phaseDuration'] = phaseDuration;
     updates['timing.phase2StartTime'] = now; // Use Timestamp.now() instead of serverTimestamp()
     updates['coordination.allPlayersReady'] = false;
     updates['coordination.readyCount'] = 0;
     updates['state'] = 'active';
     updates['updatedAt'] = now;
     
-    console.log('🔄 SESSION ORCHESTRATOR - Transitioning to phase 2 (90 seconds)...');
+    console.log(`🔄 SESSION ORCHESTRATOR - Transitioning to phase 2 (${phaseDuration}s / ${Math.round(phaseDuration/60)} min)${averageRank ? ` - Rank: ${averageRank}` : ' - Default'}`);
     console.log('🕐 SESSION ORCHESTRATOR - Phase 2 start time set to:', now.toMillis());
     
   } else if (currentPhase === 2) {
     nextPhase = 3;
     const now = admin.firestore.Timestamp.now();
     
+    // Use rank-based duration if rank available, otherwise default
+    const phaseDuration = averageRank 
+      ? getRankPhaseDuration(averageRank, 3)
+      : 240; // Default 4 minutes
+    
     updates['config.phase'] = 3;
-    updates['config.phaseDuration'] = 90; // Phase 3 is 1.5 minutes (matched to client)
+    updates['config.phaseDuration'] = phaseDuration;
     updates['timing.phase3StartTime'] = now; // Use Timestamp.now() instead of serverTimestamp()
     updates['coordination.allPlayersReady'] = false;
     updates['coordination.readyCount'] = 0;
     updates['state'] = 'active';
     updates['updatedAt'] = now;
     
-    console.log('🔄 SESSION ORCHESTRATOR - Transitioning to phase 3 (90 seconds)...');
+    console.log(`🔄 SESSION ORCHESTRATOR - Transitioning to phase 3 (${phaseDuration}s / ${Math.round(phaseDuration/60)} min)${averageRank ? ` - Rank: ${averageRank}` : ' - Default'}`);
     console.log('🕐 SESSION ORCHESTRATOR - Phase 3 start time set to:', now.toMillis());
     
   } else if (currentPhase === 3) {

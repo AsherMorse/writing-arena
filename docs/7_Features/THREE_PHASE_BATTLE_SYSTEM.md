@@ -11,7 +11,7 @@ Start Ranked Battle
       ↓
 ┌─────────────────────┐
 │  PHASE 1: WRITING   │
-│  (4 minutes)        │
+│  (5 minutes)        │
 │  Weight: 40%        │
 └─────────────────────┘
       ↓
@@ -37,7 +37,7 @@ Start Ranked Battle
 
 ### Phase 1: Writing (40% weight)
 **File:** `/app/ranked/session/page.tsx`
-**Duration:** 4 minutes (240 seconds)
+**Duration:** 5 minutes (300 seconds)
 
 - Players write an original response to a prompt
 - AI evaluates the writing quality
@@ -54,17 +54,15 @@ Start Ranked Battle
 **Duration:** 3 minutes (180 seconds)
 
 - Players are shown another player's writing (randomly assigned)
-- Must answer 5 evaluation questions:
-  1. Main idea clarity
-  2. Strengths of the writing
-  3. Areas for improvement
-  4. Organization quality
-  5. Engagement level
+- Must answer 3 targeted questions:
+  1. What is the main idea?
+  2. What is one strength?
+  3. What is one specific suggestion?
 
 - Feedback is evaluated based on:
-  - Specificity
-  - Constructiveness
-  - Completeness (all questions answered with 50+ chars)
+  - Specificity (quotes from text)
+  - Constructiveness (actionable suggestions)
+  - Completeness (all 3 questions answered thoroughly)
   - Helpfulness
 
 **Mock Data:** Feedback quality score based on whether all questions are completed
@@ -208,9 +206,9 @@ When replacing mock data with real functionality:
 To test the complete flow:
 1. Navigate to `/ranked`
 2. Select a mode and start matchmaking
-3. Complete Phase 1: Writing (or let timer expire)
-4. Complete Phase 2: Peer Feedback (answer all 5 questions)
-5. Complete Phase 3: Revision (make changes to your writing)
+3. Complete Phase 1: Writing (5 minutes, or let timer expire)
+4. Complete Phase 2: Peer Feedback (3 minutes, answer all 3 questions)
+5. Complete Phase 3: Revision (4 minutes, make changes to your writing)
 6. View comprehensive results with all phase scores
 
 ## Future Enhancements

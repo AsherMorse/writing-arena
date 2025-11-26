@@ -24,6 +24,7 @@ import {
   SessionPlayer,
   PlayerStatus,
 } from '../types/session';
+import { getRankPhaseDuration } from '../constants/scoring';
 
 export class SessionManager {
   private _sessionId: string | null = null;
@@ -208,15 +209,21 @@ export class SessionManager {
     sessionId: string,
     promptId: string,
     promptType: string,
-    phaseDuration: number
+    phaseDuration: number,
+    userRank?: string
   ): Promise<void> {
     const sessionRef = doc(db, 'sessions', sessionId);
+    
+    // Use rank-based duration if rank provided, otherwise use passed duration
+    const actualPhaseDuration = userRank 
+      ? getRankPhaseDuration(userRank, 1)
+      : phaseDuration;
     
     await updateDoc(sessionRef, {
       'state': 'active',
       'config.promptId': promptId,
       'config.promptType': promptType,
-      'config.phaseDuration': phaseDuration,
+      'config.phaseDuration': actualPhaseDuration,
       'timing.phase1StartTime': serverTimestamp(),
       updatedAt: serverTimestamp(),
     });

@@ -224,10 +224,11 @@ export function useCreateSession() {
       sessionId: string,
       promptId: string,
       promptType: string,
-      phaseDuration: number
+      phaseDuration: number,
+      userRank?: string
     ) => {
       try {
-        await sessionManager.startSession(sessionId, promptId, promptType, phaseDuration);
+        await sessionManager.startSession(sessionId, promptId, promptType, phaseDuration, userRank);
       } catch (err) {
         console.error('❌ HOOK - Failed to start session:', err);
         throw err;

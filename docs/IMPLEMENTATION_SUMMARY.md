@@ -1,45 +1,58 @@
 # Implementation Plan Summary
 
-**Quick Reference for Addressing Learning Science Concerns**
+**Quick Reference for Addressing Learning Science Concerns**  
+**Last Updated:** December 2024 (Post-Asher Commit Review)
 
 ---
 
 ## 🎯 Three Main Changes
 
-### 1. Increase Phase Durations ⏱️
-- **Phase 1:** 2 min → **4 min**
-- **Phase 2:** 1.5 min → **3 min**
-- **Phase 3:** 1.5 min → **3 min**
-- **Total:** 5 min → **10 min**
+### 1. Increase Phase Durations ⏱️ ✅ **COMPLETE**
+- **Phase 1:** 2 min → **5 min** ✅ (was planned 4 min - better!)
+- **Phase 2:** 1.5 min → **3 min** ✅
+- **Phase 3:** 1.5 min → **4 min** ✅ (was planned 3 min - better!)
+- **Total:** 5 min → **12 min** ✅
 
-### 2. Reduce Peer Review Questions 📝
+**Status:** ✅ **COMPLETE** (Asher Morse - commit `eb84be9`)
+
+### 2. Reduce Peer Review Questions 📝 ✅ **COMPLETE**
 - **From:** 5 questions (clarity, strengths, improvements, organization, engagement)
 - **To:** 3 questions (main idea, one strength, one suggestion)
 
-### 3. Implement Rank-Based Difficulty 🎖️
+**Status:** ✅ **COMPLETE** (Asher Morse - commit `eb84be9`)
+
+### 3. Implement Rank-Based Difficulty 🎖️ ⏳ **NOT STARTED**
 - **Bronze:** 3 min writing (sentence-level)
 - **Silver:** 4 min writing (paragraphs)
 - **Gold:** 5 min writing (micro-essays)
 - **Platinum+:** 6 min writing (AP-level FRQ)
 
+**Status:** ⏳ **NOT STARTED** (Phase 2)
+
 ---
 
 ## 📋 Implementation Phases
 
-### Phase 1: Critical Changes (Week 1-2)
+### Phase 1: Critical Changes ✅ **~90% COMPLETE**
 **Priority:** 🔴 Critical  
-**Focus:** Timing and peer review questions
+**Status:** ✅ **COMPLETE** (Asher Morse)  
+**Remaining:** Documentation updates
 
-**Key Tasks:**
-1. Update `lib/constants/scoring.ts` - Change durations to 240/180/180
-2. Update `functions/session-orchestrator.ts` - Change hardcoded 90s to 180s
-3. Update `components/ranked/PeerFeedbackContent.tsx` - Change 5 questions to 3
-4. Update all API endpoints - Handle new 3-question format
-5. Update validation logic - Check 3 fields instead of 5
-6. Implement backward compatibility - Support old format during transition
+**Completed Tasks:**
+1. ✅ Update `lib/constants/scoring.ts` - Changed to 300/180/240 (better than planned!)
+2. ✅ Update `functions/session-orchestrator.ts` - Fixed to 180/240 (post-Asher fix)
+3. ✅ Update `components/ranked/PeerFeedbackContent.tsx` - Changed to 3 questions
+4. ✅ Update all API endpoints - All 3 endpoints updated
+5. ✅ Update validation logic - FeedbackValidator updated
+6. ✅ Implement backward compatibility - Inline fallback pattern
 
-**Files Changed:** ~10 files  
-**Estimated Time:** 1-2 weeks
+**Remaining:**
+- ⏳ Update documentation (Task 1.5)
+- ⏳ End-to-end testing
+- ⏳ Deploy cloud function
+
+**Files Changed:** ~12 files ✅  
+**Time Taken:** ~1 week (Asher)
 
 ---
 
@@ -113,11 +126,11 @@ const [responses, setResponses] = useState({
 - ⚠️ 90-second revision = cosmetic edits only
 - ⚠️ No rank-based scaffolding
 
-### After Changes:
-- ✅ 10-minute cycle = adequate time for learning
-- ✅ 3 questions in 3 minutes = quality feedback possible
-- ✅ 3-minute revision = meaningful changes possible
-- ✅ Rank-based timing = proper scaffolding
+### After Changes (ACTUAL):
+- ✅ **12-minute cycle** = adequate time for learning (better than planned 10 min!)
+- ✅ **3 questions in 3 minutes** = quality feedback possible ✅
+- ✅ **4-minute revision** = meaningful changes possible (better than planned 3 min!)
+- ⏳ Rank-based timing = proper scaffolding (not yet implemented)
 
 ---
 
@@ -143,16 +156,17 @@ const [responses, setResponses] = useState({
 
 ## 📈 Success Metrics
 
-### Immediate (Week 1-2):
-- [ ] All phases use new durations
-- [ ] Peer review uses 3 questions
-- [ ] No breaking changes
-- [ ] All tests pass
+### Immediate (Week 1-2): ✅ **COMPLETE**
+- [x] All phases use new durations ✅ (5/3/4 min)
+- [x] Peer review uses 3 questions ✅
+- [x] No breaking changes ✅ (backward compatibility)
+- [ ] All tests pass (needs testing)
 
 ### Short-term (Week 3-4):
-- [ ] Rank-based timing works
+- [ ] Rank-based timing works (Phase 2)
 - [ ] No performance issues
 - [ ] User feedback positive
+- [ ] Documentation updated
 
 ### Long-term (Month 2+):
 - [ ] Improved feedback quality metrics

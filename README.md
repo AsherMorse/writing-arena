@@ -222,7 +222,7 @@ export function getPhase1WritingPrompt(...) {
 └─────────────────────────────────────────┘
               ↓
 ┌─────────────────────────────────────────┐
-│  PHASE 1: WRITING (2 min)              │
+│  PHASE 1: WRITING (5 min)              │
 │  - Write response to prompt             │
 │  - AI generates 4 opponent writings     │
 │  - Batch ranking: All 5 evaluated       │
@@ -230,16 +230,16 @@ export function getPhase1WritingPrompt(...) {
 └─────────────────────────────────────────┘
               ↓
 ┌─────────────────────────────────────────┐
-│  PHASE 2: PEER FEEDBACK (1.5 min)      │
+│  PHASE 2: PEER FEEDBACK (3 min)        │
 │  - Review assigned peer's writing       │
-│  - Answer 5 feedback questions          │
+│  - Answer 3 feedback questions          │
 │  - AI generates 4 opponent feedbacks    │
 │  - Batch ranking: All 5 evaluated       │
 │  - Weight: 30%                          │
 └─────────────────────────────────────────┘
               ↓
 ┌─────────────────────────────────────────┐
-│  PHASE 3: REVISION (1.5 min)           │
+│  PHASE 3: REVISION (4 min)             │
 │  - View original writing                │
 │  - See AI & peer feedback               │
 │  - Revise and improve                   │
