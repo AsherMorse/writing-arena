@@ -1,7 +1,7 @@
 'use client';
 
 import { useRouter, useParams, useSearchParams } from 'next/navigation';
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import WritingTipsModal from '@/components/shared/WritingTipsModal';
 import PhaseInstructions from '@/components/shared/PhaseInstructions';
 import RevisionChecklist from '@/components/shared/RevisionChecklist';
@@ -73,8 +73,9 @@ export default function RevisionContent() {
       try {
         const peerFeedbackData = await getPeerFeedbackResponses(matchId, user.uid);
         if (peerFeedbackData) setRealPeerFeedback(peerFeedbackData);
-      } catch (error) {}
-      finally { setLoadingPeerFeedback(false); }
+      } catch (error) {
+        console.error('❌ REVISION - Failed to fetch peer feedback:', error);
+      } finally { setLoadingPeerFeedback(false); }
     };
     fetchPeerFeedback();
   }, [user, matchId]);
@@ -139,7 +140,9 @@ export default function RevisionContent() {
         const aiRevisions = (await Promise.all(aiRevisionPromises)).filter(r => r !== null);
         const matchRef = doc(db, 'matchStates', matchId);
         await updateDoc(matchRef, { 'aiRevisions.phase3': aiRevisions });
-      } catch (error) {}
+      } catch (error) {
+        console.error('❌ REVISION - Failed to generate AI revisions:', error);
+      }
     };
     generateAIRevisions();
   }, [matchId, user, aiRevisionsGenerated]);
@@ -193,7 +196,9 @@ export default function RevisionContent() {
         const rankings = matchDoc.data()?.rankings?.phase3 || [];
         return rankings.find((r: any) => r.playerId === user?.uid);
       }
-    } catch (error) {}
+    } catch (error) {
+      console.error('❌ REVISION - Failed to get user ranking:', error);
+    }
     return null;
   };
 

@@ -111,7 +111,9 @@ export default function PeerFeedbackContent() {
         const aiFeedbacks = (await Promise.all(aiFeedbackPromises)).filter(f => f !== null);
         const matchRef = doc(db, 'matchStates', matchId);
         await updateDoc(matchRef, { 'aiFeedbacks.phase2': aiFeedbacks });
-      } catch (error) {}
+      } catch (error) {
+        console.error('❌ PEER FEEDBACK - Failed to generate AI feedback:', error);
+      }
     };
     
     generateAIFeedback();

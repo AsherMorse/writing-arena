@@ -47,7 +47,9 @@ export default function PhaseRankingsContent() {
         const phaseKey = `phase${phase}`;
         const rankings = matchState?.rankings?.[phaseKey];
         if (rankings && rankings.length > 0) setRealRankings(rankings);
-      } catch (error) {}
+      } catch (error) {
+        console.error('❌ PHASE RANKINGS - Failed to fetch rankings:', error);
+      }
     };
     fetchRankings();
   }, [matchId, phase]);

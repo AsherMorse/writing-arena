@@ -27,3 +27,11 @@ export function randomRevisionScore(): number {
   return randomScore(70, 25); // 70-95
 }
 
+/**
+ * Generate a random delay in milliseconds between min and max
+ * Useful for AI player submission delays
+ */
+export function randomDelay(minMs: number, maxMs: number): number {
+  return Math.round(minMs + Math.random() * (maxMs - minMs));
+}
+

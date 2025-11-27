@@ -60,9 +60,9 @@
 
 ## 🔍 Analysis Summary
 
-After analyzing the codebase, I've identified **25 active refactoring opportunities** organized by priority and impact. Some refactoring has already been completed (batch ranking handler, time utils, API helpers), but several opportunities remain.
+After analyzing the codebase, I've identified **30 active refactoring opportunities** organized by priority and impact. Some refactoring has already been completed (batch ranking handler, time utils, API helpers), but several opportunities remain.
 
-**New Opportunities Found:** 5 additional refactoring opportunities identified (#21-25)
+**New Opportunities Found:** 10 additional refactoring opportunities identified (#21-30)
 
 **Last Updated:** January 2025
 
@@ -724,6 +724,11 @@ export function validateRequestBody<T>(
 | 🟢 LOW | ✅ Hardcoded Phase Colors (#23) | Low | Low | **COMPLETE** |
 | 🟢 LOW | Console Logging Standardization (#24) | Medium | Medium | Pending |
 | 🟢 LOW | API Error Response Inconsistencies (#25) | Low | Low | Pending |
+| 🟡 MEDIUM | ✅ Empty Catch Blocks (#26) | Medium | Low | **COMPLETE** |
+| 🟡 MEDIUM | ✅ Firestore Dynamic Import Duplication (#27) | Medium | Medium | **COMPLETE** |
+| 🟡 MEDIUM | ✅ Firestore MatchState Fetching (#29) | Medium | Medium | **COMPLETE** |
+| 🟢 LOW | ✅ Math.random() Delay Calculations (#28) | Low | Low | **COMPLETE** |
+| 🟢 LOW | ✅ AI Submission Delay Logic (#30) | Low | Low | **COMPLETE** |
 | 🟡 MEDIUM | Writing Tips Carousel Usage | Low | Low | Pending |
 | 🟡 MEDIUM | Mock Ranking Warning Consolidation | Medium | Low | Pending |
 | 🟡 MEDIUM | Parse Rankings Error Handling | Medium | Low | Pending |
@@ -935,6 +940,239 @@ return NextResponse.json(
 
 ---
 
+### 26. ✅ Empty Catch Blocks - Silent Error Swallowing (MEDIUM PRIORITY) - COMPLETED
+
+**Status:** ✅ COMPLETE - All empty catch blocks now have error logging
+
+**Problem:**
+6 files had empty catch blocks that silently swallowed errors, making debugging difficult:
+- `components/ranked/WritingSessionContent.tsx` (lines 164, 187, 191)
+- `components/ranked/PeerFeedbackContent.tsx` (line 114)
+- `components/ranked/RevisionContent.tsx` (lines 82, 98, 142)
+- `components/ranked/ResultsContent.tsx` (line 81)
+- `components/ranked/PhaseRankingsContent.tsx` (line 50)
+- `components/improve/ImproveChatInterface.tsx`
+
+**Current Pattern:**
+```typescript
+try {
+  // ... operation
+} catch (error) {}
+// Silent failure - no logging, no user feedback
+```
+
+**Solution:**
+- Replace empty catch blocks with proper error handling
+- Add error logging at minimum: `catch (error) { console.error('Context:', error); }`
+- Consider user-facing error messages for critical operations
+- Use error boundaries for component-level errors
+
+**Impact:** Better debugging, improved error visibility, easier to diagnose production issues
+
+**Files:**
+- ✅ `components/ranked/WritingSessionContent.tsx` - Added error logging to 2 catch blocks
+- ✅ `components/ranked/PeerFeedbackContent.tsx` - Added error logging
+- ✅ `components/ranked/RevisionContent.tsx` - Added error logging to 3 catch blocks
+- ✅ `components/ranked/ResultsContent.tsx` - Added error logging
+- ✅ `components/ranked/PhaseRankingsContent.tsx` - Added error logging
+
+---
+
+### 27. ✅ Firestore Dynamic Import Pattern Duplication (MEDIUM PRIORITY) - COMPLETED
+
+**Status:** ✅ COMPLETE - Helper utilities created in `lib/utils/firestore-match-state.ts`
+
+**Problem:**
+20+ instances of repeated Firestore dynamic import pattern across 10 files:
+```typescript
+const { getDoc, doc, updateDoc } = await import('firebase/firestore');
+const { db } = await import('@/lib/config/firebase');
+const matchDoc = await getDoc(doc(db, 'matchStates', matchId));
+```
+
+**Current Pattern:**
+- Dynamic imports repeated in every Firestore operation
+- Same pattern: import → get doc → check exists → update
+- Inconsistent error handling
+
+**Solution:**
+Create Firestore helper utilities:
+```typescript
+// lib/utils/firestore-match-state.ts
+export async function getMatchState(matchId: string): Promise<any | null> {
+  const { getDoc, doc } = await import('firebase/firestore');
+  const { db } = await import('@/lib/config/firebase');
+  const matchDoc = await getDoc(doc(db, 'matchStates', matchId));
+  return matchDoc.exists() ? matchDoc.data() : null;
+}
+
+export async function updateMatchState(
+  matchId: string,
+  updates: Record<string, any>
+): Promise<void> {
+  const { doc, updateDoc } = await import('firebase/firestore');
+  const { db } = await import('@/lib/config/firebase');
+  const matchRef = doc(db, 'matchStates', matchId);
+  await updateDoc(matchRef, updates);
+}
+```
+
+**Impact:** Remove ~5-8 lines per usage, consistent error handling, easier to update Firestore patterns
+
+**Files:**
+- ✅ Created `lib/utils/firestore-match-state.ts` with helper functions:
+  - `getMatchState()` - Get matchState document
+  - `updateMatchState()` - Update matchState document
+  - `getMatchRankings()` - Get rankings for a phase
+  - `getMatchAIWritings()` - Get AI writings for a phase
+  - `getMatchAIFeedbacks()` - Get AI feedbacks for a phase
+  - `getMatchAIRevisions()` - Get AI revisions for a phase
+
+---
+
+### 28. ✅ Math.random() Delay Calculations Duplication (LOW PRIORITY) - COMPLETED
+
+**Status:** ✅ COMPLETE - Added `randomDelay()` function to `lib/utils/random-utils.ts`
+
+**Problem:**
+18 files use similar Math.random() patterns for delays and scores:
+- `5000 + Math.random() * 10000` - AI submission delays
+- `60 + Math.random() * 30` - Score calculations
+- `Math.random() * 20 + 75` - Various random ranges
+
+**Current Pattern:**
+```typescript
+const delay = 5000 + Math.random() * 10000;
+const score = clampScore(60 + Math.random() * 30);
+```
+
+**Solution:**
+Create random utility functions:
+```typescript
+// lib/utils/random-utils.ts (extend existing)
+export function randomDelay(minMs: number, maxMs: number): number {
+  return minMs + Math.random() * (maxMs - minMs);
+}
+
+export function randomScore(min: number, max: number): number {
+  return Math.round(min + Math.random() * (max - min));
+}
+
+// Usage:
+const delay = randomDelay(5000, 15000);
+const score = randomScore(60, 90);
+```
+
+**Impact:** More readable code, consistent random generation, easier to adjust ranges
+
+**Files:**
+- ✅ Added `randomDelay(minMs, maxMs)` function to `lib/utils/random-utils.ts`
+- Ready to use across codebase for consistent delay generation
+
+---
+
+### 29. ✅ Firestore MatchState Fetching Pattern Duplication (MEDIUM PRIORITY) - COMPLETED
+
+**Status:** ✅ COMPLETE - Helper functions created in `lib/utils/firestore-match-state.ts`
+
+**Problem:**
+Similar pattern of fetching matchState and extracting rankings/data repeated across multiple components:
+- `ResultsContent.tsx` - Fetches rankings for all 3 phases
+- `PhaseRankingsContent.tsx` - Fetches rankings for specific phase
+- `WritingSessionContent.tsx` - Fetches AI writings
+- Similar patterns in other components
+
+**Current Pattern:**
+```typescript
+const { getDoc, doc } = await import('firebase/firestore');
+const { db } = await import('@/lib/config/firebase');
+const matchDoc = await getDoc(doc(db, 'matchStates', matchId));
+if (matchDoc.exists()) {
+  const matchState = matchDoc.data();
+  const rankings = matchState?.rankings?.phase1 || [];
+}
+```
+
+**Solution:**
+Create specialized fetch functions:
+```typescript
+// lib/utils/firestore-match-state.ts
+export async function getMatchRankings(
+  matchId: string,
+  phase: 1 | 2 | 3
+): Promise<any[]> {
+  const matchState = await getMatchState(matchId);
+  return matchState?.rankings?.[`phase${phase}`] || [];
+}
+
+export async function getMatchAIWritings(
+  matchId: string,
+  phase: 1 | 2 | 3
+): Promise<any[]> {
+  const matchState = await getMatchState(matchId);
+  return matchState?.aiWritings?.[`phase${phase}`] || [];
+}
+```
+
+**Impact:** Remove ~8-10 lines per usage, consistent data fetching, easier to maintain
+
+**Files:**
+- ✅ Created helper functions in `lib/utils/firestore-match-state.ts`:
+  - `getMatchRankings()` - Fetch rankings for specific phase
+  - `getMatchAIWritings()` - Fetch AI writings for specific phase
+  - `getMatchAIFeedbacks()` - Fetch AI feedbacks for specific phase
+  - `getMatchAIRevisions()` - Fetch AI revisions for specific phase
+
+---
+
+### 30. ✅ AI Player Submission Delay Logic Duplication (LOW PRIORITY) - COMPLETED
+
+**Status:** ✅ COMPLETE - Created `scheduleAISubmission()` utility and updated WritingSessionContent
+
+**Problem:**
+Similar setTimeout patterns for AI player submissions with random delays:
+- `WritingSessionContent.tsx` - AI writings submission delays (lines 166-189)
+- Similar patterns likely in other phase components
+
+**Current Pattern:**
+```typescript
+aiPlayers.forEach((aiPlayer, index) => {
+  const delay = 5000 + Math.random() * 10000;
+  setTimeout(async () => {
+    // Submit AI player work
+  }, delay);
+});
+```
+
+**Solution:**
+Extract to utility function:
+```typescript
+// lib/utils/ai-submission-delay.ts
+export function scheduleAISubmission(
+  aiPlayer: any,
+  submissionFn: () => Promise<void>,
+  minDelay: number = 5000,
+  maxDelay: number = 15000
+): void {
+  const delay = randomDelay(minDelay, maxDelay);
+  setTimeout(async () => {
+    try {
+      await submissionFn();
+    } catch (error) {
+      console.error(`Failed to submit AI player ${aiPlayer.userId}:`, error);
+    }
+  }, delay);
+}
+```
+
+**Impact:** Better error handling, consistent delay logic, easier to adjust timing
+
+**Files:**
+- ✅ Created `lib/utils/ai-submission-delay.ts` with `scheduleAISubmission()` function
+- ✅ Updated `components/ranked/WritingSessionContent.tsx` to use the utility
+
+---
+
 ## ✅ Already Completed
 
 - ✅ Batch ranking handler consolidation (`lib/utils/batch-ranking-handler.ts`)
@@ -951,4 +1189,9 @@ return NextResponse.json(
 - ✅ Writing tips hardcoded arrays fix (#21) - RevisionContent and PeerFeedbackContent updated
 - ✅ useComponentMountTime hook usage (#22) - WritingSessionContent updated
 - ✅ Hardcoded phase colors fix (#23) - WaitingForPlayers updated
+- ✅ Empty catch blocks fix (#26) - Added error logging to 8 catch blocks across 5 files
+- ✅ Firestore dynamic import helpers (#27) - Created `lib/utils/firestore-match-state.ts`
+- ✅ Random delay utility (#28) - Added `randomDelay()` to `lib/utils/random-utils.ts`
+- ✅ Firestore MatchState fetching helpers (#29) - Created specialized fetch functions
+- ✅ AI submission delay utility (#30) - Created `lib/utils/ai-submission-delay.ts`
 

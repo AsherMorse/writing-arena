@@ -24,6 +24,7 @@ import { useDebounce } from '@/lib/hooks/useDebounce';
 import { useBatchRankingSubmission } from '@/lib/hooks/useBatchRankingSubmission';
 import { validateWritingSubmission } from '@/lib/utils/submission-validation';
 import { useComponentMountTime } from '@/lib/hooks/useComponentMountTime';
+import { scheduleAISubmission } from '@/lib/utils/ai-submission-delay';
 import WritingTimer from './WritingTimer';
 import WritingEditor from './WritingEditor';
 import WritingTipsCarousel from './WritingTipsCarousel';
@@ -161,13 +162,14 @@ export default function WritingSessionContent() {
           } else {
             await setDoc(matchRef, { matchId: sessionMatchId || sessionId, aiWritings: { phase1: aiWritings } }, { merge: true });
           }
-        } catch (saveError) {}
+        } catch (saveError) {
+          console.error('❌ WRITING SESSION - Failed to save AI writings to Firestore:', saveError);
+        }
         
-        aiPlayers.forEach((aiPlayer, index) => {
-          const delay = 5000 + Math.random() * 10000;
-          
-          setTimeout(async () => {
-            try {
+        aiPlayers.forEach((aiPlayer) => {
+          scheduleAISubmission(
+            aiPlayer,
+            async () => {
               const aiWriting = aiWritings.find(w => w.playerId === aiPlayer.userId);
               if (!aiWriting) return;
               
@@ -184,8 +186,10 @@ export default function WritingSessionContent() {
                 },
                 updatedAt: serverTimestamp(),
               });
-            } catch (error) {}
-          }, delay);
+            },
+            5000,
+            15000
+          );
         });
         
       } catch (error) {

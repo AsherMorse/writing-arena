@@ -78,7 +78,9 @@ export default function ResultsContent({ session }: ResultsContentProps = {}) {
               realPhase2Rankings = matchState?.rankings?.phase2 || [];
               realPhase3Rankings = matchState?.rankings?.phase3 || [];
             }
-          } catch (error) {}
+          } catch (error) {
+            console.error('❌ RESULTS - Failed to fetch match rankings:', error);
+          }
         }
         
         const yourCompositeScore = calculateCompositeScore(writingScore, feedbackScore, revisionScore);
