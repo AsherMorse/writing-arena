@@ -15,11 +15,8 @@ import { useAutoSubmit } from '@/lib/hooks/useAutoSubmit';
 import { getAssignedPeer } from '@/lib/services/match-sync';
 import { formatTime, getTimeColor, getTimeProgressColor } from '@/lib/utils/time-utils';
 import { SCORING, getDefaultScore, TIMING } from '@/lib/constants/scoring';
-import { getPhaseDuration } from '@/lib/constants/rank-timing';
 import { getPhaseTimeColor } from '@/lib/utils/phase-colors';
 import { usePastePrevention } from '@/lib/hooks/usePastePrevention';
-import { db } from '@/lib/config/firebase';
-import { doc, updateDoc } from 'firebase/firestore';
 import { retryWithBackoff } from '@/lib/utils/retry';
 import { isFormComplete } from '@/lib/utils/validation';
 import { LoadingState } from '@/components/shared/LoadingState';
@@ -72,25 +69,6 @@ export default function PeerFeedbackContent() {
   const [responses, setResponses] = useState({ mainIdea: '', strength: '', suggestion: '' });
   const [showRubric, setShowRubric] = useState(true);
   const [showExamples, setShowExamples] = useState(true);
-
-  // Fix incorrect phase duration set by Cloud Function
-  useEffect(() => {
-    if (!session || !user || !userProfile || !sessionId) return;
-    
-    const currentPhase = session.config.phase;
-    const currentDuration = session.config.phaseDuration;
-    const expectedDuration = getPhaseDuration(userProfile.currentRank || 'Silver III', currentPhase);
-    
-    // If Cloud Function set wrong duration (90s instead of rank-based), fix it
-    if (currentDuration !== expectedDuration) {
-      console.warn(`⚠️ Phase ${currentPhase} duration mismatch: ${currentDuration}s (actual) vs ${expectedDuration}s (expected). Fixing...`);
-      
-      const sessionRef = doc(db, 'sessions', sessionId);
-      updateDoc(sessionRef, {
-        'config.phaseDuration': expectedDuration
-      }).catch(err => console.error('Failed to fix duration:', err));
-    }
-  }, [session?.config.phase, session?.config.phaseDuration, userProfile?.currentRank, sessionId, user, userProfile]);
 
   useEffect(() => {
     const generateAIFeedback = async () => {

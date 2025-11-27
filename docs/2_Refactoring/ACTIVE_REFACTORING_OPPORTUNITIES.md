@@ -51,6 +51,13 @@
 - ✅ Build passes successfully
 - **Impact:** Removed ~90 lines of duplicate code, consistent UI, easier to update design
 
+### Phase Duration Fix - Root Cause Resolution
+- ✅ Fixed `lib/services/phase-transition.ts` to use rank-based durations instead of hardcoded defaults
+- ✅ Added `getAverageRank()` helper to calculate median rank from session players
+- ✅ Removed unnecessary defensive code from `WritingSessionContent.tsx`, `RevisionContent.tsx`, and `PeerFeedbackContent.tsx`
+- ✅ Removed incorrect "Cloud Function" comments - issue was in client-side code, not cloud functions
+- **Impact:** Fixed root cause of incorrect phase durations, removed ~70 lines of unnecessary defensive code, proper rank-based timing now works correctly
+
 ## 🔍 Analysis Summary
 
 After analyzing the codebase, I've identified **20 active refactoring opportunities** organized by priority and impact. Some refactoring has already been completed (batch ranking handler, time utils, API helpers), but several opportunities remain.

@@ -1,7 +1,7 @@
 import { doc, getDoc, updateDoc, runTransaction, serverTimestamp, Timestamp } from 'firebase/firestore';
 import { db } from '@/lib/config/firebase';
 import { GameSession, Phase } from '@/lib/types/session';
-import { SCORING } from '@/lib/constants/scoring';
+import { SCORING, getRankPhaseDuration } from '@/lib/constants/scoring';
 
 function allPlayersSubmitted(session: GameSession, phase: Phase): boolean {
   const allPlayers = Object.values(session.players || {});
@@ -15,6 +15,27 @@ function allPlayersSubmitted(session: GameSession, phase: Phase): boolean {
   ).length;
   
   return submittedCount === realPlayers.length;
+}
+
+/**
+ * Get average rank from session players (median of real players' ranks)
+ * Used for rank-based phase duration calculation
+ */
+function getAverageRank(players: Record<string, any>): string | null {
+  const ranks: string[] = [];
+  
+  for (const [userId, player] of Object.entries(players)) {
+    if (player.rank && !player.isAI) {
+      ranks.push(player.rank);
+    }
+  }
+  
+  if (ranks.length === 0) return null;
+  
+  // Use median rank (middle value) for more stable timing
+  ranks.sort();
+  const medianIndex = Math.floor(ranks.length / 2);
+  return ranks[medianIndex];
 }
 
 export async function transitionToNextPhase(
@@ -40,13 +61,21 @@ export async function transitionToNextPhase(
         return false;
       }
       
+      // Get average rank for rank-based timing
+      const averageRank = getAverageRank(session.players || {});
+      
       let nextPhase: Phase | null = null;
       const updates: Record<string, any> = {};
       
       if (currentPhase === 1) {
         nextPhase = 2;
+        // Use rank-based duration if rank available, otherwise default
+        const phaseDuration = averageRank 
+          ? getRankPhaseDuration(averageRank, 2)
+          : SCORING.PHASE2_DURATION;
+        
         updates['config.phase'] = 2;
-        updates['config.phaseDuration'] = SCORING.PHASE2_DURATION;
+        updates['config.phaseDuration'] = phaseDuration;
         updates['timing.phase2StartTime'] = serverTimestamp();
         updates['coordination.allPlayersReady'] = false;
         updates['coordination.readyCount'] = 0;
@@ -54,8 +83,13 @@ export async function transitionToNextPhase(
         
       } else if (currentPhase === 2) {
         nextPhase = 3;
+        // Use rank-based duration if rank available, otherwise default
+        const phaseDuration = averageRank 
+          ? getRankPhaseDuration(averageRank, 3)
+          : SCORING.PHASE3_DURATION;
+        
         updates['config.phase'] = 3;
-        updates['config.phaseDuration'] = SCORING.PHASE3_DURATION;
+        updates['config.phaseDuration'] = phaseDuration;
         updates['timing.phase3StartTime'] = serverTimestamp();
         updates['coordination.allPlayersReady'] = false;
         updates['coordination.readyCount'] = 0;
