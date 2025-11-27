@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { UserProfile } from '@/lib/types';
+import { getPhaseColor } from '@/lib/constants/colors';
 
 interface RankedLandingProps {
   userProfile: UserProfile;
@@ -141,9 +142,9 @@ export default function RankedLanding({ userProfile }: RankedLandingProps) {
               </div>
               <div className="space-y-3">
                 {[
-                  { phase: 'Draft', time: '4 min', desc: 'Respond to the prompt', color: '#00e5e5' },
-                  { phase: 'Feedback', time: '3 min', desc: 'Score a peer submission', color: '#ff5f8f' },
-                  { phase: 'Revision', time: '2 min', desc: 'Refine your draft', color: '#00d492' },
+                  { phase: 'Draft', time: '4 min', desc: 'Respond to the prompt', color: getPhaseColor(1) },
+                  { phase: 'Feedback', time: '3 min', desc: 'Score a peer submission', color: getPhaseColor(2) },
+                  { phase: 'Revision', time: '2 min', desc: 'Refine your draft', color: getPhaseColor(3) },
                 ].map((item, index) => (
                   <div
                     key={item.phase}

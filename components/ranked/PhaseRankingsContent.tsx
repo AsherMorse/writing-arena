@@ -3,6 +3,7 @@
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useState, useEffect, useMemo, Suspense } from 'react';
 import { getMedalEmoji } from '@/lib/utils/rank-utils';
+import { getPhaseColor } from '@/lib/constants/colors';
 
 export default function PhaseRankingsContent() {
   const router = useRouter();
@@ -77,8 +78,8 @@ export default function PhaseRankingsContent() {
   const yourRank = rankings.find(p => p.isYou)?.position || 5;
   
   const phaseInfo = {
-    1: { title: 'Phase 1 Complete: Writing', icon: '📝', nextPhase: 'Peer Feedback', color: '#00e5e5' },
-    2: { title: 'Phase 2 Complete: Peer Feedback', icon: '🔍', nextPhase: 'Revision', color: '#ff5f8f' },
+    1: { title: 'Phase 1 Complete: Writing', icon: '📝', nextPhase: 'Peer Feedback', color: getPhaseColor(1) },
+    2: { title: 'Phase 2 Complete: Peer Feedback', icon: '🔍', nextPhase: 'Revision', color: getPhaseColor(2) },
   };
   
   const currentPhaseInfo = phaseInfo[phase as keyof typeof phaseInfo] || phaseInfo[1];

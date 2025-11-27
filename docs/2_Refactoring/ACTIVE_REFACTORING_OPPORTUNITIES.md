@@ -21,9 +21,41 @@
 - ✅ Refactored `MatchmakingContent.tsx` - Reduced from 740 to 508 lines (~31% reduction)
 - **Impact:** Better maintainability, clearer separation of concerns
 
+### Component Mount Time Hook
+- ✅ Created `lib/hooks/useComponentMountTime.ts` - Reusable hook for tracking component mount time
+- ✅ Updated `WritingSessionContent.tsx`, `RevisionContent.tsx`, and `PeerFeedbackContent.tsx` to use hook
+- **Impact:** Removed ~10 lines per component, consistent pattern, easier to test
+
+### Writing Tips Consolidation (Complete)
+- ✅ Updated `RevisionContent.tsx` to use `WRITING_TIPS_WITH_CONCLUSIONS` constant
+- ✅ Updated `PeerFeedbackContent.tsx` to use `WRITING_TIPS_WITH_CONCLUSIONS` constant
+- ✅ Removed duplicate inline arrays (~8 lines per component)
+- **Impact:** Single source of truth, removed ~16 lines of duplicate code
+
+### Phase Color Constants (Partial)
+- ✅ Added `getPhaseColor()` and `getPhaseColorByName()` helper functions to `lib/constants/colors.ts`
+- ✅ Updated `ResultsContent.tsx` to use `getPhaseColorByName()` instead of hardcoded ternary
+- ✅ Updated `PhaseRankingsContent.tsx` to use `getPhaseColor()` for phase info colors
+- ✅ Updated `RankedLanding.tsx` to use `getPhaseColor()` for phase timeline colors
+- **Impact:** Replaced hardcoded phase colors in key components, easier to maintain theme
+- **Note:** Many hardcoded color values still exist in inline styles/Tailwind classes - can be addressed incrementally
+
+### Ranking Modal Component
+- ✅ Created `components/shared/RankingModal.tsx` - Reusable ranking modal component
+- ✅ Created `components/shared/PhaseWritingTipsCarousel.tsx` - Phase-specific tips carousel
+- ✅ Updated `WritingSessionContent.tsx` to use RankingModal
+- ✅ Updated `RevisionContent.tsx` to use RankingModal
+- ✅ Updated `PeerFeedbackContent.tsx` to use RankingModal
+- ✅ Fixed TypeScript type issue in `ResultsContent.tsx` (expandedPhase type)
+- ✅ Removed duplicate modal code (~30 lines per component)
+- ✅ Build passes successfully
+- **Impact:** Removed ~90 lines of duplicate code, consistent UI, easier to update design
+
 ## 🔍 Analysis Summary
 
-After analyzing the codebase, I've identified **12 active refactoring opportunities** organized by priority and impact. Some refactoring has already been completed (batch ranking handler, time utils, API helpers), but several opportunities remain.
+After analyzing the codebase, I've identified **20 active refactoring opportunities** organized by priority and impact. Some refactoring has already been completed (batch ranking handler, time utils, API helpers), but several opportunities remain.
+
+**Last Updated:** December 2024
 
 ---
 
@@ -54,26 +86,27 @@ Break into smaller components:
 
 ---
 
-### 2. Large Component: WritingSessionContent.tsx (593 lines)
+### 2. Large Component: WritingSessionContent.tsx (510 lines) - PARTIALLY REFACTORED
+
+**Status:** Already has some sub-components extracted (`WritingTimer`, `WritingEditor`, `WritingTipsCarousel`, `AIGenerationProgress`)
 
 **Problem:**
-`components/ranked/WritingSessionContent.tsx` is 593 lines with multiple responsibilities:
-- Writing editor
-- Timer display
-- AI content generation
-- Submission logic
-- Phase transition monitoring
+`components/ranked/WritingSessionContent.tsx` is still 510 lines with multiple responsibilities:
+- AI content generation logic (complex useEffect with Firestore operations)
+- Session state management
+- Submission orchestration
 - Planning phase UI
+- Squad member display logic
 
 **Solution:**
-Extract sub-components:
-- `WritingEditor.tsx` - Textarea with paste prevention
-- `WritingTimer.tsx` - Timer display with color coding
-- `WritingTips.tsx` - Tips carousel sidebar
-- `AIGenerationProgress.tsx` - AI writing generation UI
+Extract additional sub-components/hooks:
+- `useAIGeneration.ts` - Hook for AI writing generation logic (lines 75-197)
+- `useSquadMembers.ts` - Hook for squad member data transformation (lines 311-323)
+- `PlanningPhaseWrapper.tsx` - Planning phase UI component
+- `SquadDisplay.tsx` - Squad member list component
 - `WritingSessionContent.tsx` - Orchestrates sub-components
 
-**Impact:** Better maintainability, easier to test individual features
+**Impact:** Better maintainability, easier to test individual features, reduce component complexity
 
 **Files:**
 - `components/ranked/WritingSessionContent.tsx`
@@ -262,30 +295,35 @@ export function parseRankingsWithFallback<TSubmission, TRanking>(
 
 ---
 
-### 9. Writing Tips Data Consolidation
+### 9. ✅ Writing Tips Data Consolidation - COMPLETED
+
+**Status:** ✅ COMPLETE - All components now use constants
 
 **Problem:**
-Writing tips/concepts arrays are duplicated across components:
-- `components/shared/WaitingForPlayers.tsx` - `writingConcepts` array
-- `components/ranked/WritingSessionContent.tsx` - `writingTips` array
-- Similar structure, potentially different content
+Writing tips arrays were duplicated in components:
+- `components/ranked/RevisionContent.tsx` - Lines 64-71 (inline `useMemo`)
+- `components/ranked/PeerFeedbackContent.tsx` - Lines 60-67 (inline `useMemo`)
+- Both had identical arrays that should use `WRITING_TIPS` constant
 
-**Solution:**
-Create centralized writing tips data:
+**Current Pattern:**
 ```typescript
-// lib/constants/writing-tips.ts
-export const WRITING_TIPS = [
+const writingTips = useMemo(() => [
   { name: 'Sentence Expansion', tip: '...', example: '...', icon: '🔗' },
   { name: 'Appositives', tip: '...', example: '...', icon: '✏️' },
   // ... etc
-] as const;
+], []);
 ```
 
-**Impact:** Single source of truth, easier to update tips
+**Solution:**
+- Import `WRITING_TIPS` from `lib/constants/writing-tips.ts`
+- Remove inline arrays from `RevisionContent.tsx` and `PeerFeedbackContent.tsx`
+- Ensure all components use the same source
+
+**Impact:** Single source of truth, easier to update tips, remove ~15 lines of duplicate code
 
 **Files:**
-- `components/shared/WaitingForPlayers.tsx`
-- `components/ranked/WritingSessionContent.tsx`
+- `components/ranked/RevisionContent.tsx` (lines 64-71)
+- `components/ranked/PeerFeedbackContent.tsx` (lines 60-67)
 
 ---
 
@@ -352,15 +390,333 @@ Magic numbers and strings might be scattered:
 
 ---
 
+### 13. ✅ Component Mount Time Tracking Pattern Duplication - COMPLETED
+
+**Status:** ✅ COMPLETE - Hook created and all components updated
+
+**Problem:**
+The same pattern for tracking component mount time is duplicated across 3 components:
+- `components/ranked/WritingSessionContent.tsx` (lines 282-301)
+- `components/ranked/RevisionContent.tsx` (lines 229-237)
+- `components/ranked/PeerFeedbackContent.tsx` (lines 202-214)
+
+**Current Pattern:**
+```typescript
+const componentMountedTimeRef = useRef<number | null>(null);
+useEffect(() => { 
+  if (componentMountedTimeRef.current === null) 
+    componentMountedTimeRef.current = Date.now(); 
+}, []);
+
+useEffect(() => {
+  const timeSinceMount = componentMountedTimeRef.current 
+    ? Date.now() - componentMountedTimeRef.current 
+    : Infinity;
+  const minPhaseAge = TIMING.MIN_PHASE_AGE;
+  // ... ranking modal logic
+}, [timeRemaining, hasSubmitted, ...]);
+```
+
+**Solution:**
+Create a custom hook:
+```typescript
+// lib/hooks/useComponentMountTime.ts
+export function useComponentMountTime() {
+  const mountedTimeRef = useRef<number | null>(null);
+  
+  useEffect(() => {
+    if (mountedTimeRef.current === null) {
+      mountedTimeRef.current = Date.now();
+    }
+  }, []);
+  
+  const getTimeSinceMount = useCallback(() => {
+    return mountedTimeRef.current 
+      ? Date.now() - mountedTimeRef.current 
+      : Infinity;
+  }, []);
+  
+  return { getTimeSinceMount };
+}
+```
+
+**Impact:** Remove ~10 lines per component, consistent pattern, easier to test
+
+**Files:**
+- `components/ranked/WritingSessionContent.tsx`
+- `components/ranked/RevisionContent.tsx`
+- `components/ranked/PeerFeedbackContent.tsx`
+
+---
+
+### 14. ✅ Ranking Modal Pattern Duplication - COMPLETED
+
+**Status:** ✅ COMPLETE - Reusable component created and all components updated
+
+**Problem:**
+Similar ranking modal UI and logic was duplicated across components:
+- `components/ranked/WritingSessionContent.tsx` (lines 350-369)
+- `components/ranked/RevisionContent.tsx` (lines 251-283)
+- `components/ranked/PeerFeedbackContent.tsx` (lines 229-261)
+
+**Current Pattern:**
+Each has similar modal with:
+- Animated emoji (📊 or ✨)
+- "Time's Up!" / "Calculating..." message
+- Writing tips carousel
+- Loading dots animation
+- Phase-specific colors
+
+**Solution:**
+Create reusable component:
+```typescript
+// components/shared/RankingModal.tsx
+interface RankingModalProps {
+  isOpen: boolean;
+  timeRemaining: number;
+  isSubmitting: boolean;
+  phase: 1 | 2 | 3;
+  variant?: 'writing' | 'feedback' | 'revision';
+}
+```
+
+**Impact:** Remove ~30 lines per component, consistent UI, easier to update design
+
+**Files:**
+- `components/ranked/WritingSessionContent.tsx`
+- `components/ranked/RevisionContent.tsx`
+- `components/ranked/PeerFeedbackContent.tsx`
+
+---
+
+### 15. AI Generation Pattern Duplication
+
+**Problem:**
+Similar AI content generation patterns in multiple components:
+- `components/ranked/WritingSessionContent.tsx` - AI writings generation (lines 75-197)
+- `components/ranked/PeerFeedbackContent.tsx` - AI feedback generation (lines 73-124)
+- `components/ranked/RevisionContent.tsx` - AI revisions generation (lines 112-151)
+
+**Common Patterns:**
+- Check if already generated (`aiXGenerated` state)
+- Fetch from Firestore `matchStates`
+- Generate via API calls
+- Store back to Firestore
+- Handle errors gracefully
+
+**Solution:**
+Create reusable hook:
+```typescript
+// lib/hooks/useAIContentGeneration.ts
+interface AIGenerationOptions<T> {
+  matchId: string;
+  firestoreKey: string; // e.g., 'aiWritings.phase1'
+  apiEndpoint: string;
+  generateFn: (player: any) => Promise<T>;
+  shouldGenerate: (matchState: any) => boolean;
+}
+
+export function useAIContentGeneration<T>(options: AIGenerationOptions<T>) {
+  // ... shared logic
+}
+```
+
+**Impact:** Remove ~50-80 lines per component, consistent error handling, easier to test
+
+**Files:**
+- `components/ranked/WritingSessionContent.tsx`
+- `components/ranked/PeerFeedbackContent.tsx`
+- `components/ranked/RevisionContent.tsx`
+
+---
+
+### 16. Firestore Match State Operations Duplication
+
+**Problem:**
+Similar Firestore operations for reading/updating match states:
+- Reading `matchStates` collection
+- Checking if document exists
+- Merging arrays (aiWritings, aiFeedbacks, aiRevisions)
+- Handling missing documents
+
+**Current Pattern:**
+```typescript
+const { getDoc, doc, updateDoc } = await import('firebase/firestore');
+const matchDoc = await getDoc(doc(db, 'matchStates', matchId));
+if (!matchDoc.exists()) return;
+const matchState = matchDoc.data();
+const currentArray = matchState?.aiWritings?.phase1 || [];
+// ... merge logic
+await updateDoc(matchRef, { 'aiWritings.phase1': mergedArray });
+```
+
+**Solution:**
+Create utility functions:
+```typescript
+// lib/utils/firestore-match-state.ts
+export async function getMatchState(matchId: string): Promise<MatchState | null>;
+export async function updateMatchStateArray(
+  matchId: string, 
+  key: string, 
+  items: any[], 
+  mergeFn?: (existing: any[], newItems: any[]) => any[]
+): Promise<void>;
+```
+
+**Impact:** Remove ~20 lines per usage, consistent error handling, easier to maintain
+
+**Files:**
+- `components/ranked/WritingSessionContent.tsx`
+- `components/ranked/PeerFeedbackContent.tsx`
+- `components/ranked/RevisionContent.tsx`
+- `app/api/generate-ai-writing/route.ts`
+
+---
+
+### 17. Writing Tips Carousel Logic Duplication
+
+**Problem:**
+Writing tips carousel logic duplicated in:
+- `components/ranked/RevisionContent.tsx` (lines 190, 260-275)
+- `components/ranked/PeerFeedbackContent.tsx` (lines 185-189, 238-253)
+
+Both use `useCarousel` hook but have inline carousel UI rendering.
+
+**Current Pattern:**
+```typescript
+const { currentIndex, goTo } = useCarousel({ items: writingTips, ... });
+// ... inline JSX for carousel display
+```
+
+**Solution:**
+Extract to reusable component (already exists as `WritingTipsCarousel.tsx` but not used in all places):
+- Use `WritingTipsCarousel` component in `RevisionContent.tsx` and `PeerFeedbackContent.tsx`
+- Remove inline carousel JSX
+
+**Impact:** Remove ~20 lines per component, consistent UI, easier to maintain
+
+**Files:**
+- `components/ranked/RevisionContent.tsx`
+- `components/ranked/PeerFeedbackContent.tsx`
+
+---
+
+### 18. ✅ Phase-Specific Color Constants - PARTIALLY COMPLETE
+
+**Status:** ✅ PARTIALLY COMPLETE - Key components updated, many inline styles remain
+
+**Problem:**
+Phase colors were hardcoded in multiple places:
+- `#00e5e5` (cyan) for Phase 1
+- `#ff5f8f` (pink) for Phase 2
+- `#00d492` (green) for Phase 3
+
+**Solution Implemented:**
+- ✅ Added `getPhaseColor()` and `getPhaseColorByName()` helper functions to `lib/constants/colors.ts`
+- ✅ Updated `ResultsContent.tsx` - replaced ternary with `getPhaseColorByName()`
+- ✅ Updated `PhaseRankingsContent.tsx` - replaced hardcoded colors in phaseInfo
+- ✅ Updated `RankedLanding.tsx` - replaced hardcoded colors in phase timeline
+
+**Remaining Work:**
+Many hardcoded color values still exist in:
+- Inline styles throughout components
+- Tailwind class names (e.g., `text-[#00e5e5]`)
+- Background/border colors in JSX
+
+**Impact:** Key phase color logic now uses constants, easier to maintain theme. Inline style replacements can be done incrementally.
+
+**Files Updated:**
+- `lib/constants/colors.ts` (added helpers)
+- `components/ranked/ResultsContent.tsx`
+- `components/ranked/PhaseRankingsContent.tsx`
+- `components/ranked/RankedLanding.tsx`
+
+---
+
+### 19. Results Content Score Calculation Logic
+
+**Problem:**
+`components/ranked/ResultsContent.tsx` has complex score calculation and AI player data transformation logic (lines 62-155) that could be extracted.
+
+**Current Pattern:**
+- Fetch rankings from Firestore
+- Transform AI player data
+- Calculate composite scores
+- Rank players
+- Calculate rewards
+
+**Solution:**
+Extract to utility/hook:
+```typescript
+// lib/utils/results-calculator.ts
+export function calculateMatchResults(
+  matchId: string,
+  userScores: { writing: number; feedback: number; revision: number }
+): Promise<MatchResults>;
+
+// lib/hooks/useMatchResults.ts
+export function useMatchResults(session: GameSession | null) {
+  // ... results calculation logic
+}
+```
+
+**Impact:** Reduce component complexity, easier to test, reusable logic
+
+**Files:**
+- `components/ranked/ResultsContent.tsx`
+
+---
+
+### 20. API Route Request Body Validation Pattern
+
+**Problem:**
+Similar request body validation patterns across API routes:
+- Check for required fields
+- Validate types
+- Return error responses
+
+**Current Pattern:**
+```typescript
+const { field1, field2 } = await request.json();
+if (!field1 || !field2) {
+  return NextResponse.json({ error: 'Missing fields' }, { status: 400 });
+}
+```
+
+**Solution:**
+Create validation utilities:
+```typescript
+// lib/utils/api-validation.ts
+export function validateRequestBody<T>(
+  body: any,
+  requiredFields: (keyof T)[]
+): { valid: true; data: T } | { valid: false; error: string };
+```
+
+**Impact:** Consistent validation, better error messages, less boilerplate
+
+**Files:**
+- All API route files
+
+---
+
 ## 📊 Summary
 
 | Priority | Opportunity | Impact | Effort | Status |
 |----------|------------|--------|--------|--------|
-| 🔴 HIGH | Large Component Splitting (5 components) | High | Medium | Pending |
+| 🔴 HIGH | Large Component Splitting (4 components) | High | Medium | Pending |
+| 🔴 HIGH | ✅ Component Mount Time Hook | Medium | Low | **COMPLETE** |
+| 🟡 MEDIUM | ✅ Ranking Modal Component | Medium | Medium | **COMPLETE** |
+| 🟡 MEDIUM | AI Generation Hook | High | Medium | Pending |
+| 🟡 MEDIUM | Firestore Match State Utils | Medium | Low | Pending |
+| 🟡 MEDIUM | ✅ Writing Tips Consolidation | Low | Low | **COMPLETE** |
+| 🟡 MEDIUM | Writing Tips Carousel Usage | Low | Low | Pending |
 | 🟡 MEDIUM | Mock Ranking Warning Consolidation | Medium | Low | Pending |
 | 🟡 MEDIUM | Parse Rankings Error Handling | Medium | Low | Pending |
 | 🟡 MEDIUM | formatTime Usage Audit | Low | Low | Pending |
-| 🟡 MEDIUM | Writing Tips Consolidation | Low | Low | Pending |
+| 🟢 LOW | ✅ Phase Color Constants | Low | Low | **PARTIAL** |
+| 🟢 LOW | Results Calculator Extraction | Medium | Medium | Pending |
+| 🟢 LOW | API Validation Utilities | Low | Low | Pending |
 | 🟢 LOW | Error Response Standardization | Low | Low | Pending |
 | 🟢 LOW | Component Props Type Consolidation | Low | Medium | Pending |
 | 🟢 LOW | Constants Consolidation | Low | Low | Pending |
@@ -369,10 +725,27 @@ Magic numbers and strings might be scattered:
 
 ## 🎯 Recommended Next Steps
 
-1. **Start with High Priority**: Break down large components one at a time
-2. **Quick Wins**: Consolidate mock ranking warnings and parse error handling
-3. **Audit**: Check formatTime usage and consolidate writing tips
-4. **Polish**: Standardize error responses and consolidate types/constants
+### Immediate Actions (Quick Wins)
+1. ✅ **Component Mount Time Hook** (#13) - **COMPLETE**
+2. ✅ **Writing Tips Consolidation** (#9) - **COMPLETE**
+3. ✅ **Phase Color Constants** (#18) - **PARTIALLY COMPLETE** (key components done, inline styles remain)
+
+### High Impact Refactoring
+4. ✅ **Ranking Modal Component** (#14) - **COMPLETE**
+5. **AI Generation Hook** (#15) - Will significantly reduce duplication
+6. **Firestore Match State Utils** (#16) - Common pattern across components
+
+### Component Splitting
+7. **Break down large components** (#2-5) - One at a time, start with smallest
+   - Start with `PeerFeedbackContent.tsx` (394 lines)
+   - Then `RevisionContent.tsx` (444 lines)
+   - Then `ResultsContent.tsx` (405 lines)
+   - Finally `WritingSessionContent.tsx` (510 lines, already partially refactored)
+
+### Polish & Consistency
+8. **API Validation Utilities** (#20) - Better error handling
+9. **Results Calculator Extraction** (#19) - Reduce complexity
+10. **Error Response Standardization** (#10) - Consistent API
 
 ---
 
@@ -385,4 +758,8 @@ Magic numbers and strings might be scattered:
 - ✅ Index parser utilities (`lib/utils/index-parser.ts`)
 - ✅ Score validation (`lib/utils/score-validation.ts`)
 - ✅ Paste prevention hook (`lib/hooks/usePastePrevention.ts`)
+- ✅ Component mount time hook (`lib/hooks/useComponentMountTime.ts`)
+- ✅ Writing tips consolidation (all components now use constants)
+- ✅ Ranking modal component (`components/shared/RankingModal.tsx`)
+- ✅ Phase writing tips carousel (`components/shared/PhaseWritingTipsCarousel.tsx`)
 

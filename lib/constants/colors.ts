@@ -50,6 +50,25 @@ export const PHASE_COLORS = {
 } as const;
 
 /**
+ * Get phase color by phase number
+ */
+export function getPhaseColor(phase: 1 | 2 | 3): string {
+  return PHASE_COLORS[phase];
+}
+
+/**
+ * Get phase color by phase name (for use in ResultsContent and similar)
+ */
+export function getPhaseColorByName(phaseName: 'writing' | 'feedback' | 'revision'): string {
+  const phaseMap = {
+    writing: PHASE_COLORS[1],
+    feedback: PHASE_COLORS[2],
+    revision: PHASE_COLORS[3],
+  };
+  return phaseMap[phaseName];
+}
+
+/**
  * Common color variants with opacity
  */
 export const COLOR_VARIANTS = {

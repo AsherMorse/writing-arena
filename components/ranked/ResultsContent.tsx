@@ -14,6 +14,7 @@ import { getMedalEmoji } from '@/lib/utils/rank-utils';
 import { rankPlayers, getPlayerRank } from '@/lib/utils/ranking-utils';
 import { useExpanded } from '@/lib/hooks/useExpanded';
 import { MOCK_PHASE_FEEDBACK } from '@/lib/utils/mock-data';
+import { getPhaseColorByName } from '@/lib/constants/colors';
 
 interface ResultsContentProps {
   session?: GameSession;
@@ -41,7 +42,7 @@ export default function ResultsContent({ session }: ResultsContentProps = {}) {
   
   const [isAnalyzing, setIsAnalyzing] = useState(true);
   const [results, setResults] = useState<any>(null);
-  const { expanded: expandedPhase, toggle: togglePhase, isExpanded } = useExpanded<string>('writing');
+  const { expanded: expandedPhase, toggle: togglePhase, isExpanded } = useExpanded<'writing' | 'feedback' | 'revision'>('writing');
   const [realFeedback, setRealFeedback] = useState<any>({ writing: null, feedback: null, revision: null });
 
   useEffect(() => {
@@ -238,7 +239,7 @@ export default function ResultsContent({ session }: ResultsContentProps = {}) {
             if (!nextSteps || nextSteps.length === 0) nextSteps = phaseFeedbackData?.specificFeedback ? Object.values(phaseFeedbackData.specificFeedback) : mockFeedback.writingRevConcepts;
             const traitFeedback = phaseFeedbackData?.traitFeedback || {};
             
-            const phaseColor = expandedPhase === 'writing' ? '#00e5e5' : expandedPhase === 'feedback' ? '#ff5f8f' : '#00d492';
+            const phaseColor = getPhaseColorByName(expandedPhase);
             
             return (
               <div className="animate-in fade-in slide-in-from-top rounded-[10px] border border-[rgba(255,255,255,0.1)] bg-[#101012] p-5">
