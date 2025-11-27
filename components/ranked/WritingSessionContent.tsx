@@ -23,6 +23,7 @@ import { ErrorState } from '@/components/shared/ErrorState';
 import { useDebounce } from '@/lib/hooks/useDebounce';
 import { useBatchRankingSubmission } from '@/lib/hooks/useBatchRankingSubmission';
 import { validateWritingSubmission } from '@/lib/utils/submission-validation';
+import { useComponentMountTime } from '@/lib/hooks/useComponentMountTime';
 import WritingTimer from './WritingTimer';
 import WritingEditor from './WritingEditor';
 import WritingTipsCarousel from './WritingTipsCarousel';
@@ -280,13 +281,10 @@ export default function WritingSessionContent() {
     isSessionReady: () => !!(session && sessionId && user?.uid),
   });
 
-  const componentMountedTimeRef = useRef<number | null>(null);
-  useEffect(() => {
-    if (componentMountedTimeRef.current === null) componentMountedTimeRef.current = Date.now();
-  }, []);
+  const { getTimeSinceMount } = useComponentMountTime();
 
   useEffect(() => {
-    const timeSinceMount = componentMountedTimeRef.current ? Date.now() - componentMountedTimeRef.current : Infinity;
+    const timeSinceMount = getTimeSinceMount();
     const minPhaseAge = TIMING.MIN_PHASE_AGE;
     
     if (isBatchSubmitting) {
@@ -299,7 +297,7 @@ export default function WritingSessionContent() {
     } else {
       setShowRankingModal(false);
     }
-  }, [timeRemaining, isBatchSubmitting, hasSubmitted, setShowRankingModal]);
+  }, [timeRemaining, isBatchSubmitting, hasSubmitted, setShowRankingModal, getTimeSinceMount]);
 
   if (isReconnecting || !session || !prompt) {
     return <LoadingState message={isReconnecting ? 'Reconnecting to session...' : 'Loading session...'} variant={isReconnecting ? 'reconnecting' : 'default'} />;

@@ -5,6 +5,7 @@ import { useCarousel } from '@/lib/hooks/useCarousel';
 import { formatTime } from '@/lib/utils/time-utils';
 import { TIMING } from '@/lib/constants/scoring';
 import { WRITING_TIPS } from '@/lib/constants/writing-tips';
+import { getPhaseColor } from '@/lib/constants/colors';
 
 interface WaitingForPlayersProps {
   phase: 1 | 2 | 3;
@@ -85,7 +86,6 @@ export default function WaitingForPlayers({
         }));
   
   const phaseNames = { 1: 'Writing', 2: 'Peer Feedback', 3: 'Revision' };
-  const phaseColors = { 1: '#00e5e5', 2: '#ff5f8f', 3: '#00d492' };
 
   const { currentIndex: currentConceptIndex, goTo: goToConcept } = useCarousel({
     items: WRITING_TIPS,
@@ -93,7 +93,7 @@ export default function WaitingForPlayers({
     autoPlay: true,
   });
   
-  const phaseColor = phaseColors[phase];
+  const phaseColor = getPhaseColor(phase);
   
   return (
     <div className="flex min-h-screen items-center justify-center bg-[#101012] px-6 py-10 text-[rgba(255,255,255,0.8)]">

@@ -60,9 +60,11 @@
 
 ## 🔍 Analysis Summary
 
-After analyzing the codebase, I've identified **20 active refactoring opportunities** organized by priority and impact. Some refactoring has already been completed (batch ranking handler, time utils, API helpers), but several opportunities remain.
+After analyzing the codebase, I've identified **25 active refactoring opportunities** organized by priority and impact. Some refactoring has already been completed (batch ranking handler, time utils, API helpers), but several opportunities remain.
 
-**Last Updated:** December 2024
+**New Opportunities Found:** 5 additional refactoring opportunities identified (#21-25)
+
+**Last Updated:** January 2025
 
 ---
 
@@ -717,6 +719,11 @@ export function validateRequestBody<T>(
 | 🟡 MEDIUM | AI Generation Hook | High | Medium | Pending |
 | 🟡 MEDIUM | Firestore Match State Utils | Medium | Low | Pending |
 | 🟡 MEDIUM | ✅ Writing Tips Consolidation | Low | Low | **COMPLETE** |
+| 🟡 MEDIUM | ✅ Writing Tips Still Hardcoded (#21) | Low | Low | **COMPLETE** |
+| 🟢 LOW | ✅ useComponentMountTime Not Used (#22) | Low | Low | **COMPLETE** |
+| 🟢 LOW | ✅ Hardcoded Phase Colors (#23) | Low | Low | **COMPLETE** |
+| 🟢 LOW | Console Logging Standardization (#24) | Medium | Medium | Pending |
+| 🟢 LOW | API Error Response Inconsistencies (#25) | Low | Low | Pending |
 | 🟡 MEDIUM | Writing Tips Carousel Usage | Low | Low | Pending |
 | 🟡 MEDIUM | Mock Ranking Warning Consolidation | Medium | Low | Pending |
 | 🟡 MEDIUM | Parse Rankings Error Handling | Medium | Low | Pending |
@@ -734,8 +741,10 @@ export function validateRequestBody<T>(
 
 ### Immediate Actions (Quick Wins)
 1. ✅ **Component Mount Time Hook** (#13) - **COMPLETE**
-2. ✅ **Writing Tips Consolidation** (#9) - **COMPLETE**
-3. ✅ **Phase Color Constants** (#18) - **PARTIALLY COMPLETE** (key components done, inline styles remain)
+2. ✅ **Writing Tips Consolidation** (#9, #21) - **COMPLETE** (all components now use constants)
+3. ✅ **Phase Color Constants** (#18, #23) - **MOSTLY COMPLETE** (key components done, some inline styles remain)
+4. ✅ **useComponentMountTime Usage** (#22) - **COMPLETE**
+5. ✅ **Hardcoded Phase Colors** (#23) - **COMPLETE**
 
 ### High Impact Refactoring
 4. ✅ **Ranking Modal Component** (#14) - **COMPLETE**
@@ -756,6 +765,176 @@ export function validateRequestBody<T>(
 
 ---
 
+## 🆕 NEWLY IDENTIFIED OPPORTUNITIES
+
+### 21. ✅ Writing Tips Still Hardcoded in Phase Components (MEDIUM PRIORITY) - COMPLETED
+
+**Status:** ✅ COMPLETE - Both components now use `WRITING_TIPS_WITH_CONCLUSIONS` constant
+
+**Problem:**
+Despite having `WRITING_TIPS_WITH_CONCLUSIONS` constant, two components still used hardcoded arrays:
+- `components/ranked/RevisionContent.tsx` (lines 64-71) - Hardcoded `useMemo` array
+- `components/ranked/PeerFeedbackContent.tsx` (lines 60-67) - Hardcoded `useMemo` array
+
+**Current Pattern:**
+```typescript
+const writingTips = useMemo(() => [
+  { name: 'Sentence Expansion', tip: '...', example: '...', icon: '🔗' },
+  // ... 6 hardcoded tips
+], []);
+```
+
+**Solution:**
+- Import `WRITING_TIPS_WITH_CONCLUSIONS` from `lib/constants/writing-tips.ts`
+- Replace hardcoded arrays with constant
+- Remove `useMemo` wrapper (constant doesn't need memoization)
+
+**Impact:** Remove ~8 lines per component, ensure consistency with other components, single source of truth
+
+**Files:**
+- ✅ `components/ranked/RevisionContent.tsx` - Updated to use `WRITING_TIPS_WITH_CONCLUSIONS`
+- ✅ `components/ranked/PeerFeedbackContent.tsx` - Updated to use `WRITING_TIPS_WITH_CONCLUSIONS`
+
+---
+
+### 22. ✅ useComponentMountTime Hook Not Used in WritingSessionContent (LOW PRIORITY) - COMPLETED
+
+**Status:** ✅ COMPLETE - WritingSessionContent now uses the hook
+
+**Problem:**
+`useComponentMountTime` hook existed but `WritingSessionContent.tsx` was still using the old inline pattern (lines 283-286, 289).
+
+**Current Pattern:**
+```typescript
+const componentMountedTimeRef = useRef<number | null>(null);
+useEffect(() => {
+  if (componentMountedTimeRef.current === null) componentMountedTimeRef.current = Date.now();
+}, []);
+
+useEffect(() => {
+  const timeSinceMount = componentMountedTimeRef.current ? Date.now() - componentMountedTimeRef.current : Infinity;
+  // ... rest of logic
+}, [timeRemaining, isBatchSubmitting, hasSubmitted, setShowRankingModal]);
+```
+
+**Solution:**
+- Import `useComponentMountTime` from `lib/hooks/useComponentMountTime.ts`
+- Replace ref + useEffect pattern with hook
+- Use `getTimeSinceMount()` in ranking modal logic
+
+**Impact:** Remove ~4 lines, consistent with other components, easier to maintain
+
+**Files:**
+- ✅ `components/ranked/WritingSessionContent.tsx` - Updated to use `useComponentMountTime` hook
+
+---
+
+### 23. ✅ Hardcoded Phase Colors in WaitingForPlayers (LOW PRIORITY) - COMPLETED
+
+**Status:** ✅ COMPLETE - WaitingForPlayers now uses `getPhaseColor()` helper
+
+**Problem:**
+`components/shared/WaitingForPlayers.tsx` had hardcoded phase colors (line 88) instead of using `getPhaseColor()` helper.
+
+**Current Pattern:**
+```typescript
+const phaseColors = { 1: '#00e5e5', 2: '#ff5f8f', 3: '#00d492' };
+const phaseColor = phaseColors[phase];
+```
+
+**Solution:**
+- Import `getPhaseColor` from `lib/constants/colors.ts`
+- Replace hardcoded object with `getPhaseColor(phase)`
+
+**Impact:** Consistent phase color usage, easier theme updates
+
+**Files:**
+- ✅ `components/shared/WaitingForPlayers.tsx` - Updated to use `getPhaseColor()` helper
+
+---
+
+### 24. Console Logging Standardization (LOW PRIORITY)
+
+**Problem:**
+550+ console.log/warn/error calls across 63 files with inconsistent patterns:
+- Some use emoji prefixes: `console.log('✅ ...')`, `console.error('❌ ...')`
+- Some use plain text: `console.log('...')`
+- Some use structured logging, others don't
+- No centralized logging utility
+
+**Current Patterns:**
+```typescript
+console.log('✅ IMPROVE CHAT - API key found');
+console.error('❌ IMPROVE CHAT - API key missing');
+console.warn('⚠️ WAITING - Failed to load party members');
+console.log('💬 IMPROVE CHAT - Request received:', {...});
+```
+
+**Solution:**
+Create centralized logging utility:
+```typescript
+// lib/utils/logger.ts
+export const logger = {
+  info: (context: string, message: string, data?: any) => {
+    console.log(`✅ ${context} - ${message}`, data || '');
+  },
+  error: (context: string, message: string, error?: any) => {
+    console.error(`❌ ${context} - ${message}`, error || '');
+  },
+  warn: (context: string, message: string, data?: any) => {
+    console.warn(`⚠️ ${context} - ${message}`, data || '');
+  },
+  debug: (context: string, message: string, data?: any) => {
+    if (process.env.NODE_ENV === 'development') {
+      console.log(`🔍 ${context} - ${message}`, data || '');
+    }
+  },
+};
+```
+
+**Impact:** Consistent logging format, easier to filter/search logs, can add log levels/environment filtering
+
+**Files:**
+- All files with console.log/warn/error (63 files)
+
+---
+
+### 25. API Error Response Inconsistencies (LOW PRIORITY)
+
+**Problem:**
+API routes handle errors inconsistently:
+- Some use `createErrorResponse()` from `lib/utils/api-responses.ts`
+- Others use `NextResponse.json({ error: ... }, { status: ... })` directly
+- Error message formats vary
+
+**Current Patterns:**
+```typescript
+// Pattern 1: Using utility
+return createErrorResponse('API key missing', 500);
+
+// Pattern 2: Direct NextResponse
+return NextResponse.json({ error: 'API key missing' }, { status: 500 });
+
+// Pattern 3: With details
+return NextResponse.json(
+  { error: 'Failed to rank submissions', details: error.message },
+  { status: 500 }
+);
+```
+
+**Solution:**
+- Audit all API routes for error handling
+- Standardize on `createErrorResponse()` utility
+- Extend utility to support optional `details` field if needed
+- Update all routes to use consistent pattern
+
+**Impact:** Consistent API error format, easier client-side error handling, better debugging
+
+**Files:**
+- All API route files in `app/api/`
+
+---
+
 ## ✅ Already Completed
 
 - ✅ Batch ranking handler consolidation (`lib/utils/batch-ranking-handler.ts`)
@@ -766,7 +945,10 @@ export function validateRequestBody<T>(
 - ✅ Score validation (`lib/utils/score-validation.ts`)
 - ✅ Paste prevention hook (`lib/hooks/usePastePrevention.ts`)
 - ✅ Component mount time hook (`lib/hooks/useComponentMountTime.ts`)
-- ✅ Writing tips consolidation (all components now use constants)
 - ✅ Ranking modal component (`components/shared/RankingModal.tsx`)
 - ✅ Phase writing tips carousel (`components/shared/PhaseWritingTipsCarousel.tsx`)
+- ✅ Writing tips consolidation - **COMPLETE** (all components now use `WRITING_TIPS_WITH_CONCLUSIONS` constant)
+- ✅ Writing tips hardcoded arrays fix (#21) - RevisionContent and PeerFeedbackContent updated
+- ✅ useComponentMountTime hook usage (#22) - WritingSessionContent updated
+- ✅ Hardcoded phase colors fix (#23) - WaitingForPlayers updated
 

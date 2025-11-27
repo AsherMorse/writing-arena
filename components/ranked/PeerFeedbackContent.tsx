@@ -1,7 +1,7 @@
 'use client';
 
 import { useRouter, useParams, useSearchParams } from 'next/navigation';
-import { useState, useEffect, useRef, useMemo } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import WritingTipsModal from '@/components/shared/WritingTipsModal';
 import PhaseInstructions from '@/components/shared/PhaseInstructions';
 import FeedbackValidator from '@/components/shared/FeedbackValidator';
@@ -25,6 +25,7 @@ import { useCarousel } from '@/lib/hooks/useCarousel';
 import { MOCK_PEER_WRITINGS } from '@/lib/utils/mock-data';
 import { useBatchRankingSubmission } from '@/lib/hooks/useBatchRankingSubmission';
 import { validateFeedbackSubmission } from '@/lib/utils/submission-validation';
+import { WRITING_TIPS_WITH_CONCLUSIONS } from '@/lib/constants/writing-tips';
 
 export default function PeerFeedbackContent() {
   const router = useRouter();
@@ -57,14 +58,7 @@ export default function PeerFeedbackContent() {
   const [isEvaluating, setIsEvaluating] = useState(false);
   const [aiFeedbackGenerated, setAiFeedbackGenerated] = useState(false);
   
-  const writingTips = useMemo(() => [
-    { name: 'Sentence Expansion', tip: 'Use because, but, or so to show why things happen.', example: 'She opened the door because she heard a strange noise.', icon: '🔗' },
-    { name: 'Appositives', tip: 'Add description using commas to provide extra information.', example: 'Sarah, a curious ten-year-old, pushed open the rusty gate.', icon: '✏️' },
-    { name: 'Five Senses', tip: 'Include what you see, hear, smell, taste, and feel.', example: 'The salty air stung my eyes while waves crashed loudly below.', icon: '👁️' },
-    { name: 'Show, Don\'t Tell', tip: 'Use specific details instead of general statements.', example: 'Her hands trembled as she reached for the handle.', icon: '🎭' },
-    { name: 'Transition Words', tip: 'Use signal words to connect ideas smoothly.', example: 'First, Then, However, Therefore, For example', icon: '➡️' },
-    { name: 'Strong Conclusions', tip: 'End with a final thought that ties everything together.', example: 'For these reasons, it is clear that...', icon: '🎯' },
-  ], []);
+  const writingTips = WRITING_TIPS_WITH_CONCLUSIONS;
   
   const [responses, setResponses] = useState({ mainIdea: '', strength: '', suggestion: '' });
   const [showRubric, setShowRubric] = useState(true);
