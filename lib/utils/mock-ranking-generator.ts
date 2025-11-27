@@ -1,5 +1,11 @@
 /**
  * Consolidated mock ranking generation utilities
+ * 
+ * ⚠️ WARNING: These functions generate MOCK rankings with RANDOM scores.
+ * They should ONLY be used when the LLM API is unavailable (missing API key or API failure).
+ * 
+ * In production, ALL scores MUST come from LLM evaluation.
+ * Mock rankings are clearly marked with warnings to indicate LLM API is broken.
  */
 
 interface MockRankingOptions<TSubmission> {
@@ -13,6 +19,8 @@ interface MockRankingOptions<TSubmission> {
 /**
  * Generate mock rankings for submissions
  * Handles empty submissions, score calculation, and ranking assignment
+ * 
+ * ⚠️ WARNING: Returns RANDOM scores - only use when LLM API is unavailable!
  */
 export function generateMockRankings<TSubmission extends { playerId: string; playerName: string; isAI: boolean }>(
   submissions: TSubmission[],
@@ -44,8 +52,14 @@ export function generateMockRankings<TSubmission extends { playerId: string; pla
     }
 
     const score = isActuallyEmpty ? 0 : options.calculateScore(submission);
+    
+    // Always include warning that LLM API is broken
     const strengths = options.generateStrengths(submission, isActuallyEmpty);
-    const improvements = options.generateImprovements(submission, isActuallyEmpty);
+    const improvements = [
+      '🚨 LLM API UNAVAILABLE: This score is randomly generated, not from AI evaluation',
+      '🚨 Set ANTHROPIC_API_KEY environment variable to enable real AI scoring',
+      ...options.generateImprovements(submission, isActuallyEmpty)
+    ];
     const traitFeedback = options.generateTraitFeedback
       ? options.generateTraitFeedback(submission, isActuallyEmpty)
       : undefined;

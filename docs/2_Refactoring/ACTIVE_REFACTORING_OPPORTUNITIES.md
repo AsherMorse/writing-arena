@@ -60,9 +60,11 @@
 
 ## 🔍 Analysis Summary
 
-After analyzing the codebase, I've identified **30 active refactoring opportunities** organized by priority and impact. Some refactoring has already been completed (batch ranking handler, time utils, API helpers), but several opportunities remain.
+After analyzing the codebase, I've identified **36 active refactoring opportunities** organized by priority and impact. Some refactoring has already been completed (batch ranking handler, time utils, API helpers), but several opportunities remain.
 
-**New Opportunities Found:** 10 additional refactoring opportunities identified (#21-30)
+**⚠️ CRITICAL ISSUE FOUND:** Random scores used as fallbacks in ResultsContent (#36) - All scores should come from LLM, not random numbers!
+
+**New Opportunities Found:** 16 additional refactoring opportunities identified (#21-36)
 
 **Last Updated:** January 2025
 
@@ -714,6 +716,7 @@ export function validateRequestBody<T>(
 | Priority | Opportunity | Impact | Effort | Status |
 |----------|------------|--------|--------|--------|
 | 🔴 HIGH | Large Component Splitting (4 components) | High | Medium | Pending |
+| 🔴 HIGH | ✅ Random Scores Instead of LLM Scores (#36) | **CRITICAL** | Medium | **COMPLETE** |
 | 🔴 HIGH | ✅ Component Mount Time Hook | Medium | Low | **COMPLETE** |
 | 🟡 MEDIUM | ✅ Ranking Modal Component | Medium | Medium | **COMPLETE** |
 | 🟡 MEDIUM | AI Generation Hook | High | Medium | Pending |
@@ -727,8 +730,13 @@ export function validateRequestBody<T>(
 | 🟡 MEDIUM | ✅ Empty Catch Blocks (#26) | Medium | Low | **COMPLETE** |
 | 🟡 MEDIUM | ✅ Firestore Dynamic Import Duplication (#27) | Medium | Medium | **COMPLETE** |
 | 🟡 MEDIUM | ✅ Firestore MatchState Fetching (#29) | Medium | Medium | **COMPLETE** |
+| 🟡 MEDIUM | ResultsContent Old Firestore Pattern (#31) | Medium | Low | Pending |
+| 🟡 MEDIUM | AI Player Data Transformation (#34) | Medium | Medium | Pending |
 | 🟢 LOW | ✅ Math.random() Delay Calculations (#28) | Low | Low | **COMPLETE** |
 | 🟢 LOW | ✅ AI Submission Delay Logic (#30) | Low | Low | **COMPLETE** |
+| 🟢 LOW | ResultsContent Empty Catch Block (#32) | Low | Low | Pending |
+| 🟢 LOW | Math.random() Score Patterns (#33) | Low | Low | Pending |
+| 🟢 LOW | Player Mapping Logic Duplication (#35) | Low | Low | Pending |
 | 🟡 MEDIUM | Writing Tips Carousel Usage | Low | Low | Pending |
 | 🟡 MEDIUM | Mock Ranking Warning Consolidation | Medium | Low | Pending |
 | 🟡 MEDIUM | Parse Rankings Error Handling | Medium | Low | Pending |
@@ -1173,6 +1181,230 @@ export function scheduleAISubmission(
 
 ---
 
+### 31. ResultsContent Still Uses Old Firestore Pattern (MEDIUM PRIORITY)
+
+**Problem:**
+`components/ranked/ResultsContent.tsx` still uses the old Firestore dynamic import pattern (lines 72-74) instead of the new helper functions created in #27/#29.
+
+**Current Pattern:**
+```typescript
+const { getDoc, doc } = await import('firebase/firestore');
+const { db } = await import('@/lib/config/firebase');
+const matchDoc = await getDoc(doc(db, 'matchStates', matchId));
+if (matchDoc.exists()) {
+  const matchState = matchDoc.data();
+  realPhase1Rankings = matchState?.rankings?.phase1 || [];
+  realPhase2Rankings = matchState?.rankings?.phase2 || [];
+  realPhase3Rankings = matchState?.rankings?.phase3 || [];
+}
+```
+
+**Solution:**
+- Use `getMatchRankings()` helper from `lib/utils/firestore-match-state.ts`
+- Replace manual fetching with helper calls
+
+**Impact:** Remove ~10 lines, consistent with other components, easier to maintain
+
+**Files:**
+- `components/ranked/ResultsContent.tsx` (lines 70-84)
+
+---
+
+### 32. ResultsContent Empty Catch Block (LOW PRIORITY)
+
+**Problem:**
+`components/ranked/ResultsContent.tsx` has one more empty catch block (line 148) that silently swallows errors.
+
+**Current Pattern:**
+```typescript
+} catch (error) {}
+```
+
+**Solution:**
+- Add error logging: `catch (error) { console.error('❌ RESULTS - Failed to save session data:', error); }`
+
+**Impact:** Better error visibility, easier debugging
+
+**Files:**
+- `components/ranked/ResultsContent.tsx` (line 148)
+
+---
+
+### 33. Math.random() Score Patterns in ResultsContent (LOW PRIORITY)
+
+**Problem:**
+`components/ranked/ResultsContent.tsx` uses multiple `Math.round(X + Math.random() * Y)` patterns for fallback scores (lines 99-100, 106-109) instead of using `randomScore()` utility.
+
+**Current Pattern:**
+```typescript
+phase2: p2?.score || Math.round(65 + Math.random() * 25),
+phase3: p3?.score || Math.round(70 + Math.random() * 20),
+wordCount: 90 + Math.floor(Math.random() * 20),
+```
+
+**Solution:**
+- Import `randomScore` from `lib/utils/random-utils.ts`
+- Replace with: `phase2: p2?.score || randomScore(65, 25)`
+- Use `randomInt()` for wordCount: `wordCount: randomInt(90, 110)`
+
+**Impact:** More readable code, consistent random generation
+
+**Files:**
+- `components/ranked/ResultsContent.tsx` (lines 99-101, 106-109)
+
+---
+
+### 34. Complex AI Player Data Transformation in ResultsContent (MEDIUM PRIORITY)
+
+**Problem:**
+`components/ranked/ResultsContent.tsx` has complex AI player data transformation logic (lines 89-111) that merges phase rankings and creates fallback data. This logic is hard to read and maintain.
+
+**Current Pattern:**
+```typescript
+if (realPhase1Rankings.length > 0) {
+  const aiPlayerData = realPhase1Rankings.filter((r: any) => r.isAI);
+  aiPlayers = aiPlayerData.map((p1: any, idx: number) => {
+    const p2 = realPhase2Rankings.find((r: any) => r.playerId === p1.playerId);
+    const p3 = realPhase3Rankings.find((r: any) => r.playerId === p1.playerId);
+    return {
+      name: p1.playerName,
+      avatar: ['🎯', '📖', '✨', '🏅'][idx % 4],
+      rank: ['Silver II', 'Silver III', 'Silver II', 'Silver IV'][idx % 4],
+      // ... complex mapping
+    };
+  });
+} else {
+  // Hardcoded fallback data
+}
+```
+
+**Solution:**
+Extract to utility function:
+```typescript
+// lib/utils/results-data-transformer.ts
+export function transformAIPlayersFromRankings(
+  phase1Rankings: any[],
+  phase2Rankings: any[],
+  phase3Rankings: any[]
+): AIPlayerDisplay[] {
+  // Centralized transformation logic
+}
+```
+
+**Impact:** Reduce component complexity, easier to test, reusable logic
+
+**Files:**
+- `components/ranked/ResultsContent.tsx` (lines 89-111)
+
+---
+
+### 35. Player Mapping Logic Duplication (LOW PRIORITY)
+
+**Problem:**
+Similar player mapping patterns in `WritingSessionContent.tsx` (lines 314-326, 329-336):
+- Maps players to `membersWithCounts` with word counts
+- Maps players to `partyMembers` format
+- Similar patterns likely in other components
+
+**Current Pattern:**
+```typescript
+const membersWithCounts = players.map((player, index) => {
+  const isYou = player.userId === user?.uid;
+  const aiIndex = players.filter((p, i) => i < index && p.isAI).length;
+  return {
+    name: player.displayName,
+    avatar: player.avatar,
+    rank: player.rank,
+    userId: player.userId,
+    isYou,
+    isAI: player.isAI,
+    wordCount: isYou ? wordCount : (player.isAI ? aiWordCounts[aiIndex] || 0 : 0),
+  };
+});
+```
+
+**Solution:**
+Create player mapping utility:
+```typescript
+// lib/utils/player-mapper.ts
+export function mapPlayersToDisplay(
+  players: SessionPlayer[],
+  userId: string | undefined,
+  wordCount: number,
+  aiWordCounts: number[]
+): PlayerDisplay[]
+```
+
+**Impact:** Remove ~15 lines, consistent player mapping, easier to maintain
+
+**Files:**
+- `components/ranked/WritingSessionContent.tsx` (lines 314-336)
+
+---
+
+### 36. 🔴 CRITICAL: Random Scores Used Instead of LLM Scores (HIGH PRIORITY)
+
+**Problem:**
+`components/ranked/ResultsContent.tsx` uses random scores as fallbacks when phase rankings are missing (lines 99-100, 106-109). **All scores should come from LLM evaluation, not random numbers.**
+
+**Current Problematic Pattern:**
+```typescript
+// Lines 99-100: Random fallback when phase2/phase3 rankings missing
+phase2: p2?.score || Math.round(65 + Math.random() * 25),
+phase3: p3?.score || Math.round(70 + Math.random() * 20),
+
+// Lines 106-109: Hardcoded random scores when no rankings exist
+{ name: 'ProWriter99', phase1: Math.round(65 + Math.random() * 25), ... }
+```
+
+**Why This Is Wrong:**
+1. **Scores should come from LLM** - All rankings are stored in Firestore after batch ranking API calls
+2. **Random scores break competitive integrity** - Players compete against fake scores
+3. **Data exists but isn't fetched** - Rankings are in `matchStates` collection but code falls back to random
+4. **Inconsistent with system design** - The system is designed to use real LLM scores
+
+**Solution:**
+1. **Remove random score fallbacks** - If rankings are missing, show "Score not available" or fetch from Firestore
+2. **Use helper functions** - Use `getMatchRankings()` from `lib/utils/firestore-match-state.ts` to fetch all phases
+3. **Show loading/missing states** - If data truly missing, show appropriate UI instead of fake scores
+4. **Ensure all phases are fetched** - The code already fetches rankings but doesn't use them properly
+
+**Correct Pattern:**
+```typescript
+// Fetch all phase rankings properly
+const phase1Rankings = await getMatchRankings(matchId, 1);
+const phase2Rankings = await getMatchRankings(matchId, 2);
+const phase3Rankings = await getMatchRankings(matchId, 3);
+
+// Map AI players with real scores or show missing
+aiPlayers = aiPlayerData.map((p1) => {
+  const p2 = phase2Rankings.find(r => r.playerId === p1.playerId);
+  const p3 = phase3Rankings.find(r => r.playerId === p1.playerId);
+  return {
+    phase1: p1.score, // Real LLM score
+    phase2: p2?.score ?? null, // Real LLM score or null (not random!)
+    phase3: p3?.score ?? null, // Real LLM score or null (not random!)
+  };
+});
+```
+
+**Impact:** 
+- **CRITICAL** - Fixes competitive integrity issue
+- All scores come from LLM as designed
+- Proper handling of missing data
+- Better user experience (shows real vs missing data)
+
+**Files:**
+- `components/ranked/ResultsContent.tsx` (lines 89-111) - Remove random fallbacks
+- Consider audit of other components for similar issues
+
+**Note:** Mock rankings with random scores are acceptable ONLY when:
+- API key is missing (development/testing)
+- Clearly marked with "⚠️ MOCK SCORING" warnings
+- NOT used as fallbacks when real data should exist
+
+---
+
 ## ✅ Already Completed
 
 - ✅ Batch ranking handler consolidation (`lib/utils/batch-ranking-handler.ts`)
@@ -1194,4 +1426,5 @@ export function scheduleAISubmission(
 - ✅ Random delay utility (#28) - Added `randomDelay()` to `lib/utils/random-utils.ts`
 - ✅ Firestore MatchState fetching helpers (#29) - Created specialized fetch functions
 - ✅ AI submission delay utility (#30) - Created `lib/utils/ai-submission-delay.ts`
+- ✅ **CRITICAL FIX** - Random Scores Instead of LLM Scores (#36) - Removed all random score fallbacks from ResultsContent, updated mock generators to clearly indicate LLM API is broken, API routes now return errors instead of silent mocks
 

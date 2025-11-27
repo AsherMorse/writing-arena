@@ -13,8 +13,15 @@ export async function POST(request: NextRequest) {
     
     const apiKey = getAnthropicApiKey();
     if (!apiKey) {
-      console.warn('⚠️ GENERATE AI REVISION - API key missing, using mock');
-      return NextResponse.json(generateMockRevision(originalContent, rank));
+      console.error('❌ GENERATE AI REVISION - API key missing - LLM API unavailable');
+      return NextResponse.json(
+        { 
+          error: 'LLM API unavailable - Set ANTHROPIC_API_KEY environment variable',
+          fallback: generateMockRevision(originalContent, rank),
+          warning: '🚨 LLM API UNAVAILABLE: Using mock data - not from AI generation'
+        },
+        { status: 500 }
+      );
     }
 
     const skillLevel = getSkillLevelFromRank(rank);
@@ -52,7 +59,15 @@ Begin revised version now:`;
     });
   } catch (error) {
     console.error('❌ GENERATE AI REVISION - Error:', error);
-    return NextResponse.json(generateMockRevision(originalContent, rank));
+    return NextResponse.json(
+      { 
+        error: 'LLM API call failed',
+        details: error instanceof Error ? error.message : String(error),
+        fallback: generateMockRevision(originalContent, rank),
+        warning: '🚨 LLM API UNAVAILABLE: Using mock data - not from AI generation'
+      },
+      { status: 500 }
+    );
   }
 }
 

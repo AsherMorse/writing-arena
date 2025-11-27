@@ -1,8 +1,11 @@
 /**
  * Mock data generation utilities
  * 
- * Centralized mock data generators for consistent fallback behavior
- * when API key is missing or API calls fail.
+ * ⚠️ WARNING: These functions generate MOCK data with RANDOM scores.
+ * They should ONLY be used when the LLM API is unavailable (missing API key or API failure).
+ * 
+ * In production, ALL scores MUST come from LLM evaluation.
+ * Mock data is clearly marked with warnings to indicate LLM API is broken.
  */
 
 import { randomScore } from './random-utils';
@@ -21,28 +24,35 @@ export function generateMockRanking(
     playerName,
     score: Math.min(score, SCORING.MAX_SCORE),
     rank: 0, // Will be set after sorting
-    strengths: ['⚠️ MOCK SCORING: This score is not based on actual quality'],
-    improvements: ['⚠️ Enable AI evaluation for accurate feedback'],
+    strengths: ['🚨 LLM API UNAVAILABLE: Random score generated - not from AI evaluation'],
+    improvements: [
+      '🚨 LLM API UNAVAILABLE: Set ANTHROPIC_API_KEY to enable real AI scoring',
+      '⚠️ This score is randomly generated and not based on actual quality',
+    ],
   };
 }
 
 export function generateMockFeedback(baseScore: number = SCORING.DEFAULT_FEEDBACK_SCORE): any {
   return {
     overallScore: randomScore(baseScore, 20),
-    strengths: ['⚠️ MOCK FEEDBACK: Enable AI for accurate assessment'],
-    improvements: ['⚠️ Enable AI evaluation for real feedback'],
+    strengths: ['🚨 LLM API UNAVAILABLE: Random score generated - not from AI evaluation'],
+    improvements: [
+      '🚨 LLM API UNAVAILABLE: Set ANTHROPIC_API_KEY to enable real AI scoring',
+      '⚠️ This feedback is randomly generated and not based on actual quality',
+    ],
   };
 }
 
 export function generateMockAIFeedback(): any {
   return {
     strengths: [
-      '⚠️ MOCK FEEDBACK: Enable AI for accurate assessment',
+      '🚨 LLM API UNAVAILABLE: Random score generated - not from AI evaluation',
       'Strong opening hook that draws the reader in',
       'Good use of descriptive language and sensory details',
     ],
     improvements: [
-      '⚠️ Enable AI evaluation for real feedback',
+      '🚨 LLM API UNAVAILABLE: Set ANTHROPIC_API_KEY to enable real AI scoring',
+      '⚠️ This feedback is randomly generated and not based on actual quality',
       'Consider adding more character development',
       'Add more specific details using the five senses',
     ],
@@ -65,7 +75,9 @@ export function generateMockRevisionScore(
   return {
     score,
     improvements: [
-      '⚠️ MOCK SCORING: Enable AI for accurate assessment',
+      '🚨 LLM API UNAVAILABLE: Random score generated - not from AI evaluation',
+      '🚨 LLM API UNAVAILABLE: Set ANTHROPIC_API_KEY to enable real AI scoring',
+      '⚠️ This score is randomly generated and not based on actual quality',
       'Added more descriptive details',
       'Improved sentence variety',
     ],

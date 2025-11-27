@@ -60,7 +60,7 @@ function generateMockRankings(writings: WritingSubmission[]): { rankings: any[] 
     generateStrengths: (writing, isEmpty) => {
       if (isEmpty) return [];
       return [
-        '⚠️ MOCK SCORING: This score is not based on actual quality',
+        '🚨 LLM API UNAVAILABLE: Random score generated - not from AI evaluation',
         'Clear attempt to address the prompt',
         'Some descriptive details included',
       ];
@@ -74,7 +74,8 @@ function generateMockRankings(writings: WritingSubmission[]): { rankings: any[] 
         ];
       }
       return [
-        '⚠️ Enable AI evaluation for accurate feedback',
+        '🚨 LLM API UNAVAILABLE: Set ANTHROPIC_API_KEY to enable real AI scoring',
+        '⚠️ This score is randomly generated and not based on actual quality',
         'Try expanding sentences with because/but/so',
         'Add more specific details',
         'Use stronger transitions',
@@ -91,11 +92,11 @@ function generateMockRankings(writings: WritingSubmission[]): { rankings: any[] 
         };
       }
       return {
-        content: '⚠️ Mock evaluation - enable AI for accurate assessment.',
-        organization: '⚠️ Mock evaluation - enable AI for accurate assessment.',
-        grammar: '⚠️ Mock evaluation - enable AI for accurate assessment.',
-        vocabulary: '⚠️ Mock evaluation - enable AI for accurate assessment.',
-        mechanics: '⚠️ Mock evaluation - enable AI for accurate assessment.',
+        content: '🚨 LLM API UNAVAILABLE: Random score - Set ANTHROPIC_API_KEY for real AI evaluation.',
+        organization: '🚨 LLM API UNAVAILABLE: Random score - Set ANTHROPIC_API_KEY for real AI evaluation.',
+        grammar: '🚨 LLM API UNAVAILABLE: Random score - Set ANTHROPIC_API_KEY for real AI evaluation.',
+        vocabulary: '🚨 LLM API UNAVAILABLE: Random score - Set ANTHROPIC_API_KEY for real AI evaluation.',
+        mechanics: '🚨 LLM API UNAVAILABLE: Random score - Set ANTHROPIC_API_KEY for real AI evaluation.',
       };
     },
   });

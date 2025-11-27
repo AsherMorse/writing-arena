@@ -69,15 +69,10 @@ export default function ResultsContent({ session }: ResultsContentProps = {}) {
         
         if (matchId) {
           try {
-            const { getDoc, doc } = await import('firebase/firestore');
-            const { db } = await import('@/lib/config/firebase');
-            const matchDoc = await getDoc(doc(db, 'matchStates', matchId));
-            if (matchDoc.exists()) {
-              const matchState = matchDoc.data();
-              realPhase1Rankings = matchState?.rankings?.phase1 || [];
-              realPhase2Rankings = matchState?.rankings?.phase2 || [];
-              realPhase3Rankings = matchState?.rankings?.phase3 || [];
-            }
+            const { getMatchRankings } = await import('@/lib/utils/firestore-match-state');
+            realPhase1Rankings = await getMatchRankings(matchId, 1);
+            realPhase2Rankings = await getMatchRankings(matchId, 2);
+            realPhase3Rankings = await getMatchRankings(matchId, 3);
           } catch (error) {
             console.error('❌ RESULTS - Failed to fetch match rankings:', error);
           }
@@ -91,28 +86,50 @@ export default function ResultsContent({ session }: ResultsContentProps = {}) {
           aiPlayers = aiPlayerData.map((p1: any, idx: number) => {
             const p2 = realPhase2Rankings.find((r: any) => r.playerId === p1.playerId);
             const p3 = realPhase3Rankings.find((r: any) => r.playerId === p1.playerId);
+            
+            // Only use scores from LLM evaluation - never random fallbacks
+            // If score is missing, use null to indicate data not available
+            const phase2Score = p2?.score ?? null;
+            const phase3Score = p3?.score ?? null;
+            
+            // Get wordCount from phase1 ranking if available, otherwise null
+            const wordCount = p1.wordCount ?? null;
+            
             return {
               name: p1.playerName,
               avatar: ['🎯', '📖', '✨', '🏅'][idx % 4],
-              rank: ['Silver II', 'Silver III', 'Silver II', 'Silver IV'][idx % 4],
-              phase1: p1.score,
-              phase2: p2?.score || Math.round(65 + Math.random() * 25),
-              phase3: p3?.score || Math.round(70 + Math.random() * 20),
-              wordCount: 90 + Math.floor(Math.random() * 20),
+              rank: p1.rank || ['Silver II', 'Silver III', 'Silver II', 'Silver IV'][idx % 4],
+              userId: p1.playerId,
+              phase1: p1.score, // Always from LLM
+              phase2: phase2Score, // From LLM or null if missing
+              phase3: phase3Score, // From LLM or null if missing
+              wordCount: wordCount, // From LLM data or null
             };
           });
-        } else {
-          aiPlayers = [
-            { name: 'ProWriter99', avatar: '🎯', rank: 'Silver II', phase1: Math.round(65 + Math.random() * 25), phase2: Math.round(70 + Math.random() * 20), phase3: Math.round(75 + Math.random() * 15), wordCount: 90 },
-            { name: 'WordMaster', avatar: '📖', rank: 'Silver III', phase1: Math.round(60 + Math.random() * 30), phase2: Math.round(65 + Math.random() * 25), phase3: Math.round(70 + Math.random() * 20), wordCount: 95 },
-            { name: 'EliteScribe', avatar: '✨', rank: 'Silver II', phase1: Math.round(70 + Math.random() * 20), phase2: Math.round(75 + Math.random() * 15), phase3: Math.round(65 + Math.random() * 25), wordCount: 88 },
-            { name: 'PenChampion', avatar: '🏅', rank: 'Silver IV', phase1: Math.round(55 + Math.random() * 30), phase2: Math.round(60 + Math.random() * 25), phase3: Math.round(70 + Math.random() * 20), wordCount: 92 },
-          ];
+        }
+        
+        // If no rankings exist, don't create fake players with random scores
+        // This indicates the match hasn't been properly evaluated yet
+        if (aiPlayers.length === 0) {
+          console.warn('⚠️ RESULTS - No phase rankings found in Firestore. Match may not be complete.');
         }
 
+        // Only include AI players with valid scores from LLM
+        // Filter out players with missing phase scores (null values)
+        const validAIPlayers = aiPlayers.filter(player => 
+          player.phase1 !== null && player.phase1 !== undefined &&
+          player.phase2 !== null && player.phase2 !== undefined &&
+          player.phase3 !== null && player.phase3 !== undefined
+        );
+        
         const allPlayers = [
           { name: 'You', avatar: '🌿', rank: 'Silver III', phase1: Math.round(writingScore), phase2: Math.round(feedbackScore), phase3: Math.round(revisionScore), compositeScore: yourCompositeScore, wordCount, revisedWordCount, isYou: true, position: 0 },
-          ...aiPlayers.map(player => ({ ...player, compositeScore: calculateCompositeScore(player.phase1, player.phase2, player.phase3), isYou: false, position: 0 }))
+          ...validAIPlayers.map(player => ({ 
+            ...player, 
+            compositeScore: calculateCompositeScore(player.phase1!, player.phase2!, player.phase3!), 
+            isYou: false, 
+            position: 0 
+          }))
         ];
 
         const rankings = rankPlayers(allPlayers, 'compositeScore');
@@ -129,8 +146,9 @@ export default function ResultsContent({ session }: ResultsContentProps = {}) {
             await updateUserStatsAfterSession(user.uid, xpEarned, pointsEarned, lpChange, isVictory, wordCount);
             await refreshProfile();
             
-            for (const aiPlayer of aiPlayers) {
-              if (!aiPlayer.name) continue;
+            // Only update stats for AI players with valid scores from LLM
+            for (const aiPlayer of validAIPlayers) {
+              if (!aiPlayer.name || aiPlayer.phase1 === null || aiPlayer.phase2 === null || aiPlayer.phase3 === null) continue;
               const aiComposite = calculateCompositeScore(aiPlayer.phase1, aiPlayer.phase2, aiPlayer.phase3);
               const aiPlayerData = allPlayers.find(p => p.name === aiPlayer.name);
               const aiPlacement = aiPlayerData?.position || 5;

@@ -14,8 +14,15 @@ export async function POST(request: NextRequest) {
     
     const apiKey = getAnthropicApiKey();
     if (!apiKey) {
-      console.error('❌ GENERATE AI WRITING - API key missing');
-      return NextResponse.json(generateMockAIWriting(rank));
+      console.error('❌ GENERATE AI WRITING - API key missing - LLM API unavailable');
+      return NextResponse.json(
+        { 
+          error: 'LLM API unavailable - Set ANTHROPIC_API_KEY environment variable',
+          fallback: generateMockAIWriting(rank),
+          warning: '🚨 LLM API UNAVAILABLE: Using mock data - not from AI generation'
+        },
+        { status: 500 }
+      );
     }
 
     // Call Claude API to generate writing at appropriate skill level
@@ -88,7 +95,15 @@ export async function POST(request: NextRequest) {
     });
   } catch (error) {
     console.error('❌ GENERATE AI WRITING - Error:', error);
-    return NextResponse.json(generateMockAIWriting(rank));
+    return NextResponse.json(
+      { 
+        error: 'LLM API call failed',
+        details: error instanceof Error ? error.message : String(error),
+        fallback: generateMockAIWriting(rank),
+        warning: '🚨 LLM API UNAVAILABLE: Using mock data - not from AI generation'
+      },
+      { status: 500 }
+    );
   }
 }
 
