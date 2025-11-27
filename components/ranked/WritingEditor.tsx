@@ -28,7 +28,7 @@ export default function WritingEditor({
         onPaste={handlePaste}
         onCut={handleCut}
         placeholder={placeholder}
-        className="mt-4 h-[460px] w-full resize-none rounded-[14px] border border-[rgba(255,255,255,0.05)] bg-[rgba(255,255,255,0.025)] p-4 text-base leading-relaxed text-[rgba(255,255,255,0.8)] placeholder:text-[rgba(255,255,255,0.3)] focus:border-[rgba(0,229,229,0.3)] focus:outline-none focus:ring-1 focus:ring-[rgba(0,229,229,0.2)]"
+        className="mt-4 h-[460px] w-full resize-none rounded-[14px] border border-[rgba(0,0,0,0.1)] bg-[rgba(0,0,0,0.02)] p-4 text-base leading-relaxed text-[rgba(0,0,0,0.9)] placeholder:text-[rgba(0,0,0,0.4)] focus:border-[rgba(0,229,229,0.3)] focus:outline-none focus:ring-1 focus:ring-[rgba(0,229,229,0.2)]"
         autoFocus={autoFocus}
       />
       {showPasteWarning && (

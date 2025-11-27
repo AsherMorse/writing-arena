@@ -449,6 +449,8 @@ export class SessionManager {
     else if (phase === 2) startTime = timing.phase2StartTime;
     else if (phase === 3) startTime = timing.phase3StartTime;
     
+    // If start time hasn't been set yet (waiting for batch ranking to complete),
+    // return the full phase duration to prevent timer from counting down
     if (!startTime) {
       return config.phaseDuration;
     }

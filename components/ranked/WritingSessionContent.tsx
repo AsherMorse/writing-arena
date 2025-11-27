@@ -14,8 +14,9 @@ import TWRPlanningPhase, { PlanningData } from '@/components/shared/TWRPlanningP
 import TWRSentenceStarters from '@/components/shared/TWRSentenceStarters';
 import { Modal } from '@/components/shared/Modal';
 import { db } from '@/lib/config/firebase';
-import { doc, getDoc } from 'firebase/firestore';
+import { doc, getDoc, updateDoc } from 'firebase/firestore';
 import { SCORING, getDefaultScore, clampScore, TIMING } from '@/lib/constants/scoring';
+import { getPhaseDuration } from '@/lib/constants/rank-timing';
 import { countWords } from '@/lib/utils/text-utils';
 import { useModals } from '@/lib/hooks/useModals';
 import { LoadingState } from '@/components/shared/LoadingState';
@@ -71,6 +72,25 @@ export default function WritingSessionContent() {
   const players = useMemo(() => allPlayers, [allPlayers]);
   const { submitted, total } = submissionCount();
   const aiTargetCountsRef = useRef<number[]>([]);
+
+  // Fix incorrect phase duration set by Cloud Function
+  useEffect(() => {
+    if (!session || !user || !userProfile || !sessionId) return;
+    
+    const currentPhase = session.config.phase;
+    const currentDuration = session.config.phaseDuration;
+    const expectedDuration = getPhaseDuration(userProfile.currentRank || 'Silver III', currentPhase);
+    
+    // If Cloud Function set wrong duration (90s instead of rank-based), fix it
+    if (currentDuration !== expectedDuration) {
+      console.warn(`⚠️ Phase ${currentPhase} duration mismatch: ${currentDuration}s (actual) vs ${expectedDuration}s (expected). Fixing...`);
+      
+      const sessionRef = doc(db, 'sessions', sessionId);
+      updateDoc(sessionRef, {
+        'config.phaseDuration': expectedDuration
+      }).catch(err => console.error('Failed to fix duration:', err));
+    }
+  }, [session?.config.phase, session?.config.phaseDuration, userProfile?.currentRank, sessionId, user]);
 
   useEffect(() => {
     if (!session || aiWritingsGenerated || !user || !prompt) return;
@@ -221,6 +241,7 @@ export default function WritingSessionContent() {
   const { submit: handleBatchSubmit, isSubmitting: isBatchSubmitting } = useBatchRankingSubmission({
     phase: 1,
     matchId: sessionMatchId || sessionId,
+    sessionId: activeSessionId || sessionId,
     userId: user?.uid || '',
     endpoint: '/api/batch-rank-writings',
     firestoreKey: 'aiWritings.phase1',
