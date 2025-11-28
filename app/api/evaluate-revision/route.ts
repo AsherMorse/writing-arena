@@ -4,6 +4,7 @@ import { getAnthropicApiKey, logApiKeyStatus, callAnthropicAPI } from '@/lib/uti
 import { parseClaudeJSON } from '@/lib/utils/claude-parser';
 import { randomScore } from '@/lib/utils/random-utils';
 import { generateMockRevisionScore } from '@/lib/utils/mock-data';
+import { createErrorResponse, createSuccessResponse } from '@/lib/utils/api-responses';
 
 export async function POST(request: NextRequest) {
   const requestBody = await request.json();
@@ -15,7 +16,7 @@ export async function POST(request: NextRequest) {
     const apiKey = getAnthropicApiKey();
     if (!apiKey) {
       console.error('❌ EVALUATE REVISION - API key missing');
-      return NextResponse.json({ error: 'API key missing' }, { status: 500 });
+      return createErrorResponse('API key missing', 500);
     }
 
     // Call Claude API to evaluate the revision
@@ -23,10 +24,10 @@ export async function POST(request: NextRequest) {
     const aiResponse = await callAnthropicAPI(apiKey, prompt, 1000);
     const evaluation = parseRevisionEvaluation(aiResponse.content[0].text);
 
-    return NextResponse.json(evaluation);
+    return createSuccessResponse(evaluation);
   } catch (error) {
     console.error('❌ EVALUATE REVISION - Error:', error);
-    return NextResponse.json({ error: 'Failed to evaluate revision' }, { status: 500 });
+    return createErrorResponse('Failed to evaluate revision', 500);
   }
 }
 

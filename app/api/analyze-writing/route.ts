@@ -5,6 +5,7 @@ import { parseClaudeJSON } from '@/lib/utils/claude-parser';
 import { countWords } from '@/lib/utils/text-utils';
 import { randomScore } from '@/lib/utils/random-utils';
 import { calculateXPEarned } from '@/lib/utils/score-calculator';
+import { createErrorResponse, createSuccessResponse } from '@/lib/utils/api-responses';
 
 export async function POST(request: NextRequest) {
   let payload: { content?: string; trait?: string | null; promptType?: string | null };
@@ -63,7 +64,7 @@ export async function POST(request: NextRequest) {
     const apiKey = getAnthropicApiKey();
     if (!apiKey) {
       console.error('❌ ANALYZE WRITING - API key missing');
-      return NextResponse.json({ error: 'API key missing' }, { status: 500 });
+      return createErrorResponse('API key missing', 500);
     }
 
     // Call Claude API for real feedback
@@ -71,10 +72,10 @@ export async function POST(request: NextRequest) {
     const aiResponse = await callAnthropicAPI(apiKey, prompt, 2000);
     const feedback = parseClaudioFeedback(aiResponse.content[0].text, trait || 'all', wordCount);
 
-    return NextResponse.json(feedback);
+    return createSuccessResponse(feedback);
   } catch (error) {
     console.error('❌ ANALYZE WRITING - Error:', error);
-    return NextResponse.json({ error: 'Failed to analyze writing' }, { status: 500 });
+    return createErrorResponse('Failed to analyze writing', 500);
   }
 }
 

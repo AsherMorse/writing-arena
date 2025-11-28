@@ -27,3 +27,24 @@ export function parseResultsSearchParams(searchParams: URLSearchParams) {
   };
 }
 
+/**
+ * Parse results page parameters including session and scores
+ */
+export function parseRankedResultsParams(searchParams: URLSearchParams) {
+  return {
+    sessionId: searchParams.get('sessionId') || '',
+    matchId: searchParams.get('matchId') || '',
+    trait: searchParams.get('trait') || 'all',
+    promptType: searchParams.get('promptType') || 'narrative',
+    promptId: searchParams.get('promptId') || '',
+    originalContent: searchParams.get('originalContent') || '',
+    revisedContent: searchParams.get('revisedContent') || '',
+    wordCount: parseInt(searchParams.get('wordCount') || '0', 10),
+    revisedWordCount: parseInt(searchParams.get('revisedWordCount') || '0', 10),
+    writingScore: searchParams.get('writingScore'),
+    feedbackScore: searchParams.get('feedbackScore'),
+    revisionScore: searchParams.get('revisionScore'),
+    aiScores: searchParams.get('aiScores') || '',
+  };
+}
+

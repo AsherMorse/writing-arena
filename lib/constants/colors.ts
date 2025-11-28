@@ -41,6 +41,67 @@ export function getColorWithOpacity(color: string, opacity: number): string {
 }
 
 /**
+ * Tailwind CSS class helpers for common colors
+ * Use these instead of hardcoded color values in className props
+ */
+export const COLOR_CLASSES = {
+  // Phase colors
+  phase1: {
+    text: 'text-[#00e5e5]',
+    bg: 'bg-[#00e5e5]',
+    border: 'border-[#00e5e5]',
+    bgOpacity: (opacity: number) => `bg-[rgba(0,229,229,${opacity})]`,
+    borderOpacity: (opacity: number) => `border-[rgba(0,229,229,${opacity})]`,
+  },
+  phase2: {
+    text: 'text-[#ff5f8f]',
+    bg: 'bg-[#ff5f8f]',
+    border: 'border-[#ff5f8f]',
+    bgOpacity: (opacity: number) => `bg-[rgba(255,95,143,${opacity})]`,
+    borderOpacity: (opacity: number) => `border-[rgba(255,95,143,${opacity})]`,
+  },
+  phase3: {
+    text: 'text-[#00d492]',
+    bg: 'bg-[#00d492]',
+    border: 'border-[#00d492]',
+    bgOpacity: (opacity: number) => `bg-[rgba(0,212,146,${opacity})]`,
+    borderOpacity: (opacity: number) => `border-[rgba(0,212,146,${opacity})]`,
+  },
+  // Accent colors
+  orange: {
+    text: 'text-[#ff9030]',
+    bg: 'bg-[#ff9030]',
+    border: 'border-[#ff9030]',
+    bgOpacity: (opacity: number) => `bg-[rgba(255,144,48,${opacity})]`,
+    borderOpacity: (opacity: number) => `border-[rgba(255,144,48,${opacity})]`,
+  },
+  // Background colors
+  background: {
+    dark: 'bg-[#101012]',
+    card: 'bg-[rgba(255,255,255,0.025)]',
+    cardBorder: 'border-[rgba(255,255,255,0.05)]',
+  },
+  // Text colors
+  text: {
+    primary: 'text-[rgba(255,255,255,0.8)]',
+    secondary: 'text-[rgba(255,255,255,0.4)]',
+    tertiary: 'text-[rgba(255,255,255,0.22)]',
+  },
+} as const;
+
+/**
+ * Get Tailwind class for phase color by phase number
+ */
+export function getPhaseColorClass(phase: 1 | 2 | 3, type: 'text' | 'bg' | 'border' = 'text'): string {
+  const phaseColors = {
+    1: COLOR_CLASSES.phase1,
+    2: COLOR_CLASSES.phase2,
+    3: COLOR_CLASSES.phase3,
+  };
+  return phaseColors[phase][type];
+}
+
+/**
  * Phase-specific colors
  */
 export const PHASE_COLORS = {

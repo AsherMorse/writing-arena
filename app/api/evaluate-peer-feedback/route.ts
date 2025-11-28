@@ -3,6 +3,7 @@ import { generateTWRPeerFeedbackPrompt } from '@/lib/utils/twr-prompts';
 import { getAnthropicApiKey, logApiKeyStatus, callAnthropicAPI } from '@/lib/utils/api-helpers';
 import { parseClaudeJSON } from '@/lib/utils/claude-parser';
 import { randomScore } from '@/lib/utils/random-utils';
+import { createErrorResponse, createSuccessResponse } from '@/lib/utils/api-responses';
 
 export async function POST(request: NextRequest) {
   const requestBody = await request.json();
@@ -14,7 +15,7 @@ export async function POST(request: NextRequest) {
     const apiKey = getAnthropicApiKey();
     if (!apiKey) {
       console.error('❌ EVALUATE PEER FEEDBACK - API key missing');
-      return NextResponse.json({ error: 'API key missing' }, { status: 500 });
+      return createErrorResponse('API key missing', 500);
     }
 
     // Call Claude API to evaluate the quality of peer feedback
@@ -22,10 +23,10 @@ export async function POST(request: NextRequest) {
     const aiResponse = await callAnthropicAPI(apiKey, prompt, 1000);
     const evaluation = parsePeerFeedbackEvaluation(aiResponse.content[0].text);
 
-    return NextResponse.json(evaluation);
+    return createSuccessResponse(evaluation);
   } catch (error) {
     console.error('❌ EVALUATE PEER FEEDBACK - Error:', error);
-    return NextResponse.json({ error: 'Failed to evaluate peer feedback' }, { status: 500 });
+    return createErrorResponse('Failed to evaluate peer feedback', 500);
   }
 }
 

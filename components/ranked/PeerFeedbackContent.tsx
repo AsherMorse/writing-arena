@@ -13,19 +13,24 @@ import { useSessionData } from '@/lib/hooks/useSessionData';
 import { usePhaseTransition } from '@/lib/hooks/usePhaseTransition';
 import { useAutoSubmit } from '@/lib/hooks/useAutoSubmit';
 import { getAssignedPeer } from '@/lib/services/match-sync';
-import { formatTime, getTimeColor, getTimeProgressColor } from '@/lib/utils/time-utils';
+import { getTimeColor, getTimeProgressColor } from '@/lib/utils/time-utils';
 import { SCORING, getDefaultScore, TIMING } from '@/lib/constants/scoring';
 import { getPhaseTimeColor } from '@/lib/utils/phase-colors';
 import { usePastePrevention } from '@/lib/hooks/usePastePrevention';
 import { retryWithBackoff } from '@/lib/utils/retry';
 import { isFormComplete } from '@/lib/utils/validation';
+import { useModals } from '@/lib/hooks/useModals';
+import { useAsyncData } from '@/lib/hooks/useAsyncData';
 import { LoadingState } from '@/components/shared/LoadingState';
 import { Modal } from '@/components/shared/Modal';
 import { MOCK_PEER_WRITINGS } from '@/lib/utils/mock-data';
 import { useBatchRankingSubmission } from '@/lib/hooks/useBatchRankingSubmission';
 import { validateFeedbackSubmission } from '@/lib/utils/submission-validation';
-import { WRITING_TIPS_WITH_CONCLUSIONS } from '@/lib/constants/writing-tips';
-import WritingTipsCarousel from './WritingTipsCarousel';
+import { PeerFeedbackRankingModal } from './peer-feedback/PeerFeedbackRankingModal';
+import { PeerFeedbackHeader } from './peer-feedback/PeerFeedbackHeader';
+import { PeerWritingCard } from './peer-feedback/PeerWritingCard';
+import { FeedbackFormCard } from './peer-feedback/FeedbackFormCard';
+import { isEmpty } from '@/lib/utils/array-utils';
 
 export default function PeerFeedbackContent() {
   const router = useRouter();
@@ -51,18 +56,40 @@ export default function PeerFeedbackContent() {
     sessionId: activeSessionId,
   } = useSessionData(session);
 
-  const [currentPeer, setCurrentPeer] = useState<any>(null);
-  const [loadingPeer, setLoadingPeer] = useState(true);
-  const [showTipsModal, setShowTipsModal] = useState(false);
-  const [showRankingModal, setShowRankingModal] = useState(false);
-  const [isEvaluating, setIsEvaluating] = useState(false);
   const [aiFeedbackGenerated, setAiFeedbackGenerated] = useState(false);
-  
-  const writingTips = WRITING_TIPS_WITH_CONCLUSIONS;
-  
-  const [responses, setResponses] = useState({ mainIdea: '', strength: '', suggestion: '' });
+  const [isEvaluating, setIsEvaluating] = useState(false);
   const [showRubric, setShowRubric] = useState(true);
   const [showExamples, setShowExamples] = useState(true);
+  
+  const [responses, setResponses] = useState({ mainIdea: '', strength: '', suggestion: '' });
+  const { showTipsModal, setShowTipsModal, showRankingModal, setShowRankingModal } = useModals();
+
+  // Use useAsyncData for loading peer writing
+  const { data: currentPeer, loading: loadingPeer } = useAsyncData(
+    async () => {
+      if (!user || !matchId) return MOCK_PEER_WRITINGS[0];
+      
+      const assignedPeer = await retryWithBackoff(
+        async () => await getAssignedPeer(matchId, user.uid),
+        { maxAttempts: 5, delayMs: 1500, onRetry: () => {} }
+      );
+      
+      if (assignedPeer) {
+        return {
+          id: assignedPeer.userId,
+          author: assignedPeer.displayName,
+          avatar: '📝',
+          rank: 'Silver III',
+          content: assignedPeer.writing,
+          wordCount: assignedPeer.wordCount,
+        };
+      }
+      
+      return MOCK_PEER_WRITINGS[0];
+    },
+    [user?.uid, matchId],
+    { immediate: true }
+  );
 
   useEffect(() => {
     const generateAIFeedback = async () => {
@@ -118,40 +145,6 @@ export default function PeerFeedbackContent() {
     
     generateAIFeedback();
   }, [matchId, user, aiFeedbackGenerated]);
-
-  useEffect(() => {
-    let cancelled = false;
-    const loadPeerWriting = async () => {
-      if (!user || !matchId) { setLoadingPeer(false); return; }
-      
-      try {
-        const assignedPeer = await retryWithBackoff(
-          async () => await getAssignedPeer(matchId, user.uid),
-          { maxAttempts: 5, delayMs: 1500, onRetry: () => {} }
-        );
-        
-        if (assignedPeer && !cancelled) {
-          setCurrentPeer({
-            id: assignedPeer.userId,
-            author: assignedPeer.displayName,
-            avatar: '📝',
-            rank: 'Silver III',
-            content: assignedPeer.writing,
-            wordCount: assignedPeer.wordCount,
-          });
-        } else if (!cancelled) {
-          setCurrentPeer(MOCK_PEER_WRITINGS[0]);
-        }
-      } catch (error) {
-        if (!cancelled) setCurrentPeer(MOCK_PEER_WRITINGS[0]);
-      } finally {
-        if (!cancelled) setLoadingPeer(false);
-      }
-    };
-    
-    loadPeerWriting();
-    return () => { cancelled = true; };
-  }, [user, user?.uid, matchId]);
 
   const { handlePaste, handleCut, handleCopy } = usePastePrevention({ showWarning: false });
 
@@ -218,26 +211,12 @@ export default function PeerFeedbackContent() {
 
   return (
     <div className="min-h-screen bg-[#101012] text-[rgba(255,255,255,0.8)]">
-      <Modal isOpen={showRankingModal || isEvaluating || isBatchSubmitting} onClose={() => {}} variant="ranking" showCloseButton={false}>
-        <div className="text-center">
-          <div className="mb-4 text-5xl animate-bounce">📊</div>
-          <h2 className="text-xl font-semibold">{timeRemaining === 0 ? "Time's Up!" : "Calculating..."}</h2>
-          <p className="mt-2 text-sm text-[rgba(255,255,255,0.4)]">
-            {(isEvaluating || isBatchSubmitting) ? "Evaluating feedback quality..." : "Preparing results..."}
-          </p>
-          <p className="mt-2 text-xs text-[#ff5f8f]">⏱️ Usually takes 1-2 minutes</p>
-          
-          <div className="mt-6">
-            <WritingTipsCarousel phase={2} autoPlay={showRankingModal || isEvaluating || isBatchSubmitting} />
-          </div>
-          
-          <div className="mt-4 flex items-center justify-center gap-2">
-            <div className="h-2 w-2 animate-pulse rounded-full bg-[#ff5f8f]" style={{ animationDelay: '0ms' }} />
-            <div className="h-2 w-2 animate-pulse rounded-full bg-[#ff5f8f]" style={{ animationDelay: '150ms' }} />
-            <div className="h-2 w-2 animate-pulse rounded-full bg-[#ff5f8f]" style={{ animationDelay: '300ms' }} />
-          </div>
-        </div>
-      </Modal>
+      <PeerFeedbackRankingModal
+        isOpen={showRankingModal || isEvaluating || isBatchSubmitting}
+        timeRemaining={timeRemaining}
+        isEvaluating={isEvaluating}
+        isBatchSubmitting={isBatchSubmitting}
+      />
 
       <WritingTipsModal isOpen={showTipsModal} onClose={() => setShowTipsModal(false)} promptType="informational" />
 
@@ -251,28 +230,11 @@ export default function PeerFeedbackContent() {
         </div>
       </button>
 
-      <header className="sticky top-0 z-20 border-b border-[rgba(255,255,255,0.05)] bg-[#101012]/95 backdrop-blur">
-        <div className="mx-auto flex max-w-[1200px] items-center justify-between px-8 py-4">
-          <div className="flex items-center gap-4">
-            <div className="flex h-14 w-14 items-center justify-center rounded-[14px] border border-[rgba(255,255,255,0.05)] bg-[rgba(255,255,255,0.025)] font-mono text-xl font-medium" style={{ color: timeColor }}>
-              {formatTime(timeRemaining)}
-            </div>
-            <div>
-              <div className="text-[10px] font-semibold uppercase tracking-[0.08em] text-[rgba(255,255,255,0.22)]">Phase 2 · Feedback</div>
-              <div className="text-sm font-medium" style={{ color: timeColor }}>
-                {timeRemaining > 0 ? 'Time remaining' : "Time's up!"}
-              </div>
-            </div>
-            <span className="rounded-[20px] bg-[rgba(255,95,143,0.12)] px-2 py-1 text-[10px] font-medium uppercase text-[#ff5f8f]">
-              Peer Review
-            </span>
-          </div>
-          <div className="text-xs text-[rgba(255,255,255,0.4)]">⏱️ Auto-submits at 0:00</div>
-        </div>
-        <div className="mx-auto h-1 max-w-[1200px] rounded-full bg-[rgba(255,255,255,0.05)]">
-          <div className="h-full rounded-full transition-all" style={{ width: `${progressPercent}%`, background: timeColor }} />
-        </div>
-      </header>
+      <PeerFeedbackHeader
+        timeRemaining={timeRemaining}
+        timeColor={timeColor}
+        progressPercent={progressPercent}
+      />
 
       <main className="mx-auto max-w-[1200px] px-8 py-8">
         <PhaseInstructions 
@@ -288,84 +250,16 @@ export default function PeerFeedbackContent() {
         )}
 
         <div className="grid gap-6 lg:grid-cols-2">
-          <div className="rounded-[14px] border border-[rgba(255,255,255,0.05)] bg-[rgba(255,255,255,0.025)] p-5">
-            {loadingPeer || !currentPeer ? (
-              <div className="py-16 text-center">
-                <div className="mb-3 text-4xl animate-spin">📖</div>
-                <div className="text-[rgba(255,255,255,0.4)]">Loading peer&apos;s writing...</div>
-              </div>
-            ) : (
-              <>
-                <div className="mb-4 flex items-center gap-3">
-                  <span className="text-3xl">{currentPeer.avatar}</span>
-                  <div>
-                    <div className="font-semibold">{currentPeer.author}</div>
-                    <div className="text-xs text-[rgba(255,255,255,0.4)]">{currentPeer.rank} · {currentPeer.wordCount} words</div>
-                  </div>
-                </div>
-                
-                <div className="rounded-[10px] bg-white p-5 max-h-[500px] overflow-y-auto">
-                  <p className="text-[#101012] leading-relaxed whitespace-pre-wrap">{currentPeer.content}</p>
-                </div>
-              </>
-            )}
-          </div>
+          <PeerWritingCard peer={currentPeer} loading={loadingPeer} />
 
-          <div className="rounded-[14px] border border-[rgba(255,255,255,0.05)] bg-[rgba(255,255,255,0.025)] p-5">
-            <h3 className="mb-4 text-base font-semibold">Provide Feedback</h3>
-            
-            <div className="space-y-4">
-              <div>
-                <label className="mb-2 block text-sm font-medium">1. What is the main idea?</label>
-                <p className="mb-2 text-xs text-[rgba(255,255,255,0.4)]">Identify the central point or message.</p>
-                <textarea
-                  value={responses.mainIdea}
-                  onChange={(e) => setResponses({...responses, mainIdea: e.target.value})}
-                  onPaste={handlePaste}
-                  onCopy={handleCopy}
-                  onCut={handleCut}
-                  placeholder="The main idea is..."
-                  className="h-24 w-full resize-none rounded-[10px] border border-[rgba(255,255,255,0.05)] bg-[#101012] p-3 text-sm placeholder-[rgba(255,255,255,0.22)] focus:border-[#ff5f8f] focus:outline-none disabled:cursor-not-allowed disabled:opacity-50"
-                  disabled={timeRemaining === 0}
-                  spellCheck="true"
-                />
-              </div>
-
-              <div>
-                <label className="mb-2 block text-sm font-medium">2. What is one strength?</label>
-                <p className="mb-2 text-xs text-[rgba(255,255,255,0.4)]">Point out something specific done well. Quote the text!</p>
-                <textarea
-                  value={responses.strength}
-                  onChange={(e) => setResponses({...responses, strength: e.target.value})}
-                  onPaste={handlePaste}
-                  onCopy={handleCopy}
-                  onCut={handleCut}
-                  placeholder='One strength is "..." because...'
-                  className="h-24 w-full resize-none rounded-[10px] border border-[rgba(255,255,255,0.05)] bg-[#101012] p-3 text-sm placeholder-[rgba(255,255,255,0.22)] focus:border-[#ff5f8f] focus:outline-none disabled:cursor-not-allowed disabled:opacity-50"
-                  disabled={timeRemaining === 0}
-                  spellCheck="true"
-                />
-              </div>
-
-              <div>
-                <label className="mb-2 block text-sm font-medium">3. What is one suggestion?</label>
-                <p className="mb-2 text-xs text-[rgba(255,255,255,0.4)]">Give one concrete improvement.</p>
-                <textarea
-                  value={responses.suggestion}
-                  onChange={(e) => setResponses({...responses, suggestion: e.target.value})}
-                  onPaste={handlePaste}
-                  onCopy={handleCopy}
-                  onCut={handleCut}
-                  placeholder="Try adding... / Consider using..."
-                  className="h-24 w-full resize-none rounded-[10px] border border-[rgba(255,255,255,0.05)] bg-[#101012] p-3 text-sm placeholder-[rgba(255,255,255,0.22)] focus:border-[#ff5f8f] focus:outline-none disabled:cursor-not-allowed disabled:opacity-50"
-                  disabled={timeRemaining === 0}
-                  spellCheck="true"
-                />
-              </div>
-            </div>
-            
-            <FeedbackValidator responses={responses} />
-          </div>
+          <FeedbackFormCard
+            responses={responses}
+            timeRemaining={timeRemaining}
+            onChange={setResponses}
+            onPaste={handlePaste}
+            onCopy={handleCopy}
+            onCut={handleCut}
+          />
         </div>
       </main>
     </div>

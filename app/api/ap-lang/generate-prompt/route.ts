@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAnthropicApiKey, logApiKeyStatus, callAnthropicAPI } from '@/lib/utils/api-helpers';
+import { createErrorResponse, createSuccessResponse } from '@/lib/utils/api-responses';
 
 /**
  * Generate authentic AP Language and Composition prompts
@@ -22,10 +23,7 @@ export async function POST(request: NextRequest) {
     const apiKey = getAnthropicApiKey();
 
     if (!apiKey) {
-      return NextResponse.json(
-        { error: 'API key missing' },
-        { status: 500 }
-      );
+      return createErrorResponse('API key missing', 500);
     }
 
     // Randomly select prompt type
@@ -73,13 +71,10 @@ Respond with ONLY the prompt text, formatted exactly as it would appear on an AP
     const aiResponse = await callAnthropicAPI(apiKey, generationPrompt, 1500);
     const prompt = aiResponse.content[0].text.trim();
 
-    return NextResponse.json({ prompt, type: promptType });
+    return createSuccessResponse({ prompt, type: promptType });
   } catch (error) {
     console.error('❌ AP LANG GENERATE PROMPT - Error:', error);
-    return NextResponse.json(
-      { error: 'Failed to generate prompt' },
-      { status: 500 }
-    );
+    return createErrorResponse('Failed to generate prompt', 500);
   }
 }
 

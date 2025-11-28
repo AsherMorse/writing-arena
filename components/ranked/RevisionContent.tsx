@@ -12,7 +12,7 @@ import { useSessionData } from '@/lib/hooks/useSessionData';
 import { usePhaseTransition } from '@/lib/hooks/usePhaseTransition';
 import { useAutoSubmit } from '@/lib/hooks/useAutoSubmit';
 import { getPeerFeedbackResponses } from '@/lib/services/match-sync';
-import { formatTime, getTimeColor, getTimeProgressColor } from '@/lib/utils/time-utils';
+import { getTimeColor, getTimeProgressColor } from '@/lib/utils/time-utils';
 import { SCORING, getDefaultScore, TIMING } from '@/lib/constants/scoring';
 import { getPhaseTimeColor } from '@/lib/utils/phase-colors';
 import { countWords } from '@/lib/utils/text-utils';
@@ -25,8 +25,11 @@ import { setSessionStorage } from '@/lib/utils/session-storage';
 import { MOCK_AI_FEEDBACK } from '@/lib/utils/mock-data';
 import { useBatchRankingSubmission } from '@/lib/hooks/useBatchRankingSubmission';
 import { validateRevisionSubmission } from '@/lib/utils/submission-validation';
-import { WRITING_TIPS_WITH_CONCLUSIONS } from '@/lib/constants/writing-tips';
-import WritingTipsCarousel from './WritingTipsCarousel';
+import { RevisionRankingModal } from './revision/RevisionRankingModal';
+import { RevisionHeader } from './revision/RevisionHeader';
+import { RevisionTitleBanner } from './revision/RevisionTitleBanner';
+import { FeedbackSidebar } from './revision/FeedbackSidebar';
+import { RevisionEditorSection } from './revision/RevisionEditorSection';
 
 export default function RevisionContent() {
   const router = useRouter();
@@ -61,8 +64,6 @@ export default function RevisionContent() {
   const [realPeerFeedback, setRealPeerFeedback] = useState<any>(null);
   const [loadingPeerFeedback, setLoadingPeerFeedback] = useState(true);
   const [aiRevisionsGenerated, setAiRevisionsGenerated] = useState(false);
-  
-  const writingTips = WRITING_TIPS_WITH_CONCLUSIONS;
   
   const peerFeedbackFetchedRef = useRef(false);
   useEffect(() => {
@@ -247,26 +248,12 @@ export default function RevisionContent() {
 
   return (
     <div className="min-h-screen bg-[#101012] text-[rgba(255,255,255,0.8)]">
-      <Modal isOpen={showRankingModal || isEvaluating || isBatchSubmitting} onClose={() => {}} variant="tips" showCloseButton={false}>
-        <div className="text-center">
-          <div className="mb-4 text-5xl animate-bounce">✨</div>
-          <h2 className="text-xl font-semibold">{timeRemaining === 0 ? "Time's Up!" : "Calculating..."}</h2>
-          <p className="mt-2 text-sm text-[rgba(255,255,255,0.4)]">
-            {(isEvaluating || isBatchSubmitting) ? "Evaluating revisions..." : "Preparing results..."}
-          </p>
-          <p className="mt-2 text-xs text-[#00d492]">⏱️ Usually takes 1-2 minutes</p>
-          
-          <div className="mt-6">
-            <WritingTipsCarousel phase={3} autoPlay={showRankingModal || isEvaluating || isBatchSubmitting} />
-          </div>
-          
-          <div className="mt-4 flex items-center justify-center gap-2">
-            <div className="h-2 w-2 animate-pulse rounded-full bg-[#00d492]" style={{ animationDelay: '0ms' }} />
-            <div className="h-2 w-2 animate-pulse rounded-full bg-[#00d492]" style={{ animationDelay: '150ms' }} />
-            <div className="h-2 w-2 animate-pulse rounded-full bg-[#00d492]" style={{ animationDelay: '300ms' }} />
-          </div>
-        </div>
-      </Modal>
+      <RevisionRankingModal 
+        isOpen={showRankingModal || isEvaluating || isBatchSubmitting} 
+        timeRemaining={timeRemaining}
+        isEvaluating={isEvaluating}
+        isBatchSubmitting={isBatchSubmitting}
+      />
 
       <WritingTipsModal isOpen={showTipsModal} onClose={() => setShowTipsModal(false)} promptType={promptType || 'narrative'} />
 
@@ -280,35 +267,14 @@ export default function RevisionContent() {
         </div>
       </button>
 
-      <header className="sticky top-0 z-20 border-b border-[rgba(255,255,255,0.05)] bg-[#101012]/95 backdrop-blur">
-        <div className="mx-auto flex max-w-[1200px] items-center justify-between px-8 py-4">
-          <div className="flex items-center gap-4">
-            <div className="flex h-14 w-14 items-center justify-center rounded-[14px] border border-[rgba(255,255,255,0.05)] bg-[rgba(255,255,255,0.025)] font-mono text-xl font-medium" style={{ color: timeColor }}>
-              {formatTime(timeRemaining)}
-            </div>
-            <div>
-              <div className="text-[10px] font-semibold uppercase tracking-[0.08em] text-[rgba(255,255,255,0.22)]">Phase 3 · Revision</div>
-              <div className="text-sm font-medium" style={{ color: timeColor }}>
-                {timeRemaining > 0 ? 'Time remaining' : "Time's up!"}
-              </div>
-            </div>
-            <span className="rounded-[20px] bg-[rgba(0,212,146,0.12)] px-2 py-1 text-[10px] font-medium uppercase text-[#00d492]">
-              Final Draft
-            </span>
-          </div>
-          <div className="flex items-center gap-4">
-            <div className="rounded-[20px] bg-[rgba(255,255,255,0.025)] px-3 py-1.5">
-              <span className="font-mono text-sm text-[#00d492]">{wordCountRevised}</span>
-              <span className="ml-1 text-xs text-[rgba(255,255,255,0.4)]">words</span>
-              {hasRevised && <span className="ml-2 text-xs text-[#00d492]">({wordCountRevised > wordCount ? '+' : ''}{wordCountRevised - wordCount})</span>}
-            </div>
-            <div className="text-xs text-[rgba(255,255,255,0.4)]">⏱️ Auto-submits at 0:00</div>
-          </div>
-        </div>
-        <div className="mx-auto h-1 max-w-[1200px] rounded-full bg-[rgba(255,255,255,0.05)]">
-          <div className="h-full rounded-full transition-all" style={{ width: `${progressPercent}%`, background: timeColor }} />
-        </div>
-      </header>
+      <RevisionHeader
+        timeRemaining={timeRemaining}
+        timeColor={timeColor}
+        progressPercent={progressPercent}
+        wordCountRevised={wordCountRevised}
+        wordCount={wordCount}
+        hasRevised={hasRevised}
+      />
 
       <main className="mx-auto max-w-[1200px] px-8 py-6">
         <PhaseInstructions 
@@ -320,109 +286,29 @@ export default function RevisionContent() {
           <RevisionGuidance onClose={() => setShowRevisionGuidance(false)} />
         )}
         <RevisionChecklist />
-        <div className="mb-6 rounded-[14px] border border-[rgba(0,212,146,0.2)] bg-[rgba(0,212,146,0.05)] p-5">
-          <h1 className="text-xl font-semibold">Revise Your Writing</h1>
-          <p className="mt-1 text-sm text-[rgba(255,255,255,0.5)]">Use the feedback to improve your writing. Make meaningful changes!</p>
-        </div>
+        <RevisionTitleBanner />
 
         <div className="grid gap-5 lg:grid-cols-3">
-          <div className="space-y-4">
-            <button onClick={() => setShowFeedback(!showFeedback)} className="w-full rounded-[10px] border border-[rgba(255,255,255,0.05)] bg-[rgba(255,255,255,0.025)] px-4 py-2 text-sm lg:hidden">
-              {showFeedback ? 'Hide' : 'Show'} Feedback
-            </button>
+          <FeedbackSidebar
+            showFeedback={showFeedback}
+            onToggleFeedback={() => setShowFeedback(!showFeedback)}
+            strengths={strengthsList}
+            improvements={improvementsList}
+            loadingFeedback={loadingFeedback}
+            peerFeedback={realPeerFeedback}
+            loadingPeerFeedback={loadingPeerFeedback}
+          />
 
-            <div className={`space-y-4 ${showFeedback ? 'block' : 'hidden lg:block'}`}>
-              <div className="rounded-[14px] border border-[rgba(0,212,146,0.2)] bg-[rgba(0,212,146,0.05)] p-4">
-                <h3 className="mb-3 flex items-center gap-2 font-semibold">
-                  <span>🤖</span><span>AI Feedback</span>
-                </h3>
-                <div className="space-y-3">
-                  <div>
-                    <div className="mb-1 text-xs font-semibold text-[#00d492]">✨ Strengths</div>
-                    {loadingFeedback ? (
-                      <div className="text-xs text-[rgba(255,255,255,0.4)]">Loading...</div>
-                    ) : (
-                      <ul className="space-y-1">
-                        {strengthsList.map((strength, i) => (
-                          <li key={`s-${i}`} className="text-xs text-[rgba(255,255,255,0.6)]">• {strength}</li>
-                        ))}
-                      </ul>
-                    )}
-                  </div>
-                  <div>
-                    <div className="mb-1 text-xs font-semibold text-[#ff9030]">💡 Suggestions</div>
-                    {loadingFeedback ? (
-                      <div className="text-xs text-[rgba(255,255,255,0.4)]">Loading...</div>
-                    ) : (
-                      <ul className="space-y-1">
-                        {improvementsList.map((imp, i) => (
-                          <li key={`i-${i}`} className="text-xs text-[rgba(255,255,255,0.6)]">• {imp}</li>
-                        ))}
-                      </ul>
-                    )}
-                  </div>
-                </div>
-              </div>
-
-              <div className="rounded-[14px] border border-[rgba(0,229,229,0.2)] bg-[rgba(0,229,229,0.05)] p-4">
-                <h3 className="mb-3 flex items-center justify-between font-semibold">
-                  <span className="flex items-center gap-2"><span>👥</span><span>Peer Feedback</span></span>
-                  {realPeerFeedback && <span className="text-[10px] text-[#00e5e5]">from {realPeerFeedback.reviewerName}</span>}
-                </h3>
-                {loadingPeerFeedback ? (
-                  <div className="py-6 text-center">
-                    <div className="mb-2 text-2xl animate-spin">📝</div>
-                    <div className="text-xs text-[rgba(255,255,255,0.4)]">Loading...</div>
-                  </div>
-                ) : realPeerFeedback ? (
-                  <div className="space-y-3">
-                    <div>
-                      <div className="mb-1 text-[10px] font-semibold text-[#00e5e5]">Main Idea:</div>
-                      <p className="text-xs text-[rgba(255,255,255,0.6)] break-words">{realPeerFeedback.responses.mainIdea || realPeerFeedback.responses.clarity}</p>
-                    </div>
-                    <div>
-                      <div className="mb-1 text-[10px] font-semibold text-[#00d492]">Strength:</div>
-                      <p className="text-xs text-[rgba(255,255,255,0.6)] break-words">{realPeerFeedback.responses.strength || realPeerFeedback.responses.strengths}</p>
-                    </div>
-                    <div>
-                      <div className="mb-1 text-[10px] font-semibold text-[#ff9030]">Suggestion:</div>
-                      <p className="text-xs text-[rgba(255,255,255,0.6)] break-words">{realPeerFeedback.responses.suggestion || realPeerFeedback.responses.improvements}</p>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="py-6 text-center text-xs text-[rgba(255,255,255,0.4)]">No peer feedback available</div>
-                )}
-              </div>
-            </div>
-          </div>
-
-          <div className="lg:col-span-2 space-y-4">
-            <div className="rounded-[14px] border border-[rgba(255,255,255,0.05)] bg-[rgba(255,255,255,0.025)] p-4">
-              <div className="mb-2 flex items-center justify-between">
-                <span className="text-sm font-medium">📄 Original ({wordCount} words)</span>
-              </div>
-              <div className="max-h-[180px] overflow-y-auto rounded-[10px] border border-[rgba(255,255,255,0.05)] bg-[#101012] p-3">
-                <p className="text-sm text-[rgba(255,255,255,0.5)] whitespace-pre-wrap leading-relaxed">{originalContent}</p>
-              </div>
-            </div>
-
-            <div className="rounded-[14px] border border-[rgba(255,255,255,0.05)] bg-white p-5 min-h-[400px]">
-              <div className="mb-3 flex items-center justify-between">
-                <h3 className="font-semibold text-[#101012]">✏️ Your Revision</h3>
-                {hasRevised && <span className="text-xs font-medium text-[#00d492] animate-pulse">Changes detected!</span>}
-              </div>
-              <textarea
-                value={revisedContent}
-                onChange={(e) => setRevisedContent(e.target.value)}
-                onPaste={handlePaste}
-                onCopy={handleCopy}
-                onCut={handleCut}
-                placeholder="Revise your writing based on the feedback..."
-                className="h-full min-h-[340px] w-full resize-none text-[#101012] leading-relaxed focus:outline-none"
-                spellCheck="true"
-              />
-            </div>
-          </div>
+          <RevisionEditorSection
+            originalContent={originalContent}
+            wordCount={wordCount}
+            revisedContent={revisedContent}
+            hasRevised={hasRevised}
+            onChange={setRevisedContent}
+            onPaste={handlePaste}
+            onCopy={handleCopy}
+            onCut={handleCut}
+          />
         </div>
       </main>
     </div>
