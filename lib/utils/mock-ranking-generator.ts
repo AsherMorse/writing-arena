@@ -8,6 +8,8 @@
  * Mock rankings are clearly marked with warnings to indicate LLM API is broken.
  */
 
+import { MOCK_WARNINGS } from '@/lib/constants/mock-warnings';
+
 interface MockRankingOptions<TSubmission> {
   isEmpty: (submission: TSubmission) => boolean;
   calculateScore: (submission: TSubmission) => number;
@@ -56,8 +58,8 @@ export function generateMockRankings<TSubmission extends { playerId: string; pla
     // Always include warning that LLM API is broken
     const strengths = options.generateStrengths(submission, isActuallyEmpty);
     const improvements = [
-      '🚨 LLM API UNAVAILABLE: This score is randomly generated, not from AI evaluation',
-      '🚨 Set ANTHROPIC_API_KEY environment variable to enable real AI scoring',
+      MOCK_WARNINGS.RANDOM_SCORE_GENERATED,
+      MOCK_WARNINGS.SET_API_KEY,
       ...options.generateImprovements(submission, isActuallyEmpty)
     ];
     const traitFeedback = options.generateTraitFeedback

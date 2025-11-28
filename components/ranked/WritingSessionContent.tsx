@@ -25,6 +25,7 @@ import { useBatchRankingSubmission } from '@/lib/hooks/useBatchRankingSubmission
 import { validateWritingSubmission } from '@/lib/utils/submission-validation';
 import { useComponentMountTime } from '@/lib/hooks/useComponentMountTime';
 import { scheduleAISubmission } from '@/lib/utils/ai-submission-delay';
+import { mapPlayersToDisplay, mapPlayersToPartyMembers } from '@/lib/utils/player-utils';
 import WritingTimer from './WritingTimer';
 import WritingEditor from './WritingEditor';
 import WritingTipsCarousel from './WritingTipsCarousel';
@@ -311,29 +312,10 @@ export default function WritingSessionContent() {
     return <ErrorState error={error} title="Session Error" />;
   }
   
-  const membersWithCounts = players.map((player, index) => {
-    const isYou = player.userId === user?.uid;
-    const aiIndex = players.filter((p, i) => i < index && p.isAI).length;
-    return {
-      name: player.displayName,
-      avatar: player.avatar,
-      rank: player.rank,
-      userId: player.userId,
-      isYou,
-      isAI: player.isAI,
-      wordCount: isYou ? wordCount : (player.isAI ? aiWordCounts[aiIndex] || 0 : 0),
-    };
-  });
+  const membersWithCounts = mapPlayersToDisplay(players, user?.uid, wordCount, aiWordCounts);
 
   if (hasSubmitted()) {
-    const partyMembers = players.map(p => ({
-      name: p.displayName,
-      userId: p.userId,
-      avatar: p.avatar,
-      rank: p.rank,
-      isAI: p.isAI,
-      isYou: p.userId === user?.uid,
-    }));
+    const partyMembers = mapPlayersToPartyMembers(players, user?.uid);
     const submittedPlayerIds = players.filter(p => p.phases.phase1?.submitted).map(p => p.userId);
     return (
       <WaitingForPlayers 
@@ -488,17 +470,17 @@ export default function WritingSessionContent() {
                           <div className="text-[10px] text-[rgba(255,255,255,0.4)]">{member.rank}</div>
                         </div>
                       </div>
-                      <div className="text-right">
-                        <div className="font-mono text-sm" style={{ color: member.isYou ? '#00e5e5' : 'rgba(255,255,255,0.6)' }}>
-                          {Math.floor(member.wordCount)}
+                        <div className="text-right">
+                          <div className="font-mono text-sm" style={{ color: member.isYou ? '#00e5e5' : 'rgba(255,255,255,0.6)' }}>
+                            {Math.floor(member.wordCount || 0)}
+                          </div>
+                          <div className="text-[10px] text-[rgba(255,255,255,0.22)]">words</div>
                         </div>
-                        <div className="text-[10px] text-[rgba(255,255,255,0.22)]">words</div>
-                      </div>
                     </div>
                     <div className="mt-2 h-1 overflow-hidden rounded-full bg-[rgba(255,255,255,0.05)]">
                       <div
                         className="h-full rounded-full"
-                        style={{ width: `${Math.min((member.wordCount / 100) * 100, 100)}%`, background: member.isYou ? '#00e5e5' : 'rgba(255,255,255,0.2)' }}
+                        style={{ width: `${Math.min(((member.wordCount || 0) / 100) * 100, 100)}%`, background: member.isYou ? '#00e5e5' : 'rgba(255,255,255,0.2)' }}
                       />
                     </div>
                   </div>

@@ -4,6 +4,7 @@ import { countWords } from '@/lib/utils/text-utils';
 import { generateMockAIWriting } from '@/lib/utils/mock-data';
 import { getSkillLevelFromRank, getGradeLevelFromRank, getSkillCharacteristics } from '@/lib/utils/skill-level';
 import { adminDb } from '@/lib/config/firebase-admin';
+import { MOCK_WARNINGS } from '@/lib/constants/mock-warnings';
 
 export async function POST(request: NextRequest) {
   const requestBody = await request.json();
@@ -19,7 +20,7 @@ export async function POST(request: NextRequest) {
         { 
           error: 'LLM API unavailable - Set ANTHROPIC_API_KEY environment variable',
           fallback: generateMockAIWriting(rank),
-          warning: '🚨 LLM API UNAVAILABLE: Using mock data - not from AI generation'
+          warning: MOCK_WARNINGS.MOCK_DATA_GENERATION
         },
         { status: 500 }
       );

@@ -12,7 +12,6 @@ import { useSessionData } from '@/lib/hooks/useSessionData';
 import { usePhaseTransition } from '@/lib/hooks/usePhaseTransition';
 import { useAutoSubmit } from '@/lib/hooks/useAutoSubmit';
 import { getPeerFeedbackResponses } from '@/lib/services/match-sync';
-import { useCarousel } from '@/lib/hooks/useCarousel';
 import { formatTime, getTimeColor, getTimeProgressColor } from '@/lib/utils/time-utils';
 import { SCORING, getDefaultScore, TIMING } from '@/lib/constants/scoring';
 import { getPhaseTimeColor } from '@/lib/utils/phase-colors';
@@ -27,6 +26,7 @@ import { MOCK_AI_FEEDBACK } from '@/lib/utils/mock-data';
 import { useBatchRankingSubmission } from '@/lib/hooks/useBatchRankingSubmission';
 import { validateRevisionSubmission } from '@/lib/utils/submission-validation';
 import { WRITING_TIPS_WITH_CONCLUSIONS } from '@/lib/constants/writing-tips';
+import WritingTipsCarousel from './WritingTipsCarousel';
 
 export default function RevisionContent() {
   const router = useRouter();
@@ -185,7 +185,6 @@ export default function RevisionContent() {
     },
   });
   
-  const { currentIndex: currentTipIndex, goTo: goToTip } = useCarousel({ items: writingTips, interval: 5000, autoPlay: showRankingModal || isEvaluating || isBatchSubmitting });
 
   const getRankingFromStorage = async () => {
     try {
@@ -208,7 +207,7 @@ export default function RevisionContent() {
     try { await handleBatchSubmit(); }
     finally {
       setIsEvaluating(false);
-      setTimeout(() => setShowRankingModal(false), 500);
+      setTimeout(() => setShowRankingModal(false), TIMING.MODAL_CLOSE_DELAY);
     }
   };
 
@@ -257,21 +256,8 @@ export default function RevisionContent() {
           </p>
           <p className="mt-2 text-xs text-[#00d492]">⏱️ Usually takes 1-2 minutes</p>
           
-          <div className="mt-6 rounded-[14px] border border-[rgba(0,212,146,0.2)] bg-[rgba(0,212,146,0.05)] p-4">
-            <div className="mb-2 flex items-center justify-center gap-2">
-              <span className="text-lg">{writingTips[currentTipIndex].icon}</span>
-              <span className="font-medium">{writingTips[currentTipIndex].name}</span>
-            </div>
-            <p className="text-sm text-[rgba(255,255,255,0.6)]">{writingTips[currentTipIndex].tip}</p>
-            <div className="mt-3 rounded-[10px] border border-[rgba(255,255,255,0.05)] bg-[#101012] p-3">
-              <div className="mb-1 text-[10px] uppercase text-[#00d492]">Example</div>
-              <p className="text-xs italic text-[rgba(255,255,255,0.6)]">{writingTips[currentTipIndex].example}</p>
-            </div>
-            <div className="mt-3 flex justify-center gap-1">
-              {writingTips.map((_, index) => (
-                <button key={index} onClick={() => goToTip(index)} className={`h-1.5 rounded-full transition-all ${index === currentTipIndex ? 'w-6 bg-[#00d492]' : 'w-1.5 bg-[rgba(255,255,255,0.1)]'}`} />
-              ))}
-            </div>
+          <div className="mt-6">
+            <WritingTipsCarousel phase={3} autoPlay={showRankingModal || isEvaluating || isBatchSubmitting} />
           </div>
           
           <div className="mt-4 flex items-center justify-center gap-2">

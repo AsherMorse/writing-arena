@@ -1,6 +1,8 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { getScoreColorHex } from '@/lib/utils/score-utils';
+import { TIMING } from '@/lib/constants/scoring';
 
 interface AnimatedScoreProps {
   score: number;
@@ -17,7 +19,7 @@ export default function AnimatedScore({ score, label, delay = 0, maxScore = 100 
     const revealTimer = setTimeout(() => {
       setIsRevealed(true);
       
-      const duration = 1000;
+      const duration = TIMING.ANIMATION_DURATION;
       const steps = 30;
       const increment = score / steps;
       let current = 0;
@@ -38,14 +40,8 @@ export default function AnimatedScore({ score, label, delay = 0, maxScore = 100 
     return () => clearTimeout(revealTimer);
   }, [score, delay]);
   
-  const getColor = (score: number) => {
-    if (score >= 85) return '#00d492';
-    if (score >= 70) return '#00e5e5';
-    if (score >= 60) return '#ff9030';
-    return '#ff5f8f';
-  };
-  
-  const color = getColor(score);
+  // Use centralized score color utility for consistency
+  const color = getScoreColorHex(score);
   
   return (
     <div 

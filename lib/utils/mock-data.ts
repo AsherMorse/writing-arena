@@ -12,6 +12,7 @@ import { randomScore } from './random-utils';
 import { SCORING } from '@/lib/constants/scoring';
 import { countWords } from './text-utils';
 import { calculateXPEarned } from './score-calculator';
+import { MOCK_WARNINGS } from '@/lib/constants/mock-warnings';
 
 export function generateMockRanking(
   playerId: string,
@@ -24,10 +25,10 @@ export function generateMockRanking(
     playerName,
     score: Math.min(score, SCORING.MAX_SCORE),
     rank: 0, // Will be set after sorting
-    strengths: ['🚨 LLM API UNAVAILABLE: Random score generated - not from AI evaluation'],
+    strengths: [MOCK_WARNINGS.RANDOM_SCORE_GENERATED],
     improvements: [
-      '🚨 LLM API UNAVAILABLE: Set ANTHROPIC_API_KEY to enable real AI scoring',
-      '⚠️ This score is randomly generated and not based on actual quality',
+      MOCK_WARNINGS.SET_API_KEY,
+      MOCK_WARNINGS.RANDOM_FEEDBACK,
     ],
   };
 }
@@ -46,13 +47,13 @@ export function generateMockFeedback(baseScore: number = SCORING.DEFAULT_FEEDBAC
 export function generateMockAIFeedback(): any {
   return {
     strengths: [
-      '🚨 LLM API UNAVAILABLE: Random score generated - not from AI evaluation',
+      MOCK_WARNINGS.RANDOM_SCORE_GENERATED,
       'Strong opening hook that draws the reader in',
       'Good use of descriptive language and sensory details',
     ],
     improvements: [
-      '🚨 LLM API UNAVAILABLE: Set ANTHROPIC_API_KEY to enable real AI scoring',
-      '⚠️ This feedback is randomly generated and not based on actual quality',
+      MOCK_WARNINGS.SET_API_KEY,
+      MOCK_WARNINGS.RANDOM_FEEDBACK,
       'Consider adding more character development',
       'Add more specific details using the five senses',
     ],
@@ -75,9 +76,9 @@ export function generateMockRevisionScore(
   return {
     score,
     improvements: [
-      '🚨 LLM API UNAVAILABLE: Random score generated - not from AI evaluation',
-      '🚨 LLM API UNAVAILABLE: Set ANTHROPIC_API_KEY to enable real AI scoring',
-      '⚠️ This score is randomly generated and not based on actual quality',
+      MOCK_WARNINGS.RANDOM_SCORE_GENERATED,
+      MOCK_WARNINGS.SET_API_KEY,
+      MOCK_WARNINGS.RANDOM_FEEDBACK,
       'Added more descriptive details',
       'Improved sentence variety',
     ],

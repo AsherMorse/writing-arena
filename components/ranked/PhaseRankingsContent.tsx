@@ -1,30 +1,51 @@
 'use client';
 
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import { useState, useEffect, useMemo, Suspense } from 'react';
 import { getMedalEmoji } from '@/lib/utils/rank-utils';
 import { getPhaseColor } from '@/lib/constants/colors';
+import { getMatchRankings } from '@/lib/utils/firestore-match-state';
+import { useCarousel } from '@/lib/hooks/useCarousel';
+import { useCountdown } from '@/lib/hooks/useCountdown';
+import { useSearchParams } from '@/lib/hooks/useSearchParams';
+import { TIMING } from '@/lib/constants/scoring';
+
+// Parser function for phase rankings search params
+function parsePhaseRankingsParams(searchParams: URLSearchParams) {
+  return {
+    phase: parseInt(searchParams.get('phase') || '1'),
+    sessionId: searchParams.get('sessionId') || '',
+    matchId: searchParams.get('matchId') || '',
+    trait: searchParams.get('trait'),
+    promptId: searchParams.get('promptId'),
+    promptType: searchParams.get('promptType'),
+    content: searchParams.get('content'),
+    wordCount: searchParams.get('wordCount'),
+    aiScores: searchParams.get('aiScores'),
+    yourScore: searchParams.get('yourScore') || '0',
+    feedbackScore: searchParams.get('feedbackScore'),
+    peerFeedback: searchParams.get('peerFeedback'),
+  };
+}
 
 export default function PhaseRankingsContent() {
   const router = useRouter();
-  const searchParams = useSearchParams();
   
-  const phase = parseInt(searchParams.get('phase') || '1');
-  const sessionId = searchParams.get('sessionId') || '';
-  const matchId = searchParams.get('matchId') || '';
-  const trait = searchParams.get('trait');
-  const promptId = searchParams.get('promptId');
-  const promptType = searchParams.get('promptType');
-  const content = searchParams.get('content');
-  const wordCount = searchParams.get('wordCount');
-  const aiScores = searchParams.get('aiScores');
-  const yourScore = searchParams.get('yourScore') || '0';
-  const feedbackScore = searchParams.get('feedbackScore');
-  const peerFeedback = searchParams.get('peerFeedback');
+  // Use useSearchParams hook with parser function
+  const params = useSearchParams(parsePhaseRankingsParams);
+  const { phase, sessionId, matchId, trait, promptId, promptType, content, wordCount, aiScores, yourScore, feedbackScore, peerFeedback } = params;
   
-  const [countdown, setCountdown] = useState(10);
-  const [currentTipIndex, setCurrentTipIndex] = useState(0);
   const [realRankings, setRealRankings] = useState<any[]>([]);
+  
+  // Use countdown hook
+  const { countdown } = useCountdown({
+    initialValue: 10,
+    onComplete: () => {
+      if (sessionId) {
+        router.push(`/session/${sessionId}`);
+      }
+    },
+  });
   
   const writingConcepts = useMemo(() => [
     { name: 'Sentence Expansion', tip: 'Use because, but, or so to show why things happen.', example: 'She opened the door because she heard a strange noise.', icon: '🔗' },
@@ -35,18 +56,24 @@ export default function PhaseRankingsContent() {
     { name: 'Strong Conclusions', tip: 'End with a final thought that ties everything together.', example: 'For these reasons, it is clear that...', icon: '🎯' },
   ], []);
 
+  // Use carousel hook for tip rotation
+  const { currentIndex: currentTipIndex, goTo: goToTip } = useCarousel({
+    items: writingConcepts,
+    interval: TIMING.CAROUSEL_INTERVAL,
+    autoPlay: true,
+  });
+
+  // Fetch rankings from Firestore using helper function
   useEffect(() => {
     const fetchRankings = async () => {
       if (!matchId) return;
       try {
-        const { getDoc, doc } = await import('firebase/firestore');
-        const { db } = await import('@/lib/config/firebase');
-        const matchDoc = await getDoc(doc(db, 'matchStates', matchId));
-        if (!matchDoc.exists()) return;
-        const matchState = matchDoc.data();
-        const phaseKey = `phase${phase}`;
-        const rankings = matchState?.rankings?.[phaseKey];
-        if (rankings && rankings.length > 0) setRealRankings(rankings);
+        const rankings = await getMatchRankings(matchId, phase as 1 | 2 | 3);
+        if (rankings && rankings.length > 0) {
+          setRealRankings(rankings);
+        } else {
+          console.warn('⚠️ PHASE RANKINGS - No rankings found in Firestore. Rankings may not be available yet.');
+        }
       } catch (error) {
         console.error('❌ PHASE RANKINGS - Failed to fetch rankings:', error);
       }
@@ -54,28 +81,25 @@ export default function PhaseRankingsContent() {
     fetchRankings();
   }, [matchId, phase]);
 
+  // Only use rankings from LLM - never random fallbacks
   const rankings = useMemo(() => {
     if (realRankings.length > 0) {
       return realRankings.map((r, idx) => ({
         name: r.playerName || (r.isAI ? r.playerId : 'You'),
         avatar: r.isAI ? ['🎯', '📖', '✨', '🏅'][idx % 4] : '🌿',
         rank: r.isAI ? ['Silver II', 'Silver III', 'Silver II', 'Silver IV'][idx % 4] : 'Silver III',
-        score: r.score,
+        score: r.score, // Always from LLM
         isYou: !r.isAI,
         position: r.rank,
       }));
     }
     
+    // If no rankings available, show only the user's score (no fake AI players)
     const score = parseFloat(phase === 1 ? yourScore : phase === 2 ? feedbackScore || yourScore : yourScore);
-    const rankedPlayers = [
-      { name: 'You', avatar: '🌿', rank: 'Silver III', score: Math.round(score), isYou: true, position: 0 },
-      { name: 'ProWriter99', avatar: '🎯', rank: 'Silver II', score: Math.round(65 + Math.random() * 25), isYou: false, position: 0 },
-      { name: 'WordMaster', avatar: '📖', rank: 'Silver III', score: Math.round(60 + Math.random() * 30), isYou: false, position: 0 },
-      { name: 'EliteScribe', avatar: '✨', rank: 'Silver II', score: Math.round(70 + Math.random() * 20), isYou: false, position: 0 },
-      { name: 'PenChampion', avatar: '🏅', rank: 'Silver IV', score: Math.round(55 + Math.random() * 30), isYou: false, position: 0 },
-    ].sort((a, b) => b.score - a.score).map((player, index) => ({ ...player, position: index + 1 }));
-    return rankedPlayers;
-  }, [phase, yourScore, feedbackScore, aiScores, realRankings]);
+    return [
+      { name: 'You', avatar: '🌿', rank: 'Silver III', score: Math.round(score), isYou: true, position: 1 },
+    ];
+  }, [phase, yourScore, feedbackScore, realRankings]);
   
   const yourRank = rankings.find(p => p.isYou)?.position || 5;
   
@@ -86,27 +110,6 @@ export default function PhaseRankingsContent() {
   
   const currentPhaseInfo = phaseInfo[phase as keyof typeof phaseInfo] || phaseInfo[1];
   
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setCurrentTipIndex(prev => (prev + 1) % writingConcepts.length);
-    }, 5000);
-    return () => clearInterval(interval);
-  }, [writingConcepts.length]);
-
-  useEffect(() => {
-    if (countdown > 0) {
-      const timer = setTimeout(() => setCountdown(countdown - 1), 1000);
-      return () => clearTimeout(timer);
-    } else {
-      let navigated = false;
-      const navigate = () => {
-        if (navigated || !sessionId) return;
-        navigated = true;
-        router.push(`/session/${sessionId}`);
-      };
-      navigate();
-    }
-  }, [countdown, phase, router, sessionId]);
   
   return (
     <div className="flex min-h-screen items-center justify-center bg-[#101012] px-4 py-6 text-[rgba(255,255,255,0.8)]">
@@ -149,7 +152,7 @@ export default function PhaseRankingsContent() {
                 {writingConcepts.map((_, index) => (
                   <button
                     key={index}
-                    onClick={() => setCurrentTipIndex(index)}
+                    onClick={() => goToTip(index)}
                     className={`h-1.5 rounded-full transition-all ${index === currentTipIndex ? 'w-6' : 'w-1.5 bg-[rgba(255,255,255,0.1)] hover:bg-[rgba(255,255,255,0.2)]'}`}
                     style={index === currentTipIndex ? { background: currentPhaseInfo.color } : {}}
                   />

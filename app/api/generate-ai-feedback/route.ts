@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { MOCK_WARNINGS } from '@/lib/constants/mock-warnings';
 import { getAnthropicApiKey, logApiKeyStatus, callAnthropicAPI } from '@/lib/utils/api-helpers';
 import { parseClaudeJSON } from '@/lib/utils/claude-parser';
 import { generateMockAIFeedback } from '@/lib/utils/mock-data';
@@ -18,7 +19,7 @@ export async function POST(request: NextRequest) {
         { 
           error: 'LLM API unavailable - Set ANTHROPIC_API_KEY environment variable',
           fallback: generateMockFeedback(rank),
-          warning: '🚨 LLM API UNAVAILABLE: Using mock data - not from AI evaluation'
+          warning: MOCK_WARNINGS.MOCK_EVALUATION
         },
         { status: 500 }
       );

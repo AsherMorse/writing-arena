@@ -8,7 +8,7 @@ import { joinQueue, leaveQueue, listenToQueue, QueueEntry, createMatchLobby } fr
 import { getRandomPromptForRank } from '@/lib/utils/prompts';
 import { getRandomAIStudents } from '@/lib/services/ai-students';
 import { useCreateSession } from '@/lib/hooks/useSession';
-import { SCORING } from '@/lib/constants/scoring';
+import { SCORING, TIMING } from '@/lib/constants/scoring';
 import { normalizePlayerAvatar, getPlayerDisplayName, getPlayerRank } from '@/lib/utils/player-utils';
 import MatchmakingStartModal from './MatchmakingStartModal';
 import MatchmakingLobby from './MatchmakingLobby';
@@ -402,7 +402,7 @@ export default function MatchmakingContent() {
     if (countdown === null) return;
     
     if (countdown > 0) {
-      const timer = setTimeout(() => setCountdown(countdown - 1), 1000);
+      const timer = setTimeout(() => setCountdown(countdown - 1), TIMING.COUNTDOWN_INTERVAL);
       return () => clearTimeout(timer);
     } else {
       (async () => {

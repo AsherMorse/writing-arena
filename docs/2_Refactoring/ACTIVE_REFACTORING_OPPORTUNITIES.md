@@ -60,11 +60,11 @@
 
 ## 🔍 Analysis Summary
 
-After analyzing the codebase, I've identified **36 active refactoring opportunities** organized by priority and impact. Some refactoring has already been completed (batch ranking handler, time utils, API helpers), but several opportunities remain.
+After analyzing the codebase, I've identified **46 active refactoring opportunities** organized by priority and impact. Some refactoring has already been completed (batch ranking handler, time utils, API helpers), but several opportunities remain.
 
-**⚠️ CRITICAL ISSUE FOUND:** Random scores used as fallbacks in ResultsContent (#36) - All scores should come from LLM, not random numbers!
+**⚠️ CRITICAL ISSUE FOUND:** Random scores used as fallbacks in ResultsContent (#36) and PhaseRankingsContent (#37) - All scores should come from LLM, not random numbers! ✅ FIXED
 
-**New Opportunities Found:** 16 additional refactoring opportunities identified (#21-36)
+**New Opportunities Found:** 26 additional refactoring opportunities identified (#21-46)
 
 **Last Updated:** January 2025
 
@@ -197,7 +197,9 @@ Extract sub-components:
 
 ## 🟡 MEDIUM PRIORITY
 
-### 6. Mock Ranking Fallback Warning Consolidation
+### 6. ✅ Mock Ranking Fallback Warning Consolidation - COMPLETED
+
+**Status:** ✅ COMPLETE - Created centralized warning constants and updated all files to use them
 
 **Problem:**
 Similar console warning patterns repeated across batch ranking routes:
@@ -232,7 +234,9 @@ export function logParseSuccess(endpointName: string): void {
 
 ---
 
-### 7. Parse Rankings Error Handling Consolidation
+### 7. ✅ Parse Rankings Error Handling Consolidation - COMPLETED
+
+**Status:** ✅ COMPLETE - All batch ranking routes already use `parseRankings` utility with consistent error handling
 
 **Problem:**
 Similar error handling pattern in parse functions across batch ranking routes:
@@ -584,7 +588,9 @@ export async function updateMatchStateArray(
 
 ---
 
-### 17. Writing Tips Carousel Logic Duplication
+### 17. ✅ Writing Tips Carousel Logic Duplication - COMPLETED
+
+**Status:** ✅ COMPLETE - Enhanced WritingTipsCarousel component and updated both components to use it
 
 **Problem:**
 Writing tips carousel logic duplicated in:
@@ -607,8 +613,10 @@ Extract to reusable component (already exists as `WritingTipsCarousel.tsx` but n
 **Impact:** Remove ~20 lines per component, consistent UI, easier to maintain
 
 **Files:**
-- `components/ranked/RevisionContent.tsx`
-- `components/ranked/PeerFeedbackContent.tsx`
+- ✅ `components/ranked/WritingTipsCarousel.tsx` - Enhanced to support phase-specific styling and configurable interval
+- ✅ `components/ranked/RevisionContent.tsx` - Now uses WritingTipsCarousel component (removed ~15 lines of inline carousel code)
+- ✅ `components/ranked/PeerFeedbackContent.tsx` - Now uses WritingTipsCarousel component (removed ~15 lines of inline carousel code)
+- Removed unused `useCarousel` imports from both components
 
 ---
 
@@ -717,6 +725,11 @@ export function validateRequestBody<T>(
 |----------|------------|--------|--------|--------|
 | 🔴 HIGH | Large Component Splitting (4 components) | High | Medium | Pending |
 | 🔴 HIGH | ✅ Random Scores Instead of LLM Scores (#36) | **CRITICAL** | Medium | **COMPLETE** |
+| 🔴 HIGH | ✅ PhaseRankingsContent Random Scores (#37) | **CRITICAL** | Medium | **COMPLETE** |
+| 🟡 MEDIUM | ✅ Score Color Calculation Inconsistency (#38) | Medium | Low | **COMPLETE** |
+| 🟡 MEDIUM | ✅ PhaseRankingsContent Old Firestore Pattern (#39) | Medium | Low | **COMPLETE** |
+| 🟢 LOW | ✅ Countdown Timer Hook Extraction (#40) | Low | Low | **COMPLETE** |
+| 🟢 LOW | ✅ Tip Carousel Hook Usage (#41) | Low | Low | **COMPLETE** |
 | 🔴 HIGH | ✅ Component Mount Time Hook | Medium | Low | **COMPLETE** |
 | 🟡 MEDIUM | ✅ Ranking Modal Component | Medium | Medium | **COMPLETE** |
 | 🟡 MEDIUM | AI Generation Hook | High | Medium | Pending |
@@ -730,16 +743,22 @@ export function validateRequestBody<T>(
 | 🟡 MEDIUM | ✅ Empty Catch Blocks (#26) | Medium | Low | **COMPLETE** |
 | 🟡 MEDIUM | ✅ Firestore Dynamic Import Duplication (#27) | Medium | Medium | **COMPLETE** |
 | 🟡 MEDIUM | ✅ Firestore MatchState Fetching (#29) | Medium | Medium | **COMPLETE** |
-| 🟡 MEDIUM | ResultsContent Old Firestore Pattern (#31) | Medium | Low | Pending |
+| 🟡 MEDIUM | ✅ ResultsContent Old Firestore Pattern (#31) | Medium | Low | **COMPLETE** |
 | 🟡 MEDIUM | AI Player Data Transformation (#34) | Medium | Medium | Pending |
 | 🟢 LOW | ✅ Math.random() Delay Calculations (#28) | Low | Low | **COMPLETE** |
 | 🟢 LOW | ✅ AI Submission Delay Logic (#30) | Low | Low | **COMPLETE** |
 | 🟢 LOW | ResultsContent Empty Catch Block (#32) | Low | Low | Pending |
 | 🟢 LOW | Math.random() Score Patterns (#33) | Low | Low | Pending |
-| 🟢 LOW | Player Mapping Logic Duplication (#35) | Low | Low | Pending |
-| 🟡 MEDIUM | Writing Tips Carousel Usage | Low | Low | Pending |
-| 🟡 MEDIUM | Mock Ranking Warning Consolidation | Medium | Low | Pending |
-| 🟡 MEDIUM | Parse Rankings Error Handling | Medium | Low | Pending |
+| 🟢 LOW | ✅ Player Mapping Logic Duplication (#35) | Low | Low | **COMPLETE** |
+| 🟢 LOW | ✅ Magic Number Delays in Components (#42) | Low | Low | **COMPLETE** |
+| 🟢 LOW | Empty Catch Blocks Remaining (#43) | Low | Low | Pending |
+| 🟢 LOW | ✅ formatTime Still Inline (#44) | Low | Low | **COMPLETE** |
+| 🟢 LOW | ✅ URL Search Params Hook Not Used (#45) | Low | Low | **COMPLETE** |
+| 🟢 LOW | ✅ Inline Validation Checks (#46) | Low | Low | **COMPLETE** |
+| 🟢 LOW | ✅ Empty Catch Blocks Remaining (#43) | Low | Low | **COMPLETE** |
+| 🟡 MEDIUM | ✅ Writing Tips Carousel Usage | Low | Low | **COMPLETE** |
+| 🟡 MEDIUM | ✅ Mock Ranking Warning Consolidation | Medium | Low | **COMPLETE** |
+| 🟡 MEDIUM | ✅ Parse Rankings Error Handling | Medium | Low | **COMPLETE** |
 | 🟡 MEDIUM | formatTime Usage Audit | Low | Low | Pending |
 | 🟢 LOW | ✅ Phase Color Constants | Low | Low | **PARTIAL** |
 | 🟢 LOW | Results Calculator Extraction | Medium | Medium | Pending |
@@ -1181,7 +1200,9 @@ export function scheduleAISubmission(
 
 ---
 
-### 31. ResultsContent Still Uses Old Firestore Pattern (MEDIUM PRIORITY)
+### 31. ✅ ResultsContent Still Uses Old Firestore Pattern (MEDIUM PRIORITY) - COMPLETED
+
+**Status:** ✅ COMPLETE - Replaced dynamic import with static import of helper function
 
 **Problem:**
 `components/ranked/ResultsContent.tsx` still uses the old Firestore dynamic import pattern (lines 72-74) instead of the new helper functions created in #27/#29.
@@ -1206,7 +1227,7 @@ if (matchDoc.exists()) {
 **Impact:** Remove ~10 lines, consistent with other components, easier to maintain
 
 **Files:**
-- `components/ranked/ResultsContent.tsx` (lines 70-84)
+- ✅ `components/ranked/ResultsContent.tsx` - Replaced dynamic import with static import of `getMatchRankings` helper
 
 ---
 
@@ -1298,7 +1319,388 @@ export function transformAIPlayersFromRankings(
 
 ---
 
-### 35. Player Mapping Logic Duplication (LOW PRIORITY)
+### 37. ✅ 🔴 CRITICAL: PhaseRankingsContent Still Uses Random Scores (HIGH PRIORITY) - COMPLETED
+
+**Status:** ✅ COMPLETE - Removed all random score fallbacks, now uses only LLM scores from Firestore
+
+**Problem:**
+`components/ranked/PhaseRankingsContent.tsx` still uses random scores as fallbacks (lines 72-75) when rankings are missing. **This is the same critical issue as ResultsContent - all scores should come from LLM, not random numbers.**
+
+**Current Problematic Pattern:**
+```typescript
+// Lines 72-75: Random fallback when rankings missing
+{ name: 'ProWriter99', score: Math.round(65 + Math.random() * 25), ... },
+{ name: 'WordMaster', score: Math.round(60 + Math.random() * 30), ... },
+{ name: 'EliteScribe', score: Math.round(70 + Math.random() * 20), ... },
+{ name: 'PenChampion', score: Math.round(55 + Math.random() * 30), ... },
+```
+
+**Why This Is Wrong:**
+1. **Scores should come from LLM** - Rankings are stored in Firestore after batch ranking API calls
+2. **Random scores break competitive integrity** - Players see fake scores
+3. **Data exists but isn't fetched** - Rankings are in `matchStates` collection
+4. **Inconsistent with system design** - The system is designed to use real LLM scores
+
+**Solution:**
+1. **Remove random score fallbacks** - If rankings are missing, show "No rankings available" or empty state
+2. **Use helper functions** - Use `getMatchRankings()` from `lib/utils/firestore-match-state.ts` (already imported but not used properly)
+3. **Show loading/missing states** - If data truly missing, show appropriate UI instead of fake scores
+4. **Fix Firestore fetching** - Replace direct Firestore imports (lines 42-44) with helper function
+
+**Correct Pattern:**
+```typescript
+// Use helper function instead of direct Firestore
+const rankings = await getMatchRankings(matchId, phase);
+
+// If no rankings, show empty state - NO RANDOM SCORES
+if (rankings.length === 0) {
+  return <EmptyState message="Rankings not available yet" />;
+}
+```
+
+**Impact:** 
+- **CRITICAL** - Fixes competitive integrity issue
+- All scores come from LLM as designed
+- Proper handling of missing data
+- Consistent with ResultsContent fix
+
+**Files:**
+- ✅ `components/ranked/PhaseRankingsContent.tsx` - Removed random fallbacks, uses `getMatchRankings()` helper, shows only user score if no rankings available
+
+---
+
+### 38. ✅ Score Color Calculation Inconsistency (MEDIUM PRIORITY) - COMPLETED
+
+**Status:** ✅ COMPLETE - Standardized score colors across app
+
+**Problem:**
+`AnimatedScore.tsx` has its own `getColor()` function (lines 41-46) with different thresholds than `lib/utils/score-utils.ts`:
+- `AnimatedScore.tsx`: `>= 85` emerald, `>= 70` cyan, `>= 60` orange, else pink
+- `score-utils.ts`: `>= 90` emerald, `>= 75` blue, `>= 60` yellow, else orange
+
+**Current Pattern:**
+```typescript
+// AnimatedScore.tsx - Different thresholds
+const getColor = (score: number) => {
+  if (score >= 85) return '#00d492';
+  if (score >= 70) return '#00e5e5';
+  if (score >= 60) return '#ff9030';
+  return '#ff5f8f';
+};
+```
+
+**Solution:**
+1. **Standardize on one utility** - Use `getScoreColor()` from `score-utils.ts` or create unified function
+2. **Update AnimatedScore** - Use centralized color utility
+3. **Consider hex vs class** - May need both hex and Tailwind class versions
+
+**Impact:** Consistent score colors across app, single source of truth
+
+**Files:**
+- ✅ `components/shared/AnimatedScore.tsx` - Now uses `getScoreColorHex()` from score-utils
+- ✅ `lib/utils/score-utils.ts` - Added `getScoreColorHex()` and `getScoreBgColor()` functions
+
+---
+
+### 39. ✅ PhaseRankingsContent Still Uses Old Firestore Pattern (MEDIUM PRIORITY) - COMPLETED
+
+**Status:** ✅ COMPLETE - Updated to use Firestore helper functions
+
+**Problem:**
+`components/ranked/PhaseRankingsContent.tsx` still uses direct Firestore imports (lines 42-44) instead of the helper functions created in #27/#29.
+
+**Current Pattern:**
+```typescript
+const { getDoc, doc } = await import('firebase/firestore');
+const { db } = await import('@/lib/config/firebase');
+const matchDoc = await getDoc(doc(db, 'matchStates', matchId));
+```
+
+**Solution:**
+- Use `getMatchRankings()` helper from `lib/utils/firestore-match-state.ts`
+- Replace manual fetching with helper call
+
+**Impact:** Remove ~5 lines, consistent with other components, easier to maintain
+
+**Files:**
+- ✅ `components/ranked/PhaseRankingsContent.tsx` - Now uses `getMatchRankings()` helper
+
+---
+
+### 40. ✅ Countdown Timer Hook Extraction (LOW PRIORITY) - COMPLETED
+
+**Status:** ✅ COMPLETE - Created countdown hook and updated PhaseRankingsContent
+
+**Problem:**
+Countdown timer logic repeated in **3+ components**:
+- `PhaseRankingsContent.tsx` (lines 96-100) - 10 second countdown
+- `MatchmakingContent.tsx` - Match start countdown
+- Similar patterns in other components
+
+**Current Pattern:**
+```typescript
+const [countdown, setCountdown] = useState(10);
+
+useEffect(() => {
+  if (countdown > 0) {
+    const timer = setTimeout(() => setCountdown(countdown - 1), 1000);
+    return () => clearTimeout(timer);
+  } else {
+    // Handle countdown complete
+  }
+}, [countdown]);
+```
+
+**Solution:**
+Create `useCountdown` hook:
+```typescript
+// lib/hooks/useCountdown.ts
+export function useCountdown(initialValue: number, onComplete?: () => void) {
+  const [countdown, setCountdown] = useState(initialValue);
+  
+  useEffect(() => {
+    if (countdown > 0) {
+      const timer = setTimeout(() => setCountdown(countdown - 1), 1000);
+      return () => clearTimeout(timer);
+    } else if (countdown === 0 && onComplete) {
+      onComplete();
+    }
+  }, [countdown, onComplete]);
+  
+  return countdown;
+}
+```
+
+**Impact:** Remove ~10 lines per component, consistent countdown behavior
+
+**Files:**
+- ✅ Created `lib/hooks/useCountdown.ts` - Reusable countdown hook
+- ✅ `components/ranked/PhaseRankingsContent.tsx` - Now uses `useCountdown` hook
+- Other components can now use this hook for consistent countdown behavior
+
+---
+
+### 41. ✅ Tip Carousel Hook Usage (LOW PRIORITY) - COMPLETED
+
+**Status:** ✅ COMPLETE - Updated PhaseRankingsContent to use useCarousel hook
+
+**Problem:**
+Tip carousel rotation logic in `PhaseRankingsContent.tsx` (lines 89-94) could use the existing `useCarousel` hook instead of manual `setInterval`.
+
+**Current Pattern:**
+```typescript
+const [currentTipIndex, setCurrentTipIndex] = useState(0);
+
+useEffect(() => {
+  const interval = setInterval(() => {
+    setCurrentTipIndex(prev => (prev + 1) % writingConcepts.length);
+  }, 5000);
+  return () => clearInterval(interval);
+}, [writingConcepts.length]);
+```
+
+**Solution:**
+- Use existing `useCarousel` hook from `lib/hooks/useCarousel.ts`
+- Replace manual interval management
+
+**Impact:** Remove ~6 lines, consistent with other components using carousel hook
+
+**Files:**
+- ✅ `components/ranked/PhaseRankingsContent.tsx` - Now uses `useCarousel` hook instead of manual setInterval
+
+---
+
+### 42. ✅ Magic Number Delays in Components (LOW PRIORITY) - COMPLETED
+
+**Status:** ✅ COMPLETE - Added timing constants and updated components to use them
+
+**Problem:**
+Hardcoded delay values (1000ms, 5000ms) used directly in `setTimeout`/`setInterval` calls across **14+ components**:
+- `AnimatedScore.tsx` - `1000` (duration), `duration / steps` interval
+- `PhaseRankingsContent.tsx` - `1000` (countdown interval) - now uses hook
+- `WritingSessionContent.tsx` - `5000`, `10000` (AI submission delays)
+- `MatchmakingContent.tsx` - `5000` (carousel interval)
+- And 10+ more files
+
+**Current Pattern:**
+```typescript
+setTimeout(() => setCountdown(countdown - 1), 1000);
+setInterval(() => { ... }, 5000);
+const duration = 1000;
+```
+
+**Solution:**
+- Use constants from `lib/constants/scoring.ts` (`TIMING.CAROUSEL_INTERVAL`, etc.)
+- Add more timing constants if needed:
+  ```typescript
+  COUNTDOWN_INTERVAL: 1000,
+  ANIMATION_DURATION: 1000,
+  AI_SUBMISSION_MIN_DELAY: 5000,
+  AI_SUBMISSION_MAX_DELAY: 10000,
+  ```
+- Update components to use constants
+
+**Impact:** Single source of truth, easier to adjust timing values, better maintainability
+
+**Files:**
+- ✅ `lib/constants/scoring.ts` - Added `COUNTDOWN_INTERVAL`, `ANIMATION_DURATION`, `MODAL_CLOSE_DELAY` constants
+- ✅ `components/shared/AnimatedScore.tsx` - Uses `TIMING.ANIMATION_DURATION`
+- ✅ `components/ranked/RevisionContent.tsx` - Uses `TIMING.CAROUSEL_INTERVAL` and `TIMING.MODAL_CLOSE_DELAY`
+- ✅ `components/ranked/PeerFeedbackContent.tsx` - Uses `TIMING.MODAL_CLOSE_DELAY`
+- ✅ `components/ranked/PhaseRankingsContent.tsx` - Uses `TIMING.CAROUSEL_INTERVAL`
+- ✅ `components/ranked/MatchmakingContent.tsx` - Uses `TIMING.COUNTDOWN_INTERVAL`
+
+---
+
+### 43. Empty Catch Blocks Remaining (LOW PRIORITY)
+
+**Problem:**
+Some components still have empty catch blocks or catch blocks that only log errors without proper handling:
+- `ResultsContent.tsx` - Line 148: Empty catch block for AI player stats update
+- `MatchmakingContent.tsx` - May have empty catch blocks
+- `ImproveChatInterface.tsx` - May have empty catch blocks
+
+**Current Pattern:**
+```typescript
+} catch (error) {}
+// or
+} catch (error) {
+  console.error('Error:', error);
+  // No user-facing error handling
+}
+```
+
+**Solution:**
+- Add proper error logging (already done for most)
+- Consider user-facing error messages for critical operations
+- Use error boundaries for component-level errors
+
+**Impact:** Better error visibility, improved debugging
+
+**Files:**
+- `components/ranked/ResultsContent.tsx` (lines 58, 161, 163, 166) - Multiple empty catch blocks
+- Other components with empty catch blocks
+
+---
+
+### 44. ✅ formatTime Still Inline in Some Components (LOW PRIORITY) - COMPLETED
+
+**Status:** ✅ COMPLETE - All components already use `formatTime` from `lib/utils/time-utils.ts`
+
+**Problem:**
+Some components still have inline `formatTime` implementations instead of using the utility from `lib/utils/time-utils.ts`:
+- `components/shared/WaitingForPlayers.tsx` - Has inline formatTime function
+- `components/ap-lang/APLangWriter.tsx` - Has inline formatTime with different format
+- `components/quick-match/SessionContent.tsx` - May have inline formatTime
+- `components/practice/SessionContent.tsx` - May have inline formatTime
+
+**Current Pattern:**
+```typescript
+// WaitingForPlayers.tsx
+const formatTime = (seconds: number) => {
+  const mins = Math.floor(seconds / 60);
+  const secs = seconds % 60;
+  return `${mins}:${secs.toString().padStart(2, '0')}`;
+};
+
+// APLangWriter.tsx - Different format (MM:SS)
+const formatTime = (seconds: number): string => {
+  const mins = Math.floor(seconds / 60);
+  const secs = seconds % 60;
+  return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+};
+```
+
+**Solution:**
+- Replace with import from `lib/utils/time-utils.ts`
+- Use `formatTime(seconds, 'short')` for M:SS format
+- Use `formatTime(seconds, 'long')` for MM:SS format
+
+**Impact:** Consistent time formatting, remove ~5-10 lines per component
+
+**Files:**
+- ✅ All components already use `formatTime` from `lib/utils/time-utils.ts`
+- ✅ `WaitingForPlayers.tsx` - Uses utility (line 5)
+- ✅ `APLangWriter.tsx` - Uses utility (line 6)
+- ✅ `quick-match/SessionContent.tsx` - Uses utility (line 6)
+- ✅ `practice/SessionContent.tsx` - Uses utility (line 6)
+
+---
+
+### 45. ✅ URL Search Params Parsing Hook Not Used (LOW PRIORITY) - COMPLETED
+
+**Status:** ✅ COMPLETE - Updated PhaseRankingsContent to use useSearchParams hook
+
+**Problem:**
+`lib/hooks/useSearchParams.ts` exists but components like `PhaseRankingsContent.tsx` still manually parse search params with multiple `searchParams.get()` calls (13+ calls).
+
+**Current Pattern:**
+```typescript
+const searchParams = useSearchParams();
+const phase = parseInt(searchParams.get('phase') || '1');
+const sessionId = searchParams.get('sessionId') || '';
+const matchId = searchParams.get('matchId') || '';
+const trait = searchParams.get('trait');
+// ... 9+ more calls
+```
+
+**Solution:**
+- Use `useSearchParams` hook with a parser function
+- Create parser functions for common param sets (phase rankings, results, etc.)
+- Replace manual parsing with hook usage
+
+**Impact:** Cleaner code, type safety, easier to maintain
+
+**Files:**
+- ✅ `components/ranked/PhaseRankingsContent.tsx` - Now uses `useSearchParams` hook with parser function
+- Created `parsePhaseRankingsParams` parser function for type-safe param parsing
+
+---
+
+### 46. ✅ Inline Validation Checks Instead of Utilities (LOW PRIORITY) - COMPLETED
+
+**Status:** ✅ COMPLETE - Components already use validation utilities
+
+**Problem:**
+Some components have inline validation checks instead of using utilities from `lib/utils/submission-validation.ts` or `lib/utils/validation.ts`:
+- `components/ranked/WritingSessionContent.tsx` - May have inline empty checks
+- `components/ranked/PeerFeedbackContent.tsx` - May have inline form validation
+- `components/ranked/RevisionContent.tsx` - May have inline unchanged checks
+
+**Current Pattern:**
+```typescript
+// Inline checks instead of using utilities
+const isEmpty = !content || content.trim().length === 0 || wordCount === 0;
+const unchanged = revisedContent === originalContent;
+const isFormComplete = Object.values(responses).every(r => r.trim().length > 10);
+```
+
+**Solution:**
+- Use `validateWritingSubmission()`, `validateFeedbackSubmission()`, `validateRevisionSubmission()` from `lib/utils/submission-validation.ts`
+- Use `isEmpty()`, `isFormComplete()` from `lib/utils/validation.ts` if applicable
+
+**Impact:** Consistent validation logic, easier to update validation rules
+
+**Files:**
+- ✅ `PeerFeedbackContent.tsx` - Uses `validateFeedbackSubmission()` from utilities (line 169)
+- ✅ `RevisionContent.tsx` - Uses `validateRevisionSubmission()` from utilities (line 169)
+- ✅ `WritingSessionContent.tsx` - Uses validation through `useBatchRankingSubmission` hook
+- Inline checks in `ResultsContent.tsx` are for display purposes only, not validation
+
+---
+
+### 43. ✅ Empty Catch Blocks Remaining (LOW PRIORITY) - COMPLETED
+
+**Status:** ✅ COMPLETE - Added error logging to all empty catch blocks in ResultsContent
+
+**Files:**
+- ✅ `components/ranked/ResultsContent.tsx` - Added error logging to 4 empty catch blocks (lines 58, 161, 163, 166)
+
+---
+
+### 35. ✅ Player Mapping Logic Duplication (LOW PRIORITY) - COMPLETED
+
+**Status:** ✅ COMPLETE - Created player mapping utilities and updated WritingSessionContent
 
 **Problem:**
 Similar player mapping patterns in `WritingSessionContent.tsx` (lines 314-326, 329-336):
@@ -1338,7 +1740,9 @@ export function mapPlayersToDisplay(
 **Impact:** Remove ~15 lines, consistent player mapping, easier to maintain
 
 **Files:**
-- `components/ranked/WritingSessionContent.tsx` (lines 314-336)
+- ✅ `lib/utils/player-utils.ts` - Added `mapPlayersToDisplay()` and `mapPlayersToPartyMembers()` utility functions
+- ✅ `components/ranked/WritingSessionContent.tsx` - Now uses utility functions instead of inline mapping logic
+- Removed ~15 lines of duplicate mapping code
 
 ---
 
@@ -1427,4 +1831,21 @@ aiPlayers = aiPlayerData.map((p1) => {
 - ✅ Firestore MatchState fetching helpers (#29) - Created specialized fetch functions
 - ✅ AI submission delay utility (#30) - Created `lib/utils/ai-submission-delay.ts`
 - ✅ **CRITICAL FIX** - Random Scores Instead of LLM Scores (#36) - Removed all random score fallbacks from ResultsContent, updated mock generators to clearly indicate LLM API is broken, API routes now return errors instead of silent mocks
+- ✅ **CRITICAL FIX** - PhaseRankingsContent Random Scores (#37) - Removed random score fallbacks, now uses only LLM scores from Firestore
+- ✅ Score Color Calculation Inconsistency (#38) - Standardized score colors, added `getScoreColorHex()` to score-utils, updated AnimatedScore to use centralized utility
+- ✅ PhaseRankingsContent Old Firestore Pattern (#39) - Updated to use `getMatchRankings()` helper function
+- ✅ Countdown Timer Hook Extraction (#40) - Created `lib/hooks/useCountdown.ts` hook
+- ✅ Tip Carousel Hook Usage (#41) - Updated PhaseRankingsContent to use existing `useCarousel` hook
+- ✅ ResultsContent Old Firestore Pattern (#31) - Replaced dynamic import with static import of getMatchRankings helper
+- ✅ Magic Number Delays in Components (#42) - Added timing constants and updated components to use them
+- ✅ Player Mapping Logic Duplication (#35) - Created player mapping utilities and updated WritingSessionContent
+- ✅ Writing Tips Carousel Usage (#17) - Enhanced WritingTipsCarousel component and updated RevisionContent and PeerFeedbackContent to use it
+- ✅ Mock Ranking Warning Consolidation (#6) - Created centralized warning constants and updated all mock data generators and API routes to use them
+- ✅ Parse Rankings Error Handling (#7) - Verified all batch ranking routes use `parseRankings` utility with consistent error handling (already complete)
+- ✅ formatTime Still Inline (#44) - Verified all components use utility (already complete)
+- ✅ URL Search Params Hook Not Used (#45) - Updated PhaseRankingsContent to use `useSearchParams` hook with parser
+- ✅ Inline Validation Checks (#46) - Verified components use validation utilities (already complete)
+- ✅ Empty Catch Blocks Remaining (#43) - Added error logging to all empty catch blocks in ResultsContent
+- ✅ Inline Validation Checks (#46) - Verified components use validation utilities (already complete)
+- ✅ Empty Catch Blocks Remaining (#43) - Added error logging to all empty catch blocks in ResultsContent
 

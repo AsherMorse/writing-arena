@@ -40,6 +40,15 @@ export const TIMING = {
   // Carousel/tips rotation interval
   CAROUSEL_INTERVAL: 6000,
   
+  // Countdown interval (1 second)
+  COUNTDOWN_INTERVAL: 1000,
+  
+  // Animation duration for score reveal
+  ANIMATION_DURATION: 1000,
+  
+  // Modal close delay after submission
+  MODAL_CLOSE_DELAY: 500,
+  
   // AP Lang warning threshold (5 minutes)
   AP_LANG_WARNING_THRESHOLD: 300,
   

@@ -7,6 +7,7 @@ import { parseRankings } from '@/lib/utils/parse-rankings';
 import { logMockRankingsWarning } from '@/lib/utils/ranking-logging';
 import { SCORING } from '@/lib/constants/scoring';
 import { API_MAX_TOKENS } from '@/lib/constants/api-config';
+import { MOCK_WARNINGS } from '@/lib/constants/mock-warnings';
 
 interface WritingSubmission {
   playerId: string;
@@ -60,7 +61,7 @@ function generateMockRankings(writings: WritingSubmission[]): { rankings: any[] 
     generateStrengths: (writing, isEmpty) => {
       if (isEmpty) return [];
       return [
-        '🚨 LLM API UNAVAILABLE: Random score generated - not from AI evaluation',
+        MOCK_WARNINGS.RANDOM_SCORE_GENERATED,
         'Clear attempt to address the prompt',
         'Some descriptive details included',
       ];
@@ -74,8 +75,8 @@ function generateMockRankings(writings: WritingSubmission[]): { rankings: any[] 
         ];
       }
       return [
-        '🚨 LLM API UNAVAILABLE: Set ANTHROPIC_API_KEY to enable real AI scoring',
-        '⚠️ This score is randomly generated and not based on actual quality',
+        MOCK_WARNINGS.SET_API_KEY,
+        MOCK_WARNINGS.RANDOM_FEEDBACK,
         'Try expanding sentences with because/but/so',
         'Add more specific details',
         'Use stronger transitions',
@@ -92,11 +93,11 @@ function generateMockRankings(writings: WritingSubmission[]): { rankings: any[] 
         };
       }
       return {
-        content: '🚨 LLM API UNAVAILABLE: Random score - Set ANTHROPIC_API_KEY for real AI evaluation.',
-        organization: '🚨 LLM API UNAVAILABLE: Random score - Set ANTHROPIC_API_KEY for real AI evaluation.',
-        grammar: '🚨 LLM API UNAVAILABLE: Random score - Set ANTHROPIC_API_KEY for real AI evaluation.',
-        vocabulary: '🚨 LLM API UNAVAILABLE: Random score - Set ANTHROPIC_API_KEY for real AI evaluation.',
-        mechanics: '🚨 LLM API UNAVAILABLE: Random score - Set ANTHROPIC_API_KEY for real AI evaluation.',
+        content: MOCK_WARNINGS.RANDOM_TRAIT_SCORE,
+        organization: MOCK_WARNINGS.RANDOM_TRAIT_SCORE,
+        grammar: MOCK_WARNINGS.RANDOM_TRAIT_SCORE,
+        vocabulary: MOCK_WARNINGS.RANDOM_TRAIT_SCORE,
+        mechanics: MOCK_WARNINGS.RANDOM_TRAIT_SCORE,
       };
     },
   });

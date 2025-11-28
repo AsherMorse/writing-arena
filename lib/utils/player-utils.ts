@@ -56,3 +56,81 @@ export function normalizePlayerAvatar(avatar: any): string {
   return '🌿';
 }
 
+/**
+ * Player display data structure
+ */
+export interface PlayerDisplayData {
+  name: string;
+  avatar: string;
+  rank: string;
+  userId: string;
+  isYou: boolean;
+  isAI: boolean;
+  wordCount?: number;
+}
+
+/**
+ * Party member data structure
+ */
+export interface PartyMemberData {
+  name: string;
+  userId: string;
+  avatar: string;
+  rank: string;
+  isAI: boolean;
+  isYou: boolean;
+}
+
+/**
+ * Map players to display format with word counts
+ */
+export function mapPlayersToDisplay(
+  players: Array<{
+    userId: string;
+    displayName: string;
+    avatar: string;
+    rank: string;
+    isAI: boolean;
+  }>,
+  userId: string | undefined,
+  wordCount: number,
+  aiWordCounts: number[]
+): PlayerDisplayData[] {
+  return players.map((player, index) => {
+    const isYou = player.userId === userId;
+    const aiIndex = players.filter((p, i) => i < index && p.isAI).length;
+    return {
+      name: player.displayName,
+      avatar: player.avatar,
+      rank: player.rank,
+      userId: player.userId,
+      isYou,
+      isAI: player.isAI,
+      wordCount: isYou ? wordCount : (player.isAI ? aiWordCounts[aiIndex] || 0 : 0),
+    };
+  });
+}
+
+/**
+ * Map players to party member format
+ */
+export function mapPlayersToPartyMembers(
+  players: Array<{
+    userId: string;
+    displayName: string;
+    avatar: string;
+    rank: string;
+    isAI: boolean;
+  }>,
+  userId: string | undefined
+): PartyMemberData[] {
+  return players.map(p => ({
+    name: p.displayName,
+    userId: p.userId,
+    avatar: p.avatar,
+    rank: p.rank,
+    isAI: p.isAI,
+    isYou: p.userId === userId,
+  }));
+}
+

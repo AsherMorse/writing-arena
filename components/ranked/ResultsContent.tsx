@@ -8,6 +8,7 @@ import AnimatedScore from '@/components/shared/AnimatedScore';
 import { getAIFeedback } from '@/lib/services/match-sync';
 import { saveWritingSession, updateUserStatsAfterSession } from '@/lib/services/firestore';
 import { updateAIStudentAfterMatch } from '@/lib/services/ai-students';
+import { getMatchRankings } from '@/lib/utils/firestore-match-state';
 import { calculateCompositeScore, calculateLPChange, calculateXPEarned, calculatePointsEarned, calculateImprovementBonus } from '@/lib/utils/score-calculator';
 import { LoadingState } from '@/components/shared/LoadingState';
 import { getMedalEmoji } from '@/lib/utils/rank-utils';
@@ -55,7 +56,9 @@ export default function ResultsContent({ session }: ResultsContentProps = {}) {
           getAIFeedback(matchId, user.uid, 3),
         ]);
         setRealFeedback({ writing: phase1Feedback, feedback: phase2Feedback, revision: phase3Feedback });
-      } catch (error) {}
+      } catch (error) {
+        console.error('❌ RESULTS - Failed to fetch AI feedback:', error);
+      }
     };
     fetchAIFeedback();
   }, [user, matchId]);
@@ -69,7 +72,6 @@ export default function ResultsContent({ session }: ResultsContentProps = {}) {
         
         if (matchId) {
           try {
-            const { getMatchRankings } = await import('@/lib/utils/firestore-match-state');
             realPhase1Rankings = await getMatchRankings(matchId, 1);
             realPhase2Rankings = await getMatchRankings(matchId, 2);
             realPhase3Rankings = await getMatchRankings(matchId, 3);
@@ -158,12 +160,22 @@ export default function ResultsContent({ session }: ResultsContentProps = {}) {
               
               if (session && aiPlayer.userId && aiPlayer.userId.startsWith('ai-')) {
                 const aiStudentId = aiPlayer.userId.replace('ai-', '').replace('student-', '');
-                try { await updateAIStudentAfterMatch(aiStudentId, aiLPChange, aiXP, aiIsWin, aiPlayer.wordCount || 100).catch(() => {}); } catch (e) {}
+                try { 
+                  await updateAIStudentAfterMatch(aiStudentId, aiLPChange, aiXP, aiIsWin, aiPlayer.wordCount || 100);
+                } catch (e) {
+                  console.error(`❌ RESULTS - Failed to update AI student stats for ${aiStudentId}:`, e);
+                }
               } else if (session && aiPlayer.userId) {
-                try { await updateAIStudentAfterMatch(aiPlayer.userId, aiLPChange, aiXP, aiIsWin, aiPlayer.wordCount || 100).catch(() => {}); } catch (e) {}
+                try { 
+                  await updateAIStudentAfterMatch(aiPlayer.userId, aiLPChange, aiXP, aiIsWin, aiPlayer.wordCount || 100);
+                } catch (e) {
+                  console.error(`❌ RESULTS - Failed to update AI student stats for ${aiPlayer.userId}:`, e);
+                }
               }
             }
-          } catch (error) {}
+          } catch (error) {
+            console.error('❌ RESULTS - Failed to save session data:', error);
+          }
         }
 
         setResults({ rankings, yourRank, lpChange, xpEarned, pointsEarned, isVictory, improvementBonus: Math.round(improvementBonus), phases: { writing: Math.round(writingScore), feedback: Math.round(feedbackScore), revision: Math.round(revisionScore), composite: Math.round(yourCompositeScore) } });
