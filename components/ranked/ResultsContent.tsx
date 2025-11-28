@@ -2,13 +2,15 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { GameSession } from '@/lib/types/session';
+import { useSession } from '@/lib/hooks/useSession';
 import AnimatedScore from '@/components/shared/AnimatedScore';
 import { getAIFeedback } from '@/lib/services/match-sync';
 import { saveWritingSession, updateUserStatsAfterSession } from '@/lib/services/firestore';
 import { updateAIStudentAfterMatch } from '@/lib/services/ai-students';
-import { getMatchRankings } from '@/lib/utils/firestore-match-state';
+import { getMatchRankings, getMatchState } from '@/lib/utils/firestore-match-state';
 import { calculateCompositeScore, calculateLPChange, calculateXPEarned, calculatePointsEarned, calculateImprovementBonus } from '@/lib/utils/score-calculator';
 import { LoadingState } from '@/components/shared/LoadingState';
 import { getMedalEmoji } from '@/lib/utils/rank-utils';
@@ -21,21 +23,59 @@ interface ResultsContentProps {
   session?: GameSession;
 }
 
-export default function ResultsContent({ session }: ResultsContentProps = {}) {
+export default function ResultsContent({ session: sessionProp }: ResultsContentProps = {}) {
   const { user, refreshProfile } = useAuth();
+  const searchParams = useSearchParams();
   
-  const matchId = session?.matchId || '';
-  const trait = session?.config.trait;
-  const promptType = session?.config.promptType;
+  // Get sessionId from URL params or matchId
+  const sessionIdFromParams = searchParams?.get('sessionId') || '';
+  const matchIdFromParams = searchParams?.get('matchId') || '';
   
-  const userPlayer = session && user ? session.players[user.uid] : null;
-  const originalContent = userPlayer?.phases.phase1?.content || '';
-  const revisedContent = (userPlayer?.phases.phase3 as any)?.revisedContent || '';
-  const wordCount = userPlayer?.phases.phase1?.wordCount || 0;
-  const revisedWordCount = userPlayer?.phases.phase3?.wordCount || 0;
-  const writingScore = userPlayer?.phases.phase1?.score || 75;
-  const feedbackScore = (userPlayer?.phases.phase2 as any)?.score || 80;
-  const revisionScore = userPlayer?.phases.phase3?.score || 78;
+  // Try to get sessionId from matchState if we have matchId but no sessionId
+  const [sessionIdFromMatch, setSessionIdFromMatch] = useState<string>('');
+  const [loadingSessionId, setLoadingSessionId] = useState(false);
+  
+  useEffect(() => {
+    const fetchSessionIdFromMatch = async () => {
+      if (matchIdFromParams && !sessionIdFromParams && !sessionProp && !loadingSessionId) {
+        setLoadingSessionId(true);
+        try {
+          const matchState = await getMatchState(matchIdFromParams);
+          if (matchState?.sessionId) {
+            console.log('📋 RESULTS - Found sessionId from matchState:', matchState.sessionId);
+            setSessionIdFromMatch(matchState.sessionId);
+          }
+        } catch (error) {
+          console.error('❌ RESULTS - Failed to get sessionId from matchState:', error);
+        } finally {
+          setLoadingSessionId(false);
+        }
+      }
+    };
+    fetchSessionIdFromMatch();
+  }, [matchIdFromParams, sessionIdFromParams, sessionProp, loadingSessionId]);
+  
+  // Use sessionId from params, matchState, or null
+  const finalSessionId = sessionIdFromParams || sessionIdFromMatch;
+  const { session: sessionFromHook } = useSession(finalSessionId || null);
+  
+  // Prefer prop, then hook, then null
+  const finalSession = sessionProp || sessionFromHook;
+  
+  const matchId = finalSession?.matchId || matchIdFromParams;
+  const trait = finalSession?.config.trait || searchParams?.get('trait') || 'all';
+  const promptType = finalSession?.config.promptType || searchParams?.get('promptType') || 'narrative';
+  
+  const userPlayer = finalSession && user ? finalSession.players[user.uid] : null;
+  const originalContent = userPlayer?.phases.phase1?.content || searchParams?.get('originalContent') || '';
+  const revisedContent = (userPlayer?.phases.phase3 as any)?.revisedContent || searchParams?.get('revisedContent') || '';
+  const wordCount = userPlayer?.phases.phase1?.wordCount || parseInt(searchParams?.get('wordCount') || '0', 10);
+  const revisedWordCount = userPlayer?.phases.phase3?.wordCount || parseInt(searchParams?.get('revisedWordCount') || '0', 10);
+  
+  // Get scores from session first, then from URL params as fallback
+  const writingScore = userPlayer?.phases.phase1?.score || parseInt(searchParams?.get('writingScore') || '75', 10);
+  const feedbackScore = (userPlayer?.phases.phase2 as any)?.score || parseInt(searchParams?.get('feedbackScore') || '80', 10);
+  const revisionScore = userPlayer?.phases.phase3?.score || parseInt(searchParams?.get('revisionScore') || '78', 10);
   
   const hadEmptyWriting = wordCount === 0 || !originalContent;
   const hadEmptyFeedback = feedbackScore === 0;
@@ -63,6 +103,19 @@ export default function ResultsContent({ session }: ResultsContentProps = {}) {
     fetchAIFeedback();
   }, [user, matchId]);
 
+  // Log scores for debugging
+  useEffect(() => {
+    if (user && finalSession) {
+      console.log('📊 RESULTS - Session scores:', {
+        writingScore: userPlayer?.phases.phase1?.score,
+        feedbackScore: (userPlayer?.phases.phase2 as any)?.score,
+        revisionScore: userPlayer?.phases.phase3?.score,
+        hasSession: !!finalSession,
+        hasUserPlayer: !!userPlayer,
+      });
+    }
+  }, [user, finalSession, userPlayer]);
+  
   useEffect(() => {
     const analyzeRankedMatch = async () => {
       try {
@@ -158,14 +211,14 @@ export default function ResultsContent({ session }: ResultsContentProps = {}) {
               const aiXP = calculateXPEarned(aiComposite, 'ranked');
               const aiIsWin = aiPlacement === 1;
               
-              if (session && aiPlayer.userId && aiPlayer.userId.startsWith('ai-')) {
+              if (finalSession && aiPlayer.userId && aiPlayer.userId.startsWith('ai-')) {
                 const aiStudentId = aiPlayer.userId.replace('ai-', '').replace('student-', '');
                 try { 
                   await updateAIStudentAfterMatch(aiStudentId, aiLPChange, aiXP, aiIsWin, aiPlayer.wordCount || 100);
                 } catch (e) {
                   console.error(`❌ RESULTS - Failed to update AI student stats for ${aiStudentId}:`, e);
                 }
-              } else if (session && aiPlayer.userId) {
+              } else if (finalSession && aiPlayer.userId) {
                 try { 
                   await updateAIStudentAfterMatch(aiPlayer.userId, aiLPChange, aiXP, aiIsWin, aiPlayer.wordCount || 100);
                 } catch (e) {
@@ -185,7 +238,7 @@ export default function ResultsContent({ session }: ResultsContentProps = {}) {
       }
     };
     analyzeRankedMatch();
-  }, [wordCount, trait, promptType, writingScore, feedbackScore, revisionScore, session, user]);
+  }, [wordCount, trait, promptType, writingScore, feedbackScore, revisionScore, finalSession, user, matchId]);
 
   if (isAnalyzing) return <LoadingState variant="analyzing" />;
 

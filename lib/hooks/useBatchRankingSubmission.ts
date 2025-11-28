@@ -198,7 +198,10 @@ export function useBatchRankingSubmission<TSubmission, TSubmissionData>(
         }
       }
 
-      await options.submitPhase(options.phase, options.prepareSubmissionData(clampScore(score)));
+      const submissionData = options.prepareSubmissionData(clampScore(score));
+      console.log(`✅ BATCH RANKING - Submitting phase ${options.phase} with score:`, clampScore(score), 'data:', submissionData);
+      await options.submitPhase(options.phase, submissionData);
+      console.log(`✅ BATCH RANKING - Successfully saved phase ${options.phase} to session`);
 
     } catch (error) {
       setError(error as Error);

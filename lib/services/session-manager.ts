@@ -342,14 +342,25 @@ export class SessionManager {
     
     const sessionRef = doc(db, 'sessions', this._sessionId);
     
+    const phaseData = {
+      submitted: true,
+      submittedAt: serverTimestamp(),
+      ...data,
+    };
+    
+    console.log(`💾 SESSION MANAGER - Saving phase ${phase} data:`, {
+      sessionId: this._sessionId,
+      userId: this._userId,
+      phase,
+      data: phaseData,
+    });
+    
     await updateDoc(sessionRef, {
-      [`players.${this._userId}.phases.phase${phase}`]: {
-        submitted: true,
-        submittedAt: serverTimestamp(),
-        ...data,
-      },
+      [`players.${this._userId}.phases.phase${phase}`]: phaseData,
       updatedAt: serverTimestamp(),
     });
+    
+    console.log(`✅ SESSION MANAGER - Successfully saved phase ${phase} to session ${this._sessionId}`);
   }
   
   private startPeriodicRefresh(): void {
