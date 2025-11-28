@@ -26,6 +26,8 @@ import { validateWritingSubmission } from '@/lib/utils/submission-validation';
 import { useComponentMountTime } from '@/lib/hooks/useComponentMountTime';
 import { scheduleAISubmission } from '@/lib/utils/ai-submission-delay';
 import { mapPlayersToDisplay, mapPlayersToPartyMembers } from '@/lib/utils/player-utils';
+import { safeStringifyJSON, parseJSONResponse } from '@/lib/utils/json-utils';
+import { isNotEmpty } from '@/lib/utils/array-utils';
 import WritingEditor from './WritingEditor';
 import AIGenerationProgress from './AIGenerationProgress';
 import { WritingSessionHeader } from './writing-session/WritingSessionHeader';
@@ -91,7 +93,7 @@ export default function WritingSessionContent() {
         if (matchState) {
           const existingWritings = matchState?.aiWritings?.phase1;
           
-          if (existingWritings && existingWritings.length > 0) {
+          if (isNotEmpty(existingWritings)) {
             aiTargetCountsRef.current = existingWritings.map((w: any) => w.wordCount);
             setAiWritingsGenerated(true);
             return;
@@ -121,7 +123,7 @@ export default function WritingSessionContent() {
           const response = await fetch('/api/generate-ai-writing', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
+            body: safeStringifyJSON({
               prompt: prompt.description,
               promptType: prompt.type,
               rank: aiPlayer.rank,
@@ -129,7 +131,7 @@ export default function WritingSessionContent() {
             }),
           });
           
-          const data = await response.json();
+          const data = await parseJSONResponse<{ content: string; wordCount: number }>(response);
           setAiGenerationProgress(((index + 1) / aiPlayers.length) * 100);
           
           return {
@@ -255,7 +257,7 @@ export default function WritingSessionContent() {
       const response = await fetch('/api/analyze-writing', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ content: writingContent, trait: trait, promptType: prompt?.type }),
+        body: safeStringifyJSON({ content: writingContent, trait: trait, promptType: prompt?.type }),
       });
       const data = await response.json();
       return data.overallScore ?? getDefaultScore(1);

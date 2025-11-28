@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useApiCall } from '@/lib/hooks/useApiCall';
 import { useAsyncStateWithStringError } from '@/lib/hooks/useAsyncState';
+import { safeStringifyJSON } from '@/lib/utils/json-utils';
 import { useForm } from '@/lib/hooks/useForm';
 
 type EssayType = 'argument' | 'rhetorical-analysis' | 'synthesis';
@@ -31,7 +32,7 @@ export default function APLangGrader() {
 
       const data = await call<any>('/api/ap-lang/grade', {
         method: 'POST',
-        body: JSON.stringify({ prompt: formValues.prompt, essay: formValues.essay, essayType }),
+        body: safeStringifyJSON({ prompt: formValues.prompt, essay: formValues.essay, essayType }),
       });
       setResult(data);
     });

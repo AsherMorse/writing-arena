@@ -1891,6 +1891,31 @@ See `NEW_REFACTORING_OPPORTUNITIES_ROUND_6.md` for details.
 - ✅ #95: Component Size - MatchmakingContent.tsx - Extracted session creation logic into `useMatchmakingSession` hook, extracted header into `MatchmakingHeader` component, replaced `setInterval` with `useInterval` hook. Reduced from 500 lines to 445 lines (~11% reduction)
 - ✅ #96: Conditional Rendering Pattern - Created `ConditionalRender` component for cleaner JSX conditional rendering, updated `MatchmakingContent.tsx` to use it for modal rendering
 
+---
+
+## Round 7 Refactoring Opportunities
+
+**Status:** 🔄 In Progress
+
+**Completed:**
+- ✅ #97: Date/Time Formatting Utilities (MEDIUM) - Created `lib/utils/date-utils.ts` with `formatDate`, `formatTimestamp`, `getCurrentTimestamp`, `formatChatDate`, `formatDateRange`. Updated `ImproveChatInterface.tsx`, `ChatModals.tsx` to use utilities. Replaced `Date.now()` with `getCurrentTimestamp()` and date formatting methods with `formatDate()`.
+- ✅ #98: JSON Parsing/Serialization Utilities (LOW) - Created `lib/utils/json-utils.ts` with `safeParseJSON`, `safeStringifyJSON`, `parseJSONResponse`, `deepClone`, `isValidJSON`. Updated `APLangGrader.tsx`, `WritingSessionContent.tsx` to use utilities. Replaced `JSON.stringify()` with `safeStringifyJSON()` and `response.json()` with `parseJSONResponse()`.
+
+**Completed:**
+- ✅ #99: Component Size - LandingContent.tsx - Split into 7 smaller components: `LandingIntro`, `LandingStats`, `LandingHowItWorks`, `LandingModesTable`, `LandingCTA`, `LandingFooter`. Reduced from 313 lines to 78 lines (~75% reduction)
+- ✅ #100: Component Size - markdown-renderer.tsx - Modularized into 3 focused modules: `markdown-types.ts` (12 lines), `markdown-parser.ts` (179 lines), `markdown-renderer.tsx` (108 lines). Better separation of concerns, easier to test
+
+**Completed:**
+- ✅ #101: Color Class Usage Audit (LOW) - Updated `PlayerCard.tsx` and `Header.tsx` to use `COLOR_CLASSES` instead of hardcoded colors. Replaced phase colors (`#00e5e5`, `#00d492`, etc.) with `COLOR_CLASSES.phase1.text`, `COLOR_CLASSES.phase3.bgOpacity()`, etc.
+- ✅ #102: Array/Object Utility Usage Audit (LOW) - Updated `ResultsContent.tsx` and `WritingSessionContent.tsx` to use `isNotEmpty()` instead of `.length > 0` checks
+- ✅ #103: Score Calculation Pattern Consolidation (LOW) - Updated `PhaseRankingsContent.tsx` to use `roundScore()` from `math-utils.ts` instead of `Math.round()`
+- ✅ #104: Component Pattern - Modal Management (LOW) - Updated `Header.tsx` to use `useModal` hook instead of manual `useState` for modal state
+
+**Remaining Opportunities:**
+- Additional gradual migration opportunities remain for colors, array/object operations, and modal patterns across other components
+
+**See:** `docs/2_Refactoring/NEW_REFACTORING_OPPORTUNITIES_ROUND_7.md` for details
+
 **Medium Priority:**
 - #90: Timer/Counter Hook Pattern - Inline setInterval Usage
 - #91: Word Count Tracking Pattern - Not Using useDebounce

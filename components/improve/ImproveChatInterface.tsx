@@ -7,6 +7,7 @@ import { getGradeLevelFromRank } from '@/lib/utils/skill-level';
 import { useStreamReader } from '@/lib/hooks/useStreamReader';
 import { useProgressMetrics } from '@/lib/hooks/useProgressMetrics';
 import { useApiCall } from '@/lib/hooks/useApiCall';
+import { getCurrentTimestamp } from '@/lib/utils/date-utils';
 import { ChatHeader } from './ChatHeader';
 import { ChatMessageList } from './ChatMessageList';
 import { ChatInput } from './ChatInput';
@@ -48,7 +49,7 @@ export default function ImproveChatInterface({ rankedMatches }: ImproveChatInter
     }, []),
     onError: useCallback((error: Error) => {
       const errorMessage: Message = { 
-        id: `error-${Date.now()}`, 
+        id: `error-${getCurrentTimestamp()}`, 
         role: 'assistant', 
         content: 'Sorry, I encountered an error. Please try again.', 
         timestamp: new Date() 
@@ -111,13 +112,13 @@ export default function ImproveChatInterface({ rankedMatches }: ImproveChatInter
         throw new Error(errorData.error || 'Failed to analyze');
       }
       
-      const messageId = `analysis-${Date.now()}`;
+      const messageId = `analysis-${getCurrentTimestamp()}`;
       const analysisMessage: Message = { id: messageId, role: 'assistant', content: '', timestamp: new Date() };
       setMessages(prev => [...prev, analysisMessage]);
       
       await readStream(response, messageId);
     } catch (error) {
-      const errorMessage: Message = { id: `error-${Date.now()}`, role: 'assistant', content: 'Sorry, I encountered an error analyzing your matches. Please try again.', timestamp: new Date() };
+      const errorMessage: Message = { id: `error-${getCurrentTimestamp()}`, role: 'assistant', content: 'Sorry, I encountered an error analyzing your matches. Please try again.', timestamp: new Date() };
       setMessages(prev => [...prev, errorMessage]);
     } finally {
       setIsLoading(false);
@@ -145,7 +146,7 @@ export default function ImproveChatInterface({ rankedMatches }: ImproveChatInter
   const handleSend = async () => {
     if (!input.trim() || isLoading) return;
     const userMessageText = input.trim();
-    const userMessage: Message = { id: `user-${Date.now()}`, role: 'user', content: userMessageText, timestamp: new Date() };
+    const userMessage: Message = { id: `user-${getCurrentTimestamp()}`, role: 'user', content: userMessageText, timestamp: new Date() };
     setMessages(prev => [...prev, userMessage]);
     setInput('');
     setIsLoading(true);
@@ -181,7 +182,7 @@ export default function ImproveChatInterface({ rankedMatches }: ImproveChatInter
   };
 
   const handleQuickAction = async (action: string) => {
-    const userMessage: Message = { id: `user-${Date.now()}`, role: 'user', content: action, timestamp: new Date() };
+    const userMessage: Message = { id: `user-${getCurrentTimestamp()}`, role: 'user', content: action, timestamp: new Date() };
     setMessages(prev => [...prev, userMessage]);
     setIsLoading(true);
 

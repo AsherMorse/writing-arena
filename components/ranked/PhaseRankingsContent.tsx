@@ -9,6 +9,7 @@ import { useCarousel } from '@/lib/hooks/useCarousel';
 import { useCountdown } from '@/lib/hooks/useCountdown';
 import { useSearchParams } from '@/lib/hooks/useSearchParams';
 import { TIMING } from '@/lib/constants/scoring';
+import { roundScore } from '@/lib/utils/math-utils';
 
 // Parser function for phase rankings search params
 function parsePhaseRankingsParams(searchParams: URLSearchParams) {
@@ -97,7 +98,7 @@ export default function PhaseRankingsContent() {
     // If no rankings available, show only the user's score (no fake AI players)
     const score = parseFloat(phase === 1 ? yourScore : phase === 2 ? feedbackScore || yourScore : yourScore);
     return [
-      { name: 'You', avatar: '🌿', rank: 'Silver III', score: Math.round(score), isYou: true, position: 1 },
+      { name: 'You', avatar: '🌿', rank: 'Silver III', score: roundScore(score), isYou: true, position: 1 },
     ];
   }, [phase, yourScore, feedbackScore, realRankings]);
   

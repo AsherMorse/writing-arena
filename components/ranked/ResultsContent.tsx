@@ -16,7 +16,7 @@ import { fetchAllPhaseRankings, mergeAIPlayerDataAcrossPhases, filterValidAIPlay
 import { LoadingState } from '@/components/shared/LoadingState';
 import { rankPlayers, getPlayerRank } from '@/lib/utils/ranking-utils';
 import { useExpanded } from '@/lib/hooks/useExpanded';
-import { isEmpty } from '@/lib/utils/array-utils';
+import { isEmpty, isNotEmpty } from '@/lib/utils/array-utils';
 import { roundScore } from '@/lib/utils/math-utils';
 import { logger, LOG_CONTEXTS } from '@/lib/utils/logger';
 import { ResultsHeader } from './results/ResultsHeader';
@@ -109,7 +109,7 @@ export default function ResultsContent({ session: sessionProp }: ResultsContentP
         const yourCompositeScore = calculateCompositeScore(writingScore, feedbackScore, revisionScore);
         
         // Merge AI player data across phases
-        const aiPlayers = realPhase1Rankings.length > 0
+        const aiPlayers = isNotEmpty(realPhase1Rankings)
           ? mergeAIPlayerDataAcrossPhases(realPhase1Rankings, realPhase2Rankings, realPhase3Rankings)
           : [];
         

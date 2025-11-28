@@ -2,6 +2,7 @@ import { Modal } from '@/components/shared/Modal';
 import { WritingSession } from '@/lib/services/firestore';
 import { ImproveConversation } from '@/lib/services/firestore';
 import { exportConversation } from '@/lib/utils/file-export';
+import { formatDate } from '@/lib/utils/date-utils';
 
 interface Message {
   id: string;
@@ -53,7 +54,7 @@ export function ChatModals({
   onStartNewConversation,
 }: ChatModalsProps) {
   const handleExport = () => {
-    exportConversation(messages, `improvement-session-${new Date().toISOString().split('T')[0]}.txt`);
+    exportConversation(messages, `improvement-session-${formatDate(new Date(), 'iso').split('T')[0]}.txt`);
     onCloseExport();
   };
 
@@ -68,7 +69,7 @@ export function ChatModals({
                 <div className="mb-2 flex items-start justify-between">
                   <div>
                     <div className="text-sm font-medium">
-                      Match {index + 1} • {date.toLocaleDateString()}
+                      Match {index + 1} • {formatDate(date, 'short')}
                     </div>
                     <div className="mt-1 text-xs text-[rgba(255,255,255,0.4)]">
                       {match.promptType || 'Narrative'} • {match.wordCount || 0} words
@@ -190,7 +191,7 @@ export function ChatModals({
                   <div className="mb-2 flex items-start justify-between">
                     <div className="flex-1">
                       <div className="mb-1 text-sm font-medium">
-                        {date.toLocaleDateString()} • {date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                        {formatDate(date, 'short')} • {formatDate(date, 'time')}
                       </div>
                       <div className="text-xs text-[rgba(255,255,255,0.4)]">
                         {messageCount} message{messageCount !== 1 ? 's' : ''}
