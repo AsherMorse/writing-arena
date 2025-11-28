@@ -2,16 +2,18 @@
 
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
-import Link from 'next/link';
 import { useAuth } from '@/contexts/AuthContext';
-import { joinQueue, leaveQueue, listenToQueue, QueueEntry, createMatchLobby } from '@/lib/services/matchmaking-queue';
-import { getRandomPromptForRank } from '@/lib/utils/prompts';
+import { joinQueue, leaveQueue, listenToQueue, QueueEntry } from '@/lib/services/matchmaking-queue';
 import { getRandomAIStudents } from '@/lib/services/ai-students';
 import { useCreateSession } from '@/lib/hooks/useSession';
-import { SCORING, TIMING } from '@/lib/constants/scoring';
 import { normalizePlayerAvatar, getPlayerDisplayName, getPlayerRank } from '@/lib/utils/player-utils';
+import { useMatchmakingCountdown } from '@/lib/hooks/useMatchmakingCountdown';
+import { useMatchmakingSession } from '@/lib/hooks/useMatchmakingSession';
+import { useInterval } from '@/lib/hooks/useInterval';
 import MatchmakingStartModal from './MatchmakingStartModal';
 import MatchmakingLobby from './MatchmakingLobby';
+import { MatchmakingHeader } from './matchmaking/MatchmakingHeader';
+import { ConditionalRender } from '@/components/shared/ConditionalRender';
 
 export default function MatchmakingContent() {
   const router = useRouter();
@@ -43,12 +45,10 @@ export default function MatchmakingContent() {
     }
   ]);
   const [searchingDots, setSearchingDots] = useState('');
-  const [countdown, setCountdown] = useState<number | null>(null);
   const aiBackfillIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const hasJoinedQueueRef = useRef(false);
-  const partyLockedRef = useRef(false);
-  const [selectedAIStudents, setSelectedAIStudents] = useState<any[]>([]);
   const finalPlayersRef = useRef<any[]>([]);
+  const [selectedAIStudents, setSelectedAIStudents] = useState<any[]>([]);
   const [queueSnapshot, setQueueSnapshot] = useState<QueueEntry[]>([]);
   const [hasFilledWithAI, setHasFilledWithAI] = useState(false);
   const [showStartModal, setShowStartModal] = useState(true);
@@ -150,12 +150,9 @@ export default function MatchmakingContent() {
     return [selfPlayer, ...players].slice(0, 5);
   }, [players, userId, userAvatar, userRank]);
 
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setSearchingDots(prev => prev.length >= 3 ? '' : prev + '.');
-    }, 500);
-    return () => clearInterval(interval);
-  }, []);
+  useInterval(() => {
+    setSearchingDots(prev => prev.length >= 3 ? '' : prev + '.');
+  }, 500, []);
 
   useEffect(() => {
     if (!user || !userProfile || showStartModal || startModalChoiceRef.current !== 'ai' || hasJoinedQueueRef.current) return;
@@ -225,7 +222,8 @@ export default function MatchmakingContent() {
         unsubscribeQueue = listenToQueue(trait, userId, (queuePlayers: QueueEntry[]) => {
           setQueueSnapshot(queuePlayers);
           
-          if (partyLockedRef.current || !currentSessionId) {
+          // Note: partyLockedRef is managed by useMatchmakingCountdown hook
+          if (!currentSessionId) {
             return;
           }
           
@@ -380,90 +378,41 @@ export default function MatchmakingContent() {
     };
   }, [fillLobbyWithAI]);
 
-  useEffect(() => {
-    if (players.length >= 5 && countdown === null && !partyLockedRef.current) {
-      partyLockedRef.current = true;
-      
-      finalPlayersRef.current = [...players];
-      
-      if (aiBackfillIntervalRef.current) {
-        clearInterval(aiBackfillIntervalRef.current);
-      }
-      
-      if (user) {
-        leaveQueue(userId).catch(() => {});
-      }
-      
-      setCountdown(3);
-    }
-  }, [players, countdown, userId, user]);
-
-  useEffect(() => {
-    if (countdown === null) return;
+  const handleCountdownStart = useCallback(() => {
+    finalPlayersRef.current = [...players];
     
-    if (countdown > 0) {
-      const timer = setTimeout(() => setCountdown(countdown - 1), TIMING.COUNTDOWN_INTERVAL);
-      return () => clearTimeout(timer);
-    } else {
-      (async () => {
-      const realPlayersInQueue = queueSnapshot.filter(p => finalPlayersRef.current.some(fp => fp.userId === p.userId));
-      const isMultiPlayer = realPlayersInQueue.length >= 2;
-      
-      // Use rank-based prompt filtering for appropriate complexity
-      const randomPrompt = getRandomPromptForRank(userProfile?.currentRank);
-      
-      let matchId: string;
-      let amILeader = false;
-      
-      if (isMultiPlayer) {
-        const sortedPlayers = [...realPlayersInQueue].sort((a, b) => {
-          const aTime = a.joinedAt?.toMillis() || 0;
-          const bTime = b.joinedAt?.toMillis() || 0;
-          return aTime - bTime;
-        });
-        const leaderId = sortedPlayers[0].userId;
-        const leaderJoinTime = sortedPlayers[0].joinedAt?.toMillis() || Date.now();
-        matchId = `match-${leaderId}-${leaderJoinTime}`;
-        amILeader = leaderId === userId;
-      } else {
-        matchId = `match-${userId}-${Date.now()}`;
-        amILeader = true;
-        }
-        
-        if (!currentSessionId) {
-          return;
-      }
-      
-        try {
-          await startSession(
-            currentSessionId,
-            randomPrompt.id,
-            randomPrompt.type,
-            SCORING.PHASE1_DURATION,
-            userRank
-          );
-          
-      if (isMultiPlayer && amILeader) {
-            const playersToSave = finalPlayersRef.current.length > 0 ? finalPlayersRef.current : players;
-        const lobbyPlayers = playersToSave
-              .filter((p: any) => p && (p.userId || p.isYou || p.id))
-          .map((p: any) => ({
-            userId: p.userId || p.id || (p.isYou ? userId : `ai-${p.name}`),
-          displayName: p.name === 'You' ? userName : p.name,
-            avatar: p.avatar || '🤖',
-                rank: p.currentRank || p.rank || 'Silver III',
-            isAI: p.isAI || false,
-          }));
-            createMatchLobby(matchId, lobbyPlayers, trait, randomPrompt.id).catch(() => {});
-          }
-          
-          router.push(`/session/${currentSessionId}`);
-        } catch (err) {
-          // Silent fail
-        }
-      })();
+    if (aiBackfillIntervalRef.current) {
+      clearInterval(aiBackfillIntervalRef.current);
     }
-  }, [countdown, router, trait, userId, userName, players, queueSnapshot, startSession, currentSessionId, userRank]);
+    
+    if (user) {
+      leaveQueue(userId).catch(() => {});
+    }
+  }, [players, userId, user]);
+
+  const { handleSessionStart } = useMatchmakingSession({
+    userId,
+    userName,
+    userRank,
+    userProfile,
+    trait,
+    currentSessionId,
+    players,
+    queueSnapshot,
+    startSession,
+  });
+
+  const handleCountdownComplete = useCallback(async () => {
+    const finalPlayers = finalPlayersRef.current.length > 0 ? finalPlayersRef.current : players;
+    await handleSessionStart(finalPlayers);
+  }, [handleSessionStart, players]);
+
+  const { countdown } = useMatchmakingCountdown({
+    playersCount: players.length,
+    maxPlayers: 5,
+    onCountdownStart: handleCountdownStart,
+    onCountdownComplete: handleCountdownComplete,
+  });
 
   const handleStartChoice = async (choice: 'wait' | 'ai') => {
     startModalChoiceRef.current = choice;
@@ -472,23 +421,11 @@ export default function MatchmakingContent() {
 
   return (
     <div className="min-h-screen bg-[#101012] text-[rgba(255,255,255,0.8)]">
-      {showStartModal && (
+      <ConditionalRender condition={showStartModal}>
         <MatchmakingStartModal onChoice={handleStartChoice} />
-      )}
+      </ConditionalRender>
 
-      <header className="border-b border-[rgba(255,255,255,0.05)]">
-        <div className="mx-auto flex max-w-[1200px] items-center justify-between px-8 py-5">
-          <Link href="/ranked" className="text-base font-semibold tracking-wide">
-            Matchmaking
-          </Link>
-          <Link 
-            href="/ranked"
-            className="rounded-[10px] border border-[rgba(255,255,255,0.05)] px-4 py-2 text-xs font-medium uppercase tracking-[0.04em] text-[rgba(255,255,255,0.4)] transition-all hover:bg-[rgba(255,255,255,0.04)] hover:text-[rgba(255,255,255,0.8)]"
-          >
-            ← Cancel
-          </Link>
-        </div>
-      </header>
+      <MatchmakingHeader />
 
       <main className="mx-auto max-w-[1200px] px-8 py-10 flex flex-col items-center justify-center min-h-[calc(100vh-80px)]">
         <div className="w-full max-w-4xl">

@@ -2,6 +2,7 @@
 
 import { useParams, useRouter } from 'next/navigation';
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
+import { useInterval } from '@/lib/hooks/useInterval';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSession } from '@/lib/hooks/useSession';
 import { useSessionData } from '@/lib/hooks/useSessionData';
@@ -201,22 +202,19 @@ export default function WritingSessionContent() {
     generateAIWritings();
   }, [session, aiWritingsGenerated, user, prompt]);
 
-  useEffect(() => {
+  useInterval(() => {
     if (!session) return;
-    const interval = setInterval(() => {
-      setAiWordCounts(prevCounts => {
-        const aiPlayers = players.filter(p => p.isAI);
-        if (prevCounts.length !== aiPlayers.length) return new Array(aiPlayers.length).fill(0);
-        return prevCounts.map((currentCount, index) => {
-          const target = aiTargetCountsRef.current[index] || 100;
-          if (currentCount >= target) return target;
-          const increment = 0.5 + Math.random();
-          return Math.min(target, currentCount + increment);
-        });
+    setAiWordCounts(prevCounts => {
+      const aiPlayers = players.filter(p => p.isAI);
+      if (prevCounts.length !== aiPlayers.length) return new Array(aiPlayers.length).fill(0);
+      return prevCounts.map((currentCount, index) => {
+        const target = aiTargetCountsRef.current[index] || 100;
+        if (currentCount >= target) return target;
+        const increment = 0.5 + Math.random();
+        return Math.min(target, currentCount + increment);
       });
-    }, 1000);
-    return () => clearInterval(interval);
-  }, [session, players]);
+    });
+  }, session ? 1000 : null, [session, players]);
       
   const debouncedContent = useDebounce(writingContent, 300);
   useEffect(() => {

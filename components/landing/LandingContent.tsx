@@ -2,6 +2,11 @@
 
 import Link from 'next/link';
 import { useAuth } from '@/contexts/AuthContext';
+import { LandingHeader } from './LandingHeader';
+import { LandingHero } from './LandingHero';
+import { LandingModes } from './LandingModes';
+import { LandingFeatures } from './LandingFeatures';
+import { LandingRanks } from './LandingRanks';
 
 const modes = [
   {
@@ -75,21 +80,7 @@ export default function LandingContent() {
 
   return (
     <div className="min-h-screen bg-[#101012] text-[rgba(255,255,255,0.8)]" style={{ fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, sans-serif" }}>
-      <header className="border-b border-[rgba(255,255,255,0.05)]">
-        <div className="mx-auto flex max-w-[1200px] items-center justify-between px-8 py-5">
-          <Link href="/" className="text-base font-semibold tracking-wide">
-            Writing Arena
-          </Link>
-          <div className="flex items-center gap-3">
-            <Link
-              href={headerCtaHref}
-              className="inline-flex items-center justify-center gap-2 rounded-[10px] border border-[#00e5e5] bg-transparent px-4 py-2 text-xs font-medium uppercase tracking-[0.04em] text-[#00e5e5] transition-all hover:bg-[rgba(0,229,229,0.1)]"
-            >
-              {headerCtaLabel}
-            </Link>
-          </div>
-        </div>
-      </header>
+      <LandingHeader headerCtaHref={headerCtaHref} headerCtaLabel={headerCtaLabel} />
 
       <main className="mx-auto max-w-[1200px] px-8 py-12">
         <section className="mb-12">
@@ -123,7 +114,7 @@ export default function LandingContent() {
             <div className="mb-2 text-[10px] font-semibold uppercase tracking-[0.08em] text-[rgba(255,255,255,0.22)]">
               Mastery Tiers
             </div>
-            <div className="font-mono text-4xl font-medium leading-none text-[#ff9030]">6</div>
+            <div className="font-mono text-4xl font-medium leading-none text-[#ff9030]">5</div>
             <div className="mt-1 text-xs text-[rgba(255,255,255,0.4)]">levels</div>
           </div>
           <div className="rounded-[14px] border border-[rgba(255,255,255,0.05)] bg-[rgba(255,255,255,0.025)] p-5 transition-colors hover:bg-[rgba(255,255,255,0.04)]">

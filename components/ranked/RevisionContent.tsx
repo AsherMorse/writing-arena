@@ -1,6 +1,7 @@
 'use client';
 
 import { useRouter, useParams, useSearchParams } from 'next/navigation';
+import { useNavigation } from '@/lib/hooks/useNavigation';
 import { useState, useEffect, useRef, useMemo } from 'react';
 import WritingTipsModal from '@/components/shared/WritingTipsModal';
 import PhaseInstructions from '@/components/shared/PhaseInstructions';
@@ -25,6 +26,7 @@ import { setSessionStorage } from '@/lib/utils/session-storage';
 import { MOCK_AI_FEEDBACK } from '@/lib/utils/mock-data';
 import { useBatchRankingSubmission } from '@/lib/hooks/useBatchRankingSubmission';
 import { validateRevisionSubmission } from '@/lib/utils/submission-validation';
+import { useModals } from '@/lib/hooks/useModals';
 import { RevisionRankingModal } from './revision/RevisionRankingModal';
 import { RevisionHeader } from './revision/RevisionHeader';
 import { RevisionTitleBanner } from './revision/RevisionTitleBanner';
@@ -33,6 +35,7 @@ import { RevisionEditorSection } from './revision/RevisionEditorSection';
 
 export default function RevisionContent() {
   const router = useRouter();
+  const { navigateToResults, navigateToRankedResults, navigateToDashboard } = useNavigation();
   const params = useParams();
   const searchParams = useSearchParams();
   const sessionId = (params?.sessionId || searchParams?.get('sessionId')) as string;
@@ -55,8 +58,7 @@ export default function RevisionContent() {
   useEffect(() => { setRevisedContent(originalContent); }, [originalContent]);
   const [wordCountRevised, setWordCountRevised] = useState(0);
   const [showFeedback, setShowFeedback] = useState(true);
-  const [showTipsModal, setShowTipsModal] = useState(false);
-  const [showRankingModal, setShowRankingModal] = useState(false);
+  const { showTipsModal, setShowTipsModal, showRankingModal, setShowRankingModal } = useModals();
   const [showRevisionGuidance, setShowRevisionGuidance] = useState(true);
   const [aiFeedback, setAiFeedback] = useState(MOCK_AI_FEEDBACK);
   const [loadingFeedback, setLoadingFeedback] = useState(true);
@@ -162,7 +164,7 @@ export default function RevisionContent() {
       const yourRanking = await getRankingFromStorage();
       const revisionScore = yourRanking?.score || data.score || getDefaultScore(3);
       setSessionStorage(`${matchId}-phase3-feedback`, yourRanking || data);
-      router.push(buildResultsURL({ matchId, trait, promptId, promptType, originalContent, revisedContent, wordCount, revisedWordCount: wordCountRevised, writingScore: yourScore, feedbackScore, revisionScore, aiScores }));
+      navigateToResults({ matchId, trait, promptId, promptType, originalContent, revisedContent, wordCount, revisedWordCount: wordCountRevised, writingScore: yourScore, feedbackScore, revisionScore, aiScores });
     },
     validateSubmission: () => validateRevisionSubmission(originalContent, revisedContent, wordCountRevised),
     onEmptySubmission: async (isEmpty, unchanged) => {
@@ -210,12 +212,12 @@ export default function RevisionContent() {
 
   usePhaseTransition({
     session, currentPhase: 3, hasSubmitted, sessionId: activeSessionId || sessionId,
-    onTransition: (nextPhase) => { if (session?.state === 'completed') router.push(`/ranked/results?sessionId=${activeSessionId || sessionId}`); },
+    onTransition: (nextPhase) => { if (session?.state === 'completed') navigateToRankedResults(activeSessionId || sessionId); },
   });
 
   useEffect(() => {
     if (!session || !hasSubmitted()) return;
-    if (session.state === 'completed') router.push(`/ranked/results/${activeSessionId || sessionId}`);
+    if (session.state === 'completed') navigateToRankedResults(activeSessionId || sessionId);
   }, [session, hasSubmitted, router, activeSessionId, sessionId]);
 
   const { handlePaste, handleCut, handleCopy } = usePastePrevention({ showWarning: false });
@@ -235,7 +237,7 @@ export default function RevisionContent() {
   const improvementsList = useMemo(() => aiFeedback.improvements || [], [aiFeedback.improvements]);
 
   if (isReconnecting || !session) return <LoadingState message="Loading revision phase..." />;
-  if (error) return <ErrorState error={error} title="Session Error" retryLabel="Return to Dashboard" onRetry={() => router.push('/dashboard')} />;
+  if (error) return <ErrorState error={error} title="Session Error" retryLabel="Return to Dashboard" onRetry={navigateToDashboard} />;
 
   const progressPercent = (timeRemaining / SCORING.PHASE3_DURATION) * 100;
   const timeColor = getPhaseTimeColor(3, timeRemaining);

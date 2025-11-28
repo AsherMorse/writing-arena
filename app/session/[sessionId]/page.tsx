@@ -58,4 +58,3 @@ export default function SessionPage() {
   // Fallback
   return <LoadingState message="Loading session..." />;
 }
-

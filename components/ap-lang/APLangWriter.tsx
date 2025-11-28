@@ -1,9 +1,12 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useRef } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { MarkdownRenderer } from '@/lib/utils/markdown-renderer';
 import { formatTime } from '@/lib/utils/time-utils';
+import { useCountdown } from '@/lib/hooks/useCountdown';
+import { useApiCall } from '@/lib/hooks/useApiCall';
+import { useAsyncStateWithStringError } from '@/lib/hooks/useAsyncState';
 
 const AP_LANG_TIME_LIMIT = 40 * 60;
 
@@ -11,75 +14,65 @@ export default function APLangWriter() {
   const { user } = useAuth();
   const [prompt, setPrompt] = useState<string | null>(null);
   const [essay, setEssay] = useState('');
-  const [timeRemaining, setTimeRemaining] = useState(AP_LANG_TIME_LIMIT);
-  const [isGenerating, setIsGenerating] = useState(false);
   const [hasStarted, setHasStarted] = useState(false);
-  const [isGrading, setIsGrading] = useState(false);
   const [result, setResult] = useState<any>(null);
-  const [error, setError] = useState<string | null>(null);
-  const timerRef = useRef<NodeJS.Timeout | null>(null);
   const startTimeRef = useRef<number | null>(null);
-
-  useEffect(() => {
-    if (!hasStarted || timeRemaining <= 0) {
-      if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null; }
-      return;
-    }
-    timerRef.current = setInterval(() => {
-      setTimeRemaining((prev) => (prev <= 1 ? 0 : prev - 1));
-    }, 1000);
-    return () => { if (timerRef.current) clearInterval(timerRef.current); };
-  }, [hasStarted, timeRemaining]);
+  
+  const { call } = useApiCall();
+  const { isLoading: isGenerating, error: generateError, execute: executeGenerate } = useAsyncStateWithStringError();
+  const { isLoading: isGrading, error: gradeError, execute: executeGrade } = useAsyncStateWithStringError();
+  
+  const { countdown: timeRemaining, start: startTimer, stop: stopTimer, reset: resetTimer } = useCountdown({
+    initialValue: AP_LANG_TIME_LIMIT,
+    onComplete: () => {
+      // Timer completed - could auto-submit or disable input
+    },
+  });
 
   const generatePrompt = async () => {
-    setIsGenerating(true);
-    setError(null);
-    setResult(null);
-    setEssay('');
-    setTimeRemaining(AP_LANG_TIME_LIMIT);
-    setHasStarted(false);
-
-    try {
-      const response = await fetch('/api/ap-lang/generate-prompt', { method: 'POST', headers: { 'Content-Type': 'application/json' } });
-      if (!response.ok) throw new Error('Failed to generate prompt');
-      const data = await response.json();
+    await executeGenerate(async () => {
+      setResult(null);
+      setEssay('');
+      resetTimer(AP_LANG_TIME_LIMIT);
+      setHasStarted(false);
+      
+      const data = await call<{ prompt: string }>('/api/ap-lang/generate-prompt', {
+        method: 'POST',
+      });
       setPrompt(data.prompt);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to generate prompt');
-    } finally {
-      setIsGenerating(false);
-    }
+    });
   };
 
-  const handleStart = () => { setHasStarted(true); startTimeRef.current = Date.now(); };
+  const handleStart = () => {
+    setHasStarted(true);
+    startTimeRef.current = Date.now();
+    startTimer(AP_LANG_TIME_LIMIT);
+  };
 
   const handleSubmit = async () => {
-    if (!prompt || !essay.trim()) { setError('Please write an essay before submitting.'); return; }
-    setIsGrading(true);
-    setError(null);
-    setResult(null);
-    setHasStarted(false);
-    if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null; }
+    if (!prompt || !essay.trim()) {
+      executeGrade(() => Promise.reject(new Error('Please write an essay before submitting.')));
+      return;
+    }
+    
+    await executeGrade(async () => {
+      setResult(null);
+      setHasStarted(false);
+      stopTimer();
 
-    try {
-      const response = await fetch('/api/ap-lang/grade', {
+      const data = await call<any>('/api/ap-lang/grade', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ prompt, essay }),
       });
-      if (!response.ok) throw new Error('Failed to grade essay');
-      const data = await response.json();
       setResult(data);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred while grading');
-    } finally {
-      setIsGrading(false);
-    }
+    });
   };
 
   const wordCount = essay.split(/\s+/).filter(Boolean).length;
-  const isTimeUp = timeRemaining === 0;
-  const timeColor = timeRemaining < 300 ? '#ff5f8f' : '#ff9030';
+  const timeRemainingValue = timeRemaining ?? 0;
+  const isTimeUp = timeRemainingValue === 0;
+  const timeColor = timeRemainingValue < 300 ? '#ff5f8f' : '#ff9030';
+  const error = generateError || gradeError;
 
   return (
     <div className="mx-auto max-w-4xl">
@@ -130,8 +123,8 @@ export default function APLangWriter() {
         )}
 
         {hasStarted && (
-          <div className={`rounded-[14px] p-4 text-center ${timeRemaining < 300 ? 'border-2 border-[rgba(255,95,143,0.4)] bg-[rgba(255,95,143,0.1)]' : 'border border-[rgba(255,255,255,0.05)] bg-[rgba(255,255,255,0.025)]'}`}>
-            <div className="mb-1 font-mono text-3xl font-medium" style={{ color: timeColor }}>{formatTime(timeRemaining, 'long')}</div>
+          <div className={`rounded-[14px] p-4 text-center ${timeRemainingValue < 300 ? 'border-2 border-[rgba(255,95,143,0.4)] bg-[rgba(255,95,143,0.1)]' : 'border border-[rgba(255,255,255,0.05)] bg-[rgba(255,255,255,0.025)]'}`}>
+            <div className="mb-1 font-mono text-3xl font-medium" style={{ color: timeColor }}>{formatTime(timeRemainingValue, 'long')}</div>
             <div className="text-sm text-[rgba(255,255,255,0.4)]">{isTimeUp ? "Time's up!" : 'Time remaining'}</div>
             <div className="mt-2 text-xs text-[rgba(255,255,255,0.3)]">{wordCount} words</div>
           </div>
@@ -216,7 +209,7 @@ export default function APLangWriter() {
 
             <div className="border-t border-[rgba(255,255,255,0.05)] pt-4">
               <button
-                onClick={() => { setPrompt(null); setEssay(''); setResult(null); setTimeRemaining(AP_LANG_TIME_LIMIT); setHasStarted(false); }}
+                onClick={() => { setPrompt(null); setEssay(''); setResult(null); resetTimer(AP_LANG_TIME_LIMIT); setHasStarted(false); stopTimer(); }}
                 className="w-full rounded-[10px] border border-[rgba(255,255,255,0.05)] bg-[rgba(255,255,255,0.025)] px-6 py-3 transition hover:bg-[rgba(255,255,255,0.04)]"
               >
                 Try Another Prompt

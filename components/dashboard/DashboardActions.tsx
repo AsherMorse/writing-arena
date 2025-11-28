@@ -1,4 +1,5 @@
 import { useRouter } from 'next/navigation';
+import { useNavigation } from '@/lib/hooks/useNavigation';
 
 interface DashboardActionsProps {
   hasEnoughMatches: boolean;
@@ -14,6 +15,7 @@ export function DashboardActions({
   completedMatches,
 }: DashboardActionsProps) {
   const router = useRouter();
+  const { navigateToRanked, navigateToImprove, navigateToAPLang } = useNavigation();
 
   return (
     <section className="mb-8">
@@ -22,7 +24,7 @@ export function DashboardActions({
       </div>
       <div className="grid gap-3 md:grid-cols-3">
         <button
-          onClick={() => router.push('/ranked')}
+          onClick={navigateToRanked}
           className="group relative rounded-[14px] border border-[rgba(0,229,229,0.3)] bg-[rgba(0,229,229,0.08)] p-6 text-left transition-all hover:border-[rgba(0,229,229,0.5)] hover:bg-[rgba(0,229,229,0.12)]"
         >
           <div className="mb-4 flex items-center justify-between">
@@ -44,7 +46,7 @@ export function DashboardActions({
         </button>
 
         <button
-          onClick={() => hasEnoughMatches && router.push('/improve')}
+          onClick={() => hasEnoughMatches && navigateToImprove()}
           disabled={!hasEnoughMatches}
           className={`group relative rounded-[14px] border p-6 text-left transition-all ${
             hasEnoughMatches
@@ -96,7 +98,7 @@ export function DashboardActions({
         </button>
 
         <button
-          onClick={() => router.push('/ap-lang')}
+          onClick={navigateToAPLang}
           className="group relative rounded-[14px] border border-[rgba(255,144,48,0.3)] bg-[rgba(255,144,48,0.08)] p-6 text-left transition-all hover:border-[rgba(255,144,48,0.5)] hover:bg-[rgba(255,144,48,0.12)]"
         >
           <div className="mb-4 flex items-center justify-between">

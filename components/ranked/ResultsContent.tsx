@@ -18,6 +18,7 @@ import { rankPlayers, getPlayerRank } from '@/lib/utils/ranking-utils';
 import { useExpanded } from '@/lib/hooks/useExpanded';
 import { isEmpty } from '@/lib/utils/array-utils';
 import { roundScore } from '@/lib/utils/math-utils';
+import { logger, LOG_CONTEXTS } from '@/lib/utils/logger';
 import { ResultsHeader } from './results/ResultsHeader';
 import { ResultsHero } from './results/ResultsHero';
 import { ResultsPerformance } from './results/ResultsPerformance';
@@ -77,7 +78,8 @@ export default function ResultsContent({ session: sessionProp }: ResultsContentP
         ]);
         setRealFeedback({ writing: phase1Feedback, feedback: phase2Feedback, revision: phase3Feedback });
       } catch (error) {
-        console.error('❌ RESULTS - Failed to fetch AI feedback:', error);
+        const { logger, LOG_CONTEXTS } = await import('@/lib/utils/logger');
+        logger.error(LOG_CONTEXTS.RESULTS, 'Failed to fetch AI feedback', error);
       }
     };
     fetchAIFeedback();
@@ -86,7 +88,7 @@ export default function ResultsContent({ session: sessionProp }: ResultsContentP
   // Log scores for debugging
   useEffect(() => {
     if (user && finalSession) {
-      console.log('📊 RESULTS - Session scores:', {
+      logger.debug(LOG_CONTEXTS.RESULTS, 'Session scores', {
         writingScore: userPlayer?.phases.phase1?.score,
         feedbackScore: (userPlayer?.phases.phase2 as any)?.score,
         revisionScore: userPlayer?.phases.phase3?.score,
@@ -114,7 +116,7 @@ export default function ResultsContent({ session: sessionProp }: ResultsContentP
         // If no rankings exist, don't create fake players with random scores
         // This indicates the match hasn't been properly evaluated yet
         if (isEmpty(aiPlayers)) {
-          console.warn('⚠️ RESULTS - No phase rankings found in Firestore. Match may not be complete.');
+          logger.warn(LOG_CONTEXTS.RESULTS, 'No phase rankings found in Firestore. Match may not be complete.');
         }
 
         // Only include AI players with valid scores from LLM
@@ -171,25 +173,25 @@ export default function ResultsContent({ session: sessionProp }: ResultsContentP
                 try { 
                   await updateAIStudentAfterMatch(aiStudentId, aiLPChange, aiXP, aiIsWin, aiPlayer.wordCount || 100);
                 } catch (e) {
-                  console.error(`❌ RESULTS - Failed to update AI student stats for ${aiStudentId}:`, e);
+                  logger.error(LOG_CONTEXTS.RESULTS, `Failed to update AI student stats for ${aiStudentId}`, e);
                 }
               } else if (finalSession && aiPlayer.userId) {
                 try { 
                   await updateAIStudentAfterMatch(aiPlayer.userId, aiLPChange, aiXP, aiIsWin, aiPlayer.wordCount || 100);
                 } catch (e) {
-                  console.error(`❌ RESULTS - Failed to update AI student stats for ${aiPlayer.userId}:`, e);
+                  logger.error(LOG_CONTEXTS.RESULTS, `Failed to update AI student stats for ${aiPlayer.userId}`, e);
                 }
               }
             }
           } catch (error) {
-            console.error('❌ RESULTS - Failed to save session data:', error);
+            logger.error(LOG_CONTEXTS.RESULTS, 'Failed to save session data', error);
           }
         }
 
         setResults({ rankings, yourRank, lpChange, xpEarned, pointsEarned, isVictory, improvementBonus: roundScore(improvementBonus), phases: { writing: roundScore(writingScore), feedback: roundScore(feedbackScore), revision: roundScore(revisionScore), composite: roundScore(yourCompositeScore) } });
         setIsAnalyzing(false);
       } catch (error) {
-        console.error('❌ RESULTS - Failed to analyze results:', error);
+        logger.error(LOG_CONTEXTS.RESULTS, 'Failed to analyze results', error);
         setIsAnalyzing(false);
       }
     };

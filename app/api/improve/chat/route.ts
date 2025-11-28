@@ -5,13 +5,14 @@ import { getAIFeedback } from '@/lib/services/match-sync';
 import { parseGradeLevel, getGradeLevelCategory } from '@/lib/utils/grade-parser';
 import { validateOrError, ValidationHelpers } from '@/lib/utils/api-validation';
 import { createErrorResponse, createSuccessResponse } from '@/lib/utils/api-responses';
+import { logger, LOG_CONTEXTS } from '@/lib/utils/logger';
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
     const { message, matches, conversationHistory, userId, gradeLevel = '7th-8th' } = body;
     
-    console.log('💬 IMPROVE CHAT - Request received:', {
+    logger.debug(LOG_CONTEXTS.IMPROVE_CHAT, 'Request received', {
       messageLength: message?.length,
       matchesCount: matches?.length,
       historyLength: conversationHistory?.length,
@@ -26,7 +27,7 @@ export async function POST(request: NextRequest) {
     ]);
 
     if (!validation.valid) {
-      console.error('❌ IMPROVE CHAT - Invalid request:', {
+      logger.error(LOG_CONTEXTS.IMPROVE_CHAT, 'Invalid request', undefined, {
         hasMessage: !!message,
         matchesCount: matches?.length,
       });
@@ -37,11 +38,11 @@ export async function POST(request: NextRequest) {
     const apiKey = getAnthropicApiKey();
     
     if (!apiKey) {
-      console.error('❌ IMPROVE CHAT - API key missing');
+      logger.error(LOG_CONTEXTS.IMPROVE_CHAT, 'API key missing');
       return createErrorResponse('API key missing', 500);
     }
     
-    console.log('✅ IMPROVE CHAT - API key found, starting chat response...');
+    logger.info(LOG_CONTEXTS.IMPROVE_CHAT, 'API key found, starting chat response');
 
     // Prepare context from matches with feedback if available
     const matchContext = await Promise.all(
@@ -139,7 +140,7 @@ Make it natural and encouraging, matching the ${gradeLevel} grade level.
 
 Respond naturally (not JSON format).`;
 
-    console.log('🚀 IMPROVE CHAT - Starting streaming API call...');
+    logger.debug(LOG_CONTEXTS.IMPROVE_CHAT, 'Starting streaming API call');
     const stream = await streamAnthropicAPI(apiKey, prompt, 1500);
     
     // Create a readable stream that parses SSE events and extracts text
@@ -156,7 +157,7 @@ Respond naturally (not JSON format).`;
             const { done, value } = await reader.read();
             
             if (done) {
-              console.log('✅ IMPROVE CHAT - Stream complete');
+              logger.info(LOG_CONTEXTS.IMPROVE_CHAT, 'Stream complete');
               controller.close();
               break;
             }
@@ -192,14 +193,14 @@ Respond naturally (not JSON format).`;
                     }
                   } catch (e) {
                     // Ignore parse errors for non-JSON lines
-                    console.warn('⚠️ IMPROVE CHAT - Failed to parse SSE data:', data);
+                    logger.warn(LOG_CONTEXTS.IMPROVE_CHAT, 'Failed to parse SSE data', data);
                   }
                 }
               }
             }
           }
         } catch (error) {
-          console.error('❌ IMPROVE CHAT - Stream error:', error);
+          logger.error(LOG_CONTEXTS.IMPROVE_CHAT, 'Stream error', error);
           controller.error(error);
         }
       },
@@ -213,7 +214,7 @@ Respond naturally (not JSON format).`;
       },
     });
   } catch (error) {
-    console.error('❌ IMPROVE CHAT - Error:', error);
+    logger.error(LOG_CONTEXTS.IMPROVE_CHAT, 'Error', error);
     return createErrorResponse('Failed to generate response', 500);
   }
 }

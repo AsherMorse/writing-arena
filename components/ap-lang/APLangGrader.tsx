@@ -2,44 +2,39 @@
 
 import { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
+import { useApiCall } from '@/lib/hooks/useApiCall';
+import { useAsyncStateWithStringError } from '@/lib/hooks/useAsyncState';
+import { useForm } from '@/lib/hooks/useForm';
 
 type EssayType = 'argument' | 'rhetorical-analysis' | 'synthesis';
 
 export default function APLangGrader() {
   const { user } = useAuth();
   const [essayType, setEssayType] = useState<EssayType>('argument');
-  const [prompt, setPrompt] = useState('');
-  const [essay, setEssay] = useState('');
-  const [isGrading, setIsGrading] = useState(false);
+  const { values: formValues, handleChange } = useForm({
+    prompt: '',
+    essay: '',
+  });
   const [result, setResult] = useState<any>(null);
-  const [error, setError] = useState<string | null>(null);
+  
+  const { call } = useApiCall();
+  const { isLoading: isGrading, error, execute } = useAsyncStateWithStringError();
 
   const handleGrade = async () => {
-    if (!prompt.trim() || !essay.trim()) {
-      setError('Please provide both a prompt and your essay.');
+    if (!formValues.prompt.trim() || !formValues.essay.trim()) {
+      execute(() => Promise.reject(new Error('Please provide both a prompt and your essay.')));
       return;
     }
 
-    setIsGrading(true);
-    setError(null);
-    setResult(null);
+    await execute(async () => {
+      setResult(null);
 
-    try {
-      const response = await fetch('/api/ap-lang/grade', {
+      const data = await call<any>('/api/ap-lang/grade', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ prompt, essay, essayType }),
+        body: JSON.stringify({ prompt: formValues.prompt, essay: formValues.essay, essayType }),
       });
-
-      if (!response.ok) throw new Error('Failed to grade essay');
-
-      const data = await response.json();
       setResult(data);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred while grading');
-    } finally {
-      setIsGrading(false);
-    }
+    });
   };
 
   return (
@@ -86,8 +81,9 @@ export default function APLangGrader() {
         <div>
           <label className="mb-2 block text-sm font-medium">AP Lang Prompt</label>
           <textarea
-            value={prompt}
-            onChange={(e) => setPrompt(e.target.value)}
+            name="prompt"
+            value={formValues.prompt}
+            onChange={handleChange}
             placeholder="Paste the prompt from your AP Lang practice exercise here..."
             className="h-32 w-full resize-none rounded-[10px] border border-[rgba(255,255,255,0.05)] bg-[#101012] px-4 py-3 text-sm placeholder-[rgba(255,255,255,0.22)] focus:border-[#ff9030] focus:outline-none"
           />
@@ -96,19 +92,20 @@ export default function APLangGrader() {
         <div>
           <label className="mb-2 block text-sm font-medium">Your Essay</label>
           <textarea
-            value={essay}
-            onChange={(e) => setEssay(e.target.value)}
+            name="essay"
+            value={formValues.essay}
+            onChange={handleChange}
             placeholder="Paste your essay response here..."
             className="h-96 w-full resize-none rounded-[10px] border border-[rgba(255,255,255,0.05)] bg-[#101012] px-4 py-3 text-sm placeholder-[rgba(255,255,255,0.22)] focus:border-[#ff9030] focus:outline-none"
           />
           <div className="mt-2 text-xs text-[rgba(255,255,255,0.3)]">
-            {essay.split(/\s+/).filter(Boolean).length} words
+            {formValues.essay.split(/\s+/).filter(Boolean).length} words
           </div>
         </div>
 
         <button
           onClick={handleGrade}
-          disabled={isGrading || !prompt.trim() || !essay.trim()}
+          disabled={isGrading || !formValues.prompt.trim() || !formValues.essay.trim()}
           className="w-full rounded-[10px] border border-[#ff9030] bg-[#ff9030] px-6 py-4 font-medium text-[#101012] transition hover:bg-[#ffaa60] disabled:cursor-not-allowed disabled:opacity-50"
         >
           {isGrading ? 'Grading...' : 'Grade Essay'}

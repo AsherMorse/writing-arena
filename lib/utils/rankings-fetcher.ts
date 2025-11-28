@@ -26,6 +26,7 @@ export async function fetchAllPhaseRankings(matchId: string): Promise<{
       phase3: phase3Rankings || [],
     };
   } catch (error) {
+    // Use console.error for now - logger can be added later if needed
     console.error('❌ RANKINGS FETCHER - Failed to fetch phase rankings:', error);
     return {
       phase1: [],

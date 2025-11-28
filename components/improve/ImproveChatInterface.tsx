@@ -6,6 +6,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { getGradeLevelFromRank } from '@/lib/utils/skill-level';
 import { useStreamReader } from '@/lib/hooks/useStreamReader';
 import { useProgressMetrics } from '@/lib/hooks/useProgressMetrics';
+import { useApiCall } from '@/lib/hooks/useApiCall';
 import { ChatHeader } from './ChatHeader';
 import { ChatMessageList } from './ChatMessageList';
 import { ChatInput } from './ChatInput';
@@ -212,6 +213,7 @@ export default function ImproveChatInterface({ rankedMatches }: ImproveChatInter
 
   const quickActions = ['Give me exercises to practice', 'Explain this more', 'Show me examples', 'I want to try a writing exercise'];
   const progressMetrics = useProgressMetrics(rankedMatches);
+  const { call: apiCall } = useApiCall();
 
   return (
     <div className="mx-auto flex h-[calc(100vh-80px)] max-w-4xl flex-col px-6 py-6">

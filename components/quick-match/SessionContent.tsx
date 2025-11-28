@@ -5,6 +5,8 @@ import { useState, useEffect, Suspense } from 'react';
 import { countWords } from '@/lib/utils/text-utils';
 import { formatTime } from '@/lib/utils/time-utils';
 import { usePastePrevention } from '@/lib/hooks/usePastePrevention';
+import { useInterval } from '@/lib/hooks/useInterval';
+import { useDebounce } from '@/lib/hooks/useDebounce';
 
 export default function SessionContent() {
   const router = useRouter();
@@ -44,12 +46,12 @@ export default function SessionContent() {
     handleSubmit();
   }, [timeLeft]);
 
-  useEffect(() => { setWordCount(countWords(writingContent)); }, [writingContent]);
+  const debouncedContent = useDebounce(writingContent, 300);
+  useEffect(() => { setWordCount(countWords(debouncedContent)); }, [debouncedContent]);
 
-  useEffect(() => {
-    const interval = setInterval(() => { setAiWordCounts(prev => prev.map(count => Math.min(count + Math.floor(Math.random() * 5) + 2, 220))); }, 2000);
-    return () => clearInterval(interval);
-  }, []);
+  useInterval(() => {
+    setAiWordCounts(prev => prev.map(count => Math.min(count + Math.floor(Math.random() * 5) + 2, 220)));
+  }, 2000, []);
 
   const handleSubmit = () => { router.push(`/quick-match/results?trait=${trait}&promptType=${promptType}&content=${encodeURIComponent(writingContent)}&wordCount=${wordCount}&aiScores=${aiWordCounts.join(',')}`); };
   const timerColor = timeLeft > 120 ? '#00e5e5' : timeLeft > 60 ? '#ff9030' : '#ff5f8f';

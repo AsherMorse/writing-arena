@@ -5,6 +5,7 @@ import { useState, useEffect, Suspense } from 'react';
 import { countWords } from '@/lib/utils/text-utils';
 import { formatTime } from '@/lib/utils/time-utils';
 import { usePastePrevention } from '@/lib/hooks/usePastePrevention';
+import { useDebounce } from '@/lib/hooks/useDebounce';
 import WritingTipsModal from '@/components/shared/WritingTipsModal';
 
 export default function SessionContent() {
@@ -36,7 +37,8 @@ export default function SessionContent() {
     if (isWriting && timeLeft === 0) handleSubmit();
   }, [isWriting, timeLeft]);
 
-  useEffect(() => { setWordCount(countWords(writingContent)); }, [writingContent]);
+  const debouncedContent = useDebounce(writingContent, 300);
+  useEffect(() => { setWordCount(countWords(debouncedContent)); }, [debouncedContent]);
 
   const handleStart = () => setIsWriting(true);
   const handleSubmit = () => { router.push(`/practice/results?trait=${trait}&promptType=${promptType}&content=${encodeURIComponent(writingContent)}&wordCount=${wordCount}`); };

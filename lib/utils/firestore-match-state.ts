@@ -86,6 +86,7 @@ export async function updateMatchStateArray(
   const matchState = await getMatchState(matchId);
   
   if (!matchState) {
+    // Use console.warn for now - logger can be added later if needed
     console.warn(`⚠️ FIRESTORE MATCH STATE - MatchState ${matchId} does not exist. Cannot update array.`);
     return;
   }

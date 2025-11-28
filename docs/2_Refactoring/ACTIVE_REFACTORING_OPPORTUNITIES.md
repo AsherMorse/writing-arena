@@ -1853,15 +1853,72 @@ aiPlayers = aiPlayerData.map((p1) => {
 - ✅ **ResultsContent Empty Catch Block (#32)** - Added error logging to catch block
 - ✅ **Firestore Match State Operations (#16)** - Created `updateMatchStateArray()` and `ensureMatchState()` utilities
 - ✅ **AI Player Data Transformation (#34)** - Created `transformPlayersForResults()` utility function
+- ✅ **API Key Checking Inconsistency (#67)** - Updated 3 routes to use `createErrorResponse()`
+- ✅ **Stream Reading Pattern (#68)** - Created `useStreamReader` hook
+- ✅ **Export Functionality (#74)** - Created `exportConversation` utility
+- ✅ **DashboardContent.tsx Split (#71)** - Created 6 sub-components (331 → 64 lines, 81% reduction)
+- ✅ **ImproveChatInterface.tsx Split (#66)** - Created 5 sub-components + 1 hook (437 → 260 lines, 40% reduction)
+- ✅ **MatchmakingContent.tsx Hooks (#77)** - Created 3 hooks: `useMatchmakingQueue`, `useAIPlayerBackfill`, `useMatchmakingCountdown` (508 → 499 lines)
+- ✅ **TWR Prompts Split (#76)** - Split into 5 focused modules (512 → 10 lines re-export)
+- ✅ **Grading Prompts Split (#83)** - Split into 4 focused modules (481 → 33 lines re-export)
+- ✅ **Firestore Service Split (#78)** - Split into 3 focused modules: `user-profile.ts`, `writing-sessions.ts`, `conversations.ts` (390 → 3 modules + re-export)
+- ✅ **Session Manager Split (#75)** - Split into 3 utility modules: `session-connection.ts`, `session-state.ts`, `session-operations.ts` (549 → 286 lines + 3 utility modules)
+- ✅ **Console Logging Standardization (#84)** - Created centralized `logger.ts` utility with consistent formatting and context constants, updated key files to demonstrate pattern
+- ✅ **Router Navigation Pattern (#85)** - Created `useNavigation` hook with type-safe navigation functions for all common routes, updated key components to use it
+- ✅ **Component State Initialization (#87)** - Enhanced `useModals` hook with `useCallback` for better performance, updated `RevisionContent.tsx` to use it instead of inline useState
+
+## Round 6 Refactoring Opportunities
+
+Identified **9 new refactoring opportunities** focusing on:
+- AP Lang component standardization
+- Timer pattern consolidation
+- Form state management improvements
+- Loading/error state consistency
+
+See `NEW_REFACTORING_OPPORTUNITIES_ROUND_6.md` for details.
+
+**High Priority:**
+- ✅ #88: AP Lang Timer Pattern Duplication - Replaced custom timer logic with `useCountdown` hook in `APLangWriter.tsx`
+- ✅ #89: AP Lang Direct Fetch Instead of useApiCall - Replaced direct `fetch()` calls with `useApiCall` hook and `useAsyncStateWithStringError` for loading/error states in both `APLangWriter.tsx` and `APLangGrader.tsx`
+
+**Medium Priority:**
+- ✅ #90: Timer/Counter Hook Pattern - Created `useInterval` hook and updated `WritingSessionContent.tsx` and `quick-match/SessionContent.tsx` to use it instead of inline `setInterval`
+- ✅ #91: Word Count Tracking Pattern - Updated `quick-match/SessionContent.tsx` and `practice/SessionContent.tsx` to use `useDebounce` for word count updates
+- ✅ #92: Form State Management - Created `useForm` hook and updated `APLangGrader.tsx` to use it for managing prompt and essay form fields
+- ✅ #93: Loading State Pattern - Already completed as part of #88 and #89 (AP Lang components now use `useAsyncStateWithStringError`)
+
+**Low Priority:**
+- ✅ #95: Component Size - MatchmakingContent.tsx - Extracted session creation logic into `useMatchmakingSession` hook, extracted header into `MatchmakingHeader` component, replaced `setInterval` with `useInterval` hook. Reduced from 500 lines to 445 lines (~11% reduction)
+- ✅ #96: Conditional Rendering Pattern - Created `ConditionalRender` component for cleaner JSX conditional rendering, updated `MatchmakingContent.tsx` to use it for modal rendering
+
+**Medium Priority:**
+- #90: Timer/Counter Hook Pattern - Inline setInterval Usage
+- #91: Word Count Tracking Pattern - Not Using useDebounce
+- #92: Form State Management - Multiple useState Calls
+- #93: Loading State Pattern - Inline setIsLoading
+
+**Low Priority:**
+- #94: Error State Pattern - Inline useState for Errors
+- #95: Component Size - MatchmakingContent.tsx (500 lines)
+- #96: Conditional Rendering Pattern - Repeated if/return Patterns
 
 ---
 
-## 🆕 NEW REFACTORING OPPORTUNITIES (Round 4)
+## 🆕 NEW REFACTORING OPPORTUNITIES (Round 5)
 
-See `NEW_REFACTORING_OPPORTUNITIES_ROUND_4.md` for 11 new opportunities identified:
-- #64-66: Large files (session-manager.ts, twr-prompts.ts, ImproveChatInterface.tsx)
-- #67-71: Medium priority patterns (API key checking, stream reading, router navigation, firestore.ts, DashboardContent.tsx)
-- #72-74: Low priority patterns (console logging, progress metrics, export functionality)
+See `NEW_REFACTORING_OPPORTUNITIES_ROUND_5.md` for 13 new opportunities identified:
+- #75-78: Large files (session-manager.ts ✅, twr-prompts.ts ✅, MatchmakingContent.tsx ✅, firestore.ts ✅)
+- #79-83: Medium priority patterns (loading/error states ✅, LandingContent.tsx ✅, AuthContent.tsx ✅, fetch patterns ✅, grading-prompts.ts ✅)
+- #84-87: Low priority patterns (console logging ✅, router navigation ✅, Firestore queries ✅, state initialization ✅)
+
+---
+
+## 📋 PREVIOUS REFACTORING OPPORTUNITIES (Round 4)
+
+See `NEW_REFACTORING_OPPORTUNITIES_ROUND_4.md` for 11 opportunities identified:
+- #64-66: Large files (session-manager.ts, twr-prompts.ts, ImproveChatInterface.tsx) ✅ #66 Complete
+- #67-71: Medium priority patterns (API key checking ✅, stream reading ✅, router navigation, firestore.ts, DashboardContent.tsx ✅)
+- #72-74: Low priority patterns (console logging, progress metrics ✅, export functionality ✅)
   - ✅ `ResultsContent.tsx` (241 lines → ~150 lines + 6 sub-components)
   - ✅ `WritingSessionContent.tsx` (497 lines → ~300 lines + 7 sub-components)
   - ✅ `RevisionContent.tsx` (430 lines → ~250 lines + 6 sub-components)
