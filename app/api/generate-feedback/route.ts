@@ -3,6 +3,7 @@ import { generateTWRFeedbackPrompt } from '@/lib/utils/twr-prompts';
 import { getAnthropicApiKey, logApiKeyStatus, callAnthropicAPI } from '@/lib/utils/api-helpers';
 import { parseClaudeJSON } from '@/lib/utils/claude-parser';
 import { generateMockAIFeedback } from '@/lib/utils/mock-data';
+import { createErrorResponse, createSuccessResponse } from '@/lib/utils/api-responses';
 
 export async function POST(request: NextRequest) {
   const requestBody = await request.json();
@@ -22,10 +23,10 @@ export async function POST(request: NextRequest) {
     const aiResponse = await callAnthropicAPI(apiKey, prompt, 1500);
     const feedback = parseFeedbackResponse(aiResponse.content[0].text);
 
-    return NextResponse.json(feedback);
+    return createSuccessResponse(feedback);
   } catch (error) {
     console.error('❌ GENERATE FEEDBACK - Error:', error);
-    return NextResponse.json(generateMockAIFeedback());
+    return createErrorResponse('Failed to generate feedback', 500);
   }
 }
 

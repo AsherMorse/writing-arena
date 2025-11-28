@@ -4,7 +4,7 @@ import { WritingSession } from '@/lib/services/firestore';
 import { getAIFeedback } from '@/lib/services/match-sync';
 import { parseGradeLevel, getGradeLevelCategory } from '@/lib/utils/grade-parser';
 import { validateOrError, ValidationHelpers } from '@/lib/utils/api-validation';
-import { createErrorResponse } from '@/lib/utils/api-responses';
+import { createErrorResponse, createSuccessResponse } from '@/lib/utils/api-responses';
 
 export async function POST(request: NextRequest) {
   try {
@@ -32,10 +32,7 @@ export async function POST(request: NextRequest) {
     
     if (!apiKey) {
       console.error('❌ IMPROVE ANALYZE - API key missing');
-      return NextResponse.json(
-        { error: 'API key missing' },
-        { status: 500 }
-      );
+      return createErrorResponse('API key missing', 500);
     }
     
     console.log('✅ IMPROVE ANALYZE - API key found, starting analysis...');
@@ -257,10 +254,7 @@ Make it conversational and encouraging, matching the ${gradeLevel} grade level.`
     });
   } catch (error) {
     console.error('❌ IMPROVE ANALYZE - Error:', error);
-    return NextResponse.json(
-      { error: 'Failed to analyze matches' },
-      { status: 500 }
-    );
+    return createErrorResponse('Failed to analyze matches', 500);
   }
 }
 

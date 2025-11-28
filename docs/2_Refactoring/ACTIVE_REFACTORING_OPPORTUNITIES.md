@@ -1848,9 +1848,28 @@ aiPlayers = aiPlayerData.map((p1) => {
 - ✅ Empty Catch Blocks Remaining (#43) - Added error logging to all empty catch blocks in ResultsContent
 - ✅ Inline Validation Checks (#46) - Verified components use validation utilities (already complete)
 - ✅ **Component Size Reduction (#63)** - Split large components into smaller sub-components:
+- ✅ **API Error Response Standardization (#25)** - Standardized all API routes to use `createErrorResponse()` utility
+- ✅ **API Request Body Validation (#20)** - Created `api-validation.ts` utility and updated 3 routes
+- ✅ **ResultsContent Empty Catch Block (#32)** - Added error logging to catch block
+- ✅ **Firestore Match State Operations (#16)** - Created `updateMatchStateArray()` and `ensureMatchState()` utilities
+- ✅ **AI Player Data Transformation (#34)** - Created `transformPlayersForResults()` utility function
+
+---
+
+## 🆕 NEW REFACTORING OPPORTUNITIES (Round 4)
+
+See `NEW_REFACTORING_OPPORTUNITIES_ROUND_4.md` for 11 new opportunities identified:
+- #64-66: Large files (session-manager.ts, twr-prompts.ts, ImproveChatInterface.tsx)
+- #67-71: Medium priority patterns (API key checking, stream reading, router navigation, firestore.ts, DashboardContent.tsx)
+- #72-74: Low priority patterns (console logging, progress metrics, export functionality)
   - ✅ `ResultsContent.tsx` (241 lines → ~150 lines + 6 sub-components)
   - ✅ `WritingSessionContent.tsx` (497 lines → ~300 lines + 7 sub-components)
   - ✅ `RevisionContent.tsx` (430 lines → ~250 lines + 6 sub-components)
   - ✅ `PeerFeedbackContent.tsx` (366 lines → ~200 lines + 4 sub-components)
   - **Impact:** Improved modularity, better separation of concerns, easier to test and maintain
+- ✅ **API Error Response Standardization (#25)** - Standardized all API routes to use `createErrorResponse()` utility
+- ✅ **API Request Body Validation (#20)** - Created `api-validation.ts` utility and updated 3 routes
+- ✅ **ResultsContent Empty Catch Block (#32)** - Added error logging to catch block
+- ✅ **Firestore Match State Operations (#16)** - Created `updateMatchStateArray()` and `ensureMatchState()` utilities
+- ✅ **AI Player Data Transformation (#34)** - Created `transformPlayersForResults()` utility function
 
