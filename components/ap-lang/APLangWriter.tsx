@@ -7,6 +7,7 @@ import { formatTime } from '@/lib/utils/time-utils';
 import { useCountdown } from '@/lib/hooks/useCountdown';
 import { useApiCall } from '@/lib/hooks/useApiCall';
 import { useAsyncStateWithStringError } from '@/lib/hooks/useAsyncState';
+import { safeStringifyJSON } from '@/lib/utils/json-utils';
 
 const AP_LANG_TIME_LIMIT = 40 * 60;
 
@@ -62,7 +63,7 @@ export default function APLangWriter() {
 
       const data = await call<any>('/api/ap-lang/grade', {
         method: 'POST',
-        body: JSON.stringify({ prompt, essay }),
+        body: safeStringifyJSON({ prompt, essay }) || '',
       });
       setResult(data);
     });

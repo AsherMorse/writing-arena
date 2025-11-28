@@ -3,6 +3,7 @@ import { WritingSession } from '@/lib/services/firestore';
 import { ImproveConversation } from '@/lib/services/firestore';
 import { exportConversation } from '@/lib/utils/file-export';
 import { formatDate } from '@/lib/utils/date-utils';
+import { COLOR_CLASSES } from '@/lib/constants/colors';
 
 interface Message {
   id: string;
@@ -76,7 +77,7 @@ export function ChatModals({
                     </div>
                   </div>
                   <div className="text-right">
-                    <div className="font-mono text-lg font-medium text-[#00e5e5]">{match.score?.toFixed(0) || 0}</div>
+                    <div className={`font-mono text-lg font-medium ${COLOR_CLASSES.phase1.text}`}>{match.score?.toFixed(0) || 0}</div>
                     <div className="text-xs text-[rgba(255,255,255,0.3)]">{match.placement ? `#${match.placement}` : '—'}</div>
                   </div>
                 </div>
@@ -99,7 +100,7 @@ export function ChatModals({
           <div className="space-y-6 text-left">
             <div className="rounded-[10px] border border-[rgba(255,255,255,0.05)] bg-[#101012] p-4">
               <div className="mb-2 text-xs text-[rgba(255,255,255,0.4)]">Overall Average</div>
-              <div className="font-mono text-3xl font-medium text-[#00e5e5]">{progressMetrics.overallAvg.toFixed(1)}</div>
+              <div className={`font-mono text-3xl font-medium ${COLOR_CLASSES.phase1.text}`}>{progressMetrics.overallAvg.toFixed(1)}</div>
               <div className="mt-1 text-xs text-[rgba(255,255,255,0.4)]">
                 Trend:{' '}
                 <span
@@ -124,7 +125,7 @@ export function ChatModals({
                   <div key={trait}>
                     <div className="mb-1 flex items-center justify-between">
                       <span className="text-sm capitalize">{trait}</span>
-                      <span className="font-mono text-sm text-[#00e5e5]">{score.toFixed(1)}</span>
+                      <span className={`font-mono text-sm ${COLOR_CLASSES.phase1.text}`}>{score.toFixed(1)}</span>
                     </div>
                     <div className="h-[6px] overflow-hidden rounded-[3px] bg-[rgba(255,255,255,0.05)]">
                       <div className="h-full rounded-[3px] bg-[#00e5e5] transition-all" style={{ width: `${score}%` }} />
@@ -165,7 +166,7 @@ export function ChatModals({
             <p className="text-sm text-[rgba(255,255,255,0.5)]">Your past improvement sessions. Click to resume.</p>
             <button
               onClick={onStartNewConversation}
-              className="rounded-[6px] border border-[rgba(0,229,229,0.2)] bg-[rgba(0,229,229,0.08)] px-3 py-1.5 text-xs font-medium text-[#00e5e5] transition hover:bg-[rgba(0,229,229,0.15)]"
+              className={`rounded-[6px] border ${COLOR_CLASSES.phase1.borderOpacity(0.2)} ${COLOR_CLASSES.phase1.bgOpacity(0.08)} px-3 py-1.5 text-xs font-medium ${COLOR_CLASSES.phase1.text} transition hover:${COLOR_CLASSES.phase1.bgOpacity(0.15)}`}
             >
               + New Session
             </button>
@@ -198,7 +199,7 @@ export function ChatModals({
                       </div>
                     </div>
                     {conversation.id === currentConversationId && (
-                      <span className="rounded-[20px] bg-[rgba(0,229,229,0.12)] px-2 py-0.5 text-[10px] font-medium text-[#00e5e5]">
+                      <span className={`rounded-[20px] ${COLOR_CLASSES.phase1.bgOpacity(0.12)} px-2 py-0.5 text-[10px] font-medium ${COLOR_CLASSES.phase1.text}`}>
                         Current
                       </span>
                     )}

@@ -8,6 +8,7 @@ import { useStreamReader } from '@/lib/hooks/useStreamReader';
 import { useProgressMetrics } from '@/lib/hooks/useProgressMetrics';
 import { useApiCall } from '@/lib/hooks/useApiCall';
 import { getCurrentTimestamp } from '@/lib/utils/date-utils';
+import { safeStringifyJSON, parseJSONResponse } from '@/lib/utils/json-utils';
 import { ChatHeader } from './ChatHeader';
 import { ChatMessageList } from './ChatMessageList';
 import { ChatInput } from './ChatInput';
@@ -104,11 +105,11 @@ export default function ImproveChatInterface({ rankedMatches }: ImproveChatInter
       const response = await fetch('/api/improve/analyze', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ matches: rankedMatches, userId: user?.uid, gradeLevel }),
+        body: safeStringifyJSON({ matches: rankedMatches, userId: user?.uid, gradeLevel }) || '',
       });
       
       if (!response.ok) {
-        const errorData = await response.json();
+        const errorData = await parseJSONResponse<{ error: string }>(response);
         throw new Error(errorData.error || 'Failed to analyze');
       }
       
@@ -156,11 +157,11 @@ export default function ImproveChatInterface({ rankedMatches }: ImproveChatInter
       const response = await fetch('/api/improve/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: userMessageText, matches: rankedMatches, conversationHistory: messages.slice(-10), userId: user?.uid, gradeLevel }),
+        body: safeStringifyJSON({ message: userMessageText, matches: rankedMatches, conversationHistory: messages.slice(-10), userId: user?.uid, gradeLevel }) || '',
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
+        const errorData = await parseJSONResponse<{ error: string }>(response);
         throw new Error(errorData.error || 'Failed to generate response');
       }
 
@@ -191,11 +192,11 @@ export default function ImproveChatInterface({ rankedMatches }: ImproveChatInter
       const response = await fetch('/api/improve/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: action, matches: rankedMatches, conversationHistory: messages.slice(-10), userId: user?.uid, gradeLevel }),
+        body: safeStringifyJSON({ message: action, matches: rankedMatches, conversationHistory: messages.slice(-10), userId: user?.uid, gradeLevel }) || '',
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
+        const errorData = await parseJSONResponse<{ error: string }>(response);
         throw new Error(errorData.error || 'Failed to generate response');
       }
 

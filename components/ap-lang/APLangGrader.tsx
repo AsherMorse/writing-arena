@@ -6,6 +6,7 @@ import { useApiCall } from '@/lib/hooks/useApiCall';
 import { useAsyncStateWithStringError } from '@/lib/hooks/useAsyncState';
 import { safeStringifyJSON } from '@/lib/utils/json-utils';
 import { useForm } from '@/lib/hooks/useForm';
+import { COLOR_CLASSES } from '@/lib/constants/colors';
 
 type EssayType = 'argument' | 'rhetorical-analysis' | 'synthesis';
 
@@ -113,7 +114,7 @@ export default function APLangGrader() {
         </button>
 
         {error && (
-          <div className="rounded-[10px] border border-[rgba(255,95,143,0.3)] bg-[rgba(255,95,143,0.1)] p-4 text-sm text-[#ff5f8f]">
+          <div className={`rounded-[10px] border ${COLOR_CLASSES.phase2.borderOpacity(0.3)} ${COLOR_CLASSES.phase2.bgOpacity(0.1)} p-4 text-sm ${COLOR_CLASSES.phase2.text}`}>
             {error}
           </div>
         )}
@@ -122,7 +123,7 @@ export default function APLangGrader() {
           <div className="space-y-6 rounded-[14px] border border-[rgba(255,255,255,0.05)] bg-[rgba(255,255,255,0.025)] p-6">
             <div className="text-center">
               <div className="mb-2 text-xs text-[rgba(255,255,255,0.4)]">AP Score</div>
-              <div className="font-mono text-5xl font-medium text-[#ff9030]">{result.score}/6</div>
+              <div className={`font-mono text-5xl font-medium ${COLOR_CLASSES.orange.text}`}>{result.score}/6</div>
               <div className="mt-2 text-sm text-[rgba(255,255,255,0.5)]">{result.scoreDescriptor}</div>
             </div>
 
@@ -146,26 +147,26 @@ export default function APLangGrader() {
 
             <div className="space-y-4">
               <div>
-                <h3 className="mb-2 text-base font-semibold text-[#00d492]">Strengths</h3>
+                <h3 className={`mb-2 text-base font-semibold ${COLOR_CLASSES.phase3.text}`}>Strengths</h3>
                 <ul className="space-y-1 text-sm text-[rgba(255,255,255,0.6)]">
                   {result.strengths?.map((strength: string, i: number) => (
-                    <li key={i} className="flex items-start"><span className="mr-2 text-[#00d492]">✓</span><span>{strength}</span></li>
+                    <li key={i} className="flex items-start"><span className={`mr-2 ${COLOR_CLASSES.phase3.text}`}>✓</span><span>{strength}</span></li>
                   ))}
                 </ul>
               </div>
 
               <div>
-                <h3 className="mb-2 text-base font-semibold text-[#ff9030]">Areas for Improvement</h3>
+                <h3 className={`mb-2 text-base font-semibold ${COLOR_CLASSES.orange.text}`}>Areas for Improvement</h3>
                 <ul className="space-y-1 text-sm text-[rgba(255,255,255,0.6)]">
                   {result.improvements?.map((improvement: string, i: number) => (
-                    <li key={i} className="flex items-start"><span className="mr-2 text-[#ff9030]">→</span><span>{improvement}</span></li>
+                    <li key={i} className="flex items-start"><span className={`mr-2 ${COLOR_CLASSES.orange.text}`}>→</span><span>{improvement}</span></li>
                   ))}
                 </ul>
               </div>
 
               {result.detailedFeedback && (
                 <div>
-                  <h3 className="mb-2 text-base font-semibold text-[#00e5e5]">Detailed Feedback</h3>
+                  <h3 className={`mb-2 text-base font-semibold ${COLOR_CLASSES.phase1.text}`}>Detailed Feedback</h3>
                   <div className="whitespace-pre-wrap text-sm leading-relaxed text-[rgba(255,255,255,0.6)]">{result.detailedFeedback}</div>
                 </div>
               )}

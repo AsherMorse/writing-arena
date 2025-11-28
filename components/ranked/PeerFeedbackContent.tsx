@@ -31,6 +31,7 @@ import { PeerFeedbackHeader } from './peer-feedback/PeerFeedbackHeader';
 import { PeerWritingCard } from './peer-feedback/PeerWritingCard';
 import { FeedbackFormCard } from './peer-feedback/FeedbackFormCard';
 import { isEmpty } from '@/lib/utils/array-utils';
+import { safeStringifyJSON, parseJSONResponse } from '@/lib/utils/json-utils';
 
 export default function PeerFeedbackContent() {
   const router = useRouter();
@@ -125,10 +126,10 @@ export default function PeerFeedbackContent() {
           const response = await fetch('/api/generate-ai-feedback', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ peerWriting, rank: aiPlayer.rank, playerName: aiPlayer.displayName }),
+            body: safeStringifyJSON({ peerWriting, rank: aiPlayer.rank, playerName: aiPlayer.displayName }) || '',
           });
           
-          const data = await response.json();
+          const data = await parseJSONResponse<{ responses: any[] }>(response);
           return { playerId: aiPlayer.userId, playerName: aiPlayer.displayName, responses: data.responses, peerWriting, isAI: true, rank: aiPlayer.rank };
         });
         
@@ -161,9 +162,9 @@ export default function PeerFeedbackContent() {
       const response = await fetch('/api/evaluate-peer-feedback', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ responses, peerWriting: currentPeer?.content || '' }),
+        body: safeStringifyJSON({ responses, peerWriting: currentPeer?.content || '' }) || '',
       });
-      const data = await response.json();
+      const data = await parseJSONResponse<{ score: number }>(response);
       return data.score || getDefaultScore(2);
     },
   });

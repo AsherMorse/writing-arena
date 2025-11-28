@@ -1,5 +1,7 @@
 'use client';
 
+import { COLOR_CLASSES, getPhaseColor } from '@/lib/constants/colors';
+
 export function AuthSidebar() {
   return (
     <div className="hidden lg:block">
@@ -10,19 +12,19 @@ export function AuthSidebar() {
         <div className="space-y-4">
           <div className="flex items-center justify-between border-b border-[rgba(255,255,255,0.05)] pb-4">
             <span className="text-sm text-[rgba(255,255,255,0.4)]">Active Writers</span>
-            <span className="font-mono text-lg text-[#00e5e5]">2,847</span>
+            <span className={`font-mono text-lg ${COLOR_CLASSES.phase1.text}`}>2,847</span>
           </div>
           <div className="flex items-center justify-between border-b border-[rgba(255,255,255,0.05)] pb-4">
             <span className="text-sm text-[rgba(255,255,255,0.4)]">Matches Today</span>
-            <span className="font-mono text-lg text-[#ff5f8f]">1,234</span>
+            <span className={`font-mono text-lg ${COLOR_CLASSES.phase2.text}`}>1,234</span>
           </div>
           <div className="flex items-center justify-between border-b border-[rgba(255,255,255,0.05)] pb-4">
             <span className="text-sm text-[rgba(255,255,255,0.4)]">Words Written</span>
-            <span className="font-mono text-lg text-[#ff9030]">4.2M</span>
+            <span className={`font-mono text-lg ${COLOR_CLASSES.orange.text}`}>4.2M</span>
           </div>
           <div className="flex items-center justify-between">
             <span className="text-sm text-[rgba(255,255,255,0.4)]">Avg Improvement</span>
-            <span className="font-mono text-lg text-[#00d492]">+18%</span>
+            <span className={`font-mono text-lg ${COLOR_CLASSES.phase3.text}`}>+18%</span>
           </div>
         </div>
       </div>
@@ -33,22 +35,25 @@ export function AuthSidebar() {
         </div>
         <div className="space-y-4">
           {[
-            { event: 'New user joined', time: '2 min ago', color: '#00d492' },
-            { event: 'Match completed', time: '5 min ago', color: '#00e5e5' },
-            { event: 'Rank achieved', time: '12 min ago', color: '#ff9030' },
-            { event: 'Feedback given', time: '18 min ago', color: '#ff5f8f' },
-          ].map((item, i) => (
+            { event: 'New user joined', time: '2 min ago', phase: 3 },
+            { event: 'Match completed', time: '5 min ago', phase: 1 },
+            { event: 'Rank achieved', time: '12 min ago', phase: null },
+            { event: 'Feedback given', time: '18 min ago', phase: 2 },
+          ].map((item, i) => {
+            const color = item.phase && (item.phase === 1 || item.phase === 2 || item.phase === 3) ? getPhaseColor(item.phase) : '#ff9030';
+            return (
             <div key={i} className="flex items-start gap-3">
               <div 
                 className="mt-1.5 h-2 w-2 flex-shrink-0 rounded-full"
-                style={{ background: item.color }}
+                style={{ background: color }}
               />
               <div className="flex-1">
                 <div className="text-sm">{item.event}</div>
                 <div className="text-xs text-[rgba(255,255,255,0.22)]">{item.time}</div>
               </div>
             </div>
-          ))}
+          );
+          })}
         </div>
       </div>
     </div>

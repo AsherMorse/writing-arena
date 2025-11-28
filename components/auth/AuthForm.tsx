@@ -1,5 +1,7 @@
 'use client';
 
+import { COLOR_CLASSES } from '@/lib/constants/colors';
+
 interface AuthFormProps {
   isSignUp: boolean;
   email: string;
@@ -37,7 +39,7 @@ export function AuthForm({
             value={displayName}
             onChange={(e) => setDisplayName(e.target.value)}
             placeholder="Your name"
-            className="w-full rounded-[10px] border border-[rgba(255,255,255,0.05)] bg-[#101012] px-4 py-3 font-mono text-sm text-[rgba(255,255,255,0.8)] outline-none transition-colors placeholder:text-[rgba(255,255,255,0.22)] focus:border-[#00e5e5]"
+              className="w-full rounded-[10px] border border-[rgba(255,255,255,0.05)] bg-[#101012] px-4 py-3 font-mono text-sm text-[rgba(255,255,255,0.8)] outline-none transition-colors placeholder:text-[rgba(255,255,255,0.22)] focus:border-[#00e5e5]"
             required={isSignUp}
           />
         </div>
@@ -76,16 +78,16 @@ export function AuthForm({
       </div>
 
       {error && (
-        <div className="flex items-center gap-3 rounded-[10px] border border-[rgba(255,95,143,0.3)] bg-[rgba(255,95,143,0.1)] px-4 py-3">
-          <div className="h-2 w-2 rounded-full bg-[#ff5f8f]" />
-          <span className="text-sm text-[#ff5f8f]">{error}</span>
+        <div className={`flex items-center gap-3 rounded-[10px] border ${COLOR_CLASSES.phase2.borderOpacity(0.3)} ${COLOR_CLASSES.phase2.bgOpacity(0.1)} px-4 py-3`}>
+          <div className={`h-2 w-2 rounded-full ${COLOR_CLASSES.phase2.bg}`} />
+          <span className={`text-sm ${COLOR_CLASSES.phase2.text}`}>{error}</span>
         </div>
       )}
 
       <button
         type="submit"
         disabled={loading}
-        className="w-full rounded-[10px] border border-[#00e5e5] bg-[#00e5e5] px-4 py-3 text-xs font-medium uppercase tracking-[0.04em] text-[#101012] transition-all hover:bg-[#33ebeb] disabled:cursor-not-allowed disabled:opacity-60"
+        className={`w-full rounded-[10px] border ${COLOR_CLASSES.phase1.border} ${COLOR_CLASSES.phase1.bg} px-4 py-3 text-xs font-medium uppercase tracking-[0.04em] text-[#101012] transition-all hover:bg-[#33ebeb] disabled:cursor-not-allowed disabled:opacity-60`}
       >
         {loading ? 'Please wait...' : isSignUp ? 'Create account' : 'Sign in'}
       </button>

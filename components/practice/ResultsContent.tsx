@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useAuth } from '@/contexts/AuthContext';
 import { getScoreColor } from '@/lib/utils/score-utils';
 import { useAsyncData } from '@/lib/hooks/useAsyncData';
+import { safeStringifyJSON, parseJSONResponse } from '@/lib/utils/json-utils';
 import { useSearchParams, parseResultsSearchParams } from '@/lib/hooks/useSearchParams';
 import { AnalyzingState } from '@/components/shared/AnalyzingState';
 import { ResultsLayout } from '@/components/shared/ResultsLayout';
@@ -25,10 +26,10 @@ function ResultsContentInner() {
       const response = await fetch('/api/analyze-writing', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ content: decodedContent, trait, promptType }),
+        body: safeStringifyJSON({ content: decodedContent, trait, promptType }) || '',
       });
       if (!response.ok) throw new Error('analysis failed');
-      const data = await response.json();
+      const data = await parseJSONResponse<{ overallScore: number; xpEarned: number }>(response);
       if (user) {
         console.log('Mock practice session save', { userId: user.uid, score: data.overallScore, xpEarned: data.xpEarned, wordCount });
       }

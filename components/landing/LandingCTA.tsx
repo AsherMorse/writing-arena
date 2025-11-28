@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { COLOR_CLASSES } from '@/lib/constants/colors';
 
 interface LandingCTAProps {
   heroCtaHref: string;
@@ -22,7 +23,7 @@ export function LandingCTA({ heroCtaHref, heroCtaLabel }: LandingCTAProps) {
         <div className="mt-6 flex flex-col items-center justify-center gap-3 sm:flex-row">
           <Link
             href={heroCtaHref}
-            className="inline-flex items-center justify-center gap-2 rounded-[10px] border border-[#00e5e5] bg-[#00e5e5] px-6 py-3 text-xs font-medium uppercase tracking-[0.04em] text-[#101012] transition-all hover:bg-[#33ebeb]"
+            className={`inline-flex items-center justify-center gap-2 rounded-[10px] border ${COLOR_CLASSES.phase1.border} ${COLOR_CLASSES.phase1.bg} px-6 py-3 text-xs font-medium uppercase tracking-[0.04em] text-[#101012] transition-all hover:bg-[#33ebeb]`}
           >
             {heroCtaLabel}
           </Link>

@@ -6,6 +6,7 @@ import { formatTime } from '@/lib/utils/time-utils';
 import { TIMING } from '@/lib/constants/scoring';
 import { WRITING_TIPS } from '@/lib/constants/writing-tips';
 import { getPhaseColor } from '@/lib/constants/colors';
+import { safeParseJSON } from '@/lib/utils/json-utils';
 
 interface WaitingForPlayersProps {
   phase: 1 | 2 | 3;
@@ -47,8 +48,8 @@ export default function WaitingForPlayers({
     try {
       const stored = sessionStorage.getItem(`${matchId}-players`);
       if (stored) {
-        const parsed = JSON.parse(stored);
-        const normalized = Array.isArray(parsed)
+        const parsed = safeParseJSON<any>(stored);
+        const normalized = parsed && Array.isArray(parsed)
           ? parsed.map((member: any) => ({
               name: member.name,
               userId: member.userId,

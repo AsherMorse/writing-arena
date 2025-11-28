@@ -27,6 +27,7 @@ import { MOCK_AI_FEEDBACK } from '@/lib/utils/mock-data';
 import { useBatchRankingSubmission } from '@/lib/hooks/useBatchRankingSubmission';
 import { validateRevisionSubmission } from '@/lib/utils/submission-validation';
 import { useModals } from '@/lib/hooks/useModals';
+import { safeStringifyJSON, parseJSONResponse } from '@/lib/utils/json-utils';
 import { RevisionRankingModal } from './revision/RevisionRankingModal';
 import { RevisionHeader } from './revision/RevisionHeader';
 import { RevisionTitleBanner } from './revision/RevisionTitleBanner';
@@ -94,9 +95,9 @@ export default function RevisionContent() {
         const response = await fetch('/api/generate-feedback', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ content: originalContent, promptType }),
+          body: safeStringifyJSON({ content: originalContent, promptType }) || '',
         });
-        const feedback = await response.json();
+        const feedback = await parseJSONResponse<{ strengths?: string[]; improvements?: string[]; score?: number }>(response);
         setAiFeedback({ strengths: feedback.strengths || [], improvements: feedback.improvements || [], score: feedback.score || getDefaultScore(2) });
       } catch (error) {
         setAiFeedback(MOCK_AI_FEEDBACK);
@@ -131,10 +132,10 @@ export default function RevisionContent() {
           const revisionResponse = await fetch('/api/generate-ai-revision', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ originalContent: aiWriting.content, feedback: feedbackData, rank: aiPlayer.rank, playerName: aiPlayer.displayName }),
+            body: safeStringifyJSON({ originalContent: aiWriting.content, feedback: feedbackData, rank: aiPlayer.rank, playerName: aiPlayer.displayName }) || '',
           });
           
-          const revisionData = await revisionResponse.json();
+          const revisionData = await parseJSONResponse<{ content: string; wordCount: number }>(revisionResponse);
           return { playerId: aiPlayer.userId, playerName: aiPlayer.displayName, originalContent: aiWriting.content, revisedContent: revisionData.content, wordCount: revisionData.wordCount, isAI: true, rank: aiPlayer.rank };
         });
         
@@ -178,9 +179,9 @@ export default function RevisionContent() {
       const response = await fetch('/api/evaluate-revision', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ originalContent, revisedContent, feedback: aiFeedback }),
+        body: safeStringifyJSON({ originalContent, revisedContent, feedback: aiFeedback }) || '',
       });
-      const data = await response.json();
+      const data = await parseJSONResponse<{ score: number }>(response);
       return data.score || getDefaultScore(3);
     },
   });

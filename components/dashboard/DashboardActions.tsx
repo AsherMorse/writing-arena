@@ -1,5 +1,6 @@
 import { useRouter } from 'next/navigation';
 import { useNavigation } from '@/lib/hooks/useNavigation';
+import { COLOR_CLASSES } from '@/lib/constants/colors';
 
 interface DashboardActionsProps {
   hasEnoughMatches: boolean;
@@ -25,13 +26,13 @@ export function DashboardActions({
       <div className="grid gap-3 md:grid-cols-3">
         <button
           onClick={navigateToRanked}
-          className="group relative rounded-[14px] border border-[rgba(0,229,229,0.3)] bg-[rgba(0,229,229,0.08)] p-6 text-left transition-all hover:border-[rgba(0,229,229,0.5)] hover:bg-[rgba(0,229,229,0.12)]"
+          className={`group relative rounded-[14px] border ${COLOR_CLASSES.phase1.borderOpacity(0.3)} ${COLOR_CLASSES.phase1.bgOpacity(0.08)} p-6 text-left transition-all hover:border-[rgba(0,229,229,0.5)] hover:bg-[rgba(0,229,229,0.12)]`}
         >
           <div className="mb-4 flex items-center justify-between">
-            <div className="flex h-10 w-10 items-center justify-center rounded-[10px] bg-[rgba(0,229,229,0.15)] text-lg">
+            <div className={`flex h-10 w-10 items-center justify-center rounded-[10px] ${COLOR_CLASSES.phase1.bgOpacity(0.15)} text-lg`}>
               🏆
             </div>
-            <span className="text-[10px] font-semibold uppercase tracking-[0.08em] text-[#00e5e5]">
+            <span className={`text-[10px] font-semibold uppercase tracking-[0.08em] ${COLOR_CLASSES.phase1.text}`}>
               Ranked
             </span>
           </div>
@@ -39,7 +40,7 @@ export function DashboardActions({
           <p className="mt-1 text-sm text-[rgba(255,255,255,0.5)]">
             Compete in three-phase matches and climb the leaderboard
           </p>
-          <div className="mt-4 flex items-center gap-2 text-sm font-medium text-[#00e5e5]">
+          <div className={`mt-4 flex items-center gap-2 text-sm font-medium ${COLOR_CLASSES.phase1.text}`}>
             Enter ranked
             <span className="transition-transform group-hover:translate-x-1">→</span>
           </div>

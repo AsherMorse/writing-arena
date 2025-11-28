@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { updateUserProfile } from '@/lib/services/firestore';
+import { COLOR_CLASSES } from '@/lib/constants/colors';
 
 interface ProfileSettingsModalProps {
   isOpen: boolean;
@@ -149,7 +150,7 @@ export default function ProfileSettingsModal({ isOpen, onClose }: ProfileSetting
               </div>
               <div className="flex items-center justify-between px-4 py-3">
                 <span className="text-sm text-[rgba(255,255,255,0.4)]">Total XP</span>
-                <span className="font-mono text-sm text-[#00d492]">{userProfile?.totalXP?.toLocaleString()}</span>
+                <span className={`font-mono text-sm ${COLOR_CLASSES.phase3.text}`}>{userProfile?.totalXP?.toLocaleString()}</span>
               </div>
             </div>
           </div>

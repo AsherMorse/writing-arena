@@ -259,7 +259,7 @@ export default function WritingSessionContent() {
         headers: { 'Content-Type': 'application/json' },
         body: safeStringifyJSON({ content: writingContent, trait: trait, promptType: prompt?.type }),
       });
-      const data = await response.json();
+      const data = await parseJSONResponse<{ overallScore: number }>(response);
       return data.overallScore ?? getDefaultScore(1);
     },
   });

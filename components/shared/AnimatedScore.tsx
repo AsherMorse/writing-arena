@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { getScoreColorHex } from '@/lib/utils/score-utils';
 import { TIMING } from '@/lib/constants/scoring';
+import { useInterval } from '@/lib/hooks/useInterval';
 
 interface AnimatedScoreProps {
   score: number;
@@ -14,31 +15,34 @@ interface AnimatedScoreProps {
 export default function AnimatedScore({ score, label, delay = 0, maxScore = 100 }: AnimatedScoreProps) {
   const [displayScore, setDisplayScore] = useState(0);
   const [isRevealed, setIsRevealed] = useState(false);
+  const [current, setCurrent] = useState(0);
   
   useEffect(() => {
     const revealTimer = setTimeout(() => {
       setIsRevealed(true);
-      
-      const duration = TIMING.ANIMATION_DURATION;
-      const steps = 30;
-      const increment = score / steps;
-      let current = 0;
-      
-      const interval = setInterval(() => {
-        current += increment;
-        if (current >= score) {
-          setDisplayScore(score);
-          clearInterval(interval);
-        } else {
-          setDisplayScore(Math.floor(current));
-        }
-      }, duration / steps);
-      
-      return () => clearInterval(interval);
+      setCurrent(0);
     }, delay);
     
     return () => clearTimeout(revealTimer);
-  }, [score, delay]);
+  }, [delay]);
+  
+  const duration = TIMING.ANIMATION_DURATION;
+  const steps = 30;
+  const increment = score / steps;
+  const intervalDelay = duration / steps;
+  
+  useInterval(() => {
+    if (!isRevealed) return;
+    setCurrent(prev => {
+      const next = prev + increment;
+      if (next >= score) {
+        setDisplayScore(score);
+        return score;
+      }
+      setDisplayScore(Math.floor(next));
+      return next;
+    });
+  }, isRevealed && displayScore < score ? intervalDelay : null, [isRevealed, score]);
   
   // Use centralized score color utility for consistency
   const color = getScoreColorHex(score);

@@ -3,6 +3,8 @@
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useState, useEffect, Suspense } from 'react';
 import Link from 'next/link';
+import { useInterval } from '@/lib/hooks/useInterval';
+import { COLOR_CLASSES } from '@/lib/constants/colors';
 
 export default function MatchmakingContent() {
   const router = useRouter();
@@ -13,7 +15,9 @@ export default function MatchmakingContent() {
   const [searchingDots, setSearchingDots] = useState('');
   const [countdown, setCountdown] = useState<number | null>(null);
 
-  useEffect(() => { const interval = setInterval(() => { setSearchingDots(prev => (prev.length >= 3 ? '' : prev + '.')); }, 500); return () => clearInterval(interval); }, []);
+  useInterval(() => {
+    setSearchingDots(prev => (prev.length >= 3 ? '' : prev + '.'));
+  }, 500, []);
 
   useEffect(() => {
     const aiRoster = [{ name: 'WriteBot', avatar: '🤖', isAI: true }, { name: 'PenPal AI', avatar: '✍️', isAI: true }, { name: 'WordSmith', avatar: '📝', isAI: true }, { name: 'QuillMaster', avatar: '🖋️', isAI: true }, { name: 'InkWizard', avatar: '🧙', isAI: true }];
@@ -56,7 +60,7 @@ export default function MatchmakingContent() {
                 {[...Array(6)].map((_, index) => {
                   const player = players[index];
                   return (
-                    <div key={index} className={`flex items-center justify-between rounded-[10px] border px-4 py-3 transition ${player ? 'border-[rgba(0,229,229,0.2)] bg-[rgba(0,229,229,0.08)]' : 'border-[rgba(255,255,255,0.05)] bg-[#101012]'}`}>
+                    <div key={index} className={`flex items-center justify-between rounded-[10px] border px-4 py-3 transition ${player ? `${COLOR_CLASSES.phase1.borderOpacity(0.2)} ${COLOR_CLASSES.phase1.bgOpacity(0.08)}` : `${COLOR_CLASSES.background.cardBorder} ${COLOR_CLASSES.background.dark}`}`}>
                       <div className="flex items-center gap-3">
                         <span className="flex h-9 w-9 items-center justify-center rounded-[6px] bg-[rgba(255,255,255,0.025)] text-lg">{player ? player.avatar : '…'}</span>
                         <div>
@@ -69,7 +73,7 @@ export default function MatchmakingContent() {
                   );
                 })}
               </div>
-              <div className="mt-6 h-[6px] rounded-[3px] bg-[rgba(255,255,255,0.05)]"><div className="h-full rounded-[3px] bg-[#00e5e5]" style={{ width: `${(players.length / 6) * 100}%` }} /></div>
+              <div className="mt-6 h-[6px] rounded-[3px] bg-[rgba(255,255,255,0.05)]"><div className={`h-full rounded-[3px] ${COLOR_CLASSES.phase1.bg}`} style={{ width: `${(players.length / 6) * 100}%` }} /></div>
             </section>
 
             <aside className="space-y-6">
@@ -91,7 +95,7 @@ export default function MatchmakingContent() {
           </div>
         ) : (
           <section className="mx-auto flex max-w-3xl flex-col items-center gap-8 rounded-[14px] border border-[rgba(255,255,255,0.05)] bg-[rgba(255,255,255,0.025)] px-10 py-14 text-center">
-            <div className="flex h-28 w-28 items-center justify-center rounded-full border-4 border-[#00e5e5] bg-[rgba(0,229,229,0.15)] font-mono text-5xl font-medium text-[#00e5e5]">{countdown}</div>
+            <div className={`flex h-28 w-28 items-center justify-center rounded-full border-4 ${COLOR_CLASSES.phase1.border} ${COLOR_CLASSES.phase1.bgOpacity(0.15)} font-mono text-5xl font-medium ${COLOR_CLASSES.phase1.text}`}>{countdown}</div>
             <div>
               <div className="text-[10px] font-semibold uppercase tracking-wider text-[rgba(255,255,255,0.4)]">Match secured</div>
               <h2 className="mt-3 text-3xl font-semibold">Lobby locked</h2>

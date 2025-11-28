@@ -1,5 +1,6 @@
 import { useRouter } from 'next/navigation';
 import { useNavigation } from '@/lib/hooks/useNavigation';
+import { COLOR_CLASSES } from '@/lib/constants/colors';
 
 export function DashboardReadiness() {
   const router = useRouter();
@@ -15,7 +16,7 @@ export function DashboardReadiness() {
       <div className="grid gap-3 sm:grid-cols-3">
         <button
           onClick={navigateToRanked}
-          className="rounded-[10px] border border-[#00e5e5] bg-[#00e5e5] px-4 py-3 text-left transition-all hover:bg-[#33ebeb]"
+          className={`rounded-[10px] border ${COLOR_CLASSES.phase1.border} ${COLOR_CLASSES.phase1.bg} px-4 py-3 text-left transition-all hover:bg-[#33ebeb]`}
         >
           <div className="text-sm font-semibold text-[#101012]">Join Ranked</div>
           <div className="mt-1 text-xs text-[#101012]/70">Recommended</div>

@@ -8,6 +8,7 @@ import { calculateXPEarned } from '@/lib/utils/score-calculator';
 import { getMedalEmoji } from '@/lib/utils/rank-utils';
 import { rankPlayers, getPlayerRank } from '@/lib/utils/ranking-utils';
 import { useAsyncData } from '@/lib/hooks/useAsyncData';
+import { safeStringifyJSON, parseJSONResponse } from '@/lib/utils/json-utils';
 import { useSearchParams, parseResultsSearchParams } from '@/lib/hooks/useSearchParams';
 import { AnalyzingState } from '@/components/shared/AnalyzingState';
 import { ResultsLayout } from '@/components/shared/ResultsLayout';
@@ -29,10 +30,10 @@ function ResultsContentInner() {
       const response = await fetch('/api/analyze-writing', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ content: decodedContent, trait, promptType }),
+        body: safeStringifyJSON({ content: decodedContent, trait, promptType }) || '',
       });
       if (!response.ok) throw new Error('analysis failed');
-      return await response.json();
+      return await parseJSONResponse(response);
     },
     [decodedContent, trait, promptType],
     {
