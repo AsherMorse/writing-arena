@@ -1,4 +1,6 @@
 import { getMatchRankings } from './firestore-match-state';
+import { calculateCompositeScore } from './score-calculator';
+import { roundScore } from './math-utils';
 
 /**
  * Fetch all phase rankings for a match
@@ -101,5 +103,77 @@ export function filterValidAIPlayers(
     player.phase2 !== null && player.phase2 !== undefined &&
     player.phase3 !== null && player.phase3 !== undefined
   );
+}
+
+/**
+ * Transform AI players and user data into display format for results
+ * 
+ * @param validAIPlayers - Array of valid AI players with all phase scores
+ * @param userData - User's phase scores and metadata
+ * @returns Array of player objects ready for ranking display
+ */
+export function transformPlayersForResults(
+  validAIPlayers: Array<{
+    name: string;
+    avatar: string;
+    rank: string;
+    userId: string;
+    phase1: number;
+    phase2: number;
+    phase3: number;
+    wordCount: number | null;
+  }>,
+  userData: {
+    phase1: number;
+    phase2: number;
+    phase3: number;
+    wordCount: number;
+    revisedWordCount: number;
+  }
+): Array<{
+  name: string;
+  avatar: string;
+  rank: string;
+  userId?: string;
+  phase1: number;
+  phase2: number;
+  phase3: number;
+  compositeScore: number;
+  wordCount: number | null;
+  revisedWordCount?: number;
+  isYou: boolean;
+  position: number;
+}> {
+  const userCompositeScore = calculateCompositeScore(userData.phase1, userData.phase2, userData.phase3);
+  
+  const userPlayer = {
+    name: 'You',
+    avatar: '🌿',
+    rank: 'Silver III',
+    phase1: roundScore(userData.phase1),
+    phase2: roundScore(userData.phase2),
+    phase3: roundScore(userData.phase3),
+    compositeScore: userCompositeScore,
+    wordCount: userData.wordCount,
+    revisedWordCount: userData.revisedWordCount,
+    isYou: true,
+    position: 0,
+  };
+  
+  const aiPlayersDisplay = validAIPlayers.map(player => ({
+    name: player.name,
+    avatar: player.avatar,
+    rank: player.rank,
+    userId: player.userId,
+    phase1: player.phase1,
+    phase2: player.phase2,
+    phase3: player.phase3,
+    wordCount: player.wordCount,
+    compositeScore: calculateCompositeScore(player.phase1, player.phase2, player.phase3),
+    isYou: false,
+    position: 0,
+  }));
+  
+  return [userPlayer, ...aiPlayersDisplay];
 }
 

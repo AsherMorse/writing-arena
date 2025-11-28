@@ -84,7 +84,7 @@ export default function WritingSessionContent() {
     
     const generateAIWritings = async () => {
       try {
-        const { getMatchState, getMatchAIWritings, updateMatchState } = await import('@/lib/utils/firestore-match-state');
+        const { getMatchState, ensureMatchState, updateMatchStateArray } = await import('@/lib/utils/firestore-match-state');
         const matchState = await getMatchState(sessionMatchId || sessionId);
         
         if (matchState) {
@@ -97,11 +97,8 @@ export default function WritingSessionContent() {
           }
         } else {
           // Create matchState document if it doesn't exist
-          const { setDoc, doc } = await import('firebase/firestore');
-          const { db } = await import('@/lib/config/firebase');
-          const matchRef = doc(db, 'matchStates', sessionMatchId || sessionId);
-          await setDoc(matchRef, {
-            matchId: sessionMatchId || sessionId,
+          const { ensureMatchState } = await import('@/lib/utils/firestore-match-state');
+          await ensureMatchState(sessionMatchId || sessionId, {
             sessionId: activeSessionId || sessionId,
             players: Object.values(sessionPlayers || {}).map(p => ({
               userId: p.userId,
@@ -150,25 +147,21 @@ export default function WritingSessionContent() {
         setAiGenerationProgress(100);
         
         try {
-          const { setDoc, doc } = await import('firebase/firestore');
-          const matchRef = doc(db, 'matchStates', sessionMatchId || sessionId);
-          const matchDoc = await getDoc(matchRef);
-          
-          if (matchDoc.exists()) {
-            const currentData = matchDoc.data();
-            const currentPhase1 = currentData.aiWritings?.phase1 || [];
-            const mergedWritings = [...currentPhase1];
-            
-            for (const newWriting of aiWritings) {
-              if (!mergedWritings.some((w: any) => w.playerId === newWriting.playerId)) {
-                mergedWritings.push(newWriting);
+          const { updateMatchStateArray } = await import('@/lib/utils/firestore-match-state');
+          await updateMatchStateArray(
+            sessionMatchId || sessionId,
+            'aiWritings.phase1',
+            aiWritings,
+            (existing, newItems) => {
+              const merged = [...existing];
+              for (const newWriting of newItems) {
+                if (!merged.some((w: any) => w.playerId === newWriting.playerId)) {
+                  merged.push(newWriting);
+                }
               }
+              return merged;
             }
-            
-            await setDoc(matchRef, { aiWritings: { phase1: mergedWritings } }, { merge: true });
-          } else {
-            await setDoc(matchRef, { matchId: sessionMatchId || sessionId, aiWritings: { phase1: aiWritings } }, { merge: true });
-          }
+          );
         } catch (saveError) {
           console.error('❌ WRITING SESSION - Failed to save AI writings to Firestore:', saveError);
         }

@@ -97,13 +97,10 @@ export default function PeerFeedbackContent() {
       setAiFeedbackGenerated(true);
       
       try {
-        const { getDoc, doc, updateDoc } = await import('firebase/firestore');
-        const { db } = await import('@/lib/config/firebase');
+        const { getMatchState, updateMatchStateArray } = await import('@/lib/utils/firestore-match-state');
+        const matchState = await getMatchState(matchId);
+        if (!matchState) return;
         
-        const matchDoc = await getDoc(doc(db, 'matchStates', matchId));
-        if (!matchDoc.exists()) return;
-        
-        const matchState = matchDoc.data();
         const players = matchState.players || [];
         const aiPlayers = players.filter((p: any) => p.isAI);
         const writings = matchState.aiWritings?.phase1 || [];
@@ -136,8 +133,7 @@ export default function PeerFeedbackContent() {
         });
         
         const aiFeedbacks = (await Promise.all(aiFeedbackPromises)).filter(f => f !== null);
-        const matchRef = doc(db, 'matchStates', matchId);
-        await updateDoc(matchRef, { 'aiFeedbacks.phase2': aiFeedbacks });
+        await updateMatchStateArray(matchId, 'aiFeedbacks.phase2', aiFeedbacks);
       } catch (error) {
         console.error('❌ PEER FEEDBACK - Failed to generate AI feedback:', error);
       }

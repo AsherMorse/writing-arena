@@ -3,10 +3,13 @@ import { getAnthropicApiKey, logApiKeyStatus, streamAnthropicAPI } from '@/lib/u
 import { WritingSession } from '@/lib/services/firestore';
 import { getAIFeedback } from '@/lib/services/match-sync';
 import { parseGradeLevel, getGradeLevelCategory } from '@/lib/utils/grade-parser';
+import { validateOrError, ValidationHelpers } from '@/lib/utils/api-validation';
+import { createErrorResponse } from '@/lib/utils/api-responses';
 
 export async function POST(request: NextRequest) {
   try {
-    const { message, matches, conversationHistory, userId, gradeLevel = '7th-8th' } = await request.json();
+    const body = await request.json();
+    const { message, matches, conversationHistory, userId, gradeLevel = '7th-8th' } = body;
     
     console.log('💬 IMPROVE CHAT - Request received:', {
       messageLength: message?.length,
@@ -16,15 +19,18 @@ export async function POST(request: NextRequest) {
       gradeLevel,
     });
     
-    if (!message || !matches || matches.length < 5) {
+    const validation = validateOrError<{ message: string; userId: string; matches: any[]; conversationHistory?: any[]; gradeLevel?: string }>(body, [
+      ValidationHelpers.requiredString('message'),
+      ValidationHelpers.requiredString('userId'),
+      ValidationHelpers.requiredArray('matches', 5, 'Need at least 5 ranked matches'),
+    ]);
+
+    if (!validation.valid) {
       console.error('❌ IMPROVE CHAT - Invalid request:', {
         hasMessage: !!message,
         matchesCount: matches?.length,
       });
-      return NextResponse.json(
-        { error: 'Invalid request' },
-        { status: 400 }
-      );
+      return validation.response;
     }
 
     logApiKeyStatus('IMPROVE CHAT');

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/config/firebase';
 import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
+import { createErrorResponse } from '@/lib/utils/api-responses';
 
 export async function POST(request: NextRequest) {
   console.log('🔵 API - Seed endpoint called');
@@ -78,7 +79,7 @@ export async function POST(request: NextRequest) {
     
   } catch (error) {
     console.error('❌ Error seeding AI students:', error);
-    return NextResponse.json({ error: 'Failed to seed AI students' }, { status: 500 });
+    return createErrorResponse('Failed to seed AI students', 500);
   }
 }
 

@@ -73,3 +73,60 @@ export async function getMatchAIRevisions(
   return matchState?.aiRevisions?.[`phase${phase}`] || [];
 }
 
+/**
+ * Update an array field in matchState (e.g., 'aiWritings.phase1', 'aiFeedbacks.phase2')
+ * Optionally merge with existing array items
+ */
+export async function updateMatchStateArray(
+  matchId: string,
+  key: string, // e.g., 'aiWritings.phase1'
+  items: any[],
+  mergeFn?: (existing: any[], newItems: any[]) => any[]
+): Promise<void> {
+  const matchState = await getMatchState(matchId);
+  
+  if (!matchState) {
+    console.warn(`⚠️ FIRESTORE MATCH STATE - MatchState ${matchId} does not exist. Cannot update array.`);
+    return;
+  }
+
+  // Get existing array using dot notation path
+  const keys = key.split('.');
+  let currentValue: any = matchState;
+  for (let i = 0; i < keys.length - 1; i++) {
+    currentValue = currentValue?.[keys[i]] || {};
+  }
+  const existingArray = currentValue?.[keys[keys.length - 1]] || [];
+
+  // Merge or replace
+  const finalArray = mergeFn ? mergeFn(existingArray, items) : items;
+
+  // Update using dot notation
+  await updateMatchState(matchId, { [key]: finalArray });
+}
+
+/**
+ * Create matchState document if it doesn't exist
+ */
+export async function ensureMatchState(
+  matchId: string,
+  initialData: {
+    sessionId?: string;
+    players?: any[];
+    phase?: number;
+    createdAt?: any;
+  }
+): Promise<void> {
+  const matchState = await getMatchState(matchId);
+  
+  if (!matchState) {
+    const { setDoc, doc } = await import('firebase/firestore');
+    const { db } = await import('@/lib/config/firebase');
+    const matchRef = doc(db, 'matchStates', matchId);
+    await setDoc(matchRef, {
+      matchId,
+      ...initialData,
+    });
+  }
+}
+

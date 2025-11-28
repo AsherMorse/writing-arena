@@ -13,7 +13,7 @@ export async function POST(request: NextRequest) {
     payload = await request.json();
   } catch (error) {
     console.error('Error parsing analyze-writing body:', error);
-    return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 });
+    return createErrorResponse('Invalid JSON body', 400);
   }
 
   const content = payload.content || '';

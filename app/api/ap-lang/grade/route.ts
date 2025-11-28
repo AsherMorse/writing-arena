@@ -15,6 +15,7 @@ import {
 } from '@/lib/constants/ap-lang-scoring';
 import { API_MAX_TOKENS } from '@/lib/constants/api-config';
 import { createErrorResponse, createSuccessResponse } from '@/lib/utils/api-responses';
+import { validateOrError, ValidationHelpers } from '@/lib/utils/api-validation';
 
 /**
  * @fileoverview AP Language and Composition Essay Scoring API
@@ -36,10 +37,22 @@ const AP_LANG_PROMPT_FUNCTIONS: Record<APLangEssayType, (prompt: string, essay: 
 
 export async function POST(request: NextRequest) {
   try {
-    const { prompt, essay, essayType = 'argument' } = await request.json();
+    const body = await request.json();
+    const { prompt, essay, essayType = 'argument' } = body;
 
-    if (!prompt || !essay) {
-      return createErrorResponse('Both prompt and essay are required', 400);
+    const validation = validateOrError<{ prompt: string; essay: string; essayType?: string }>(body, [
+      ValidationHelpers.requiredString('prompt'),
+      ValidationHelpers.requiredString('essay'),
+      {
+        field: 'essayType',
+        required: false,
+        type: 'string',
+        validator: (value) => isValidEssayType(value || 'argument') || `Invalid essay type. Must be one of: ${AP_LANG_ESSAY_TYPES.join(', ')}`,
+      },
+    ]);
+
+    if (!validation.valid) {
+      return validation.response;
     }
 
     if (!isValidEssayType(essayType)) {

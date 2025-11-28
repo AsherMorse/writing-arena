@@ -3,10 +3,13 @@ import { getAnthropicApiKey, logApiKeyStatus, streamAnthropicAPI } from '@/lib/u
 import { WritingSession } from '@/lib/services/firestore';
 import { getAIFeedback } from '@/lib/services/match-sync';
 import { parseGradeLevel, getGradeLevelCategory } from '@/lib/utils/grade-parser';
+import { validateOrError, ValidationHelpers } from '@/lib/utils/api-validation';
+import { createErrorResponse } from '@/lib/utils/api-responses';
 
 export async function POST(request: NextRequest) {
   try {
-    const { matches, userId, gradeLevel = '7th-8th' } = await request.json();
+    const body = await request.json();
+    const { matches, userId, gradeLevel = '7th-8th' } = body;
     
     console.log('📊 IMPROVE ANALYZE - Request received:', {
       matchesCount: matches?.length,
@@ -14,12 +17,14 @@ export async function POST(request: NextRequest) {
       gradeLevel,
     });
     
-    if (!matches || !Array.isArray(matches) || matches.length < 5) {
+    const validation = validateOrError<{ userId: string; matches: any[]; gradeLevel?: string }>(body, [
+      ValidationHelpers.requiredString('userId'),
+      ValidationHelpers.requiredArray('matches', 5, 'Need at least 5 ranked matches'),
+    ]);
+
+    if (!validation.valid) {
       console.error('❌ IMPROVE ANALYZE - Invalid request:', { matchesCount: matches?.length });
-      return NextResponse.json(
-        { error: 'Need at least 5 ranked matches' },
-        { status: 400 }
-      );
+      return validation.response;
     }
 
     logApiKeyStatus('IMPROVE ANALYZE');
@@ -89,13 +94,13 @@ export async function POST(request: NextRequest) {
     }));
 
     // Calculate averages from original matches array
-    const avgScore = matches.reduce((sum, m) => sum + m.score, 0) / matches.length;
+    const avgScore = matches.reduce((sum: number, m: any) => sum + m.score, 0) / matches.length;
     const avgTraitScores = {
-      content: matches.reduce((sum, m) => sum + m.traitScores.content, 0) / matches.length,
-      organization: matches.reduce((sum, m) => sum + m.traitScores.organization, 0) / matches.length,
-      grammar: matches.reduce((sum, m) => sum + m.traitScores.grammar, 0) / matches.length,
-      vocabulary: matches.reduce((sum, m) => sum + m.traitScores.vocabulary, 0) / matches.length,
-      mechanics: matches.reduce((sum, m) => sum + m.traitScores.mechanics, 0) / matches.length,
+      content: matches.reduce((sum: number, m: any) => sum + m.traitScores.content, 0) / matches.length,
+      organization: matches.reduce((sum: number, m: any) => sum + m.traitScores.organization, 0) / matches.length,
+      grammar: matches.reduce((sum: number, m: any) => sum + m.traitScores.grammar, 0) / matches.length,
+      vocabulary: matches.reduce((sum: number, m: any) => sum + m.traitScores.vocabulary, 0) / matches.length,
+      mechanics: matches.reduce((sum: number, m: any) => sum + m.traitScores.mechanics, 0) / matches.length,
     };
 
     // Determine grade level number for age-appropriate instruction

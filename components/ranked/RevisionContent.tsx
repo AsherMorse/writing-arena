@@ -110,12 +110,10 @@ export default function RevisionContent() {
       if (!matchId || !user || aiRevisionsGenerated) return;
       setAiRevisionsGenerated(true);
       try {
-        const { getDoc, doc, updateDoc } = await import('firebase/firestore');
-        const { db } = await import('@/lib/config/firebase');
-        const matchDoc = await getDoc(doc(db, 'matchStates', matchId));
-        if (!matchDoc.exists()) return;
+        const { getMatchState, updateMatchStateArray } = await import('@/lib/utils/firestore-match-state');
+        const matchState = await getMatchState(matchId);
+        if (!matchState) return;
         
-        const matchState = matchDoc.data();
         const players = matchState.players || [];
         const aiPlayers = players.filter((p: any) => p.isAI);
         const phase1Writings = matchState.aiWritings?.phase1 || [];
@@ -139,8 +137,7 @@ export default function RevisionContent() {
         });
         
         const aiRevisions = (await Promise.all(aiRevisionPromises)).filter(r => r !== null);
-        const matchRef = doc(db, 'matchStates', matchId);
-        await updateDoc(matchRef, { 'aiRevisions.phase3': aiRevisions });
+        await updateMatchStateArray(matchId, 'aiRevisions.phase3', aiRevisions);
       } catch (error) {
         console.error('❌ REVISION - Failed to generate AI revisions:', error);
       }
@@ -189,13 +186,10 @@ export default function RevisionContent() {
 
   const getRankingFromStorage = async () => {
     try {
-      const { getDoc, doc } = await import('firebase/firestore');
-      const { db } = await import('@/lib/config/firebase');
-      const matchDoc = await getDoc(doc(db, 'matchStates', matchId || ''));
-      if (matchDoc.exists()) {
-        const rankings = matchDoc.data()?.rankings?.phase3 || [];
-        return rankings.find((r: any) => r.playerId === user?.uid);
-      }
+      const { getMatchRankings } = await import('@/lib/utils/firestore-match-state');
+      if (!matchId) return null;
+      const rankings = await getMatchRankings(matchId, 3);
+      return rankings.find((r: any) => r.playerId === user?.uid) || null;
     } catch (error) {
       console.error('❌ REVISION - Failed to get user ranking:', error);
     }

@@ -12,7 +12,7 @@ import { saveWritingSession, updateUserStatsAfterSession } from '@/lib/services/
 import { updateAIStudentAfterMatch } from '@/lib/services/ai-students';
 import { calculateCompositeScore, calculateLPChange, calculateXPEarned, calculatePointsEarned, calculateImprovementBonus } from '@/lib/utils/score-calculator';
 import { getPhaseScoresWithFallback } from '@/lib/utils/score-fallback';
-import { fetchAllPhaseRankings, mergeAIPlayerDataAcrossPhases, filterValidAIPlayers } from '@/lib/utils/rankings-fetcher';
+import { fetchAllPhaseRankings, mergeAIPlayerDataAcrossPhases, filterValidAIPlayers, transformPlayersForResults } from '@/lib/utils/rankings-fetcher';
 import { LoadingState } from '@/components/shared/LoadingState';
 import { rankPlayers, getPlayerRank } from '@/lib/utils/ranking-utils';
 import { useExpanded } from '@/lib/hooks/useExpanded';
@@ -121,22 +121,26 @@ export default function ResultsContent({ session: sessionProp }: ResultsContentP
         // Filter out players with missing phase scores (null values)
         const validAIPlayers = filterValidAIPlayers(aiPlayers);
         
-        const allPlayers = [
-          { name: 'You', avatar: '🌿', rank: 'Silver III', phase1: roundScore(writingScore), phase2: roundScore(feedbackScore), phase3: roundScore(revisionScore), compositeScore: yourCompositeScore, wordCount, revisedWordCount, isYou: true, position: 0 },
-          ...validAIPlayers.map(player => ({ 
-            name: player.name,
-            avatar: player.avatar,
-            rank: player.rank,
-            userId: player.userId,
-            phase1: player.phase1!,
-            phase2: player.phase2!,
-            phase3: player.phase3!,
-            wordCount: player.wordCount,
-            compositeScore: calculateCompositeScore(player.phase1!, player.phase2!, player.phase3!), 
-            isYou: false, 
-            position: 0 
-          }))
-        ];
+        // Transform players into display format
+        const allPlayers = transformPlayersForResults(
+          validAIPlayers.map(p => ({
+            name: p.name,
+            avatar: p.avatar,
+            rank: p.rank,
+            userId: p.userId,
+            phase1: p.phase1!,
+            phase2: p.phase2!,
+            phase3: p.phase3!,
+            wordCount: p.wordCount,
+          })),
+          {
+            phase1: writingScore,
+            phase2: feedbackScore,
+            phase3: revisionScore,
+            wordCount,
+            revisedWordCount,
+          }
+        );
 
         const rankings = rankPlayers(allPlayers, 'compositeScore');
         const yourRank = getPlayerRank(rankings, user?.uid);
@@ -185,6 +189,7 @@ export default function ResultsContent({ session: sessionProp }: ResultsContentP
         setResults({ rankings, yourRank, lpChange, xpEarned, pointsEarned, isVictory, improvementBonus: roundScore(improvementBonus), phases: { writing: roundScore(writingScore), feedback: roundScore(feedbackScore), revision: roundScore(revisionScore), composite: roundScore(yourCompositeScore) } });
         setIsAnalyzing(false);
       } catch (error) {
+        console.error('❌ RESULTS - Failed to analyze results:', error);
         setIsAnalyzing(false);
       }
     };
