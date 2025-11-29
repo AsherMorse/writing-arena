@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { LoadingState } from '@/components/shared/LoadingState';
+import { logger, LOG_CONTEXTS } from '@/lib/utils/logger';
 
 export function RequireAuth({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
@@ -20,7 +21,7 @@ export function RequireAuth({ children }: { children: React.ReactNode }) {
         const isPublicRoute = publicRoutes.includes(pathname) || pathname.startsWith('/auth');
         
         if (!isPublicRoute) {
-          console.log('🔒 Redirecting to auth page from:', pathname);
+          logger.debug(LOG_CONTEXTS.AUTH, `Redirecting to auth page from: ${pathname}`);
           // Store the attempted URL to redirect back after login
           const redirectUrl = encodeURIComponent(pathname + (searchParams.toString() ? `?${searchParams.toString()}` : ''));
           sessionStorage.setItem('authRedirect', redirectUrl);

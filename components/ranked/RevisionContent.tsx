@@ -38,6 +38,7 @@ import { useAutoSave } from '@/lib/hooks/useAutoSave';
 import { useTimeWarnings } from '@/lib/hooks/useTimeWarnings';
 import { getSessionStorage } from '@/lib/utils/session-storage';
 import { TimeWarningNotification } from '@/components/shared/TimeWarningNotification';
+import { logger, LOG_CONTEXTS } from '@/lib/utils/logger';
 
 export default function RevisionContent() {
   const router = useRouter();
@@ -108,7 +109,7 @@ export default function RevisionContent() {
         const peerFeedbackData = await getPeerFeedbackResponses(matchId, user.uid);
         if (peerFeedbackData) setRealPeerFeedback(peerFeedbackData);
       } catch (error) {
-        console.error('❌ REVISION - Failed to fetch peer feedback:', error);
+        logger.error(LOG_CONTEXTS.REVISION, 'Failed to fetch peer feedback', error);
       } finally { setLoadingPeerFeedback(false); }
     };
     fetchPeerFeedback();
@@ -172,7 +173,7 @@ export default function RevisionContent() {
         const aiRevisions = (await Promise.all(aiRevisionPromises)).filter(r => r !== null);
         await updateMatchStateArray(matchId, 'aiRevisions.phase3', aiRevisions);
       } catch (error) {
-        console.error('❌ REVISION - Failed to generate AI revisions:', error);
+        logger.error(LOG_CONTEXTS.REVISION, 'Failed to generate AI revisions', error);
       }
     };
     generateAIRevisions();
@@ -224,7 +225,7 @@ export default function RevisionContent() {
       const rankings = await getMatchRankings(matchId, 3);
       return rankings.find((r: any) => r.playerId === user?.uid) || null;
     } catch (error) {
-      console.error('❌ REVISION - Failed to get user ranking:', error);
+      logger.error(LOG_CONTEXTS.REVISION, 'Failed to get user ranking', error);
     }
     return null;
   };

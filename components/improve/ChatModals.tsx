@@ -2,7 +2,7 @@ import { Modal } from '@/components/shared/Modal';
 import { WritingSession } from '@/lib/services/firestore';
 import { ImproveConversation } from '@/lib/services/firestore';
 import { exportConversation } from '@/lib/utils/file-export';
-import { formatDate } from '@/lib/utils/date-utils';
+import { formatDate, getCurrentTimestamp } from '@/lib/utils/date-utils';
 import { COLOR_CLASSES } from '@/lib/constants/colors';
 import { isEmpty } from '@/lib/utils/array-utils';
 
@@ -56,7 +56,7 @@ export function ChatModals({
   onStartNewConversation,
 }: ChatModalsProps) {
   const handleExport = () => {
-    exportConversation(messages, `improvement-session-${formatDate(new Date(), 'iso').split('T')[0]}.txt`);
+    exportConversation(messages, `improvement-session-${formatDate(getCurrentTimestamp(), 'iso').split('T')[0]}.txt`);
     onCloseExport();
   };
 

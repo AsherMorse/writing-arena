@@ -8,6 +8,7 @@ import { WRITING_TIPS } from '@/lib/constants/writing-tips';
 import { getPhaseColor, COLOR_CLASSES } from '@/lib/constants/colors';
 import { safeParseJSON } from '@/lib/utils/json-utils';
 import { isEmpty, isNotEmpty } from '@/lib/utils/array-utils';
+import { logger, LOG_CONTEXTS } from '@/lib/utils/logger';
 
 interface WaitingForPlayersProps {
   phase: 1 | 2 | 3;
@@ -66,7 +67,7 @@ export default function WaitingForPlayers({
         }
       }
     } catch (error) {
-      console.warn('⚠️ WAITING - Failed to load party members from storage', error);
+      logger.warn(LOG_CONTEXTS.WAITING_FOR_PLAYERS, 'Failed to load party members from storage', error);
     }
 
     setDisplayMembers(

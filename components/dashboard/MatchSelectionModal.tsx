@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { countCompletedRankedMatches } from '@/lib/services/firestore';
+import { logger, LOG_CONTEXTS } from '@/lib/utils/logger';
 
 interface MatchSelectionModalProps {
   isOpen: boolean;
@@ -23,7 +24,7 @@ export default function MatchSelectionModal({ isOpen, onClose }: MatchSelectionM
           const count = await countCompletedRankedMatches(user.uid);
           setCompletedMatches(count);
         } catch (error) {
-          console.error('Error fetching match count:', error);
+          logger.error(LOG_CONTEXTS.DASHBOARD, 'Error fetching match count', error);
           setCompletedMatches(0);
         } finally {
           setLoading(false);

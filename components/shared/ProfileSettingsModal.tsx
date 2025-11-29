@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
+import { logger, LOG_CONTEXTS } from '@/lib/utils/logger';
 import { updateUserProfile } from '@/lib/services/firestore';
 import { COLOR_CLASSES } from '@/lib/constants/colors';
 
@@ -54,7 +55,7 @@ export default function ProfileSettingsModal({ isOpen, onClose }: ProfileSetting
       setTimeout(() => setSaveSuccess(false), 3000);
       
     } catch (error) {
-      console.error('Error saving profile:', error);
+      logger.error(LOG_CONTEXTS.PROFILE, 'Error saving profile', error);
     } finally {
       setSaving(false);
     }

@@ -19,6 +19,7 @@ import { useExpanded } from '@/lib/hooks/useExpanded';
 import { isEmpty, isNotEmpty } from '@/lib/utils/array-utils';
 import { roundScore } from '@/lib/utils/math-utils';
 import { logger, LOG_CONTEXTS } from '@/lib/utils/logger';
+import { getCurrentTimestamp } from '@/lib/utils/date-utils';
 import { ResultsHeader } from './results/ResultsHeader';
 import { ResultsHero } from './results/ResultsHero';
 import { ResultsPerformance } from './results/ResultsPerformance';
@@ -155,7 +156,7 @@ export default function ResultsContent({ session: sessionProp }: ResultsContentP
 
         if (user) {
           try {
-            await saveWritingSession({ userId: user.uid, mode: 'ranked', trait: trait || 'all', promptType: promptType || 'narrative', content: originalContent, wordCount, score: roundScore(yourCompositeScore), traitScores: { content: roundScore(writingScore), organization: roundScore(writingScore), grammar: roundScore(writingScore), vocabulary: roundScore(writingScore), mechanics: roundScore(writingScore) }, xpEarned, pointsEarned, lpChange, placement: yourRank, timestamp: new Date() as any, matchId });
+            await saveWritingSession({ userId: user.uid, mode: 'ranked', trait: trait || 'all', promptType: promptType || 'narrative', content: originalContent, wordCount, score: roundScore(yourCompositeScore), traitScores: { content: roundScore(writingScore), organization: roundScore(writingScore), grammar: roundScore(writingScore), vocabulary: roundScore(writingScore), mechanics: roundScore(writingScore) }, xpEarned, pointsEarned, lpChange, placement: yourRank, timestamp: getCurrentTimestamp() as any, matchId });
             await updateUserStatsAfterSession(user.uid, xpEarned, pointsEarned, lpChange, isVictory, wordCount);
             await refreshProfile();
             

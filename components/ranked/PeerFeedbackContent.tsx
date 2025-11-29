@@ -37,6 +37,9 @@ import { useAutoSave } from '@/lib/hooks/useAutoSave';
 import { useTimeWarnings } from '@/lib/hooks/useTimeWarnings';
 import { getSessionStorage } from '@/lib/utils/session-storage';
 import { TimeWarningNotification } from '@/components/shared/TimeWarningNotification';
+import { logger, LOG_CONTEXTS } from '@/lib/utils/logger';
+import { useAIFeedbackGeneration } from '@/lib/hooks/useAIFeedbackGeneration';
+import { TipsButton } from '@/components/shared/TipsButton';
 
 export default function PeerFeedbackContent() {
   const router = useRouter();
@@ -62,7 +65,6 @@ export default function PeerFeedbackContent() {
     sessionId: activeSessionId,
   } = useSessionData(session);
 
-  const [aiFeedbackGenerated, setAiFeedbackGenerated] = useState(false);
   const [isEvaluating, setIsEvaluating] = useState(false);
   const [showRubric, setShowRubric] = useState(true);
   const [showExamples, setShowExamples] = useState(true);
@@ -89,6 +91,13 @@ export default function PeerFeedbackContent() {
   });
   
   const { showTipsModal, setShowTipsModal, showRankingModal, setShowRankingModal } = useModals();
+
+  // Use AI feedback generation hook
+  useAIFeedbackGeneration({
+    matchId,
+    userId: user?.uid,
+    enabled: !!matchId && !!user,
+  });
 
   // Use useAsyncData for loading peer writing
   const { data: currentPeer, loading: loadingPeer } = useAsyncData(
@@ -121,57 +130,6 @@ export default function PeerFeedbackContent() {
     [user?.uid, matchId, sessionPlayers],
     { immediate: true }
   );
-
-  useEffect(() => {
-    const generateAIFeedback = async () => {
-      if (!matchId || !user || aiFeedbackGenerated) return;
-      setAiFeedbackGenerated(true);
-      
-      try {
-        const { getMatchState, updateMatchStateArray } = await import('@/lib/utils/firestore-match-state');
-        const matchState = await getMatchState(matchId);
-        if (!matchState) return;
-        
-        const players = matchState.players || [];
-        const aiPlayers = players.filter((p: any) => p.isAI);
-        const writings = matchState.aiWritings?.phase1 || [];
-        
-        const aiFeedbackPromises = aiPlayers.map(async (aiPlayer: any, idx: number) => {
-          const aiIndex = players.findIndex((p: any) => p.userId === aiPlayer.userId);
-          const peerIndex = (aiIndex + 1) % players.length;
-          const peer = players[peerIndex];
-          
-          let peerWriting = '';
-          if (peer.isAI) {
-            const aiWriting = writings.find((w: any) => w.playerId === peer.userId);
-            peerWriting = aiWriting?.content || '';
-          } else {
-            const rankings = matchState.rankings?.phase1 || [];
-            const peerRanking = rankings.find((r: any) => r.playerId === peer.userId);
-            peerWriting = peerRanking?.content || '';
-          }
-          
-          if (!peerWriting) return null;
-          
-          const response = await fetch('/api/generate-ai-feedback', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: safeStringifyJSON({ peerWriting, rank: aiPlayer.rank, playerName: aiPlayer.displayName }) || '',
-          });
-          
-          const data = await parseJSONResponse<{ responses: any[] }>(response);
-          return { playerId: aiPlayer.userId, playerName: aiPlayer.displayName, responses: data.responses, peerWriting, isAI: true, rank: aiPlayer.rank };
-        });
-        
-        const aiFeedbacks = (await Promise.all(aiFeedbackPromises)).filter(f => f !== null);
-        await updateMatchStateArray(matchId, 'aiFeedbacks.phase2', aiFeedbacks);
-      } catch (error) {
-        console.error('❌ PEER FEEDBACK - Failed to generate AI feedback:', error);
-      }
-    };
-    
-    generateAIFeedback();
-  }, [matchId, user, aiFeedbackGenerated]);
 
   const { handlePaste, handleCut, handleCopy } = usePastePrevention({ showWarning: false });
 
@@ -247,15 +205,7 @@ export default function PeerFeedbackContent() {
 
       <WritingTipsModal isOpen={showTipsModal} onClose={() => setShowTipsModal(false)} promptType="informational" />
 
-      <button onClick={() => setShowTipsModal(true)} className="fixed bottom-8 right-8 z-40 group" title="Feedback Tips">
-        <div className="relative">
-          <div className="flex h-14 w-14 items-center justify-center rounded-full border border-[#ff5f8f] bg-[rgba(255,95,143,0.1)] shadow-lg transition-all hover:scale-110 hover:bg-[rgba(255,95,143,0.2)]">
-            <span className="text-2xl">🔍</span>
-          </div>
-          <div className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-[#ff9030] text-[10px] animate-pulse">✨</div>
-          <div className="absolute -bottom-10 right-0 rounded-[6px] bg-[rgba(255,255,255,0.025)] px-2 py-1 text-[10px] text-[rgba(255,255,255,0.4)] opacity-0 transition-opacity group-hover:opacity-100 whitespace-nowrap border border-[rgba(255,255,255,0.05)]">Tips</div>
-        </div>
-      </button>
+      <TipsButton onOpen={() => setShowTipsModal(true)} phase={2} />
 
       <PeerFeedbackHeader
         timeRemaining={timeRemaining}

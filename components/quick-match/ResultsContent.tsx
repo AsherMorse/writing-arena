@@ -11,6 +11,8 @@ import { useAsyncData } from '@/lib/hooks/useAsyncData';
 import { safeStringifyJSON, parseJSONResponse } from '@/lib/utils/json-utils';
 import { useSearchParams, parseResultsSearchParams } from '@/lib/hooks/useSearchParams';
 import { roundScore, clamp } from '@/lib/utils/math-utils';
+import { getCurrentTimestamp } from '@/lib/utils/date-utils';
+import { logger, LOG_CONTEXTS } from '@/lib/utils/logger';
 import { AnalyzingState } from '@/components/shared/AnalyzingState';
 import { ResultsLayout } from '@/components/shared/ResultsLayout';
 import { PlayerCard } from '@/components/shared/PlayerCard';
@@ -51,10 +53,10 @@ function ResultsContentInner() {
 
         if (user && data) {
           try {
-            await saveWritingSession({ userId: user.uid, mode: 'quick-match', trait: trait || 'all', promptType: promptType || 'narrative', content: decodedContent, wordCount, score: roundScore(yourScore), traitScores: data.traits, xpEarned, pointsEarned, placement: yourRank, timestamp: new Date() as any });
+            await saveWritingSession({ userId: user.uid, mode: 'quick-match', trait: trait || 'all', promptType: promptType || 'narrative', content: decodedContent, wordCount, score: roundScore(yourScore), traitScores: data.traits, xpEarned, pointsEarned, placement: yourRank, timestamp: getCurrentTimestamp() as any });
             await updateUserStatsAfterSession(user.uid, xpEarned, pointsEarned, undefined, isVictory, wordCount);
             await refreshProfile();
-          } catch (error) { console.error('Error saving Quick Match session:', error); }
+          } catch (error) { logger.error(LOG_CONTEXTS.QUICK_MATCH, 'Error saving Quick Match session', error); }
         }
         setTimeout(() => { setResults({ rankings, yourRank, xpEarned, pointsEarned, isVictory }); setIsAnalyzing(false); }, 1200);
       },

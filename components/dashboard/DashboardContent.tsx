@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { UserProfile } from '@/lib/types';
 import { countCompletedRankedMatches } from '@/lib/services/firestore';
+import { logger, LOG_CONTEXTS } from '@/lib/utils/logger';
 import { DashboardStats } from './DashboardStats';
 import { DashboardActions } from './DashboardActions';
 import { DashboardTraits } from './DashboardTraits';
@@ -27,7 +28,7 @@ export default function DashboardContent({ userProfile }: DashboardContentProps)
           const count = await countCompletedRankedMatches(user.uid);
           setCompletedMatches(count);
         } catch (error) {
-          console.error('Error fetching match count:', error);
+          logger.error(LOG_CONTEXTS.DASHBOARD, 'Error fetching match count', error);
           setCompletedMatches(0);
         } finally {
           setLoadingMatches(false);

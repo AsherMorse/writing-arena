@@ -7,6 +7,7 @@ import { getScoreColor } from '@/lib/utils/score-utils';
 import { useAsyncData } from '@/lib/hooks/useAsyncData';
 import { safeStringifyJSON, parseJSONResponse } from '@/lib/utils/json-utils';
 import { useSearchParams, parseResultsSearchParams } from '@/lib/hooks/useSearchParams';
+import { logger, LOG_CONTEXTS } from '@/lib/utils/logger';
 import { AnalyzingState } from '@/components/shared/AnalyzingState';
 import { ResultsLayout } from '@/components/shared/ResultsLayout';
 import { ScoreDisplay } from '@/components/shared/ScoreDisplay';
@@ -31,7 +32,7 @@ function ResultsContentInner() {
       if (!response.ok) throw new Error('analysis failed');
       const data = await parseJSONResponse<{ overallScore: number; xpEarned: number }>(response);
       if (user) {
-        console.log('Mock practice session save', { userId: user.uid, score: data.overallScore, xpEarned: data.xpEarned, wordCount });
+        logger.debug(LOG_CONTEXTS.PRACTICE, 'Mock practice session save', { userId: user.uid, score: data.overallScore, xpEarned: data.xpEarned, wordCount });
       }
       return data;
     },

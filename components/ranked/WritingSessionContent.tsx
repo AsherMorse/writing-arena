@@ -31,6 +31,8 @@ import { isNotEmpty } from '@/lib/utils/array-utils';
 import { useAutoSave } from '@/lib/hooks/useAutoSave';
 import { useTimeWarnings } from '@/lib/hooks/useTimeWarnings';
 import { getSessionStorage } from '@/lib/utils/session-storage';
+import { logger, LOG_CONTEXTS } from '@/lib/utils/logger';
+import { useAIGeneration } from '@/lib/hooks/useAIGeneration';
 import WritingEditor from './WritingEditor';
 import AIGenerationProgress from './AIGenerationProgress';
 import { WritingSessionHeader } from './writing-session/WritingSessionHeader';
@@ -83,11 +85,6 @@ export default function WritingSessionContent() {
   });
   
   const { showTipsModal, setShowTipsModal, showRankingModal, setShowRankingModal } = useModals();
-  
-  const [aiWritingsGenerated, setAiWritingsGenerated] = useState(false);
-  const [aiWordCounts, setAiWordCounts] = useState<number[]>([0, 0, 0, 0]);
-  const [generatingAI, setGeneratingAI] = useState(false);
-  const [aiGenerationProgress, setAiGenerationProgress] = useState(0);
 
   const {
     matchId: sessionMatchId,
@@ -103,143 +100,28 @@ export default function WritingSessionContent() {
   const trait = sessionConfig?.trait || 'all';
   const players = useMemo(() => allPlayers, [allPlayers]);
   const { submitted, total } = submissionCount();
-  const aiTargetCountsRef = useRef<number[]>([]);
 
-  useEffect(() => {
-    if (!session || aiWritingsGenerated || !user || !prompt) return;
-    
-    const generateAIWritings = async () => {
-      try {
-        const { getMatchState, ensureMatchState, updateMatchStateArray } = await import('@/lib/utils/firestore-match-state');
-        const matchState = await getMatchState(sessionMatchId || sessionId);
-        
-        if (matchState) {
-          const existingWritings = matchState?.aiWritings?.phase1;
-          
-          if (isNotEmpty(existingWritings)) {
-            aiTargetCountsRef.current = existingWritings.map((w: any) => w.wordCount);
-            setAiWritingsGenerated(true);
-            return;
-          }
-        } else {
-          // Create matchState document if it doesn't exist
-          const { ensureMatchState } = await import('@/lib/utils/firestore-match-state');
-          await ensureMatchState(sessionMatchId || sessionId, {
-            sessionId: activeSessionId || sessionId,
-            players: Object.values(sessionPlayers || {}).map(p => ({
-              userId: p.userId,
-              displayName: p.displayName,
-              avatar: p.avatar,
-              rank: p.rank,
-              isAI: p.isAI,
-            })),
-            phase: 1,
-            createdAt: sessionCreatedAt,
-          });
-        }
-        
-        const aiPlayers = players.filter(p => p.isAI);
-        setGeneratingAI(true);
-        setAiWritingsGenerated(true);
-        
-        const aiWritingPromises = aiPlayers.map(async (aiPlayer, index) => {
-          const response = await fetch('/api/generate-ai-writing', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: safeStringifyJSON({
-              prompt: prompt.description,
-              promptType: prompt.type,
-              rank: aiPlayer.rank,
-              playerName: aiPlayer.displayName,
-            }),
-          });
-          
-          const data = await parseJSONResponse<{ content: string; wordCount: number }>(response);
-          setAiGenerationProgress(((index + 1) / aiPlayers.length) * 100);
-          
-          return {
-            playerId: aiPlayer.userId,
-            playerName: aiPlayer.displayName,
-            content: data.content,
-            wordCount: data.wordCount,
-            isAI: true,
-            rank: aiPlayer.rank,
-          };
-        });
-        
-        const aiWritings = await Promise.all(aiWritingPromises);
-        aiTargetCountsRef.current = aiWritings.map(w => w.wordCount);
-        setGeneratingAI(false);
-        setAiGenerationProgress(100);
-        
-        try {
-          const { updateMatchStateArray } = await import('@/lib/utils/firestore-match-state');
-          await updateMatchStateArray(
-            sessionMatchId || sessionId,
-            'aiWritings.phase1',
-            aiWritings,
-            (existing, newItems) => {
-              const merged = [...existing];
-              for (const newWriting of newItems) {
-                if (!merged.some((w: any) => w.playerId === newWriting.playerId)) {
-                  merged.push(newWriting);
-                }
-              }
-              return merged;
-            }
-          );
-        } catch (saveError) {
-          console.error('❌ WRITING SESSION - Failed to save AI writings to Firestore:', saveError);
-        }
-        
-        aiPlayers.forEach((aiPlayer) => {
-          scheduleAISubmission(
-            aiPlayer,
-            async () => {
-              const aiWriting = aiWritings.find(w => w.playerId === aiPlayer.userId);
-              if (!aiWriting) return;
-              
-              const { updateDoc, doc, serverTimestamp } = await import('firebase/firestore');
-              const sessionRef = doc(db, 'sessions', activeSessionId || sessionId);
-              
-              await updateDoc(sessionRef, {
-                [`players.${aiPlayer.userId}.phases.phase1`]: {
-                  submitted: true,
-                  submittedAt: serverTimestamp(),
-                  content: aiWriting.content,
-                  wordCount: aiWriting.wordCount,
-                  score: clampScore(60 + Math.random() * 30),
-                },
-                updatedAt: serverTimestamp(),
-              });
-            },
-            5000,
-            15000
-          );
-        });
-        
-      } catch (error) {
-        aiTargetCountsRef.current = [40, 55, 48, 62];
-        setAiWritingsGenerated(true);
-      }
-    };
-    
-    generateAIWritings();
-  }, [session, aiWritingsGenerated, user, prompt]);
+  // Use AI generation hook
+  const {
+    aiWritingsGenerated,
+    generatingAI,
+    aiGenerationProgress,
+    aiWordCounts,
+    aiTargetCounts,
+  } = useAIGeneration({
+    sessionId,
+    matchId: sessionMatchId,
+    activeSessionId,
+    sessionCreatedAt,
+    players,
+    sessionPlayers,
+    prompt: prompt ? { description: prompt.description, type: prompt.type } : { description: '', type: '' },
+    phase: 1,
+    enabled: !!session && !!user && !!prompt,
+  });
 
-  useInterval(() => {
-    if (!session) return;
-    setAiWordCounts(prevCounts => {
-      const aiPlayers = players.filter(p => p.isAI);
-      if (prevCounts.length !== aiPlayers.length) return new Array(aiPlayers.length).fill(0);
-      return prevCounts.map((currentCount, index) => {
-        const target = aiTargetCountsRef.current[index] || 100;
-        if (currentCount >= target) return target;
-        const increment = 0.5 + Math.random();
-        return Math.min(target, currentCount + increment);
-      });
-    });
-  }, session ? 1000 : null, [session, players]);
+  // AI word counts are managed by useAIGeneration hook
+  // The interval for updating AI word counts has been moved to the hook
       
   const debouncedContent = useDebounce(writingContent, 300);
   useEffect(() => {

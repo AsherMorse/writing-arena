@@ -11,6 +11,7 @@ import { useSearchParams } from '@/lib/hooks/useSearchParams';
 import { TIMING } from '@/lib/constants/scoring';
 import { roundScore } from '@/lib/utils/math-utils';
 import { isNotEmpty } from '@/lib/utils/array-utils';
+import { logger, LOG_CONTEXTS } from '@/lib/utils/logger';
 
 // Parser function for phase rankings search params
 function parsePhaseRankingsParams(searchParams: URLSearchParams) {
@@ -83,10 +84,10 @@ export default function PhaseRankingsContent() {
         if (rankings && isNotEmpty(rankings)) {
           setRealRankings(rankings);
         } else {
-          console.warn('⚠️ PHASE RANKINGS - No rankings found in Firestore. Rankings may not be available yet.');
+          logger.warn(LOG_CONTEXTS.PHASE_RANKINGS, 'No rankings found in Firestore. Rankings may not be available yet.');
         }
       } catch (error) {
-        console.error('❌ PHASE RANKINGS - Failed to fetch rankings:', error);
+        logger.error(LOG_CONTEXTS.PHASE_RANKINGS, 'Failed to fetch rankings', error);
       }
     };
     fetchRankings();
