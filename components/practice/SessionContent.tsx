@@ -6,6 +6,8 @@ import { countWords } from '@/lib/utils/text-utils';
 import { formatTime } from '@/lib/utils/time-utils';
 import { usePastePrevention } from '@/lib/hooks/usePastePrevention';
 import { useDebounce } from '@/lib/hooks/useDebounce';
+import { useInterval } from '@/lib/hooks/useInterval';
+import { useModal } from '@/lib/hooks/useModal';
 import WritingTipsModal from '@/components/shared/WritingTipsModal';
 
 export default function SessionContent() {
@@ -18,7 +20,7 @@ export default function SessionContent() {
   const [isWriting, setIsWriting] = useState(false);
   const [writingContent, setWritingContent] = useState('');
   const [wordCount, setWordCount] = useState(0);
-  const [showTipsModal, setShowTipsModal] = useState(false);
+  const tipsModal = useModal(false);
 
   const prompts = {
     narrative: { icon: '🌄', title: 'Unexpected adventure', description: 'Write about a character who discovers something surprising during an ordinary day. Focus on pacing and detail.', guideQuestions: ['Who is your main character and what is the ordinary routine?', 'What surprising event changes the day?', 'How does the character react in the moment?', 'How does the scene wrap up or hint at what comes next?'] },
@@ -29,19 +31,19 @@ export default function SessionContent() {
 
   const currentPrompt = prompts[promptType as keyof typeof prompts] || prompts.narrative;
 
-  useEffect(() => {
+  const handleStart = () => setIsWriting(true);
+  const handleSubmit = () => { router.push(`/practice/results?trait=${trait}&promptType=${promptType}&content=${encodeURIComponent(writingContent)}&wordCount=${wordCount}`); };
+
+  useInterval(() => {
     if (isWriting && timeLeft > 0) {
-      const timer = setInterval(() => setTimeLeft(prev => prev - 1), 1000);
-      return () => clearInterval(timer);
+      setTimeLeft(prev => prev - 1);
+    } else if (isWriting && timeLeft === 0) {
+      handleSubmit();
     }
-    if (isWriting && timeLeft === 0) handleSubmit();
-  }, [isWriting, timeLeft]);
+  }, isWriting && timeLeft > 0 ? 1000 : null, [isWriting, timeLeft]);
 
   const debouncedContent = useDebounce(writingContent, 300);
   useEffect(() => { setWordCount(countWords(debouncedContent)); }, [debouncedContent]);
-
-  const handleStart = () => setIsWriting(true);
-  const handleSubmit = () => { router.push(`/practice/results?trait=${trait}&promptType=${promptType}&content=${encodeURIComponent(writingContent)}&wordCount=${wordCount}`); };
   const { showPasteWarning, handlePaste, handleCut } = usePastePrevention({ warningDuration: 2500 });
 
   if (!isWriting) {
@@ -75,7 +77,7 @@ export default function SessionContent() {
 
   return (
     <div className="min-h-screen bg-[#101012] text-[rgba(255,255,255,0.8)]">
-      <WritingTipsModal isOpen={showTipsModal} onClose={() => setShowTipsModal(false)} promptType={promptType || 'narrative'} />
+      <WritingTipsModal isOpen={tipsModal.isOpen} onClose={tipsModal.close} promptType={promptType || 'narrative'} />
 
       <header className="sticky top-0 z-20 border-b border-[rgba(255,255,255,0.05)] bg-[#101012]/90 backdrop-blur">
         <div className="mx-auto flex max-w-6xl flex-col gap-4 px-6 py-5 lg:flex-row lg:items-center lg:justify-between">
@@ -89,7 +91,7 @@ export default function SessionContent() {
           </div>
           <div className="flex items-center gap-3 text-sm">
             <div className="rounded-[20px] border border-[rgba(255,255,255,0.05)] bg-[#101012] px-3 py-1 text-[rgba(255,255,255,0.5)]"><span className="font-medium">{wordCount}</span> words</div>
-            <button onClick={() => setShowTipsModal(true)} className="rounded-[10px] border border-[rgba(255,255,255,0.05)] bg-[rgba(255,255,255,0.025)] px-4 py-2 font-medium transition hover:bg-[rgba(255,255,255,0.04)]">Tips</button>
+            <button onClick={tipsModal.open} className="rounded-[10px] border border-[rgba(255,255,255,0.05)] bg-[rgba(255,255,255,0.025)] px-4 py-2 font-medium transition hover:bg-[rgba(255,255,255,0.04)]">Tips</button>
             <button onClick={handleSubmit} className="rounded-[10px] border border-[#00e5e5] bg-[#00e5e5] px-6 py-2 font-medium text-[#101012] transition hover:bg-[#33ebeb]">Submit</button>
           </div>
         </div>

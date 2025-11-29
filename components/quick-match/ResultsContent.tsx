@@ -10,6 +10,7 @@ import { rankPlayers, getPlayerRank } from '@/lib/utils/ranking-utils';
 import { useAsyncData } from '@/lib/hooks/useAsyncData';
 import { safeStringifyJSON, parseJSONResponse } from '@/lib/utils/json-utils';
 import { useSearchParams, parseResultsSearchParams } from '@/lib/hooks/useSearchParams';
+import { roundScore, clamp } from '@/lib/utils/math-utils';
 import { AnalyzingState } from '@/components/shared/AnalyzingState';
 import { ResultsLayout } from '@/components/shared/ResultsLayout';
 import { PlayerCard } from '@/components/shared/PlayerCard';
@@ -38,19 +39,19 @@ function ResultsContentInner() {
     [decodedContent, trait, promptType],
     {
       onSuccess: async (data) => {
-        const yourScore = data?.overallScore || Math.min(Math.max(60 + wordCount / 5 + Math.random() * 15, 40), 100);
+        const yourScore = data?.overallScore || clamp(60 + wordCount / 5 + Math.random() * 15, 40, 100);
         const allPlayers = generateMockQuickMatchResults(wordCount, aiScoresArray, yourScore);
         const rankings = rankPlayers(allPlayers, 'score').map(p => ({ ...p, rank: p.position }));
         const yourRank = getPlayerRank(rankings, user?.uid);
         const baseXP = calculateXPEarned(yourScore, 'quick-match');
         const placementBonus = (rankings.length - yourRank + 1) * 2;
         const xpEarned = baseXP + placementBonus;
-        const pointsEarned = Math.round(yourScore) + (yourRank === 1 ? 25 : 0);
+        const pointsEarned = roundScore(yourScore) + (yourRank === 1 ? 25 : 0);
         const isVictory = yourRank === 1;
 
         if (user && data) {
           try {
-            await saveWritingSession({ userId: user.uid, mode: 'quick-match', trait: trait || 'all', promptType: promptType || 'narrative', content: decodedContent, wordCount, score: Math.round(yourScore), traitScores: data.traits, xpEarned, pointsEarned, placement: yourRank, timestamp: new Date() as any });
+            await saveWritingSession({ userId: user.uid, mode: 'quick-match', trait: trait || 'all', promptType: promptType || 'narrative', content: decodedContent, wordCount, score: roundScore(yourScore), traitScores: data.traits, xpEarned, pointsEarned, placement: yourRank, timestamp: new Date() as any });
             await updateUserStatsAfterSession(user.uid, xpEarned, pointsEarned, undefined, isVictory, wordCount);
             await refreshProfile();
           } catch (error) { console.error('Error saving Quick Match session:', error); }
@@ -58,11 +59,11 @@ function ResultsContentInner() {
         setTimeout(() => { setResults({ rankings, yourRank, xpEarned, pointsEarned, isVictory }); setIsAnalyzing(false); }, 1200);
       },
       onError: () => {
-        const fallbackScore = Math.min(Math.max(60 + wordCount / 5, 40), 100);
+        const fallbackScore = clamp(60 + wordCount / 5, 40, 100);
         const allPlayers = generateMockQuickMatchResults(wordCount, aiScoresArray, fallbackScore);
         const rankings = rankPlayers(allPlayers, 'score').map(p => ({ ...p, rank: p.position }));
         const yourRank = getPlayerRank(rankings, user?.uid);
-        setTimeout(() => { setResults({ rankings, yourRank, xpEarned: calculateXPEarned(fallbackScore, 'quick-match'), pointsEarned: Math.round(fallbackScore), isVictory: yourRank === 1 }); setIsAnalyzing(false); }, 1200);
+        setTimeout(() => { setResults({ rankings, yourRank, xpEarned: calculateXPEarned(fallbackScore, 'quick-match'), pointsEarned: roundScore(fallbackScore), isVictory: yourRank === 1 }); setIsAnalyzing(false); }, 1200);
       },
     }
   );

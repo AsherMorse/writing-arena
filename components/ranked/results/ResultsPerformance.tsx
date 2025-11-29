@@ -1,5 +1,6 @@
 import { MOCK_PHASE_FEEDBACK } from '@/lib/utils/mock-data';
 import { getPhaseColorByName } from '@/lib/constants/colors';
+import { isEmpty, isNotEmpty } from '@/lib/utils/array-utils';
 
 interface ResultsPerformanceProps {
   phases: {
@@ -69,7 +70,7 @@ export function ResultsPerformance({
         const improvements = phaseFeedbackData?.improvements || phaseFeedbackData?.suggestions || mockFeedback.improvements;
         
         let nextSteps = phaseFeedbackData?.nextSteps;
-        if (!nextSteps && improvements && Array.isArray(improvements) && improvements.length > 0) {
+        if (!nextSteps && improvements && Array.isArray(improvements) && isNotEmpty(improvements)) {
           nextSteps = improvements.slice(0, 3).map((imp: string) => {
             if (typeof imp === 'string') {
               if (imp.includes('Try') || imp.includes('Practice') || imp.includes('Add')) return imp;
@@ -81,7 +82,7 @@ export function ResultsPerformance({
             return imp;
           });
         }
-        if (!nextSteps || nextSteps.length === 0) nextSteps = phaseFeedbackData?.specificFeedback ? Object.values(phaseFeedbackData.specificFeedback) : mockFeedback.writingRevConcepts;
+        if (!nextSteps || isEmpty(nextSteps)) nextSteps = phaseFeedbackData?.specificFeedback ? Object.values(phaseFeedbackData.specificFeedback) : mockFeedback.writingRevConcepts;
         const traitFeedback = phaseFeedbackData?.traitFeedback || {};
         
         const phaseColor = getPhaseColorByName(expandedPhase);
@@ -98,7 +99,7 @@ export function ResultsPerformance({
               <div>
                 <div className="mb-2 text-xs font-semibold text-[#00d492]">✨ Strengths</div>
                 <ul className="space-y-1">
-                  {Array.isArray(strengths) && strengths.length > 0 ? strengths.map((s, i) => (
+                  {Array.isArray(strengths) && isNotEmpty(strengths) ? strengths.map((s, i) => (
                     <li key={i} className="text-sm text-[rgba(255,255,255,0.6)] pl-3">• {s}</li>
                   )) : <li className="text-sm italic text-[rgba(255,255,255,0.3)] pl-3">{phaseFeedbackData ? 'No strengths identified' : 'Submit work to receive feedback'}</li>}
                 </ul>
@@ -107,13 +108,13 @@ export function ResultsPerformance({
               <div>
                 <div className="mb-2 text-xs font-semibold text-[#ff9030]">🎯 Areas for Growth</div>
                 <ul className="space-y-1">
-                  {Array.isArray(improvements) && improvements.length > 0 ? improvements.map((imp, i) => (
+                  {Array.isArray(improvements) && isNotEmpty(improvements) ? improvements.map((imp, i) => (
                     <li key={i} className="text-sm text-[rgba(255,255,255,0.6)] pl-3">• {imp}</li>
                   )) : <li className="text-sm italic text-[rgba(255,255,255,0.3)] pl-3">{phaseFeedbackData ? 'No improvements identified' : 'Submit work to receive feedback'}</li>}
                 </ul>
               </div>
               
-              {expandedPhase === 'writing' && traitFeedback && Object.keys(traitFeedback).length > 0 && (
+              {expandedPhase === 'writing' && traitFeedback && isNotEmpty(Object.keys(traitFeedback)) && (
                 <div>
                   <div className="mb-2 text-xs font-semibold text-[#00e5e5]">📊 Trait Feedback</div>
                   <div className="space-y-2">
@@ -130,7 +131,7 @@ export function ResultsPerformance({
               <div>
                 <div className="mb-2 text-xs font-semibold" style={{ color: phaseColor }}>🚀 Next Steps</div>
                 <ul className="space-y-1">
-                  {Array.isArray(nextSteps) && nextSteps.length > 0 ? nextSteps.map((step, i) => (
+                  {Array.isArray(nextSteps) && isNotEmpty(nextSteps) ? nextSteps.map((step, i) => (
                     <li key={i} className="text-sm text-[rgba(255,255,255,0.6)] pl-3">• {step}</li>
                   )) : typeof nextSteps === 'object' && nextSteps !== null ? Object.entries(nextSteps).map(([key, value], i) => (
                     <li key={i} className="text-sm text-[rgba(255,255,255,0.6)] pl-3"><strong className="capitalize">{key}:</strong> {value as string}</li>

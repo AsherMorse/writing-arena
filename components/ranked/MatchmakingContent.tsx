@@ -10,10 +10,12 @@ import { normalizePlayerAvatar, getPlayerDisplayName, getPlayerRank } from '@/li
 import { useMatchmakingCountdown } from '@/lib/hooks/useMatchmakingCountdown';
 import { useMatchmakingSession } from '@/lib/hooks/useMatchmakingSession';
 import { useInterval } from '@/lib/hooks/useInterval';
+import { useModal } from '@/lib/hooks/useModal';
 import MatchmakingStartModal from './MatchmakingStartModal';
 import MatchmakingLobby from './MatchmakingLobby';
 import { MatchmakingHeader } from './matchmaking/MatchmakingHeader';
 import { ConditionalRender } from '@/components/shared/ConditionalRender';
+import { isEmpty, isNotEmpty } from '@/lib/utils/array-utils';
 
 export default function MatchmakingContent() {
   const router = useRouter();
@@ -51,7 +53,7 @@ export default function MatchmakingContent() {
   const [selectedAIStudents, setSelectedAIStudents] = useState<any[]>([]);
   const [queueSnapshot, setQueueSnapshot] = useState<QueueEntry[]>([]);
   const [hasFilledWithAI, setHasFilledWithAI] = useState(false);
-  const [showStartModal, setShowStartModal] = useState(true);
+  const startModal = useModal(true);
   const startModalChoiceRef = useRef<'wait' | 'ai' | null>(null);
 
   const buildAIPlayer = useCallback(
@@ -81,14 +83,14 @@ export default function MatchmakingContent() {
     }
     
     let aiStudents = selectedAIStudents;
-    if (aiStudents.length === 0) {
+    if (isEmpty(aiStudents)) {
       aiStudents = await getRandomAIStudents(userRank, 4);
-      if (aiStudents.length > 0) {
+      if (isNotEmpty(aiStudents)) {
         setSelectedAIStudents(aiStudents);
       }
     }
     
-    if (aiStudents.length === 0) {
+    if (isEmpty(aiStudents)) {
       setHasFilledWithAI(false);
       return;
     }
@@ -155,7 +157,7 @@ export default function MatchmakingContent() {
   }, 500, []);
 
   useEffect(() => {
-    if (!user || !userProfile || showStartModal || startModalChoiceRef.current !== 'ai' || hasJoinedQueueRef.current) return;
+    if (!user || !userProfile || startModal.isOpen || startModalChoiceRef.current !== 'ai' || hasJoinedQueueRef.current) return;
     
     const startAIMatch = async () => {
       hasJoinedQueueRef.current = true;
@@ -194,10 +196,10 @@ export default function MatchmakingContent() {
     };
     
     startAIMatch();
-  }, [user, userProfile, showStartModal, userId, userName, userAvatar, userRank, trait, findOrJoinSession, fillLobbyWithAI]);
+  }, [user, userProfile, startModal.isOpen, userId, userName, userAvatar, userRank, trait, findOrJoinSession, fillLobbyWithAI]);
 
   useEffect(() => {
-    if (!user || !userProfile || hasJoinedQueueRef.current || showStartModal || startModalChoiceRef.current !== 'wait') return;
+    if (!user || !userProfile || hasJoinedQueueRef.current || startModal.isOpen || startModalChoiceRef.current !== 'wait') return;
 
     hasJoinedQueueRef.current = true;
 
@@ -272,7 +274,7 @@ export default function MatchmakingContent() {
         const fetchAndAddAIStudents = async () => {
           const aiStudents = await getRandomAIStudents(userRank, 4);
           
-          if (aiStudents.length === 0) {
+          if (isEmpty(aiStudents)) {
             return;
           }
           
@@ -363,7 +365,7 @@ export default function MatchmakingContent() {
         leaveQueue(userId).catch(() => {});
       }
     };
-  }, [user, userProfile, userId, userName, userAvatar, userRank, trait, buildAIPlayer, findOrJoinSession, addPlayerToSession, currentSessionId, players, showStartModal, fillLobbyWithAI]);
+  }, [user, userProfile, userId, userName, userAvatar, userRank, trait, buildAIPlayer, findOrJoinSession, addPlayerToSession, currentSessionId, players, startModal.isOpen, fillLobbyWithAI]);
 
   useEffect(() => {
     if (typeof window === 'undefined') return undefined;
@@ -403,7 +405,7 @@ export default function MatchmakingContent() {
   });
 
   const handleCountdownComplete = useCallback(async () => {
-    const finalPlayers = finalPlayersRef.current.length > 0 ? finalPlayersRef.current : players;
+    const finalPlayers = isNotEmpty(finalPlayersRef.current) ? finalPlayersRef.current : players;
     await handleSessionStart(finalPlayers);
   }, [handleSessionStart, players]);
 
@@ -416,12 +418,12 @@ export default function MatchmakingContent() {
 
   const handleStartChoice = async (choice: 'wait' | 'ai') => {
     startModalChoiceRef.current = choice;
-    setShowStartModal(false);
+    startModal.close();
   };
 
   return (
     <div className="min-h-screen bg-[#101012] text-[rgba(255,255,255,0.8)]">
-      <ConditionalRender condition={showStartModal}>
+      <ConditionalRender condition={startModal.isOpen}>
         <MatchmakingStartModal onChoice={handleStartChoice} />
       </ConditionalRender>
 
@@ -431,7 +433,7 @@ export default function MatchmakingContent() {
         <div className="w-full max-w-4xl">
           <MatchmakingLobby
             players={displayPlayers}
-            finalPlayers={finalPlayersRef.current.length > 0 ? finalPlayersRef.current : displayPlayers}
+            finalPlayers={isNotEmpty(finalPlayersRef.current) ? finalPlayersRef.current : displayPlayers}
             searchingDots={searchingDots}
             countdown={countdown}
             hasFilledWithAI={hasFilledWithAI}

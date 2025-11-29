@@ -1,5 +1,7 @@
 'use client';
 
+import { roundScore } from '@/lib/utils/math-utils';
+
 interface FeedbackValidatorProps {
   responses: {
     mainIdea?: string;
@@ -70,7 +72,7 @@ export default function FeedbackValidator({ responses }: FeedbackValidatorProps)
           <div className="space-y-2 text-xs text-[rgba(255,255,255,0.5)]">
             {totalIssues > 2 && (
               <div className="rounded-[6px] border border-[rgba(255,144,48,0.2)] bg-[rgba(255,144,48,0.1)] px-3 py-2">
-                <strong className="text-[#ff9030]">Predicted Score: {Math.round(avgScore)}/100</strong>
+                <strong className="text-[#ff9030]">Predicted Score: {roundScore(avgScore)}/100</strong>
                 <div className="mt-1 text-[rgba(255,255,255,0.4)]">Your feedback could be more specific</div>
               </div>
             )}

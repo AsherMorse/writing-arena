@@ -10,6 +10,7 @@ import { useCountdown } from '@/lib/hooks/useCountdown';
 import { useSearchParams } from '@/lib/hooks/useSearchParams';
 import { TIMING } from '@/lib/constants/scoring';
 import { roundScore } from '@/lib/utils/math-utils';
+import { isNotEmpty } from '@/lib/utils/array-utils';
 
 // Parser function for phase rankings search params
 function parsePhaseRankingsParams(searchParams: URLSearchParams) {
@@ -70,7 +71,7 @@ export default function PhaseRankingsContent() {
       if (!matchId) return;
       try {
         const rankings = await getMatchRankings(matchId, phase as 1 | 2 | 3);
-        if (rankings && rankings.length > 0) {
+        if (rankings && isNotEmpty(rankings)) {
           setRealRankings(rankings);
         } else {
           console.warn('⚠️ PHASE RANKINGS - No rankings found in Firestore. Rankings may not be available yet.');
@@ -84,7 +85,7 @@ export default function PhaseRankingsContent() {
 
   // Only use rankings from LLM - never random fallbacks
   const rankings = useMemo(() => {
-    if (realRankings.length > 0) {
+    if (isNotEmpty(realRankings)) {
       return realRankings.map((r, idx) => ({
         name: r.playerName || (r.isAI ? r.playerId : 'You'),
         avatar: r.isAI ? ['🎯', '📖', '✨', '🏅'][idx % 4] : '🌿',

@@ -6,6 +6,8 @@ import { useRouter } from 'next/navigation';
 import Header from '@/components/shared/Header';
 import APLangGrader from '@/components/ap-lang/APLangGrader';
 import APLangWriter from '@/components/ap-lang/APLangWriter';
+import { LoadingState } from '@/components/shared/LoadingState';
+import { COLOR_CLASSES } from '@/lib/constants/colors';
 
 type ViewMode = 'grader' | 'writer';
 
@@ -18,9 +20,7 @@ export default function APLangPage() {
     return (
       <div className="min-h-screen bg-[#101012]">
         <Header />
-        <div className="flex min-h-[calc(100vh-80px)] items-center justify-center">
-          <div className="text-[rgba(255,255,255,0.8)]">Loading...</div>
-        </div>
+        <LoadingState message="Loading AP Lang tools..." />
       </div>
     );
   }
@@ -40,7 +40,7 @@ export default function APLangPage() {
             onClick={() => setViewMode('grader')}
             className={`rounded-[10px] px-6 py-3 font-medium transition ${
               viewMode === 'grader'
-                ? 'border border-[#ff9030] bg-[#ff9030] text-[#101012]'
+                ? `${COLOR_CLASSES.orange.border} ${COLOR_CLASSES.orange.bg} text-[#101012]`
                 : 'border border-[rgba(255,255,255,0.05)] bg-[rgba(255,255,255,0.025)] text-[rgba(255,255,255,0.5)] hover:bg-[rgba(255,255,255,0.04)]'
             }`}
           >
@@ -50,7 +50,7 @@ export default function APLangPage() {
             onClick={() => setViewMode('writer')}
             className={`rounded-[10px] px-6 py-3 font-medium transition ${
               viewMode === 'writer'
-                ? 'border border-[#ff9030] bg-[#ff9030] text-[#101012]'
+                ? `${COLOR_CLASSES.orange.border} ${COLOR_CLASSES.orange.bg} text-[#101012]`
                 : 'border border-[rgba(255,255,255,0.05)] bg-[rgba(255,255,255,0.025)] text-[rgba(255,255,255,0.5)] hover:bg-[rgba(255,255,255,0.04)]'
             }`}
           >

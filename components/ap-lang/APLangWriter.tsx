@@ -8,6 +8,7 @@ import { useCountdown } from '@/lib/hooks/useCountdown';
 import { useApiCall } from '@/lib/hooks/useApiCall';
 import { useAsyncStateWithStringError } from '@/lib/hooks/useAsyncState';
 import { safeStringifyJSON } from '@/lib/utils/json-utils';
+import { getCurrentTimestamp } from '@/lib/utils/date-utils';
 
 const AP_LANG_TIME_LIMIT = 40 * 60;
 
@@ -46,7 +47,7 @@ export default function APLangWriter() {
 
   const handleStart = () => {
     setHasStarted(true);
-    startTimeRef.current = Date.now();
+    startTimeRef.current = getCurrentTimestamp();
     startTimer(AP_LANG_TIME_LIMIT);
   };
 

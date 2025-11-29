@@ -7,6 +7,7 @@ import { TIMING } from '@/lib/constants/scoring';
 import { WRITING_TIPS } from '@/lib/constants/writing-tips';
 import { getPhaseColor } from '@/lib/constants/colors';
 import { safeParseJSON } from '@/lib/utils/json-utils';
+import { isEmpty, isNotEmpty } from '@/lib/utils/array-utils';
 
 interface WaitingForPlayersProps {
   phase: 1 | 2 | 3;
@@ -38,7 +39,7 @@ export default function WaitingForPlayers({
   const submittedSet = new Set(submittedPlayerIds);
 
   useEffect(() => {
-    if (partyMembers.length > 0) {
+    if (isNotEmpty(partyMembers)) {
       setDisplayMembers(partyMembers);
       return;
     }
@@ -59,7 +60,7 @@ export default function WaitingForPlayers({
               isYou: member.name === 'You',
             }))
           : [];
-        if (normalized.length > 0) {
+        if (isNotEmpty(normalized)) {
           setDisplayMembers(normalized);
           return;
         }
@@ -78,7 +79,7 @@ export default function WaitingForPlayers({
   }, [partyMembers, matchId, totalPlayers]);
 
   const membersToDisplay =
-    displayMembers.length > 0
+    isNotEmpty(displayMembers)
       ? displayMembers
       : [...Array(totalPlayers)].map((_, index) => ({
           name: `Slot ${index + 1}`,
@@ -165,7 +166,7 @@ export default function WaitingForPlayers({
               When all submit, we&apos;ll proceed to rankings.
             </div>
 
-            {partyMembers.length > 0 && (
+            {isNotEmpty(partyMembers) && (
               <div className="space-y-2">
                 {partyMembers.map((member, index) => {
                   const isDone = member.userId ? submittedSet.has(member.userId) : index < playersReady;

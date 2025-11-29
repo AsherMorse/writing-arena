@@ -4,6 +4,7 @@ import { ImproveConversation } from '@/lib/services/firestore';
 import { exportConversation } from '@/lib/utils/file-export';
 import { formatDate } from '@/lib/utils/date-utils';
 import { COLOR_CLASSES } from '@/lib/constants/colors';
+import { isEmpty } from '@/lib/utils/array-utils';
 
 interface Message {
   id: string;
@@ -174,7 +175,7 @@ export function ChatModals({
 
           {loadingHistory ? (
             <div className="py-8 text-center text-[rgba(255,255,255,0.4)]">Loading...</div>
-          ) : pastConversations.length === 0 ? (
+          ) : isEmpty(pastConversations) ? (
             <div className="py-8 text-center text-[rgba(255,255,255,0.4)]">No past conversations yet.</div>
           ) : (
             pastConversations.map((conversation) => {

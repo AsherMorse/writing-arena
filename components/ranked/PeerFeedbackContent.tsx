@@ -32,6 +32,7 @@ import { PeerWritingCard } from './peer-feedback/PeerWritingCard';
 import { FeedbackFormCard } from './peer-feedback/FeedbackFormCard';
 import { isEmpty } from '@/lib/utils/array-utils';
 import { safeStringifyJSON, parseJSONResponse } from '@/lib/utils/json-utils';
+import { useComponentMountTime } from '@/lib/hooks/useComponentMountTime';
 
 export default function PeerFeedbackContent() {
   const router = useRouter();
@@ -181,11 +182,10 @@ export default function PeerFeedbackContent() {
     }
   };
 
-  const componentMountedTimeRef = useRef<number | null>(null);
-  useEffect(() => { if (componentMountedTimeRef.current === null) componentMountedTimeRef.current = Date.now(); }, []);
+  const { getTimeSinceMount } = useComponentMountTime();
 
   useEffect(() => {
-    const timeSinceMount = componentMountedTimeRef.current ? Date.now() - componentMountedTimeRef.current : Infinity;
+    const timeSinceMount = getTimeSinceMount();
     const minPhaseAge = TIMING.MIN_PHASE_AGE;
     
     if (timeRemaining === 0 && !hasSubmitted() && timeSinceMount >= minPhaseAge) {
@@ -193,7 +193,7 @@ export default function PeerFeedbackContent() {
     } else if (!isBatchSubmitting && !isEvaluating) {
       setShowRankingModal(false);
     }
-  }, [timeRemaining, hasSubmitted, isBatchSubmitting, isEvaluating, setShowRankingModal]);
+  }, [timeRemaining, hasSubmitted, isBatchSubmitting, isEvaluating, setShowRankingModal, getTimeSinceMount]);
 
   useAutoSubmit({ timeRemaining, hasSubmitted, onSubmit: handleSubmit, minPhaseAge: TIMING.MIN_PHASE_AGE });
 

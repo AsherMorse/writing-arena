@@ -9,6 +9,7 @@ import { useProgressMetrics } from '@/lib/hooks/useProgressMetrics';
 import { useApiCall } from '@/lib/hooks/useApiCall';
 import { getCurrentTimestamp } from '@/lib/utils/date-utils';
 import { safeStringifyJSON, parseJSONResponse } from '@/lib/utils/json-utils';
+import { isEmpty, isNotEmpty } from '@/lib/utils/array-utils';
 import { ChatHeader } from './ChatHeader';
 import { ChatMessageList } from './ChatMessageList';
 import { ChatInput } from './ChatInput';
@@ -60,7 +61,7 @@ export default function ImproveChatInterface({ rankedMatches }: ImproveChatInter
   });
   
   useEffect(() => {
-    if (messages.length === 0 || !user) return;
+    if (isEmpty(messages) || !user) return;
     const saveTimer = setTimeout(async () => {
       try {
         if (currentConversationId) {
@@ -165,13 +166,13 @@ export default function ImproveChatInterface({ rankedMatches }: ImproveChatInter
         throw new Error(errorData.error || 'Failed to generate response');
       }
 
-      const messageId = `assistant-${Date.now()}`;
+      const messageId = `assistant-${getCurrentTimestamp()}`;
       const assistantMessage: Message = { id: messageId, role: 'assistant', content: '', timestamp: new Date() };
       setMessages(prev => [...prev, assistantMessage]);
       
       await readStream(response, messageId);
     } catch (error) {
-      const errorMessage: Message = { id: `error-${Date.now()}`, role: 'assistant', content: 'Sorry, I encountered an error. Please try again.', timestamp: new Date() };
+      const errorMessage: Message = { id: `error-${getCurrentTimestamp()}`, role: 'assistant', content: 'Sorry, I encountered an error. Please try again.', timestamp: new Date() };
       setMessages(prev => [...prev, errorMessage]);
     } finally {
       setIsLoading(false);
@@ -200,13 +201,13 @@ export default function ImproveChatInterface({ rankedMatches }: ImproveChatInter
         throw new Error(errorData.error || 'Failed to generate response');
       }
 
-      const messageId = `assistant-${Date.now()}`;
+      const messageId = `assistant-${getCurrentTimestamp()}`;
       const assistantMessage: Message = { id: messageId, role: 'assistant', content: '', timestamp: new Date() };
       setMessages(prev => [...prev, assistantMessage]);
       
       await readStream(response, messageId);
     } catch (error) {
-      const errorMessage: Message = { id: `error-${Date.now()}`, role: 'assistant', content: 'Sorry, I encountered an error. Please try again.', timestamp: new Date() };
+      const errorMessage: Message = { id: `error-${getCurrentTimestamp()}`, role: 'assistant', content: 'Sorry, I encountered an error. Please try again.', timestamp: new Date() };
       setMessages(prev => [...prev, errorMessage]);
     } finally {
       setIsLoading(false);
@@ -227,7 +228,7 @@ export default function ImproveChatInterface({ rankedMatches }: ImproveChatInter
         onMatchesClick={() => setShowMatchSummary(true)}
         onProgressClick={() => setShowProgress(true)}
         onExportClick={() => setShowExport(true)}
-        hasMessages={messages.length > 0}
+        hasMessages={isNotEmpty(messages)}
       />
 
       <ChatMessageList

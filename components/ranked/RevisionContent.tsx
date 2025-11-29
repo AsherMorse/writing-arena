@@ -28,6 +28,7 @@ import { useBatchRankingSubmission } from '@/lib/hooks/useBatchRankingSubmission
 import { validateRevisionSubmission } from '@/lib/utils/submission-validation';
 import { useModals } from '@/lib/hooks/useModals';
 import { safeStringifyJSON, parseJSONResponse } from '@/lib/utils/json-utils';
+import { useComponentMountTime } from '@/lib/hooks/useComponentMountTime';
 import { RevisionRankingModal } from './revision/RevisionRankingModal';
 import { RevisionHeader } from './revision/RevisionHeader';
 import { RevisionTitleBanner } from './revision/RevisionTitleBanner';
@@ -223,15 +224,14 @@ export default function RevisionContent() {
 
   const { handlePaste, handleCut, handleCopy } = usePastePrevention({ showWarning: false });
 
-  const componentMountedTimeRef = useRef<number | null>(null);
-  useEffect(() => { if (componentMountedTimeRef.current === null) componentMountedTimeRef.current = Date.now(); }, []);
+  const { getTimeSinceMount } = useComponentMountTime();
 
   useEffect(() => {
-    const timeSinceMount = componentMountedTimeRef.current ? Date.now() - componentMountedTimeRef.current : Infinity;
+    const timeSinceMount = getTimeSinceMount();
     const minPhaseAge = TIMING.MIN_PHASE_AGE;
     if (timeRemaining === 0 && !hasSubmitted() && timeSinceMount >= minPhaseAge) setShowRankingModal(true);
     else if (!isEvaluating && !isBatchSubmitting) setShowRankingModal(false);
-  }, [timeRemaining, hasSubmitted, isEvaluating, isBatchSubmitting, setShowRankingModal]);
+  }, [timeRemaining, hasSubmitted, isEvaluating, isBatchSubmitting, setShowRankingModal, getTimeSinceMount]);
 
   const hasRevised = revisedContent !== originalContent;
   const strengthsList = useMemo(() => aiFeedback.strengths || [], [aiFeedback.strengths]);

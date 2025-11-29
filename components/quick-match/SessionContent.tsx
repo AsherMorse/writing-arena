@@ -38,13 +38,15 @@ export default function SessionContent() {
 
   const currentPrompt = prompts[promptType as keyof typeof prompts] || prompts.narrative;
 
-  useEffect(() => {
+  const handleSubmit = () => { router.push(`/quick-match/results?trait=${trait}&promptType=${promptType}&content=${encodeURIComponent(writingContent)}&wordCount=${wordCount}&aiScores=${aiWordCounts.join(',')}`); };
+
+  useInterval(() => {
     if (timeLeft > 0) {
-      const timer = setInterval(() => setTimeLeft(prev => prev - 1), 1000);
-      return () => clearInterval(timer);
+      setTimeLeft(prev => prev - 1);
+    } else {
+      handleSubmit();
     }
-    handleSubmit();
-  }, [timeLeft]);
+  }, timeLeft > 0 ? 1000 : null, [timeLeft]);
 
   const debouncedContent = useDebounce(writingContent, 300);
   useEffect(() => { setWordCount(countWords(debouncedContent)); }, [debouncedContent]);
@@ -52,8 +54,6 @@ export default function SessionContent() {
   useInterval(() => {
     setAiWordCounts(prev => prev.map(count => Math.min(count + Math.floor(Math.random() * 5) + 2, 220)));
   }, 2000, []);
-
-  const handleSubmit = () => { router.push(`/quick-match/results?trait=${trait}&promptType=${promptType}&content=${encodeURIComponent(writingContent)}&wordCount=${wordCount}&aiScores=${aiWordCounts.join(',')}`); };
   const timerColor = timeLeft > 120 ? '#00e5e5' : timeLeft > 60 ? '#ff9030' : '#ff5f8f';
 
   return (
