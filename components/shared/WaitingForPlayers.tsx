@@ -5,7 +5,7 @@ import { useCarousel } from '@/lib/hooks/useCarousel';
 import { formatTime } from '@/lib/utils/time-utils';
 import { TIMING } from '@/lib/constants/scoring';
 import { WRITING_TIPS } from '@/lib/constants/writing-tips';
-import { getPhaseColor } from '@/lib/constants/colors';
+import { getPhaseColor, COLOR_CLASSES } from '@/lib/constants/colors';
 import { safeParseJSON } from '@/lib/utils/json-utils';
 import { isEmpty, isNotEmpty } from '@/lib/utils/array-utils';
 
@@ -148,8 +148,8 @@ export default function WaitingForPlayers({
                     key={`${member.userId || member.name || 'slot'}-${index}`}
                     className={`rounded-[10px] border p-3 text-center transition ${
                       isSubmitted
-                        ? 'border-[rgba(0,212,146,0.3)] bg-[rgba(0,212,146,0.1)]'
-                        : 'border-[rgba(255,255,255,0.05)] bg-[#101012]'
+                        ? `${COLOR_CLASSES.phase3.borderOpacity(0.3)} ${COLOR_CLASSES.phase3.bgOpacity(0.1)}`
+                        : `${COLOR_CLASSES.background.cardBorder} ${COLOR_CLASSES.background.dark}`
                     }`}
                   >
                     <div className="mb-1 text-xl">

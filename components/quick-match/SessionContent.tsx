@@ -7,6 +7,8 @@ import { formatTime } from '@/lib/utils/time-utils';
 import { usePastePrevention } from '@/lib/hooks/usePastePrevention';
 import { useInterval } from '@/lib/hooks/useInterval';
 import { useDebounce } from '@/lib/hooks/useDebounce';
+import { COLOR_CLASSES } from '@/lib/constants/colors';
+import { clamp } from '@/lib/utils/math-utils';
 
 export default function SessionContent() {
   const router = useRouter();
@@ -52,9 +54,9 @@ export default function SessionContent() {
   useEffect(() => { setWordCount(countWords(debouncedContent)); }, [debouncedContent]);
 
   useInterval(() => {
-    setAiWordCounts(prev => prev.map(count => Math.min(count + Math.floor(Math.random() * 5) + 2, 220)));
+    setAiWordCounts(prev => prev.map(count => clamp(count + Math.floor(Math.random() * 5) + 2, 0, 220)));
   }, 2000, []);
-  const timerColor = timeLeft > 120 ? '#00e5e5' : timeLeft > 60 ? '#ff9030' : '#ff5f8f';
+  const timerColor = timeLeft > 120 ? '#00e5e5' : timeLeft > 60 ? '#ff9030' : '#ff5f8f'; // Timer colors: cyan -> orange -> pink
 
   return (
     <div className="min-h-screen bg-[#101012] text-[rgba(255,255,255,0.8)]">
@@ -70,7 +72,7 @@ export default function SessionContent() {
           </div>
           <div className="flex items-center gap-3 text-sm">
             <div className="rounded-[20px] border border-[rgba(255,255,255,0.05)] bg-[#101012] px-3 py-1 text-[rgba(255,255,255,0.5)]"><span className="font-medium">{wordCount}</span> words</div>
-            <button onClick={handleSubmit} className="rounded-[10px] border border-[#00e5e5] bg-[#00e5e5] px-6 py-2 font-medium text-[#101012] transition hover:bg-[#33ebeb]">Submit draft</button>
+            <button onClick={handleSubmit} className={`rounded-[10px] ${COLOR_CLASSES.phase1.border} ${COLOR_CLASSES.phase1.bg} px-6 py-2 font-medium text-[#101012] transition hover:bg-[#33ebeb]`}>Submit draft</button>
           </div>
         </div>
         <div className="mx-auto h-[6px] max-w-6xl rounded-[3px] bg-[rgba(255,255,255,0.05)]">
@@ -96,11 +98,11 @@ export default function SessionContent() {
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
                       <span className="flex h-10 w-10 items-center justify-center rounded-[6px] bg-[#101012] text-lg">🌿</span>
-                      <div><div className="text-sm font-medium">You</div><div className="text-[10px] uppercase text-[#00e5e5]">Drafting</div></div>
+                      <div><div className="text-sm font-medium">You</div><div className={`text-[10px] uppercase ${COLOR_CLASSES.phase1.text}`}>Drafting</div></div>
                     </div>
                     <div className="font-mono text-sm font-medium">{wordCount}<span className="ml-1 text-xs text-[rgba(255,255,255,0.4)]">w</span></div>
                   </div>
-                  <div className="mt-3 h-[6px] rounded-[3px] bg-[rgba(255,255,255,0.05)]"><div className="h-full rounded-[3px] bg-[#00e5e5]" style={{ width: `${Math.min((wordCount / 200) * 100, 100)}%` }} /></div>
+                  <div className="mt-3 h-[6px] rounded-[3px] bg-[rgba(255,255,255,0.05)]"><div className={`h-full rounded-[3px] ${COLOR_CLASSES.phase1.bg}`} style={{ width: `${clamp((wordCount / 200) * 100, 0, 100)}%` }} /></div>
                 </div>
                 {aiWordCounts.map((count, index) => (
                   <div key={index} className="rounded-[10px] border border-[rgba(255,255,255,0.05)] bg-[#101012] px-4 py-3">
@@ -111,7 +113,7 @@ export default function SessionContent() {
                       </div>
                       <div className="font-mono text-sm font-medium text-[rgba(255,255,255,0.5)]">{count}<span className="ml-1 text-xs text-[rgba(255,255,255,0.3)]">w</span></div>
                     </div>
-                    <div className="mt-3 h-[6px] rounded-[3px] bg-[rgba(255,255,255,0.05)]"><div className="h-full rounded-[3px] bg-[rgba(255,255,255,0.2)]" style={{ width: `${Math.min((count / 200) * 100, 100)}%` }} /></div>
+                    <div className="mt-3 h-[6px] rounded-[3px] bg-[rgba(255,255,255,0.05)]"><div className="h-full rounded-[3px] bg-[rgba(255,255,255,0.2)]" style={{ width: `${clamp((count / 200) * 100, 0, 100)}%` }} /></div>
                   </div>
                 ))}
               </div>
@@ -121,7 +123,7 @@ export default function SessionContent() {
           <section className="rounded-[14px] border border-[rgba(255,255,255,0.1)] bg-white p-7 text-[#1b1f24] shadow-xl">
             <header className="flex items-center justify-between text-xs text-[#1b1f24]/60"><span>Draft your response</span><span>{wordCount} words</span></header>
             <textarea value={writingContent} onChange={event => setWritingContent(event.target.value)} onPaste={handlePaste} onCut={handleCut} placeholder="Start writing... keep sentences moving and hit your word target." className="mt-4 h-[460px] w-full resize-none bg-transparent text-base leading-relaxed focus:outline-none" autoFocus />
-            {showPasteWarning && (<div className="absolute inset-x-0 top-6 mx-auto w-max rounded-[20px] border border-[rgba(255,95,143,0.3)] bg-[rgba(255,95,143,0.15)] px-4 py-2 text-xs font-medium text-[#ff5f8f] shadow-lg">Paste disabled during quick match drafts</div>)}
+            {showPasteWarning && (<div className={`absolute inset-x-0 top-6 mx-auto w-max rounded-[20px] ${COLOR_CLASSES.phase2.borderOpacity(0.3)} border ${COLOR_CLASSES.phase2.bgOpacity(0.15)} px-4 py-2 text-xs font-medium ${COLOR_CLASSES.phase2.text} shadow-lg`}>Paste disabled during quick match drafts</div>)}
           </section>
         </div>
       </main>

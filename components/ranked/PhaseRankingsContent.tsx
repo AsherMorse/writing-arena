@@ -3,7 +3,7 @@
 import { useRouter } from 'next/navigation';
 import { useState, useEffect, useMemo, Suspense } from 'react';
 import { getMedalEmoji } from '@/lib/utils/rank-utils';
-import { getPhaseColor } from '@/lib/constants/colors';
+import { getPhaseColor, COLOR_CLASSES } from '@/lib/constants/colors';
 import { getMatchRankings } from '@/lib/utils/firestore-match-state';
 import { useCarousel } from '@/lib/hooks/useCarousel';
 import { useCountdown } from '@/lib/hooks/useCountdown';
@@ -179,15 +179,15 @@ export default function PhaseRankingsContent() {
             {rankings.map((player) => (
               <div
                 key={player.name}
-                className={`rounded-[10px] p-3 transition-all ${player.isYou ? 'border-2 bg-[rgba(0,229,229,0.1)]' : 'border border-[rgba(255,255,255,0.05)] bg-[#101012]'}`}
+                className={`rounded-[10px] p-3 transition-all ${player.isYou ? `border-2 ${COLOR_CLASSES.phase1.bgOpacity(0.1)}` : `border ${COLOR_CLASSES.background.cardBorder} ${COLOR_CLASSES.background.dark}`}`}
                 style={player.isYou ? { borderColor: currentPhaseInfo.color } : {}}
               >
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     <div className={`flex h-8 w-8 items-center justify-center rounded-full text-base font-semibold ${
-                      player.position === 1 ? 'bg-[#ff9030] text-[#101012]' :
+                      player.position === 1 ? `${COLOR_CLASSES.orange.bg} text-[#101012]` :
                       player.position === 2 ? 'bg-[rgba(255,255,255,0.3)] text-[#101012]' :
-                      player.position === 3 ? 'bg-[#ff9030]/60 text-[#101012]' :
+                      player.position === 3 ? `${COLOR_CLASSES.orange.bgOpacity(0.6)} text-[#101012]` :
                       'bg-[rgba(255,255,255,0.1)] text-[rgba(255,255,255,0.4)]'
                     }`}>
                       {player.position === 1 ? '🥇' : player.position === 2 ? '🥈' : player.position === 3 ? '🥉' : player.position}
@@ -222,12 +222,12 @@ export default function PhaseRankingsContent() {
         </div>
         
         <div className={`rounded-[10px] p-3 text-center ${
-          yourRank === 1 ? 'bg-[rgba(255,144,48,0.15)] border border-[rgba(255,144,48,0.3)]' :
-          yourRank <= 3 ? 'bg-[rgba(0,212,146,0.15)] border border-[rgba(0,212,146,0.3)]' :
-          'bg-[rgba(0,229,229,0.15)] border border-[rgba(0,229,229,0.3)]'
+          yourRank === 1 ? `${COLOR_CLASSES.orange.bgOpacity(0.15)} ${COLOR_CLASSES.orange.borderOpacity(0.3)} border` :
+          yourRank <= 3 ? `${COLOR_CLASSES.phase3.bgOpacity(0.15)} ${COLOR_CLASSES.phase3.borderOpacity(0.3)} border` :
+          `${COLOR_CLASSES.phase1.bgOpacity(0.15)} ${COLOR_CLASSES.phase1.borderOpacity(0.3)} border`
         }`}>
           <div className="mb-1 text-xs text-[rgba(255,255,255,0.5)]">You&apos;re currently in</div>
-          <div className="mb-1 font-mono text-2xl font-medium" style={{ color: yourRank === 1 ? '#ff9030' : yourRank <= 3 ? '#00d492' : '#00e5e5' }}>
+          <div className={`mb-1 font-mono text-2xl font-medium ${yourRank === 1 ? COLOR_CLASSES.orange.text : yourRank <= 3 ? COLOR_CLASSES.phase3.text : COLOR_CLASSES.phase1.text}`}>
             {getMedalEmoji(yourRank)} Place
           </div>
           <div className="text-xs text-[rgba(255,255,255,0.5)]">

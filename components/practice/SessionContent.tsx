@@ -8,6 +8,7 @@ import { usePastePrevention } from '@/lib/hooks/usePastePrevention';
 import { useDebounce } from '@/lib/hooks/useDebounce';
 import { useInterval } from '@/lib/hooks/useInterval';
 import { useModal } from '@/lib/hooks/useModal';
+import { COLOR_CLASSES } from '@/lib/constants/colors';
 import WritingTipsModal from '@/components/shared/WritingTipsModal';
 
 export default function SessionContent() {
@@ -122,7 +123,7 @@ export default function SessionContent() {
 
           <section className="relative rounded-[14px] border border-[rgba(255,255,255,0.1)] bg-white p-8 text-[#1b1f24] shadow-xl">
             <textarea value={writingContent} onChange={event => setWritingContent(event.target.value)} onPaste={handlePaste} onCut={handleCut} placeholder="Start writing here..." className="h-[520px] w-full resize-none bg-transparent text-base leading-relaxed focus:outline-none" autoFocus />
-            {showPasteWarning && (<div className="absolute inset-x-0 top-6 mx-auto w-max rounded-[20px] border border-[rgba(255,95,143,0.3)] bg-[rgba(255,95,143,0.15)] px-4 py-2 text-xs font-medium text-[#ff5f8f] shadow-lg">Paste disabled during practice sprints</div>)}
+            {showPasteWarning && (<div className={`absolute inset-x-0 top-6 mx-auto w-max rounded-[20px] ${COLOR_CLASSES.phase2.borderOpacity(0.3)} border ${COLOR_CLASSES.phase2.bgOpacity(0.15)} px-4 py-2 text-xs font-medium ${COLOR_CLASSES.phase2.text} shadow-lg`}>Paste disabled during practice sprints</div>)}
           </section>
         </div>
       </main>
