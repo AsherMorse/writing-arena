@@ -34,6 +34,10 @@ import { RevisionHeader } from './revision/RevisionHeader';
 import { RevisionTitleBanner } from './revision/RevisionTitleBanner';
 import { FeedbackSidebar } from './revision/FeedbackSidebar';
 import { RevisionEditorSection } from './revision/RevisionEditorSection';
+import { useAutoSave } from '@/lib/hooks/useAutoSave';
+import { useTimeWarnings } from '@/lib/hooks/useTimeWarnings';
+import { getSessionStorage } from '@/lib/utils/session-storage';
+import { TimeWarningNotification } from '@/components/shared/TimeWarningNotification';
 
 export default function RevisionContent() {
   const router = useRouter();
@@ -56,8 +60,33 @@ export default function RevisionContent() {
   const wordCount = user && sessionPlayers ? (sessionPlayers[user.uid]?.phases.phase1?.wordCount || 0) : 0;
   const aiScores = '';
   
-  const [revisedContent, setRevisedContent] = useState(originalContent);
-  useEffect(() => { setRevisedContent(originalContent); }, [originalContent]);
+  // Auto-save revision content
+  const revisionKey = sessionId ? `revision-${sessionId}` : '';
+  const [revisedContent, setRevisedContent] = useState(() => {
+    if (!sessionId || typeof window === 'undefined') return originalContent;
+    const restored = getSessionStorage<string>(`draft-${revisionKey}`);
+    return restored || originalContent;
+  });
+  useEffect(() => { 
+    // Only update if no restored draft exists
+    if (!sessionId || typeof window === 'undefined') {
+      setRevisedContent(originalContent);
+    }
+  }, [originalContent, sessionId]);
+  
+  // Auto-save revision
+  useAutoSave({
+    key: revisionKey,
+    content: revisedContent,
+    enabled: !!sessionId && !hasSubmitted,
+  });
+  
+  // Time warnings
+  const timeWarning = useTimeWarnings({
+    timeRemaining,
+    thresholds: { info: 60, warning: 30, urgent: 15 },
+  });
+  
   const [wordCountRevised, setWordCountRevised] = useState(0);
   const [showFeedback, setShowFeedback] = useState(true);
   const { showTipsModal, setShowTipsModal, showRankingModal, setShowRankingModal } = useModals();
@@ -245,6 +274,7 @@ export default function RevisionContent() {
 
   return (
     <div className="min-h-screen bg-[#101012] text-[rgba(255,255,255,0.8)]">
+      <TimeWarningNotification warning={timeWarning} />
       <RevisionRankingModal 
         isOpen={showRankingModal || isEvaluating || isBatchSubmitting} 
         timeRemaining={timeRemaining}

@@ -421,13 +421,20 @@ export default function MatchmakingContent() {
     startModal.close();
   };
 
+  const handleCancelMatchmaking = async () => {
+    if (user) {
+      await leaveQueue(userId).catch(() => {});
+    }
+    router.push('/ranked');
+  };
+
   return (
     <div className="min-h-screen bg-[#101012] text-[rgba(255,255,255,0.8)]">
       <ConditionalRender condition={startModal.isOpen}>
         <MatchmakingStartModal onChoice={handleStartChoice} />
       </ConditionalRender>
 
-      <MatchmakingHeader />
+      <MatchmakingHeader onCancel={handleCancelMatchmaking} />
 
       <main className="mx-auto max-w-[1200px] px-8 py-10 flex flex-col items-center justify-center min-h-[calc(100vh-80px)]">
         <div className="w-full max-w-4xl">

@@ -55,11 +55,24 @@ export function ResultsPerformance({
           <div className="mt-1 text-[10px] text-[rgba(255,255,255,0.22)]">30% weight</div>
         </button>
         
-        <div className="rounded-[10px] border-2 border-[#ff9030] bg-[rgba(255,144,48,0.1)] p-4 text-center">
+        <div className="rounded-[10px] border-2 border-[#ff9030] bg-[rgba(255,144,48,0.1)] p-4 text-center relative group">
           <div className="mb-1 text-xs text-[#ff9030]">⭐ Final</div>
           <div className="mb-1 text-[10px] text-[rgba(255,255,255,0.4)]">Composite</div>
           <div className="font-mono text-2xl font-medium text-[#ff9030]">{phases.composite}</div>
           <div className="mt-1 text-[10px] text-[rgba(255,255,255,0.4)]">Overall</div>
+          <div className="absolute left-1/2 top-full mt-2 hidden -translate-x-1/2 group-hover:block z-10">
+            <div className="rounded-[10px] border border-[rgba(255,255,255,0.1)] bg-[#101012] p-3 text-left text-xs shadow-lg w-64">
+              <div className="mb-2 font-semibold text-[#ff9030]">Score Calculation</div>
+              <div className="space-y-1 text-[rgba(255,255,255,0.6)]">
+                <div>Writing (40%): {phases.writing} × 0.4 = {Math.round(phases.writing * 0.4)}</div>
+                <div>Feedback (30%): {phases.feedback} × 0.3 = {Math.round(phases.feedback * 0.3)}</div>
+                <div>Revision (30%): {phases.revision} × 0.3 = {Math.round(phases.revision * 0.3)}</div>
+                <div className="mt-2 pt-2 border-t border-[rgba(255,255,255,0.1)] font-semibold text-[#ff9030]">
+                  Total: {Math.round(phases.writing * 0.4) + Math.round(phases.feedback * 0.3) + Math.round(phases.revision * 0.3)}
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 

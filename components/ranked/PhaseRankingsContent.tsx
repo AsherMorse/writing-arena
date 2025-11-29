@@ -39,15 +39,24 @@ export default function PhaseRankingsContent() {
   
   const [realRankings, setRealRankings] = useState<any[]>([]);
   
-  // Use countdown hook
-  const { countdown } = useCountdown({
-    initialValue: 10,
+  const [manualContinue, setManualContinue] = useState(false);
+  
+  // Use countdown hook - extended to 20 seconds
+  const { countdown, reset: resetCountdown } = useCountdown({
+    initialValue: 20,
     onComplete: () => {
-      if (sessionId) {
+      if (sessionId && !manualContinue) {
         router.push(`/session/${sessionId}`);
       }
     },
   });
+  
+  const handleContinue = () => {
+    setManualContinue(true);
+    if (sessionId) {
+      router.push(`/session/${sessionId}`);
+    }
+  };
   
   const writingConcepts = useMemo(() => [
     { name: 'Sentence Expansion', tip: 'Use because, but, or so to show why things happen.', example: 'She opened the door because she heard a strange noise.', icon: '🔗' },
@@ -129,6 +138,12 @@ export default function PhaseRankingsContent() {
           <p className="mt-2 text-sm text-[rgba(255,255,255,0.4)]">
             Preparing {currentPhaseInfo.nextPhase} in {countdown}s...
           </p>
+          <button
+            onClick={handleContinue}
+            className="mt-4 rounded-[10px] border border-[rgba(255,255,255,0.1)] bg-[rgba(255,255,255,0.05)] px-4 py-2 text-sm font-medium text-[rgba(255,255,255,0.8)] transition-all hover:bg-[rgba(255,255,255,0.1)]"
+          >
+            Continue Now
+          </button>
         </div>
 
         <div className="mx-auto mb-4 max-w-3xl">

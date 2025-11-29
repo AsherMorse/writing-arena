@@ -28,10 +28,14 @@ import { scheduleAISubmission } from '@/lib/utils/ai-submission-delay';
 import { mapPlayersToDisplay, mapPlayersToPartyMembers } from '@/lib/utils/player-utils';
 import { safeStringifyJSON, parseJSONResponse } from '@/lib/utils/json-utils';
 import { isNotEmpty } from '@/lib/utils/array-utils';
+import { useAutoSave } from '@/lib/hooks/useAutoSave';
+import { useTimeWarnings } from '@/lib/hooks/useTimeWarnings';
+import { getSessionStorage } from '@/lib/utils/session-storage';
 import WritingEditor from './WritingEditor';
 import AIGenerationProgress from './AIGenerationProgress';
 import { WritingSessionHeader } from './writing-session/WritingSessionHeader';
 import { RankingModal } from './writing-session/RankingModal';
+import { TimeWarningNotification } from '@/components/shared/TimeWarningNotification';
 import { PlanningDataBanner } from './writing-session/PlanningDataBanner';
 import { PromptCard } from './writing-session/PromptCard';
 import { WritingTipsCard } from './writing-session/WritingTipsCard';
@@ -54,10 +58,29 @@ export default function WritingSessionContent() {
     submissionCount,
   } = useSession(sessionId);
   
-  const [writingContent, setWritingContent] = useState('');
+  // Auto-save draft content
+  const draftKey = sessionId ? `writing-${sessionId}` : '';
+  const [writingContent, setWritingContent] = useState(() => {
+    if (!sessionId || typeof window === 'undefined') return '';
+    const restored = getSessionStorage<string>(`draft-${draftKey}`);
+    return restored || '';
+  });
   const [wordCount, setWordCount] = useState(0);
   const [showPlanningPhase, setShowPlanningPhase] = useState(true);
   const [planningData, setPlanningData] = useState<PlanningData | null>(null);
+  
+  // Auto-save current content
+  useAutoSave({ 
+    key: draftKey, 
+    content: writingContent, 
+    enabled: !!sessionId && !hasSubmitted 
+  });
+  
+  // Time warnings
+  const timeWarning = useTimeWarnings({
+    timeRemaining,
+    thresholds: { info: 60, warning: 30, urgent: 15 },
+  });
   
   const { showTipsModal, setShowTipsModal, showRankingModal, setShowRankingModal } = useModals();
   
@@ -331,6 +354,8 @@ export default function WritingSessionContent() {
 
   return (
     <div className="min-h-screen bg-[#101012] text-[rgba(255,255,255,0.8)]">
+      <TimeWarningNotification warning={timeWarning} />
+      
       <RankingModal 
         isOpen={showRankingModal} 
         timeRemaining={timeRemaining} 

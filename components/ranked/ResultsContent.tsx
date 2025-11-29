@@ -25,6 +25,7 @@ import { ResultsPerformance } from './results/ResultsPerformance';
 import { ResultsRankChange } from './results/ResultsRankChange';
 import { ResultsRewards } from './results/ResultsRewards';
 import { ResultsRankings } from './results/ResultsRankings';
+import { ResultsImprovements } from './results/ResultsImprovements';
 
 interface ResultsContentProps {
   session?: GameSession;
@@ -220,6 +221,11 @@ export default function ResultsContent({ session: sessionProp }: ResultsContentP
           togglePhase={togglePhase}
           realFeedback={realFeedback}
           improvementBonus={results.improvementBonus}
+        />
+
+        <ResultsImprovements
+          realFeedback={realFeedback}
+          phases={results.phases}
         />
 
         <ResultsRankChange lpChange={results.lpChange} />

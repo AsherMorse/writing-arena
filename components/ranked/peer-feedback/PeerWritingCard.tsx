@@ -4,6 +4,7 @@ interface Peer {
   rank: string;
   wordCount: number;
   content: string;
+  phase1Score?: number;
 }
 
 interface PeerWritingCardProps {
@@ -27,9 +28,14 @@ export function PeerWritingCard({ peer, loading }: PeerWritingCardProps) {
     <div className="rounded-[14px] border border-[rgba(255,255,255,0.05)] bg-[rgba(255,255,255,0.025)] p-5">
       <div className="mb-4 flex items-center gap-3">
         <span className="text-3xl">{peer.avatar}</span>
-        <div>
+        <div className="flex-1">
           <div className="font-semibold">{peer.author}</div>
-          <div className="text-xs text-[rgba(255,255,255,0.4)]">{peer.rank} · {peer.wordCount} words</div>
+          <div className="text-xs text-[rgba(255,255,255,0.4)]">
+            {peer.rank} · {peer.wordCount} words
+            {peer.phase1Score !== undefined && (
+              <span className="ml-2 text-[#00e5e5]">· Phase 1 Score: {peer.phase1Score}</span>
+            )}
+          </div>
         </div>
       </div>
       

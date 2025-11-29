@@ -33,6 +33,10 @@ import { FeedbackFormCard } from './peer-feedback/FeedbackFormCard';
 import { isEmpty } from '@/lib/utils/array-utils';
 import { safeStringifyJSON, parseJSONResponse } from '@/lib/utils/json-utils';
 import { useComponentMountTime } from '@/lib/hooks/useComponentMountTime';
+import { useAutoSave } from '@/lib/hooks/useAutoSave';
+import { useTimeWarnings } from '@/lib/hooks/useTimeWarnings';
+import { getSessionStorage } from '@/lib/utils/session-storage';
+import { TimeWarningNotification } from '@/components/shared/TimeWarningNotification';
 
 export default function PeerFeedbackContent() {
   const router = useRouter();
@@ -63,7 +67,27 @@ export default function PeerFeedbackContent() {
   const [showRubric, setShowRubric] = useState(true);
   const [showExamples, setShowExamples] = useState(true);
   
-  const [responses, setResponses] = useState({ mainIdea: '', strength: '', suggestion: '' });
+  // Auto-save feedback responses
+  const feedbackKey = sessionId ? `feedback-${sessionId}` : '';
+  const [responses, setResponses] = useState(() => {
+    if (!sessionId || typeof window === 'undefined') return { mainIdea: '', strength: '', suggestion: '' };
+    const restored = getSessionStorage<{ mainIdea: string; strength: string; suggestion: string }>(`draft-${feedbackKey}`);
+    return restored || { mainIdea: '', strength: '', suggestion: '' };
+  });
+  
+  // Auto-save feedback responses
+  useAutoSave({
+    key: feedbackKey,
+    content: JSON.stringify(responses),
+    enabled: !!sessionId && !hasSubmitted,
+  });
+  
+  // Time warnings
+  const timeWarning = useTimeWarnings({
+    timeRemaining,
+    thresholds: { info: 60, warning: 30, urgent: 15 },
+  });
+  
   const { showTipsModal, setShowTipsModal, showRankingModal, setShowRankingModal } = useModals();
 
   // Use useAsyncData for loading peer writing
@@ -77,19 +101,24 @@ export default function PeerFeedbackContent() {
       );
       
       if (assignedPeer) {
+        // Get peer's Phase 1 score from session data
+        const peerPhase1Score = sessionPlayers?.[assignedPeer.userId]?.phases?.phase1?.score;
+        const peerRank = sessionPlayers?.[assignedPeer.userId]?.rank || 'Silver III';
+        
         return {
           id: assignedPeer.userId,
           author: assignedPeer.displayName,
           avatar: '📝',
-          rank: 'Silver III',
+          rank: peerRank,
           content: assignedPeer.writing,
           wordCount: assignedPeer.wordCount,
+          phase1Score: peerPhase1Score,
         };
       }
       
       return MOCK_PEER_WRITINGS[0];
     },
-    [user?.uid, matchId],
+    [user?.uid, matchId, sessionPlayers],
     { immediate: true }
   );
 
@@ -208,6 +237,7 @@ export default function PeerFeedbackContent() {
 
   return (
     <div className="min-h-screen bg-[#101012] text-[rgba(255,255,255,0.8)]">
+      <TimeWarningNotification warning={timeWarning} />
       <PeerFeedbackRankingModal
         isOpen={showRankingModal || isEvaluating || isBatchSubmitting}
         timeRemaining={timeRemaining}

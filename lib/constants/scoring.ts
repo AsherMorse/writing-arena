@@ -28,9 +28,9 @@ export const SCORING = {
   TIME_PHASE2_GREEN: 90,
   TIME_PHASE3_GREEN: 120,
   
-  PHASE1_DURATION: 300,
-  PHASE2_DURATION: 180,
-  PHASE3_DURATION: 240,
+  PHASE1_DURATION: 300, // 5 minutes
+  PHASE2_DURATION: 180, // 3 minutes
+  PHASE3_DURATION: 180, // 3 minutes (increased from 2 minutes)
 } as const;
 
 export const TIMING = {
