@@ -16,6 +16,10 @@ export interface SessionConfig {
   promptType: 'narrative' | 'descriptive' | 'informational' | 'argumentative';
   phase: Phase;
   phaseDuration: number;
+  
+  // Practice mode fields (optional)
+  lessonId?: string;
+  lessonCategory?: 'sentence' | 'paragraph' | 'essay';
 }
 
 export interface PhaseData {
@@ -91,6 +95,13 @@ export interface GameSession {
   metadata?: {
     createdBy: string;
     version: number;
+  };
+  
+  // Practice mode results (optional)
+  practiceResult?: {
+    lessonId: string;
+    score: number;
+    mastered: boolean;  // 90%+ = true, we could make this a number 0-100 to track progress
   };
 }
 
