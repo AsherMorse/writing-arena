@@ -15,11 +15,11 @@ if (!admin.apps.length) {
   if (serviceAccount) {
     admin.initializeApp({
       credential: admin.credential.cert(serviceAccount),
-      projectId: 'hour-college',
+      projectId: 'writing-arena',
     });
   } else {
     admin.initializeApp({
-      projectId: 'hour-college',
+      projectId: 'writing-arena',
     });
   }
 }

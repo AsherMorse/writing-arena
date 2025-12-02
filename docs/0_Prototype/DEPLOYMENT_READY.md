@@ -34,7 +34,7 @@ Your app is **fully integrated with Firebase** and ready to deploy to Vercel!
 ### Step 1: Enable Firebase Services (5 minutes)
 
 1. Go to [Firebase Console](https://console.firebase.google.com/)
-2. Select **hour-college** project
+2. Select **writing-arena** project
 
 **Enable Authentication:**
 - Click **Authentication** → **Get Started**

@@ -9,7 +9,7 @@
 const admin = require('../functions/node_modules/firebase-admin');
 
 if (!admin.apps.length) {
-  admin.initializeApp({ projectId: 'hour-college' });
+  admin.initializeApp({ projectId: 'writing-arena' });
 }
 
 const db = admin.firestore();

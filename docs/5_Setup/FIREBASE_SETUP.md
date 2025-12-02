@@ -54,7 +54,7 @@ Add all 9 variables (listed in VERCEL_ENV_SETUP.md)
 ### Enable Authentication
 
 1. Go to [Firebase Console](https://console.firebase.google.com/)
-2. Select project: **hour-college**
+2. Select project: **writing-arena**
 3. Click **Authentication** in left sidebar
 4. Click **Get Started**
 5. Enable **Anonymous** authentication

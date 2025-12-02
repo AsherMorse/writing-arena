@@ -6,7 +6,7 @@ const admin = require('firebase-admin');
 
 // Initialize admin with your project
 admin.initializeApp({
-  projectId: 'hour-college',
+  projectId: 'writing-arena',
 });
 
 const db = admin.firestore();

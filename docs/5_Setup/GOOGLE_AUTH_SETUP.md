@@ -12,7 +12,7 @@ To enable Google authentication, you need to configure it in the Firebase Consol
 
 1. **Go to Firebase Console**
    - Visit: https://console.firebase.google.com
-   - Select your project: `hour-college` (or your project name)
+   - Select your project: `writing-arena` (or your project name)
 
 2. **Enable Google Sign-In Provider**
    - In the left sidebar, click **"Authentication"**

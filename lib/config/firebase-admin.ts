@@ -16,18 +16,43 @@ let app: App;
 
 if (getApps().length === 0) {
   // For local development or Vercel, we might need to handle credentials differently
-  // If FIREBASE_SERVICE_ACCOUNT_KEY is present, use it
-  if (process.env.FIREBASE_SERVICE_ACCOUNT_KEY) {
+  // Priority: 1. Service account key file, 2. Environment variable, 3. Default credentials
+  
+  let serviceAccount: any = null;
+  
+  // Try to load from service account key file (for local development)
+  try {
+    const fs = require('fs');
+    const path = require('path');
+    const keyPath = path.join(process.cwd(), 'writing-arena-firebase-adminsdk-fbsvc-2d22b9faf8.json');
+    if (fs.existsSync(keyPath)) {
+      serviceAccount = JSON.parse(fs.readFileSync(keyPath, 'utf8'));
+    }
+  } catch (error) {
+    // File doesn't exist or can't be read, continue to next option
+  }
+  
+  // Try environment variable (for Vercel deployment)
+  if (!serviceAccount && process.env.FIREBASE_SERVICE_ACCOUNT_KEY) {
     try {
-      const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_KEY);
+      serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_KEY);
+    } catch (error) {
+      console.error('Error parsing service account key from env:', error);
+    }
+  }
+  
+  // Initialize with service account if available
+  if (serviceAccount) {
+    try {
       app = initializeApp({
-        credential: cert(serviceAccount)
+        credential: cert(serviceAccount),
+        projectId: 'writing-arena',
       });
     } catch (error) {
-      console.error('Error parsing service account key:', error);
-      // Fallback to default init if parsing fails
+      console.error('Error initializing with service account:', error);
+      // Fallback to default init
       app = initializeApp({
-        projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
+        projectId: 'writing-arena',
       });
     }
   } else {
@@ -36,7 +61,7 @@ if (getApps().length === 0) {
     // but we'll try best effort.
     // Note: This will likely fail locally without GOOGLE_APPLICATION_CREDENTIALS env var
     app = initializeApp({
-      projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
+      projectId: 'writing-arena',
     });
   }
 } else {

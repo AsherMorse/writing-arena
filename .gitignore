@@ -27,6 +27,10 @@ yarn-error.log*
 # local env files
 .env*.local
 
+# Firebase admin SDK service account keys (sensitive credentials)
+*-firebase-adminsdk-*.json
+writing-arena-firebase-adminsdk-*.json
+
 # vercel
 .vercel
 

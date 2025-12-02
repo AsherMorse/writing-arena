@@ -18,56 +18,56 @@ sk-ant-api03-RqMpFnKmuW3gyozSimDICiwKNlfgjxjr1_DvxRig6RFRX3D7rrczQngT-uGUmmLu3V4
 
 ### Variable 2: NEXT_PUBLIC_FIREBASE_API_KEY
 ```
-AIzaSyB05bWPL6KUzFeIknSTY8f49js7NlkcK9g
+AIzaSyAf4CsjSud_lH3oOUhBngvIAZNxIWDpS0Q
 ```
 
 ---
 
 ### Variable 3: NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN
 ```
-hour-college.firebaseapp.com
+writing-arena.firebaseapp.com
 ```
 
 ---
 
 ### Variable 4: NEXT_PUBLIC_FIREBASE_DATABASE_URL
 ```
-https://hour-college-default-rtdb.firebaseio.com
+https://writing-arena-default-rtdb.firebaseio.com
 ```
 
 ---
 
 ### Variable 5: NEXT_PUBLIC_FIREBASE_PROJECT_ID
 ```
-hour-college
+writing-arena
 ```
 
 ---
 
 ### Variable 6: NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET
 ```
-hour-college.firebasestorage.app
+writing-arena.firebasestorage.app
 ```
 
 ---
 
 ### Variable 7: NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID
 ```
-347195886512
+774068675032
 ```
 
 ---
 
 ### Variable 8: NEXT_PUBLIC_FIREBASE_APP_ID
 ```
-1:347195886512:web:c1511f6294c1af40eca475
+1:774068675032:web:1426c690e6d34dc93a52ad
 ```
 
 ---
 
 ### Variable 9: NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID
 ```
-G-MJLX4BQ1EW
+G-8GZWHR7FKN
 ```
 
 ---
@@ -76,14 +76,14 @@ G-MJLX4BQ1EW
 
 ```
 ANTHROPIC_API_KEY=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
-NEXT_PUBLIC_FIREBASE_API_KEY=AIzaSyB05bWPL6KUzFeIknSTY8f49js7NlkcK9g
-NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=hour-college.firebaseapp.com
-NEXT_PUBLIC_FIREBASE_DATABASE_URL=https://hour-college-default-rtdb.firebaseio.com
-NEXT_PUBLIC_FIREBASE_PROJECT_ID=hour-college
-NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=hour-college.firebasestorage.app
-NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=347195886512
-NEXT_PUBLIC_FIREBASE_APP_ID=1:347195886512:web:c1511f6294c1af40eca475
-NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID=G-MJLX4BQ1EW
+NEXT_PUBLIC_FIREBASE_API_KEY=AIzaSyAf4CsjSud_lH3oOUhBngvIAZNxIWDpS0Q
+NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=writing-arena.firebaseapp.com
+NEXT_PUBLIC_FIREBASE_DATABASE_URL=https://writing-arena-default-rtdb.firebaseio.com
+NEXT_PUBLIC_FIREBASE_PROJECT_ID=writing-arena
+NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=writing-arena.firebasestorage.app
+NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=774068675032
+NEXT_PUBLIC_FIREBASE_APP_ID=1:774068675032:web:1426c690e6d34dc93a52ad
+NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID=G-8GZWHR7FKN
 ```
 
 ---
