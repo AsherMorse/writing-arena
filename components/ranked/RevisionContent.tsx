@@ -202,7 +202,7 @@ export default function RevisionContent() {
       const yourRanking = await getRankingFromStorage();
       const revisionScore = yourRanking?.score || data.score || getDefaultScore(3);
       setSessionStorage(`${matchId}-phase3-feedback`, yourRanking || data);
-      navigateToResults({ matchId, trait, promptId, promptType, originalContent, revisedContent, wordCount, revisedWordCount: wordCountRevised, writingScore: yourScore, feedbackScore, revisionScore, aiScores });
+      router.push(`/ranked/results-v2?matchId=${matchId}`);
     },
     validateSubmission: () => validateRevisionSubmission(originalContent, revisedContent, wordCountRevised),
     emptyPenaltyScore: SCORING.MIN_SCORE,
@@ -252,13 +252,13 @@ export default function RevisionContent() {
 
   usePhaseTransition({
     session, currentPhase: 3, hasSubmitted, sessionId: activeSessionId || sessionId,
-    onTransition: (nextPhase) => { if (session?.state === 'completed') navigateToRankedResults(activeSessionId || sessionId); },
+    onTransition: (nextPhase) => { if (session?.state === 'completed') router.push(`/ranked/results-v2?matchId=${matchId}`); },
   });
 
   useEffect(() => {
     if (!session || !hasSubmitted()) return;
-    if (session.state === 'completed') navigateToRankedResults(activeSessionId || sessionId);
-  }, [session, hasSubmitted, activeSessionId, sessionId, navigateToRankedResults]);
+    if (session.state === 'completed') router.push(`/ranked/results-v2?matchId=${matchId}`);
+  }, [session, hasSubmitted, matchId, router]);
 
   const { handlePaste, handleCut, handleCopy } = usePastePrevention({ showWarning: false });
 
