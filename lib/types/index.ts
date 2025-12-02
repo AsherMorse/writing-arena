@@ -1,5 +1,17 @@
 import { Timestamp } from 'firebase/firestore';
 
+/**
+ * @description Mastery status for a single lesson.
+ */
+export interface LessonMasteryStatus {
+  mastered: boolean;      // 90%+ achieved
+  bestScore: number;      // Highest score
+  lastScore: number;      // Most recent score
+  completedAt: Timestamp; // When first completed
+  masteredAt?: Timestamp; // When first mastered (if mastered)
+  attempts: number;       // Total attempts
+}
+
 export interface UserProfile {
   uid: string;
   displayName: string;
@@ -23,6 +35,12 @@ export interface UserProfile {
     totalWords: number;
     currentStreak: number;
   };
+  
+  // Practice mode mastery tracking
+  practiceMastery?: {
+    [lessonId: string]: LessonMasteryStatus;
+  };
+  
   createdAt: Timestamp;
   updatedAt: Timestamp;
 }

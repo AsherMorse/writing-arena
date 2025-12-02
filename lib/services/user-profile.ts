@@ -171,3 +171,39 @@ export async function updateUserStatsAfterSession(
   await updateDoc(userRef, updates);
 }
 
+/**
+ * @description Updates user stats after a practice session.
+ * Practice mode: LP only (no XP, no points), word count tracked.
+ */
+export async function updateUserStatsAfterPractice(
+  uid: string,
+  lpChange: number,
+  wordCount?: number
+) {
+  const userRef = doc(db, 'users', uid);
+  const userSnap = await getDoc(userRef);
+
+  if (!userSnap.exists()) return;
+
+  const userData = userSnap.data() as UserProfile;
+  const newLP = Math.max(0, userData.rankLP + lpChange);
+
+  const updates: Record<string, unknown> = {
+    'stats.totalWords': userData.stats.totalWords + (wordCount || 0),
+    updatedAt: serverTimestamp(),
+  };
+
+  // Only update LP if there's a change (mastered lessons give 0 LP)
+  if (lpChange > 0) {
+    updates.rankLP = newLP;
+
+    // Handle rank promotion
+    if (newLP >= 100 && userData.rankLP < 100) {
+      const newRank = promoteRank(userData.currentRank);
+      updates.currentRank = newRank;
+      updates.rankLP = newLP - 100;
+    }
+  }
+
+  await updateDoc(userRef, updates);
+}
