@@ -40,5 +40,6 @@ next-env.d.ts
 
 .env
 
+# Reference codebase (not committed)
 _alphawrite/
 _docs/
