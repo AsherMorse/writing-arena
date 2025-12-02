@@ -99,6 +99,7 @@ export default function PracticeSessionContent({ lessonId }: PracticeSessionCont
   }, [debouncedRevisedContent]);
 
   // Handle time running out
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- handlePhaseComplete intentionally omitted to prevent infinite loops
   useEffect(() => {
     if (timeRemaining === 0 && isTimerRunning === false && sessionPhase !== 'ready') {
       handlePhaseComplete();
@@ -137,7 +138,7 @@ export default function PracticeSessionContent({ lessonId }: PracticeSessionCont
         setWriteRemarks([]);
       }
       setIsGrading(false);
-
+      
       // Pre-fill revised content with original
       setRevisedContent(writingContent);
       setSessionPhase('revisePhase');
@@ -245,25 +246,38 @@ export default function PracticeSessionContent({ lessonId }: PracticeSessionCont
         lpEarned = result.lpEarned;
       }
 
-      // Navigate to results with semantic param names
-      const params = new URLSearchParams({
+      // Store all results in session storage (clean URL, no query params)
+      sessionStorage.setItem('practiceResults', JSON.stringify({
         lessonId,
-        reviewScore: String(reviewScore ?? 0),
-        writeScore: String(writeScore ?? 0),
-        reviseScore: String(reviseScore ?? 0),
-        compositeScore: String(compositeScore ?? 0),
-        lpEarned: String(lpEarned ?? 0),
-        wordCount: String(wordCount ?? 0),
-        revisedWordCount: String(revisedWordCount ?? 0),
-        writeRemarks: JSON.stringify(writeRemarks),
-        reviseRemarks: JSON.stringify(reviseRemarksLocal),
-      });
+        reviewScore: reviewScore ?? 0,
+        writeScore: writeScore ?? 0,
+        reviseScore: reviseScore ?? 0,
+        compositeScore: compositeScore ?? 0,
+        lpEarned: lpEarned ?? 0,
+        wordCount: wordCount ?? 0,
+        revisedWordCount: revisedWordCount ?? 0,
+        writeRemarks,
+        reviseRemarks: reviseRemarksLocal,
+      }));
 
-      router.push(`/practice/${lessonId}/results?${params.toString()}`);
+      // Navigate to results (all data in session storage)
+      router.push(`/practice/${lessonId}/results`);
     } catch (err) {
       console.error('Session submission failed:', err);
-      // Navigate with default scores on error
-      router.push(`/practice/${lessonId}/results?lessonId=${lessonId}&compositeScore=0&lpEarned=0`);
+      // Store error state in session storage for consistent handling
+      sessionStorage.setItem('practiceResults', JSON.stringify({
+        lessonId,
+        reviewScore: 0,
+        writeScore: 0,
+        reviseScore: 0,
+        compositeScore: 0,
+        lpEarned: 0,
+        wordCount: 0,
+        revisedWordCount: 0,
+        writeRemarks: [],
+        reviseRemarks: [],
+      }));
+      router.push(`/practice/${lessonId}/results`);
     }
   }
 
@@ -443,18 +457,18 @@ export default function PracticeSessionContent({ lessonId }: PracticeSessionCont
             {isRevisionPhase && writingContent && (
               <div className="space-y-4">
                 {/* Original Response */}
-                <div className="rounded-[10px] border border-[rgba(255,255,255,0.05)] bg-[rgba(255,255,255,0.025)] p-4">
-                  <div className="text-[10px] font-semibold uppercase tracking-wider text-[rgba(255,255,255,0.4)]">
-                    Your original response
-                  </div>
-                  <p className="mt-2 text-sm text-[rgba(255,255,255,0.6)]">{writingContent}</p>
+              <div className="rounded-[10px] border border-[rgba(255,255,255,0.05)] bg-[rgba(255,255,255,0.025)] p-4">
+                <div className="text-[10px] font-semibold uppercase tracking-wider text-[rgba(255,255,255,0.4)]">
+                  Your original response
+                </div>
+                <p className="mt-2 text-sm text-[rgba(255,255,255,0.6)]">{writingContent}</p>
                   {writeScore !== null && (
-                    <div className="mt-3 flex items-center gap-2 text-xs">
+                  <div className="mt-3 flex items-center gap-2 text-xs">
                       <span className="text-[rgba(255,255,255,0.4)]">Write Phase Score:</span>
-                      <span
-                        className="font-medium"
+                    <span
+                      className="font-medium"
                         style={{ color: writeScore >= 90 ? '#00d492' : writeScore >= 70 ? '#00e5e5' : '#ff9030' }}
-                      >
+                    >
                         {writeScore}%
                       </span>
                     </div>
@@ -473,7 +487,7 @@ export default function PracticeSessionContent({ lessonId }: PracticeSessionCont
                           <div className="flex items-start gap-2">
                             <span className={remark.severity === 'error' ? 'text-[#ff5f8f]' : 'text-[#ff9030]'}>
                               {remark.severity === 'error' ? '⚠️' : '💡'}
-                            </span>
+                    </span>
                             <div>
                               <p className="text-[rgba(255,255,255,0.7)]">{remark.concreteProblem}</p>
                               <p className="mt-1 text-xs text-[rgba(255,255,255,0.5)]">{remark.callToAction}</p>

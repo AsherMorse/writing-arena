@@ -175,13 +175,13 @@ export default function PracticeLanding() {
                 <li className="flex items-start gap-2">
                   <span className="text-[#00e5e5]">1.</span>
                   <span>
-                    <strong>Write</strong> — Complete the prompt using the target skill (3 min)
+                    <strong>Review</strong> — Learn the concept and analyze AI-generated examples (1 min)
                   </span>
                 </li>
                 <li className="flex items-start gap-2">
                   <span className="text-[#00e5e5]">2.</span>
                   <span>
-                    <strong>Review</strong> — Analyze AI-generated examples (1 min)
+                    <strong>Write</strong> — Complete the prompt using the target skill (3 min)
                   </span>
                 </li>
                 <li className="flex items-start gap-2">

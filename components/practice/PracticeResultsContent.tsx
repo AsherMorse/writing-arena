@@ -7,9 +7,8 @@
 
 'use client';
 
-import { Suspense } from 'react';
+import { Suspense, useState, useEffect } from 'react';
 import Link from 'next/link';
-import { useSearchParams } from 'next/navigation';
 import { useLessonMastery } from '@/lib/hooks/usePracticeMastery';
 import { getLesson, MASTERY_THRESHOLD } from '@/lib/constants/practice-lessons';
 import { GradingRemark } from '@/lib/constants/grader-configs';
@@ -18,40 +17,80 @@ import { LoadingState } from '@/components/shared/LoadingState';
 import { ResultsLayout } from '@/components/shared/ResultsLayout';
 
 /**
- * @description Inner results content component.
+ * @description Results data structure from session storage.
  */
-function PracticeResultsContentInner() {
-  const searchParams = useSearchParams();
-  
-  const lessonId = searchParams?.get('lessonId') || '';
-  // Semantic score names matching phase order: review → write → revise
-  const reviewScore = parseInt(searchParams?.get('reviewScore') || '0', 10);
-  const writeScore = parseInt(searchParams?.get('writeScore') || '0', 10);
-  const reviseScore = parseInt(searchParams?.get('reviseScore') || '0', 10);
-  const compositeScore = parseInt(searchParams?.get('compositeScore') || '0', 10);
-  const lpEarned = parseInt(searchParams?.get('lpEarned') || '0', 10);
-  const wordCount = parseInt(searchParams?.get('wordCount') || '0', 10);
-  const revisedWordCount = parseInt(searchParams?.get('revisedWordCount') || '0', 10);
+interface PracticeResultsData {
+  lessonId: string;
+  reviewScore: number;
+  writeScore: number;
+  reviseScore: number;
+  compositeScore: number;
+  lpEarned: number;
+  wordCount: number;
+  revisedWordCount: number;
+  writeRemarks: GradingRemark[];
+  reviseRemarks: GradingRemark[];
+}
 
-  // Parse remarks from URL params
-  const writeRemarksRaw = searchParams?.get('writeRemarks') || '[]';
-  const reviseRemarksRaw = searchParams?.get('reviseRemarks') || '[]';
-  let writeRemarks: GradingRemark[] = [];
-  let reviseRemarks: GradingRemark[] = [];
-  try {
-    writeRemarks = JSON.parse(writeRemarksRaw);
-    reviseRemarks = JSON.parse(reviseRemarksRaw);
-  } catch {
-    // Invalid JSON, use empty arrays
-  }
+function PracticeResultsContentInner() {
+  // State to hold results (loaded from session storage on client)
+  const [results, setResults] = useState<PracticeResultsData>({
+    lessonId: '',
+    reviewScore: 0,
+    writeScore: 0,
+    reviseScore: 0,
+    compositeScore: 0,
+    lpEarned: 0,
+    wordCount: 0,
+    revisedWordCount: 0,
+    writeRemarks: [],
+    reviseRemarks: [],
+  });
+  const [isLoaded, setIsLoaded] = useState(false);
+
+  // Read from session storage on client mount (sessionStorage doesn't exist during SSR)
+  useEffect(() => {
+    try {
+      const resultsData = sessionStorage.getItem('practiceResults');
+      if (resultsData) {
+        const parsed = JSON.parse(resultsData);
+        setResults(prev => ({ ...prev, ...parsed }));
+        // Clear after reading to avoid stale data
+        sessionStorage.removeItem('practiceResults');
+      }
+    } catch {
+      // Invalid JSON or no data, use defaults
+    }
+    setIsLoaded(true);
+  }, []);
+
+  const {
+    lessonId,
+    reviewScore,
+    writeScore,
+    reviseScore,
+    compositeScore,
+    lpEarned,
+    wordCount,
+    revisedWordCount,
+    writeRemarks,
+    reviseRemarks,
+  } = results;
+
   const hasRemarks = writeRemarks.length > 0 || reviseRemarks.length > 0;
 
+  // Hooks must be called unconditionally (before any early returns)
   const lesson = getLesson(lessonId);
   const { isMastered, bestScore, attempts } = useLessonMastery(lessonId);
 
+  // Show loading until session storage is read
+  if (!isLoaded) {
+    return <LoadingState message="Loading results..." />;
+  }
+
   const achievedMastery = compositeScore >= MASTERY_THRESHOLD;
   const isFirstTimeMastery = achievedMastery && attempts <= 1;
-  const isNewBestScore = compositeScore >= bestScore;
+  const isNewBestScore = compositeScore > bestScore;
 
   /**
    * @description Get color based on score.
@@ -293,12 +332,6 @@ function PracticeResultsContentInner() {
             )}
           </div>
 
-          {/* Perfect score message */}
-          {writeRemarks.length === 0 && reviseRemarks.length === 0 && (
-            <div className="mt-4 text-center text-sm text-[rgba(255,255,255,0.5)]">
-              Great job! No specific feedback — keep up the excellent work!
-            </div>
-          )}
         </section>
       )}
 
