@@ -1,145 +1,157 @@
 # Practice Mode Implementation Checklist (Full Version)
 
-**Version**: 1.1  
+**Version**: 1.2  
 **Started**: November 30, 2024  
-**Status**: Planning
+**Status**: MVP Complete, V1 In Progress
 
 ---
 
-## ⚡ Start with MVP First!
+## ⚡ MVP Complete!
 
-**See [PRACTICE_MODE_MVP.md](./PRACTICE_MODE_MVP.md) for the fast-track version.**
+**See [PRACTICE_MODE_MVP_ALPHAWRITE.md](./PRACTICE_MODE_MVP_ALPHAWRITE.md) for the completed MVP.**
 
-MVP gets you demo-ready with 2 lessons in 1-2 days. The MVP architecture scales directly to this full version—no refactoring needed, just add more lessons and features.
+MVP is demo-ready with 2 lessons (Because/But/So, Appositives). The architecture uses AlphaWrite grader configs + Claude Sonnet 4 for evaluation.
 
-**Recommended path:**
-1. Complete MVP (2 lessons, ~36 items)
+**Current path:**
+1. ~~Complete MVP (2 lessons, ~36 items)~~ ✅ Done
 2. **Gap detection (V1 priority!)** — Creates the ranked ↔ practice feedback loop
-3. Add remaining lessons (this doc, Phase 0)
+3. Add remaining lessons using AlphaWrite extraction (this doc, Phase 0)
 4. Add category mastery badges
 
 ---
 
 ## 📋 Phase 0: Content & Lesson Design
 
-> **Note:** Because/But/So and Appositive lessons are covered in MVP.  
-> This section covers the remaining 13 lessons.
-> 
-> **Per lesson:** 3 prompts + annotated example + evaluation criteria + 2-3 Phase 2 examples
+> **Approach:** Extract grader configs from AlphaWrite instead of creating content from scratch.
+> See [AlphaWrite Integration Analysis](../implementation-explanation/curriculum/alphawrite/alphawrite-integration-analysis.md) for coverage mapping.
+>
+> **Per lesson:** Extract grader config + create Phase 2 review examples
 
 ### Sentence Lessons (Bronze Skills) - 5 lessons
 
-#### Because/But/So Lesson ✅ (MVP)
-> Covered in [PRACTICE_MODE_MVP.md](./PRACTICE_MODE_MVP.md)
+#### Because/But/So Lesson ✅ (MVP Complete)
+> Extracted from `11-basic-conjunctions/grader.config.ts`
+> See [PRACTICE_MODE_MVP_ALPHAWRITE.md](./PRACTICE_MODE_MVP_ALPHAWRITE.md)
 
-#### Appositive Lesson ✅ (MVP)
-> Covered in [PRACTICE_MODE_MVP.md](./PRACTICE_MODE_MVP.md)
+#### Appositive Lesson ✅ (MVP Complete)
+> Extracted from `13-write-appositives/grader.config.ts`
+> See [PRACTICE_MODE_MVP_ALPHAWRITE.md](./PRACTICE_MODE_MVP_ALPHAWRITE.md)
 
 #### Sentence Expansion Lesson
-- [ ] Write 3 prompt variations
-- [ ] Create annotated example
-- [ ] Write evaluation criteria (90%+ = mastery)
-- [ ] Create 2-3 Phase 2 review examples
+- [ ] Extract `16-kernel-expansion/grader.config.ts` → `lib/constants/grader-configs/kernel-expansion.ts`
+- [ ] Extract `15-combine-sentences/grader.config.ts` (optional secondary activity)
+- [ ] Add to `PRACTICE_LESSONS` in `practice-lessons.ts`
+- [ ] Create Phase 2 review examples
 
 #### Subordinating Conjunction Lesson
-- [ ] Write 3 prompt variations
-- [ ] Create annotated example
-- [ ] Write evaluation criteria
-- [ ] Create 2-3 Phase 2 review examples
+- [ ] Extract `14-subordinating-conjunctions/grader.config.ts` → `lib/constants/grader-configs/subordinating-conjunctions.ts`
+- [ ] Add to `PRACTICE_LESSONS`
+- [ ] Create Phase 2 review examples
 
 #### Fragment/Run-on Lesson
-- [ ] Write 3 prompt variations
-- [ ] Create annotated example
-- [ ] Write evaluation criteria
-- [ ] Create 2-3 Phase 2 review examples
+- [ ] Extract `02-fragment-or-sentence/grader.config.ts` → `lib/constants/grader-configs/fragment-or-sentence.ts`
+- [ ] ⚠️ Note: AlphaWrite covers fragments only, run-on detection needs custom implementation
+- [ ] Add to `PRACTICE_LESSONS`
+- [ ] Create Phase 2 review examples
 
 ---
 
 ### Paragraph Lessons (Silver Skills) - 5 lessons
 
 #### Topic Sentence Lesson
-- [ ] Write 3 prompt variations
-- [ ] Create annotated example
-- [ ] Write evaluation criteria
-- [ ] Create 2-3 Phase 2 review examples
+- [ ] Extract `19-identify-topic-sentence/grader.config.ts` → `lib/constants/grader-configs/topic-sentence.ts`
+- [ ] Optional: `25-make-topic-sentences/grader.config.ts`
+- [ ] Add to `PRACTICE_LESSONS`
+- [ ] Create Phase 2 review examples
 
 #### Supporting Details Lesson
-- [ ] Write 3 prompt variations
-- [ ] Create annotated example
-- [ ] Write evaluation criteria
-- [ ] Create 2-3 Phase 2 review examples
+- [ ] Extract `22-eliminate-irrelevant-sentences/grader.config.ts` → `lib/constants/grader-configs/supporting-details.ts`
+- [ ] Optional: `28-writing-spos/grader.config.ts`
+- [ ] Add to `PRACTICE_LESSONS`
+- [ ] Create Phase 2 review examples
 
 #### Concluding Sentence Lesson
-- [ ] Write 3 prompt variations
-- [ ] Create annotated example
-- [ ] Write evaluation criteria
-- [ ] Create 2-3 Phase 2 review examples
+- [ ] Extract `24-write-cs-from-details/grader.config.ts` → `lib/constants/grader-configs/concluding-sentence.ts`
+- [ ] Add to `PRACTICE_LESSONS`
+- [ ] Create Phase 2 review examples
 
 #### Internal Transitions Lesson
-- [ ] Write 3 prompt variations
-- [ ] Create annotated example
-- [ ] Write evaluation criteria
-- [ ] Create 2-3 Phase 2 review examples
+- [ ] Extract `31-using-transition-words/grader.config.ts` → `lib/constants/grader-configs/internal-transitions.ts`
+- [ ] Optional: `32-finishing-transition-words/grader.config.ts`
+- [ ] Add to `PRACTICE_LESSONS`
+- [ ] Create Phase 2 review examples
 
 #### Paragraph Coherence Lesson
-- [ ] Write 3 prompt variations
-- [ ] Create annotated example
-- [ ] Write evaluation criteria
-- [ ] Create 2-3 Phase 2 review examples
+- [ ] ⚠️ Implicit coverage in AlphaWrite only
+- [ ] Consider combining `22-eliminate-irrelevant-sentences` + `30-elaborate-paragraphs`
+- [ ] May need custom grader config
+- [ ] Add to `PRACTICE_LESSONS`
+- [ ] Create Phase 2 review examples
 
 ---
 
 ### Essay Lessons (Gold Skills) - 5 lessons
 
+> ⚠️ **Note:** AlphaWrite has limited essay-level coverage. These lessons may require custom grader configs.
+
 #### Thesis Development Lesson
-- [ ] Write 3 prompt variations
-- [ ] Create annotated example
-- [ ] Write evaluation criteria
-- [ ] Create 2-3 Phase 2 review examples
+- [ ] Partial: `39-write-t-from-topic/grader.config.ts`
+- [ ] Partial: `34-distinguish-g-s-t/grader.config.ts`
+- [ ] May need custom grader config for full thesis evaluation
+- [ ] Create Phase 2 review examples
 
 #### Paragraph Transitions Lesson
-- [ ] Write 3 prompt variations
-- [ ] Create annotated example
-- [ ] Write evaluation criteria
-- [ ] Create 2-3 Phase 2 review examples
+- [ ] Partial: `50-pre-transition-outline/grader.config.ts` (in progress in AlphaWrite)
+- [ ] May need custom grader config
+- [ ] Create Phase 2 review examples
 
 #### Introduction Structure Lesson
-- [ ] Write 3 prompt variations
-- [ ] Create annotated example
-- [ ] Write evaluation criteria
-- [ ] Create 2-3 Phase 2 review examples
+- [ ] Partial: `38-write-introductory-sentences/grader.config.ts`
+- [ ] Partial: `36-write-g-s-from-t/grader.config.ts`
+- [ ] May need custom grader config
+- [ ] Create Phase 2 review examples
 
 #### Conclusion Structure Lesson
-- [ ] Write 3 prompt variations
-- [ ] Create annotated example
-- [ ] Write evaluation criteria
-- [ ] Create 2-3 Phase 2 review examples
+- [ ] Extract `37-craft-conclusion-from-gst/grader.config.ts`
+- [ ] May need augmentation for full structure evaluation
+- [ ] Create Phase 2 review examples
 
 #### Multi-Idea Development Lesson
-- [ ] Write 3 prompt variations
-- [ ] Create annotated example
-- [ ] Write evaluation criteria
-- [ ] Create 2-3 Phase 2 review examples
+- [ ] Partial: `40-match-details-pro-con/grader.config.ts`
+- [ ] 🔴 Limited AlphaWrite coverage - likely needs custom grader config
+- [ ] Create Phase 2 review examples
 
 ---
 
 ## 📋 Phase 1: Data Schema & Constants (V1)
 
-> MVP covers basic schema. This section adds V1 features.
+> ✅ MVP infrastructure complete. See `lib/constants/grader-configs/` for pattern.
 
-### Additional Firestore Schema
+### Completed in MVP
+- ✅ `lib/constants/grader-configs/types.ts` — `ActivityGraderConfig`, `GradingResult`
+- ✅ `lib/constants/grader-configs/basic-conjunctions.ts` — Because/But/So config
+- ✅ `lib/constants/grader-configs/write-appositives.ts` — Appositive config
+- ✅ `lib/constants/practice-lessons.ts` — Lesson definitions, LP rewards
+- ✅ `lib/constants/practice-examples.ts` — Phase 2 examples
+
+### Additional for V1
 - [ ] Add `skillGaps` field to user profile (for gap detection)
 - [ ] Design gap → lesson mapping
-
-### Additional Constants
-- [ ] Expand `PRACTICE_LESSONS` with all 15 lessons
+- [ ] Expand `PRACTICE_LESSONS` with remaining lessons (add to existing file)
 - [ ] Add `GAP_TO_LESSON_MAP` for gap detection routing
 
 ---
 
 ## 📋 Phase 2: Services & Hooks (V1)
 
-> MVP covers basic mastery service. This section adds V1 features.
+> ✅ MVP services complete. See `lib/services/practice-mastery.ts` for pattern.
+
+### Completed in MVP
+- ✅ `lib/services/practice-mastery.ts` — Full mastery tracking
+- ✅ `lib/grading/practice-grader.ts` — Claude Sonnet 4 evaluation
+- ✅ `lib/grading/prompt-builder.ts` — AlphaWrite-style prompts
+- ✅ `lib/hooks/usePracticeLesson.ts` — Lesson state management
+- ✅ `lib/hooks/usePracticeMastery.ts` — Mastery hooks
 
 ### Gap Detection Service
 - [ ] Create `lib/services/skill-gaps.ts`:
@@ -162,7 +174,17 @@ MVP gets you demo-ready with 2 lessons in 1-2 days. The MVP architecture scales 
 
 ## 📋 Phase 3: UI Components (V1)
 
-> MVP covers basic components. This section adds V1 features.
+> ✅ MVP components complete. See `components/practice/` for pattern.
+
+### Completed in MVP
+- ✅ `components/practice/MasteryDisplay.tsx` — Star-based mastery indicator
+- ✅ `components/practice/LessonCard.tsx` — Lesson card with mastery status
+- ✅ `components/practice/PracticeLanding.tsx` — Landing with lesson selection
+- ✅ `components/practice/SkillFocusBanner.tsx` — Skill name and goal
+- ✅ `components/practice/ExampleSidebar.tsx` — Annotated examples
+- ✅ `components/practice/PracticeReviewPhase.tsx` — Phase 2 review
+- ✅ `components/practice/PracticeSessionContent.tsx` — Main 3-phase flow
+- ✅ `components/practice/PracticeResultsContent.tsx` — Results with mastery
 
 ### Gap Detection UI
 - [ ] Create `components/practice/GapAlert.tsx` - "Recommended for you" banner
@@ -202,6 +224,14 @@ MVP gets you demo-ready with 2 lessons in 1-2 days. The MVP architecture scales 
 
 ## 📋 Phase 5: Additional Pages (V1)
 
+> ✅ MVP pages complete. See `app/practice/` for pattern.
+
+### Completed in MVP
+- ✅ `app/practice/page.tsx` — Landing page
+- ✅ `app/practice/[lessonId]/page.tsx` — Lesson entry/start screen
+- ✅ `app/practice/[lessonId]/session/page.tsx` — 3-phase session flow
+- ✅ `app/practice/[lessonId]/results/page.tsx` — Results with mastery
+
 ### Dashboard Updates
 - [ ] Update dashboard to show practice progress widget
 - [ ] Show category mastery badges
@@ -217,17 +247,52 @@ MVP gets you demo-ready with 2 lessons in 1-2 days. The MVP architecture scales 
 
 | Phase | Status | Completion | Notes |
 |-------|--------|------------|-------|
-| **MVP** | 🔴 Not Started | 0/36 items | See MVP doc |
-| Phase 0: Content | 🔴 Not Started | 0/52 items | 13 lessons × 4 items |
-| Phase 1: Schema (V1) | 🔴 Not Started | 0/2 items | Gap detection schema |
-| Phase 2: Services (V1) | 🔴 Not Started | 0/8 items | Gap + category mastery |
-| Phase 3: UI (V1) | 🔴 Not Started | 0/7 items | Gap alerts, mastery badges |
+| **MVP** | ✅ Complete | 36/36 items | 2 lessons working |
+| Phase 0: Content | 🟡 In Progress | 2/15 lessons | Extract from AlphaWrite |
+| Phase 1: Schema (V1) | 🟡 Partial | 5/9 items | MVP done, gap detection pending |
+| Phase 2: Services (V1) | 🟡 Partial | 5/13 items | MVP done, gap detection pending |
+| Phase 3: UI (V1) | 🟡 Partial | 8/17 items | MVP done, gap/badge UI pending |
 | Phase 4: Integration (V1) | 🔴 Not Started | 0/4 items | Ranked → Practice flow |
-| Phase 5: Pages (V1) | 🔴 Not Started | 0/3 items | Dashboard updates |
+| Phase 5: Pages (V1) | 🟡 Partial | 4/7 items | MVP done, dashboard updates pending |
 
 ---
 
 ## 📝 Notes & Decisions
+
+### AlphaWrite Coverage Summary
+
+| Skill Level | Coverage | Strategy |
+|-------------|----------|----------|
+| **Sentence (Bronze)** | 🟢 Full | Extract grader configs directly |
+| **Paragraph (Silver)** | 🟢 Strong | Extract + minor customization |
+| **Essay (Gold)** | 🔴 Partial | Custom grader configs likely needed |
+
+### AlphaWrite Source Location
+
+```
+_alphawrite/alphawrite-2/packages/edu-core/src/activities/
+├── 02-fragment-or-sentence/
+├── 11-basic-conjunctions/     ← MVP ✅
+├── 13-write-appositives/      ← MVP ✅
+├── 14-subordinating-conjunctions/
+├── 16-kernel-expansion/
+├── 19-identify-topic-sentence/
+├── 22-eliminate-irrelevant-sentences/
+├── 24-write-cs-from-details/
+├── 31-using-transition-words/
+├── 34-distinguish-g-s-t/
+├── 37-craft-conclusion-from-gst/
+├── 38-write-introductory-sentences/
+├── 39-write-t-from-topic/
+├── 40-match-details-pro-con/
+└── 50-pre-transition-outline/
+```
+
+### Grading Approach
+- **Model:** Claude Sonnet 4 (claude-sonnet-4-20250514)
+- **Pattern:** AlphaWrite grader configs → prompt builder → structured output
+- **Cost:** ~$0.02-0.06 per practice session
+- **Implementation:** `lib/grading/practice-grader.ts`
 
 ### Architecture Decisions (from DECISIONS.md)
 - **Sessions storage**: Reuse existing `sessions` collection with `mode: 'practice'`
@@ -235,17 +300,18 @@ MVP gets you demo-ready with 2 lessons in 1-2 days. The MVP architecture scales 
 - **LP rewards**: Score-based, but mastered lessons give 0 LP
 - **LP re-open**: V1 gap detection re-opens mastered lessons for LP
 - **Score tracking**: Best score (can't lose mastery in MVP)
-- **Phase 2**: Pre-generated AI examples (not historical pool)
+- **Phase 2**: Pre-generated AI examples (from AlphaWrite test data)
 
 ### Simplifications from Original Spec
 - ~~Tier I/II/III badges~~ → Binary mastery (★/☆)
 - ~~Async peer review pool~~ → Pre-generated examples
 - ~~Usage count based tiers~~ → Score-based mastery (90%+)
+- ~~Build grading from scratch~~ → Extract AlphaWrite grader configs
 
 ### MVP → V1 Path
-1. **MVP**: 2 lessons, basic mastery, no gap detection
-2. **V1 Priority: Gap Detection** ← Do this first! Creates the ranked ↔ practice loop
-3. **V1**: Add remaining 13 lessons
+1. ~~**MVP**: 2 lessons, basic mastery, no gap detection~~ ✅ Done
+2. **V1 Priority: Gap Detection** ← Do this next! Creates the ranked ↔ practice loop
+3. **V1**: Add remaining 13 lessons (extract from AlphaWrite)
 4. **V1**: Category mastery badges ("Sentence Pro", etc.)
 
 ### V1 → Future Path
@@ -253,3 +319,11 @@ MVP gets you demo-ready with 2 lessons in 1-2 days. The MVP architecture scales 
 - Teacher assignment features
 - Grade/difficulty scaling
 - Mastery decay (can lose ★ over time)
+
+---
+
+## 📚 References
+
+- [PRACTICE_MODE_MVP_ALPHAWRITE.md](./PRACTICE_MODE_MVP_ALPHAWRITE.md) — MVP implementation details
+- [PRACTICE_MODE_DECISIONS.md](./PRACTICE_MODE_DECISIONS.md) — Architecture decisions
+- [AlphaWrite Integration Analysis](../implementation-explanation/curriculum/alphawrite/alphawrite-integration-analysis.md) — Coverage mapping
