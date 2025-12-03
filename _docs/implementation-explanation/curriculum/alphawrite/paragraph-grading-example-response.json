@@ -1,0 +1,61 @@
+{
+  "success": true,
+  "grading": {
+    "scorecard": {
+      "rubricId": "expository",
+      "categories": [
+        {
+          "title": "Topic Sentence",
+          "score": 4,
+          "maxScore": 5,
+          "feedback": "The topic sentence 'Dogs make excellent pets because they are loyal companions' clearly addresses the prompt and uses a subordinating conjunction (because) to express the main idea. The word choice is precise and appropriate ('excellent,' 'loyal companions'). To reach a 5, the sentence could incorporate more sophisticated vocabulary or an additional sentence type like an appositive to add more depth."
+        },
+        {
+          "title": "Detail Sentences",
+          "score": 5,
+          "maxScore": 5,
+          "feedback": "The detail sentences strongly support the topic sentence with three well-developed points: unconditional love, physical activity benefits, and mental health support. The paragraph demonstrates varied sentence structures including compound sentences and complex sentences with subordinating conjunctions ('since'). Transitions are used effectively throughout ('First,' 'Additionally,' 'Furthermore'). Word choice is sophisticated ('unconditional love,' 'greet their owners with excitement,' 'experience lower stress levels'). The details are logically ordered and fully developed with specific examples."
+        },
+        {
+          "title": "Concluding Sentence",
+          "score": 4,
+          "maxScore": 5,
+          "feedback": "The concluding sentence 'In conclusion, the loyalty, activity benefits, and emotional support that dogs provide make them the ideal pet for families' effectively summarizes the main points using a transition ('In conclusion'). It restates the key ideas without simply repeating the topic sentence. The word choice is precise ('ideal pet'). To achieve a 5, consider using an additional sentence type such as a subordinating conjunction or appositive to add sophistication."
+        },
+        {
+          "title": "Conventions",
+          "score": 5,
+          "maxScore": 5,
+          "feedback": "The paragraph demonstrates excellent control of conventions with no errors in grammar, punctuation, capitalization, or spelling. Sentences are properly structured and punctuated throughout."
+        }
+      ],
+      "totalScore": 18,
+      "maxScore": 20,
+      "percentageScore": 90
+    },
+    "strengths": [
+      "Quote: 'Dogs make excellent pets because they are loyal companions' - demonstrates sentence expansion using subordinating conjunction 'because' to add a reason to the main idea",
+      "Quote: 'First, dogs provide unconditional love... Additionally, dogs encourage physical activity... Furthermore, studies have shown' - shows effective use of transition words to create logical flow and organization between supporting details",
+      "Quote: 'dogs encourage physical activity since they need regular walks and playtime' - demonstrates use of subordinating conjunction 'since' to show cause-and-effect relationship in a complex sentence"
+    ],
+    "improvements": [
+      "Change 'Dogs make excellent pets because they are loyal companions' to 'Dogs, faithful animals that bond deeply with humans, make excellent pets because they provide unwavering companionship' - use an appositive to add descriptive detail and more sophisticated vocabulary to the topic sentence",
+      "Change 'dogs provide unconditional love and greet their owners with excitement every day' to 'dogs provide unconditional love, greeting their owners with tail-wagging enthusiasm every day' - use an appositive phrase to create sentence variety and more vivid description",
+      "Change 'In conclusion, the loyalty, activity benefits, and emotional support that dogs provide make them the ideal pet for families' to 'Because dogs offer loyalty, activity benefits, and emotional support, they make the ideal pet for families seeking a devoted companion' - use a subordinating conjunction at the beginning and add an appositive ('a devoted companion') to create a more sophisticated concluding sentence"
+    ],
+    "overallFeedback": "This is an excellent paragraph that scores 18/20 (90%). You demonstrate strong command of TWR strategies including effective use of transitions, subordinating conjunctions, and logical organization. Your supporting details are well-developed and directly support your topic sentence. To reach the highest level, focus on incorporating appositives to add descriptive detail and using more sophisticated sentence structures in your topic and concluding sentences. Your conventions are flawless—keep up the excellent work!"
+  },
+  "normalizedScore": 90,
+  "gaps": {
+    "gaps": [],
+    "hasGaps": false,
+    "prioritizedLessons": []
+  },
+  "recommendedLessons": [],
+  "metadata": {
+    "rubricType": "expository",
+    "gradeLevel": 7,
+    "availableRubricTypes": ["expository", "argumentative", "opinion", "pro-con"]
+  }
+}
+
