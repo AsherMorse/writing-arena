@@ -17,23 +17,62 @@ const GAP_THRESHOLD = 4;
 
 /**
  * @description Mapping of rubric categories to practice lesson IDs.
- * These map directly to lessons in lib/constants/practice-lessons.ts
+ * Maps to AlphaWrite activities - see _docs/.../paragraph-criterion-lesson-mapping.md
  */
 const CATEGORY_TO_LESSONS: Record<string, string[]> = {
   // Topic Sentence variations (all rubric types)
-  'Topic Sentence': ['topic-sentence', 'basic-conjunctions', 'write-appositives'],
-  'Claim (Topic Sentence)': ['topic-sentence', 'basic-conjunctions'],
-  'Topic Sentence (Opinion Statement)': ['topic-sentence', 'basic-conjunctions'],
-  'Topic Sentence (Introduction)': ['topic-sentence', 'basic-conjunctions'],
+  'Topic Sentence': [
+    'make-topic-sentences',
+    'identify-topic-sentence',
+    'basic-conjunctions',
+    'write-appositives',
+  ],
+  'Claim (Topic Sentence)': [
+    'make-topic-sentences',
+    'identify-topic-sentence',
+    'basic-conjunctions',
+  ],
+  'Topic Sentence (Opinion Statement)': [
+    'make-topic-sentences',
+    'identify-topic-sentence',
+    'basic-conjunctions',
+  ],
+  'Topic Sentence (Introduction)': [
+    'make-topic-sentences',
+    'identify-topic-sentence',
+    'basic-conjunctions',
+  ],
 
   // Detail Sentences variations
-  'Detail Sentences': ['transition-words', 'subordinating-conjunctions', 'kernel-expansion'],
-  'Evidence and Reasoning (Detail Sentences)': ['transition-words', 'subordinating-conjunctions', 'kernel-expansion'],
-  'Supporting Details (Facts and Evidence)': ['transition-words', 'kernel-expansion'],
-  'Supporting Details (Pro or Con)': ['transition-words', 'subordinating-conjunctions'],
+  'Detail Sentences': [
+    'writing-spos',
+    'eliminate-irrelevant-sentences',
+    'elaborate-paragraphs',
+    'using-transition-words',
+  ],
+  'Evidence and Reasoning (Detail Sentences)': [
+    'writing-spos',
+    'eliminate-irrelevant-sentences',
+    'elaborate-paragraphs',
+    'subordinating-conjunctions',
+  ],
+  'Supporting Details (Facts and Evidence)': [
+    'writing-spos',
+    'eliminate-irrelevant-sentences',
+    'elaborate-paragraphs',
+  ],
+  'Supporting Details (Pro or Con)': [
+    'writing-spos',
+    'eliminate-irrelevant-sentences',
+    'using-transition-words',
+  ],
 
   // Concluding Sentence (all rubrics use same name)
-  'Concluding Sentence': ['topic-sentence', 'write-appositives'],
+  'Concluding Sentence': [
+    'write-cs-from-details',
+    'make-topic-sentences',
+    'write-appositives',
+  ],
 
   // Conventions
   'Conventions': ['fragment-or-sentence'],
@@ -87,16 +126,40 @@ export function detectGapsFromScorecard(scorecard: ParagraphScorecard): GapDetec
     .filter(g => g.severity === 'low')
     .forEach(g => g.recommendedLessons.forEach(lesson => allLessons.add(lesson)));
 
-  // Prioritize lessons (prefer available ones and sentence-level first)
+  // Prioritize lessons (TWR approach: sentence → paragraph)
   const prioritizedLessons = Array.from(allLessons).sort((a, b) => {
-    // Sentence-level lessons first (TWR approach: build from sentences up)
-    const sentenceLessons = ['basic-conjunctions', 'write-appositives', 'subordinating-conjunctions', 'kernel-expansion', 'fragment-or-sentence'];
-    const aIsSentence = sentenceLessons.includes(a);
-    const bIsSentence = sentenceLessons.includes(b);
-    if (aIsSentence && !bIsSentence) return -1;
-    if (!aIsSentence && bIsSentence) return 1;
-    
-    // Available lessons before coming-soon
+    // Tier 1: Sentence-level lessons (foundational TWR skills)
+    const sentenceLessons = [
+      'basic-conjunctions',
+      'write-appositives',
+      'subordinating-conjunctions',
+      'kernel-expansion',
+      'fragment-or-sentence',
+    ];
+
+    // Tier 2: Paragraph-level lessons
+    const paragraphLessons = [
+      'make-topic-sentences',
+      'identify-topic-sentence',
+      'writing-spos',
+      'eliminate-irrelevant-sentences',
+      'elaborate-paragraphs',
+      'using-transition-words',
+      'finishing-transition-words',
+      'write-cs-from-details',
+    ];
+
+    // Get tier for each lesson (lower = higher priority)
+    const getTier = (lesson: string) => {
+      if (sentenceLessons.includes(lesson)) return 1;
+      if (paragraphLessons.includes(lesson)) return 2;
+      return 3; // Unknown lessons last
+    };
+
+    const tierDiff = getTier(a) - getTier(b);
+    if (tierDiff !== 0) return tierDiff;
+
+    // Within same tier, prioritize available lessons
     const availableLessons = ['basic-conjunctions', 'write-appositives'];
     const aAvailable = availableLessons.includes(a);
     const bAvailable = availableLessons.includes(b);
