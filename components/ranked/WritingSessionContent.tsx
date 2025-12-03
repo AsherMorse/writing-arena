@@ -154,11 +154,7 @@ export default function WritingSessionContent() {
       await submitPhase(phase, data);
     },
     validateSubmission: () => validateWritingSubmission(writingContent, wordCount),
-    onEmptySubmission: async (isEmpty) => {
-      if (isEmpty) {
-        await submitPhase(1, { content: '', wordCount: 0, score: 0 });
-      }
-    },
+    emptyPenaltyScore: 0,
     fallbackEvaluation: async () => {
       const response = await fetch('/api/analyze-writing', {
         method: 'POST',

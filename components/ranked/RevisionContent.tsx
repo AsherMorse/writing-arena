@@ -2,7 +2,7 @@
 
 import { useRouter, useParams, useSearchParams } from 'next/navigation';
 import { useNavigation } from '@/lib/hooks/useNavigation';
-import { useState, useEffect, useRef, useMemo } from 'react';
+import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import WritingTipsModal from '@/components/shared/WritingTipsModal';
 import PhaseInstructions from '@/components/shared/PhaseInstructions';
 import RevisionChecklist from '@/components/shared/RevisionChecklist';
@@ -67,11 +67,15 @@ export default function RevisionContent() {
     const restored = getSessionStorage<string>(`draft-${revisionKey}`);
     return restored || '';
   });
+  
+  const prefillDoneRef = useRef(false);
   useEffect(() => { 
     // Prefill with original content if no draft exists and original content is available
+    if (prefillDoneRef.current) return;
     if (sessionId && originalContent) {
       const restored = getSessionStorage<string>(`draft-${revisionKey}`);
-      if (!restored && !revisedContent) {
+      if (!restored) {
+        prefillDoneRef.current = true;
         setRevisedContent(originalContent);
       }
     }
@@ -139,7 +143,7 @@ export default function RevisionContent() {
       }
     };
     generateRealFeedback();
-  }, [originalContent, promptType]);
+  }, [originalContent, promptType, session, loadingFeedback]);
 
   useEffect(() => {
     const generateAIRevisions = async () => {
@@ -227,7 +231,7 @@ export default function RevisionContent() {
     return null;
   };
 
-  const handleSubmit = async () => {
+  const handleSubmit = useCallback(async () => {
     setIsEvaluating(true);
     setShowRankingModal(true);
     try { await handleBatchSubmit(); }
@@ -235,7 +239,7 @@ export default function RevisionContent() {
       setIsEvaluating(false);
       setTimeout(() => setShowRankingModal(false), TIMING.MODAL_CLOSE_DELAY);
     }
-  };
+  }, [handleBatchSubmit, setShowRankingModal]);
 
   // Debug force submit listener
   useEffect(() => {
@@ -254,7 +258,7 @@ export default function RevisionContent() {
   useEffect(() => {
     if (!session || !hasSubmitted()) return;
     if (session.state === 'completed') navigateToRankedResults(activeSessionId || sessionId);
-  }, [session, hasSubmitted, router, activeSessionId, sessionId]);
+  }, [session, hasSubmitted, activeSessionId, sessionId, navigateToRankedResults]);
 
   const { handlePaste, handleCut, handleCopy } = usePastePrevention({ showWarning: false });
 
