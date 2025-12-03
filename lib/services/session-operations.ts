@@ -9,6 +9,7 @@ import {
   getDoc,
   setDoc,
   updateDoc,
+  runTransaction,
   collection,
   query,
   where,
@@ -25,7 +26,7 @@ import {
   CreateSessionOptions,
   SessionPlayer,
 } from '../types/session';
-import { getRankPhaseDuration } from '../constants/scoring';
+import { getRankPhaseDuration, SCORING } from '../constants/scoring';
 import { generateConnectionId } from './session-connection';
 import { createLogger, LOG_CONTEXTS } from '../utils/logger';
 
@@ -213,33 +214,113 @@ export async function createSession(
   return session;
 }
 
+/**
+ * @description Submit phase data and transition to next phase if all real players are done.
+ * Uses a transaction to ensure atomicity - no race conditions between submission and phase transition.
+ * The last real player to submit triggers the phase transition within the same atomic operation.
+ */
 export async function submitPhase(
   sessionId: string,
   userId: string,
   phase: Phase,
   data: PhaseSubmissionData
-): Promise<void> {
+): Promise<{ transitioned: boolean; nextPhase?: Phase }> {
   const sessionRef = doc(db, 'sessions', sessionId);
   
-  const phaseData = {
-    submitted: true,
-    submittedAt: serverTimestamp(),
-    ...data,
-  };
-  
-  log.debug(`Saving phase ${phase} data`, {
+  log.debug(`Submitting phase ${phase} with atomic transition check`, {
     sessionId,
     userId,
     phase,
-    data: phaseData,
   });
   
-  await updateDoc(sessionRef, {
-    [`players.${userId}.phases.phase${phase}`]: phaseData,
-    updatedAt: serverTimestamp(),
+  const result = await runTransaction(db, async (transaction) => {
+    const sessionDoc = await transaction.get(sessionRef);
+    if (!sessionDoc.exists()) {
+      throw new Error('Session not found');
+    }
+    
+    const session = sessionDoc.data() as GameSession;
+    
+    // 1. Prepare player's phase submission
+    const phaseData = {
+      submitted: true,
+      submittedAt: serverTimestamp(),
+      ...data,
+    };
+    
+    const updates: Record<string, any> = {
+      [`players.${userId}.phases.phase${phase}`]: phaseData,
+      updatedAt: serverTimestamp(),
+    };
+    
+    // 2. Check if this submission completes the phase for all REAL players
+    const allPlayers = Object.values(session.players || {});
+    const realPlayers = allPlayers.filter(p => !p.isAI);
+    const phaseKey = `phase${phase}` as 'phase1' | 'phase2' | 'phase3';
+    
+    // Count already submitted (excluding current user) + this submission
+    const alreadySubmittedCount = realPlayers.filter(
+      p => p.userId !== userId && p.phases[phaseKey]?.submitted
+    ).length;
+    const willAllBeSubmitted = alreadySubmittedCount + 1 === realPlayers.length;
+    
+    // 3. If all will be submitted AND we're still on this phase, do transition
+    let transitioned = false;
+    let nextPhase: Phase | undefined;
+    
+    if (willAllBeSubmitted && session.config.phase === phase) {
+      // Get median rank for duration calculation
+      const ranks = realPlayers.map(p => p.rank).filter(Boolean);
+      ranks.sort();
+      const medianRank = ranks.length > 0 ? ranks[Math.floor(ranks.length / 2)] : null;
+      
+      if (phase === 1) {
+        nextPhase = 2;
+        const phaseDuration = medianRank 
+          ? getRankPhaseDuration(medianRank, 2)
+          : SCORING.PHASE2_DURATION;
+        
+        updates['config.phase'] = 2;
+        updates['config.phaseDuration'] = phaseDuration;
+        updates['timing.phase2StartTime'] = serverTimestamp();
+        updates['coordination.allPlayersReady'] = false;
+        updates['coordination.readyCount'] = 0;
+        updates['state'] = 'active';
+        transitioned = true;
+        
+      } else if (phase === 2) {
+        nextPhase = 3;
+        const phaseDuration = medianRank 
+          ? getRankPhaseDuration(medianRank, 3)
+          : SCORING.PHASE3_DURATION;
+        
+        updates['config.phase'] = 3;
+        updates['config.phaseDuration'] = phaseDuration;
+        updates['timing.phase3StartTime'] = serverTimestamp();
+        updates['coordination.allPlayersReady'] = false;
+        updates['coordination.readyCount'] = 0;
+        updates['state'] = 'active';
+        transitioned = true;
+        
+      } else if (phase === 3) {
+        updates['state'] = 'completed';
+        updates['coordination.allPlayersReady'] = true;
+        transitioned = true;
+      }
+    }
+    
+    transaction.update(sessionRef, updates);
+    
+    return { transitioned, nextPhase };
   });
   
-  log.info(`Successfully saved phase ${phase} to session`, { sessionId, phase });
+  log.info(`Submitted phase ${phase}`, { 
+    sessionId, 
+    transitioned: result.transitioned,
+    nextPhase: result.nextPhase 
+  });
+  
+  return result;
 }
 
 export async function getSession(sessionId: string): Promise<GameSession | null> {

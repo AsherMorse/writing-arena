@@ -155,12 +155,12 @@ export class SessionManager {
   async submitPhase(
     phase: Phase,
     data: PhaseSubmissionData
-  ): Promise<void> {
+  ): Promise<{ transitioned: boolean; nextPhase?: Phase }> {
     if (!this._sessionId || !this._userId) {
       throw new Error('Session not initialized');
     }
     
-    await submitPhase(this._sessionId, this._userId, phase, data);
+    return await submitPhase(this._sessionId, this._userId, phase, data);
   }
   
   private startPeriodicRefresh(): void {

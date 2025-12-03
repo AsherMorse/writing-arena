@@ -174,6 +174,13 @@ export default function PeerFeedbackContent() {
     }
   };
 
+  // Debug force submit listener
+  useEffect(() => {
+    const handleForceSubmit = () => { void handleSubmit(); };
+    window.addEventListener('debug-force-submit', handleForceSubmit);
+    return () => { window.removeEventListener('debug-force-submit', handleForceSubmit); };
+  }, [handleSubmit]);
+
   const { getTimeSinceMount } = useComponentMountTime();
 
   useEffect(() => {

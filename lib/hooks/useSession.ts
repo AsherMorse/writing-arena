@@ -106,9 +106,9 @@ export function useSession(sessionId: string | null) {
     return () => clearInterval(interval);
   }, [session, sessionManager]);
   
-  // Submit phase helper
+  // Submit phase helper - returns transition info from atomic operation
   const submitPhase = useCallback(
-    async (phase: Phase, data: PhaseSubmissionData) => {
+    async (phase: Phase, data: PhaseSubmissionData): Promise<{ transitioned: boolean; nextPhase?: Phase }> => {
       // Check if session manager is initialized
       if (!sessionManager || !sessionId || !user?.uid) {
         const error = new Error('Session not initialized');
@@ -133,7 +133,7 @@ export function useSession(sessionId: string | null) {
       }
       
       try {
-        await sessionManager.submitPhase(phase, data);
+        return await sessionManager.submitPhase(phase, data);
       } catch (err) {
         console.error('❌ Failed to submit phase:', err);
         setError(err as Error);

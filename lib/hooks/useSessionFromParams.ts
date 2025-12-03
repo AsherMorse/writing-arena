@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { GameSession } from '@/lib/types/session';
 import { useSession } from './useSession';
@@ -22,12 +22,13 @@ export function useSessionFromParams(sessionProp?: GameSession | null) {
   
   // Try to get sessionId from matchState if we have matchId but no sessionId
   const [sessionIdFromMatch, setSessionIdFromMatch] = useState<string>('');
-  const [loadingSessionId, setLoadingSessionId] = useState(false);
+  const loadingRef = useRef(false);
   
   useEffect(() => {
     const fetchSessionIdFromMatch = async () => {
-      if (matchIdFromParams && !sessionIdFromParams && !sessionProp && !loadingSessionId) {
-        setLoadingSessionId(true);
+      // Use ref to prevent re-triggering and check if we already have sessionId
+      if (matchIdFromParams && !sessionIdFromParams && !sessionProp && !loadingRef.current && !sessionIdFromMatch) {
+        loadingRef.current = true;
         try {
           const matchState = await getMatchState(matchIdFromParams);
           if (matchState?.sessionId) {
@@ -37,12 +38,12 @@ export function useSessionFromParams(sessionProp?: GameSession | null) {
         } catch (error) {
           console.error('❌ SESSION FROM PARAMS - Failed to get sessionId from matchState:', error);
         } finally {
-          setLoadingSessionId(false);
+          loadingRef.current = false;
         }
       }
     };
     fetchSessionIdFromMatch();
-  }, [matchIdFromParams, sessionIdFromParams, sessionProp, loadingSessionId]);
+  }, [matchIdFromParams, sessionIdFromParams, sessionProp, sessionIdFromMatch]);
   
   // Use sessionId from params, matchState, or null
   const finalSessionId = sessionIdFromParams || sessionIdFromMatch;
@@ -55,7 +56,7 @@ export function useSessionFromParams(sessionProp?: GameSession | null) {
     session,
     sessionId: finalSessionId,
     matchId: matchIdFromParams,
-    isLoading: loadingSessionId,
+    isLoading: loadingRef.current,
   };
 }
 

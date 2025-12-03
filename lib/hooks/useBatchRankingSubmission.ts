@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { getDoc, doc, updateDoc, serverTimestamp } from 'firebase/firestore';
+import { getDoc, doc, updateDoc } from 'firebase/firestore';
 import { db } from '@/lib/config/firebase';
 import { clampScore } from '@/lib/constants/scoring';
 import { Phase } from '@/lib/types/session';
@@ -37,7 +37,7 @@ interface UseBatchRankingSubmissionOptions<TSubmission, TSubmissionData> {
   rankingsKey: string;
   prepareUserSubmission: () => TSubmission;
   prepareSubmissionData: (score: number) => TSubmissionData;
-  submitPhase: (phase: Phase, data: TSubmissionData) => Promise<void>;
+  submitPhase: (phase: Phase, data: TSubmissionData) => Promise<void | { transitioned: boolean; nextPhase?: Phase }>;
   fallbackEvaluation?: () => Promise<number>;
   validateSubmission?: () => { isValid: boolean; isEmpty?: boolean; unchanged?: boolean };
   onEmptySubmission?: (isEmpty: boolean, unchanged?: boolean) => Promise<void>;
@@ -94,9 +94,9 @@ export function useBatchRankingSubmission<TSubmission, TSubmissionData>(
             return true;
           },
           {
-            maxAttempts: 10,
-            delayMs: 1000,
-            exponentialBackoff: false,
+            maxAttempts: 6,      // Fewer attempts needed with exponential backoff
+            delayMs: 500,        // Start faster
+            exponentialBackoff: true,  // 500ms, 1s, 2s, 4s, 8s, 16s = 31.5s total coverage
           }
         );
       } catch (err) {
@@ -181,22 +181,6 @@ export function useBatchRankingSubmission<TSubmission, TSubmissionData>(
         [options.rankingsKey]: rankings,
         [`feedback.${options.userId}.phase${options.phase}`]: userFeedback,
       });
-
-      // Set the start time for the next phase (after batch ranking completes)
-      // This ensures players get the full phase duration
-      const nextPhase = options.phase + 1;
-      if ((nextPhase === 2 || nextPhase === 3) && options.sessionId) {
-        try {
-          const sessionRef = doc(db, 'sessions', options.sessionId);
-          await updateDoc(sessionRef, {
-            [`timing.phase${nextPhase}StartTime`]: serverTimestamp()
-          });
-          console.log(`✅ BATCH RANKING - Set phase ${nextPhase} start time after ranking completion`);
-        } catch (err) {
-          console.warn(`⚠️ BATCH RANKING - Failed to set phase ${nextPhase} start time:`, err);
-          // Don't fail the submission if this fails
-        }
-      }
 
       const submissionData = options.prepareSubmissionData(clampScore(score));
       console.log(`✅ BATCH RANKING - Submitting phase ${options.phase} with score:`, clampScore(score), 'data:', submissionData);

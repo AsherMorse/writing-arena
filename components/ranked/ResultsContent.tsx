@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
@@ -66,6 +66,8 @@ export default function ResultsContent({ session: sessionProp }: ResultsContentP
   
   const [isAnalyzing, setIsAnalyzing] = useState(true);
   const [results, setResults] = useState<any>(null);
+  const hasAnalyzedRef = useRef(false);
+  const hasLoggedRef = useRef(false);
   const { expanded: expandedPhase, toggle: togglePhase, isExpanded } = useExpanded<'writing' | 'feedback' | 'revision'>('writing');
   const [realFeedback, setRealFeedback] = useState<any>({ writing: null, feedback: null, revision: null });
 
@@ -87,9 +89,10 @@ export default function ResultsContent({ session: sessionProp }: ResultsContentP
     fetchAIFeedback();
   }, [user, matchId]);
 
-  // Log scores for debugging
+  // Log scores for debugging (only once)
   useEffect(() => {
-    if (user && finalSession) {
+    if (user && finalSession && !hasLoggedRef.current) {
+      hasLoggedRef.current = true;
       logger.debug(LOG_CONTEXTS.RESULTS, 'Session scores', {
         writingScore: userPlayer?.phases.phase1?.score,
         feedbackScore: (userPlayer?.phases.phase2 as any)?.score,
@@ -101,7 +104,11 @@ export default function ResultsContent({ session: sessionProp }: ResultsContentP
   }, [user, finalSession, userPlayer]);
   
   useEffect(() => {
+    // Guard against re-running analysis (prevents infinite loop from session updates)
+    if (hasAnalyzedRef.current) return;
+    
     const analyzeRankedMatch = async () => {
+      hasAnalyzedRef.current = true;
       try {
         // Fetch all phase rankings
         const { phase1: realPhase1Rankings, phase2: realPhase2Rankings, phase3: realPhase3Rankings } = matchId

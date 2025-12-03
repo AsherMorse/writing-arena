@@ -240,6 +240,13 @@ export default function RevisionContent() {
     }
   };
 
+  // Debug force submit listener
+  useEffect(() => {
+    const handleForceSubmit = () => { void handleSubmit(); };
+    window.addEventListener('debug-force-submit', handleForceSubmit);
+    return () => { window.removeEventListener('debug-force-submit', handleForceSubmit); };
+  }, [handleSubmit]);
+
   useAutoSubmit({ timeRemaining, hasSubmitted, onSubmit: handleSubmit, minPhaseAge: TIMING.MIN_PHASE_AGE });
 
   usePhaseTransition({
