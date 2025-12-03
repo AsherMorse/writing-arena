@@ -7,6 +7,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useSession } from '@/lib/hooks/useSession';
 import { useSessionData } from '@/lib/hooks/useSessionData';
 import { useAutoSubmit } from '@/lib/hooks/useAutoSubmit';
+import { usePhaseTransition } from '@/lib/hooks/usePhaseTransition';
 import { getPromptById } from '@/lib/utils/prompts';
 import WritingTipsModal from '@/components/shared/WritingTipsModal';
 import WaitingForPlayers from '@/components/shared/WaitingForPlayers';
@@ -188,6 +189,16 @@ export default function WritingSessionContent() {
     onSubmit: handleSubmit,
     minPhaseAge: 5000,
     isSessionReady: () => !!(session && sessionId && user?.uid),
+  });
+
+  usePhaseTransition({
+    session,
+    currentPhase: 1,
+    hasSubmitted,
+    sessionId: activeSessionId || sessionId,
+    onTransition: () => {
+      router.push(`/ranked/peer-feedback?sessionId=${activeSessionId || sessionId}`);
+    },
   });
 
   const { getTimeSinceMount } = useComponentMountTime();

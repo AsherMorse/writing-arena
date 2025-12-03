@@ -8,13 +8,14 @@ export type SkillLevel = 'beginner' | 'intermediate' | 'proficient' | 'advanced'
 /**
  * Get skill level from rank string
  */
-export function getSkillLevelFromRank(rank: string): SkillLevel {
-  if (rank.includes('Bronze')) return 'beginner';
-  if (rank.includes('Silver')) return 'intermediate';
-  if (rank.includes('Gold')) return 'proficient';
-  if (rank.includes('Platinum')) return 'advanced';
-  if (rank.includes('Diamond')) return 'expert';
-  if (rank.includes('Master') || rank.includes('Grand')) return 'master';
+export function getSkillLevelFromRank(rank: string | number | unknown): SkillLevel {
+  const rankStr = String(rank ?? 'Silver III');
+  if (rankStr.includes('Bronze')) return 'beginner';
+  if (rankStr.includes('Silver')) return 'intermediate';
+  if (rankStr.includes('Gold')) return 'proficient';
+  if (rankStr.includes('Platinum')) return 'advanced';
+  if (rankStr.includes('Diamond')) return 'expert';
+  if (rankStr.includes('Master') || rankStr.includes('Grand')) return 'master';
   return 'intermediate';
 }
 
@@ -22,21 +23,20 @@ export function getSkillLevelFromRank(rank: string): SkillLevel {
  * Get grade level from rank string
  * Supports grades 3rd-12th
  */
-export function getGradeLevelFromRank(rank: string): string {
-  // Map ranks to grade levels (3rd-12th grade)
-  if (rank.includes('Bronze I') || rank.includes('Bronze II')) return '3rd-4th';
-  if (rank.includes('Bronze III')) return '5th';
-  if (rank.includes('Bronze')) return '6th';
-  if (rank.includes('Silver I') || rank.includes('Silver II')) return '7th';
-  if (rank.includes('Silver III')) return '8th';
-  if (rank.includes('Silver')) return '7th-8th';
-  if (rank.includes('Gold I') || rank.includes('Gold II')) return '9th';
-  if (rank.includes('Gold III')) return '10th';
-  if (rank.includes('Gold')) return '9th-10th';
-  if (rank.includes('Platinum')) return '11th';
-  if (rank.includes('Diamond')) return '12th';
-  if (rank.includes('Master') || rank.includes('Grand')) return '12th';
-  // Default fallback - assume middle school if unknown
+export function getGradeLevelFromRank(rank: string | number | unknown): string {
+  const rankStr = String(rank ?? 'Silver III');
+  if (rankStr.includes('Bronze I') || rankStr.includes('Bronze II')) return '3rd-4th';
+  if (rankStr.includes('Bronze III')) return '5th';
+  if (rankStr.includes('Bronze')) return '6th';
+  if (rankStr.includes('Silver I') || rankStr.includes('Silver II')) return '7th';
+  if (rankStr.includes('Silver III')) return '8th';
+  if (rankStr.includes('Silver')) return '7th-8th';
+  if (rankStr.includes('Gold I') || rankStr.includes('Gold II')) return '9th';
+  if (rankStr.includes('Gold III')) return '10th';
+  if (rankStr.includes('Gold')) return '9th-10th';
+  if (rankStr.includes('Platinum')) return '11th';
+  if (rankStr.includes('Diamond')) return '12th';
+  if (rankStr.includes('Master') || rankStr.includes('Grand')) return '12th';
   return '7th-8th';
 }
 
@@ -44,7 +44,7 @@ export function getGradeLevelFromRank(rank: string): string {
  * Get approximate grade level number for age-appropriate instruction
  * Returns a number between 3-12
  */
-export function getGradeLevelNumber(rank: string): number {
+export function getGradeLevelNumber(rank: string | number | unknown): number {
   const gradeLevel = getGradeLevelFromRank(rank);
   
   // Extract number from grade level string

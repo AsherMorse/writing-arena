@@ -24,7 +24,8 @@ export async function getAIFeedback(
 
 export async function getPeerFeedbackResponses(
   matchId: string,
-  userId: string
+  userId: string,
+  sessionPlayers?: Record<string, any>
 ): Promise<any | null> {
   try {
     const matchRef = doc(db, 'matchStates', matchId);
@@ -35,7 +36,10 @@ export async function getPeerFeedbackResponses(
     }
     
     const matchState = { ...matchSnap.data() };
-    const players = [...(matchState.players || [])];
+    let players = matchState.players || [];
+    if (players.length === 0 && sessionPlayers) {
+      players = Object.values(sessionPlayers);
+    }
     const feedbackRankings = [...(matchState.rankings?.phase2 || [])];
     const aiFeedbacks = [...(matchState.aiFeedbacks?.phase2 || [])];
     
@@ -77,7 +81,8 @@ export async function getPeerFeedbackResponses(
 
 export async function getAssignedPeer(
   matchId: string,
-  userId: string
+  userId: string,
+  sessionPlayers?: Record<string, any>
 ): Promise<{ userId: string; displayName: string; writing: string; wordCount: number } | null> {
   try {
     const matchRef = doc(db, 'matchStates', matchId);
@@ -86,9 +91,16 @@ export async function getAssignedPeer(
     if (!matchSnap.exists()) return null;
     
     const matchState = { ...matchSnap.data() };
-    const players = [...(matchState.players || [])];
     const writesPhase1 = [...(matchState.aiWritings?.phase1 || [])];
     const rankingsPhase1 = [...(matchState.rankings?.phase1 || [])];
+    
+    let players: any[] = matchState.players || [];
+    
+    if (players.length === 0 && sessionPlayers) {
+      players = Object.values(sessionPlayers);
+    }
+    
+    if (players.length === 0) return null;
     
     const yourIndex = players.findIndex((p: any) => p.userId === userId);
     if (yourIndex === -1) return null;

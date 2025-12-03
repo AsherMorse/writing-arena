@@ -112,11 +112,12 @@ export function generateMockAIWriting(rank: string): any {
   };
 }
 
-function getSkillLevelFromRank(rank: string): string {
-  if (rank.includes('Bronze')) return 'beginner';
-  if (rank.includes('Silver')) return 'intermediate';
-  if (rank.includes('Gold')) return 'proficient';
-  if (rank.includes('Platinum')) return 'advanced';
+function getSkillLevelFromRank(rank: string | number | unknown): string {
+  const rankStr = String(rank ?? 'Silver III');
+  if (rankStr.includes('Bronze')) return 'beginner';
+  if (rankStr.includes('Silver')) return 'intermediate';
+  if (rankStr.includes('Gold')) return 'proficient';
+  if (rankStr.includes('Platinum')) return 'advanced';
   return 'intermediate';
 }
 

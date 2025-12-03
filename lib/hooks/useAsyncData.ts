@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 
 interface UseAsyncDataOptions {
   immediate?: boolean;
@@ -18,13 +18,17 @@ export function useAsyncData<T>(
   const [data, setData] = useState<T | null>(null);
   const [loading, setLoading] = useState(immediate);
   const [error, setError] = useState<Error | null>(null);
+  const hasFetchedRef = useRef(false);
 
   const fetchData = useCallback(async () => {
     try {
-      setLoading(true);
+      if (!hasFetchedRef.current) {
+        setLoading(true);
+      }
       setError(null);
       const result = await fetchFn();
       setData(result);
+      hasFetchedRef.current = true;
       onSuccess?.(result);
       return result;
     } catch (err) {
@@ -57,6 +61,7 @@ export function useAsyncData<T>(
       setData(null);
       setError(null);
       setLoading(false);
+      hasFetchedRef.current = false;
     },
   };
 }

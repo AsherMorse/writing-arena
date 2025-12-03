@@ -25,6 +25,7 @@ export default function MatchmakingContent() {
   
   const { findOrJoinSession, addPlayerToSession, startSession } = useCreateSession();
   const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
+  const sessionIdRef = useRef<string | null>(null);
 
   const userAvatar = normalizePlayerAvatar(userProfile?.avatar);
   const userRank = getPlayerRank(userProfile?.currentRank);
@@ -220,23 +221,23 @@ export default function MatchmakingContent() {
           return;
         }
         setCurrentSessionId(session.sessionId);
+        sessionIdRef.current = session.sessionId;
 
         unsubscribeQueue = listenToQueue(trait, userId, (queuePlayers: QueueEntry[]) => {
           setQueueSnapshot(queuePlayers);
           
-          // Note: partyLockedRef is managed by useMatchmakingCountdown hook
-          if (!currentSessionId) {
+          if (!sessionIdRef.current) {
             return;
           }
           
           (async () => {
             for (const queuePlayer of queuePlayers) {
-              if (queuePlayer.userId !== userId && currentSessionId) {
+              if (queuePlayer.userId !== userId && sessionIdRef.current) {
                 const alreadyAdded = players.some(p => p.userId === queuePlayer.userId);
                 if (!alreadyAdded) {
                   try {
                     await addPlayerToSession(
-                      currentSessionId,
+                      sessionIdRef.current,
                       queuePlayer.userId,
                       {
                         displayName: queuePlayer.displayName,
@@ -291,9 +292,9 @@ export default function MatchmakingContent() {
               const aiStudent = aiStudents[aiIndex];
               const aiPlayer = buildAIPlayer(aiStudent);
               
-                if (currentSessionId) {
+                if (sessionIdRef.current) {
                   addPlayerToSession(
-                    currentSessionId,
+                    sessionIdRef.current,
                     aiPlayer.userId,
                     {
                       displayName: aiStudent.displayName || 'AI Player',
@@ -325,9 +326,9 @@ export default function MatchmakingContent() {
                 const aiStudent = aiStudents[aiIndex];
                 const aiPlayer = buildAIPlayer(aiStudent);
                 
-                if (currentSessionId) {
+                if (sessionIdRef.current) {
                   addPlayerToSession(
-                    currentSessionId,
+                    sessionIdRef.current,
                     aiPlayer.userId,
                     {
                       displayName: aiStudent.displayName || 'AI Player',
@@ -365,7 +366,7 @@ export default function MatchmakingContent() {
         leaveQueue(userId).catch(() => {});
       }
     };
-  }, [user, userProfile, userId, userName, userAvatar, userRank, trait, buildAIPlayer, findOrJoinSession, addPlayerToSession, currentSessionId, players, startModal.isOpen, fillLobbyWithAI]);
+  }, [user, userProfile, userId, userName, userAvatar, userRank, trait, buildAIPlayer, findOrJoinSession, addPlayerToSession, players, startModal.isOpen, fillLobbyWithAI]);
 
   useEffect(() => {
     if (typeof window === 'undefined') return undefined;

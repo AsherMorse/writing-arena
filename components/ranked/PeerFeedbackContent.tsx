@@ -14,6 +14,7 @@ import { usePhaseTransition } from '@/lib/hooks/usePhaseTransition';
 import { useAutoSubmit } from '@/lib/hooks/useAutoSubmit';
 import { getAssignedPeer } from '@/lib/services/match-sync';
 import { getTimeColor, getTimeProgressColor } from '@/lib/utils/time-utils';
+import { getPromptById } from '@/lib/utils/prompts';
 import { SCORING, getDefaultScore, TIMING } from '@/lib/constants/scoring';
 import { getPhaseTimeColor } from '@/lib/utils/phase-colors';
 import { usePastePrevention } from '@/lib/hooks/usePastePrevention';
@@ -65,6 +66,15 @@ export default function PeerFeedbackContent() {
     sessionId: activeSessionId,
   } = useSessionData(session);
 
+  const prompt = sessionConfig ? getPromptById(sessionConfig.promptId) : null;
+  
+  const sessionPlayersRef = useRef(sessionPlayers);
+  useEffect(() => {
+    if (sessionPlayers && Object.keys(sessionPlayers).length > 0) {
+      sessionPlayersRef.current = sessionPlayers;
+    }
+  }, [sessionPlayers]);
+
   const [isEvaluating, setIsEvaluating] = useState(false);
   const [showRubric, setShowRubric] = useState(true);
   const [showExamples, setShowExamples] = useState(true);
@@ -105,29 +115,24 @@ export default function PeerFeedbackContent() {
       if (!user || !matchId) return MOCK_PEER_WRITINGS[0];
       
       const assignedPeer = await retryWithBackoff(
-        async () => await getAssignedPeer(matchId, user.uid),
+        async () => await getAssignedPeer(matchId, user.uid, sessionPlayersRef.current),
         { maxAttempts: 5, delayMs: 1500, onRetry: () => {} }
       );
       
       if (assignedPeer) {
-        // Get peer's Phase 1 score from session data
-        const peerPhase1Score = sessionPlayers?.[assignedPeer.userId]?.phases?.phase1?.score;
-        const peerRank = sessionPlayers?.[assignedPeer.userId]?.rank || 'Silver III';
-        
         return {
           id: assignedPeer.userId,
           author: assignedPeer.displayName,
           avatar: '📝',
-          rank: peerRank,
+          rank: 'Silver III',
           content: assignedPeer.writing,
           wordCount: assignedPeer.wordCount,
-          phase1Score: peerPhase1Score,
         };
       }
       
       return MOCK_PEER_WRITINGS[0];
     },
-    [user?.uid, matchId, sessionPlayers],
+    [user?.uid, matchId],
     { immediate: true }
   );
 
@@ -184,6 +189,16 @@ export default function PeerFeedbackContent() {
 
   useAutoSubmit({ timeRemaining, hasSubmitted, onSubmit: handleSubmit, minPhaseAge: TIMING.MIN_PHASE_AGE });
 
+  usePhaseTransition({
+    session,
+    currentPhase: 2,
+    hasSubmitted,
+    sessionId: activeSessionId || sessionId,
+    onTransition: () => {
+      router.push(`/ranked/revision?sessionId=${activeSessionId || sessionId}`);
+    },
+  });
+
   useEffect(() => { if (process.env.NODE_ENV === 'development') {} }, [timeRemaining]);
 
   if (isReconnecting || !session) {
@@ -227,7 +242,7 @@ export default function PeerFeedbackContent() {
         )}
 
         <div className="grid gap-6 lg:grid-cols-2">
-          <PeerWritingCard peer={currentPeer} loading={loadingPeer} />
+          <PeerWritingCard peer={currentPeer} loading={loadingPeer} prompt={prompt} />
 
           <FeedbackFormCard
             responses={responses}
