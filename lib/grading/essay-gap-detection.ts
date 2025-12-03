@@ -12,29 +12,38 @@ import type {
 
 /**
  * @description Mapping of essay criteria to practice lesson IDs.
- * These map directly to lessons in lib/constants/practice-lessons.ts
+ * Maps to AlphaWrite activities - see _docs/.../essay-criterion-lesson-mapping.md
  */
 const ESSAY_CRITERION_TO_LESSONS: Record<string, string[]> = {
   // Topic sentence criteria
   'Each body paragraph has a topic sentence': [
-    'topic-sentence',
+    'make-topic-sentences',
+    'identify-topic-sentence',
     'basic-conjunctions',
   ],
 
   // Supporting details
   'Supporting details support topic sentence': [
-    'transition-words',
-    'kernel-expansion',
-    'subordinating-conjunctions',
+    'writing-spos',
+    'eliminate-irrelevant-sentences',
+    'elaborate-paragraphs',
   ],
 
   // Thesis
-  'Developed thesis statement': ['topic-sentence'],
+  'Developed thesis statement': [
+    'write-t-from-topic',
+    'distinguish-g-s-t',
+    'make-topic-sentences',
+  ],
 
   // Body paragraphs supporting thesis
-  'Each body paragraph supports thesis': ['topic-sentence', 'transition-words'],
+  'Each body paragraph supports thesis': [
+    'eliminate-irrelevant-sentences',
+    'writing-spos',
+    'using-transition-words',
+  ],
 
-  // Sentence strategies (most important for TWR)
+  // Sentence strategies (TWR core skills)
   'Used sentence strategies': [
     'basic-conjunctions',
     'write-appositives',
@@ -43,28 +52,52 @@ const ESSAY_CRITERION_TO_LESSONS: Record<string, string[]> = {
   ],
 
   // Transitions
-  'Used transitions correctly': ['transition-words'],
+  'Used transitions correctly': [
+    'using-transition-words',
+    'finishing-transition-words',
+  ],
 
   // Introduction (GST structure)
-  'Composed effective introduction': ['topic-sentence'],
+  'Composed effective introduction': [
+    'distinguish-g-s-t',
+    'write-g-s-from-t',
+    'write-introductory-sentences',
+  ],
 
   // Conclusion (TSG structure)
-  'Composed effective conclusion': ['topic-sentence'],
+  'Composed effective conclusion': [
+    'craft-conclusion-from-gst',
+    'distinguish-g-s-t',
+  ],
 
   // Editing/grammar
   'Edited for grammar and mechanics': ['fragment-or-sentence'],
 
-  // Counterclaim (advanced)
-  'Addressed opposing view/counterclaim': ['subordinating-conjunctions'],
+  // Counterclaim (advanced argumentative)
+  'Addressed opposing view/counterclaim': [
+    'match-details-pro-con',
+    'subordinating-conjunctions',
+  ],
 
   // Concluding sentence (grade 6)
-  'Composed effective concluding sentence': ['topic-sentence'],
+  'Composed effective concluding sentence': [
+    'write-cs-from-details',
+    'make-topic-sentences',
+  ],
 
   // Evidence
-  'Used credible and relevant evidence': ['transition-words', 'kernel-expansion'],
+  'Used credible and relevant evidence': [
+    'writing-spos',
+    'eliminate-irrelevant-sentences',
+    'elaborate-paragraphs',
+  ],
 
   // Pro/Con balance
-  'Presented both sides fairly': ['transition-words'],
+  'Presented both sides fairly': [
+    'match-details-pro-con',
+    'using-transition-words',
+    'writing-spos',
+  ],
 
   // Minimum paragraph count (structural, no direct lesson)
   'Minimum paragraph count': [],
@@ -72,7 +105,8 @@ const ESSAY_CRITERION_TO_LESSONS: Record<string, string[]> = {
   // Clear reasoning (advanced argumentative)
   'Clear reasoning from evidence to claim': [
     'subordinating-conjunctions',
-    'kernel-expansion',
+    'elaborate-paragraphs',
+    'writing-spos',
   ],
 };
 
@@ -120,9 +154,9 @@ export function detectGapsFromEssayScorecard(
     .filter((g) => g.severity === 'medium')
     .forEach((g) => g.recommendedLessons.forEach((lesson) => allLessons.add(lesson)));
 
-  // Prioritize lessons (sentence-level first, then available ones)
+  // Prioritize lessons (TWR approach: sentence → paragraph → essay)
   const prioritizedLessons = Array.from(allLessons).sort((a, b) => {
-    // Sentence-level lessons first (TWR approach: build from sentences up)
+    // Tier 1: Sentence-level lessons (foundational TWR skills)
     const sentenceLessons = [
       'basic-conjunctions',
       'write-appositives',
@@ -130,12 +164,41 @@ export function detectGapsFromEssayScorecard(
       'kernel-expansion',
       'fragment-or-sentence',
     ];
-    const aIsSentence = sentenceLessons.includes(a);
-    const bIsSentence = sentenceLessons.includes(b);
-    if (aIsSentence && !bIsSentence) return -1;
-    if (!aIsSentence && bIsSentence) return 1;
 
-    // Available lessons before coming-soon
+    // Tier 2: Paragraph-level lessons
+    const paragraphLessons = [
+      'make-topic-sentences',
+      'identify-topic-sentence',
+      'writing-spos',
+      'eliminate-irrelevant-sentences',
+      'elaborate-paragraphs',
+      'using-transition-words',
+      'finishing-transition-words',
+      'write-cs-from-details',
+    ];
+
+    // Tier 3: Essay-level lessons
+    const essayLessons = [
+      'distinguish-g-s-t',
+      'write-g-s-from-t',
+      'write-introductory-sentences',
+      'craft-conclusion-from-gst',
+      'write-t-from-topic',
+      'match-details-pro-con',
+    ];
+
+    // Get tier for each lesson (lower = higher priority)
+    const getTier = (lesson: string) => {
+      if (sentenceLessons.includes(lesson)) return 1;
+      if (paragraphLessons.includes(lesson)) return 2;
+      if (essayLessons.includes(lesson)) return 3;
+      return 4; // Unknown lessons last
+    };
+
+    const tierDiff = getTier(a) - getTier(b);
+    if (tierDiff !== 0) return tierDiff;
+
+    // Within same tier, prioritize available lessons
     const availableLessons = ['basic-conjunctions', 'write-appositives'];
     const aAvailable = availableLessons.includes(a);
     const bAvailable = availableLessons.includes(b);

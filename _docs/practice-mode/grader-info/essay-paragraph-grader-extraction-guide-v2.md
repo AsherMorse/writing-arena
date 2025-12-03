@@ -2,9 +2,68 @@
 
 > Complete technical guide for extracting AlphaWrite's categorical rubric assessment system for grading paragraphs and essays.
 
-**Version**: 2.0  
+**Version**: 2.1  
 **Date**: December 3, 2024  
-**Based on**: AlphaWrite `packages/edu-core/src/grading/categorical-rubric/`
+**Based on**: AlphaWrite `packages/edu-core/src/grading/categorical-rubric/`  
+**Status**: ✅ **IMPLEMENTED** (Option B - Simplified Extraction)
+
+---
+
+## Implementation Status
+
+### ✅ Completed (December 2024)
+
+We implemented **Option B: Simplified Extraction** with the following:
+
+#### Paragraph Grader
+| Component | File | Status |
+|-----------|------|--------|
+| Types | `lib/grading/paragraph-rubrics/types.ts` | ✅ |
+| Expository Rubric | `lib/grading/paragraph-rubrics/expository-rubric.ts` | ✅ |
+| Argumentative Rubric | `lib/grading/paragraph-rubrics/argumentative-rubric.ts` | ✅ |
+| Opinion Rubric | `lib/grading/paragraph-rubrics/opinion-rubric.ts` | ✅ |
+| Pro-Con Rubric | `lib/grading/paragraph-rubrics/pro-con-rubric.ts` | ✅ |
+| Index | `lib/grading/paragraph-rubrics/index.ts` | ✅ |
+| Grading Service | `lib/grading/paragraph-grading.ts` | ✅ |
+| Gap Detection | `lib/grading/paragraph-gap-detection.ts` | ✅ |
+| Test Endpoint | `app/api/test/paragraph-grade/route.ts` | ✅ |
+
+#### Essay Grader
+| Component | File | Status |
+|-----------|------|--------|
+| Types | `lib/grading/essay-rubrics/types.ts` | ✅ |
+| Composition Rubric | `lib/grading/essay-rubrics/composition-rubric.ts` | ✅ |
+| Index | `lib/grading/essay-rubrics/index.ts` | ✅ |
+| Grading Service | `lib/grading/essay-grading.ts` | ✅ |
+| Gap Detection | `lib/grading/essay-gap-detection.ts` | ✅ |
+| Test Endpoint | `app/api/test/essay-grade/route.ts` | ✅ |
+
+### Key Implementation Decisions
+
+| AlphaWrite Approach | Our Implementation | Reason |
+|---------------------|-------------------|--------|
+| O1/O3-mini models | Claude Sonnet 4 | Already using Anthropic, sufficient quality |
+| Two-stage LLM (grade → parse) | Single-stage | Simpler, Claude handles JSON well |
+| Zod schema validation | Plain TypeScript | Fewer dependencies |
+| Text span highlighting | Skipped | Not needed for gap detection |
+| Grades 3-12 | Grades 6-12 | Target audience |
+| Revision flow | Single-shot | Can add later if needed |
+
+### Test Endpoints
+
+```bash
+# Paragraph Grader
+curl http://localhost:3000/api/test/paragraph-grade
+curl -X POST http://localhost:3000/api/test/paragraph-grade \
+  -H "Content-Type: application/json" \
+  -d '{"paragraph": "...", "prompt": "...", "rubricType": "expository"}'
+
+# Essay Grader
+curl http://localhost:3000/api/test/essay-grade
+curl -X POST http://localhost:3000/api/test/essay-grade \
+  -H "Content-Type: application/json" \
+  -d '{"essay": "...", "prompt": "...", "essayType": "Argumentative", "gradeLevel": 9}'
+```
 
 ---
 
@@ -1193,42 +1252,34 @@ evals/
 
 ## Implementation Checklist
 
-### Minimal (Gap Detection Only)
-- [ ] Copy `composition-rubric.ts` criteria list
-- [ ] Create `CRITERION_TO_LESSON_MAP`
-- [ ] Build keyword matcher from your existing `improvements[]`
-- [ ] Test with sample ranked match feedback
-- [ ] Integrate into `ResultsImprovements.tsx`
+### ✅ Option B: Simplified Extraction (COMPLETED)
 
-**Estimated time**: 2-3 hours
+#### Paragraph Grader
+- [x] Create paragraph rubric types (`lib/grading/paragraph-rubrics/types.ts`)
+- [x] Extract 4 rubrics from AlphaWrite (expository, argumentative, opinion, pro-con)
+- [x] Create `paragraph-grading.ts` with Claude Sonnet 4 integration
+- [x] Create `paragraph-gap-detection.ts` with category-to-lesson mapping
+- [x] Create `/api/test/paragraph-grade` endpoint for validation
 
----
+#### Essay Grader
+- [x] Create essay rubric types (`lib/grading/essay-rubrics/types.ts`)
+- [x] Extract composition rubric with 15 criteria and grade/type filtering
+- [x] Create `essay-grading.ts` with Claude Sonnet 4 integration
+- [x] Create `essay-gap-detection.ts` with criterion-to-lesson mapping
+- [x] Create index.ts to export all essay rubric modules
+- [x] Create `/api/test/essay-grade` endpoint for validation
 
-### Medium (Diagnostic API)
-- [ ] Copy `rubrics/` folder
-- [ ] Copy `types/` folder (all 11 files)
-- [ ] Copy `utils.ts` (getRubricPackage, validateAssessmentParams)
-- [ ] Copy `assessment.prompts.ts`
-- [ ] Build simplified `runAssessment()` wrapper
-- [ ] Create `/api/diagnose-essay` endpoint
-- [ ] Test with sample essays
-- [ ] Add to Improve mode
-
-**Estimated time**: 1-2 days
+**Completed**: December 2024
 
 ---
 
-### Full (Complete Essay Grader)
-- [ ] Copy entire `categorical-rubric/` folder
-- [ ] Install dependencies (OpenAI SDK, Zod, etc.)
-- [ ] Copy supporting types (GradeLevel, WritingPhase, etc.)
-- [ ] Adapt to your Firebase schema
-- [ ] Build UI for scorecard display
-- [ ] Add revision flow support
-- [ ] Comprehensive testing
-- [ ] Deploy and monitor costs
-
-**Estimated time**: 3-5 days
+### Future Enhancements (Not Yet Implemented)
+- [ ] Text span highlighting for UI feedback
+- [ ] Revision flow with conversation history
+- [ ] Integration with ranked match flow
+- [ ] Integration with Improve mode diagnostics
+- [ ] Pattern analysis across multiple sessions
+- [ ] UI components for scorecard display
 
 ---
 
@@ -1273,16 +1324,31 @@ evals/
 
 ## Next Steps
 
-**For your writing app gap detection:**
+### ✅ Completed
+- Option B implemented with both paragraph and essay graders
+- Gap detection services created with criterion-to-lesson mappings
+- Test endpoints available for validation
 
-1. **Option C** is the fastest path - just improve keyword matching
-2. **Then V2**: Consider Option B for richer diagnostics in Improve mode
-3. **Future**: Option A if you want full essay grading feature
+### Integration Tasks (Remaining)
 
-**Immediate action** (today):
-- Build `GAP_TO_LESSON_MAP` with better keyword patterns
-- Update `ResultsImprovements.tsx` to link to practice lessons
-- Test with real ranked match feedback
+1. **Integrate with Ranked Matches**
+   - Replace current grading in `/api/batch-rank-writings` with new graders
+   - Decide: Use essay grader (current) or switch to paragraph grader (faster for users)
 
-See [PRACTICE_MODE_IMPLEMENTATION.md](../../practice-mode/PRACTICE_MODE_IMPLEMENTATION.md) Phase 4 for gap detection implementation plan.
+2. **Integrate with Improve Mode**
+   - Use graders for diagnostic assessment
+   - Display scorecard results in UI
+   - Connect gap detection to practice lesson recommendations
+
+3. **Gap Accumulation & Pattern Detection**
+   - Store gaps from each session in user profile
+   - Use `analyzeGapPatterns()` to find recurring issues
+   - Trigger lesson recommendations when patterns emerge
+
+4. **UI Components**
+   - Build scorecard display component
+   - Build gap/recommendation display
+   - Link to practice lessons from results page
+
+See [PRACTICE_MODE_IMPLEMENTATION.md](../../practice-mode/PRACTICE_MODE_IMPLEMENTATION.md) for practice mode integration plan.
 

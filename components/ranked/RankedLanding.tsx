@@ -2,9 +2,13 @@
 
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { UserProfile } from '@/lib/types';
 import { getPhaseColor } from '@/lib/constants/colors';
+import { useAuth } from '@/contexts/AuthContext';
+import { checkBlockStatus } from '@/lib/services/grading-history';
+import { BlockModal } from './results-v2/BlockModal';
+import type { BlockStatus } from '@/lib/types/grading-history';
 
 interface RankedLandingProps {
   userProfile: UserProfile;
@@ -12,7 +16,25 @@ interface RankedLandingProps {
 
 export default function RankedLanding({ userProfile }: RankedLandingProps) {
   const router = useRouter();
+  const { user } = useAuth();
   const [selectedTrait, setSelectedTrait] = useState<string>('all');
+  const [blockStatus, setBlockStatus] = useState<BlockStatus | null>(null);
+  const [showBlockModal, setShowBlockModal] = useState(false);
+  const [isCheckingBlock, setIsCheckingBlock] = useState(false);
+
+  // Check block status on mount
+  useEffect(() => {
+    const fetchBlockStatus = async () => {
+      if (!user) return;
+      try {
+        const status = await checkBlockStatus(user.uid);
+        setBlockStatus(status);
+      } catch (error) {
+        console.error('Failed to check block status:', error);
+      }
+    };
+    fetchBlockStatus();
+  }, [user]);
 
   const traits = [
     { id: 'all', name: 'All traits', icon: '✨' },
@@ -23,8 +45,33 @@ export default function RankedLanding({ userProfile }: RankedLandingProps) {
     { id: 'mechanics', name: 'Mechanics', icon: '⚙️' },
   ];
 
-  const handleStartMatch = () => {
-    router.push(`/ranked/matchmaking?trait=${selectedTrait}`);
+  const handleStartMatch = async () => {
+    if (!user) return;
+    
+    setIsCheckingBlock(true);
+    try {
+      // Re-check block status before starting
+      const status = await checkBlockStatus(user.uid);
+      setBlockStatus(status);
+      
+      if (status.isBlocked) {
+        setShowBlockModal(true);
+        return;
+      }
+      
+      router.push(`/ranked/matchmaking?trait=${selectedTrait}`);
+    } catch (error) {
+      console.error('Failed to check block status:', error);
+      // Allow proceeding if check fails
+      router.push(`/ranked/matchmaking?trait=${selectedTrait}`);
+    } finally {
+      setIsCheckingBlock(false);
+    }
+  };
+
+  const handleGoToPractice = () => {
+    setShowBlockModal(false);
+    router.push('/practice');
   };
 
   return (
@@ -210,9 +257,14 @@ export default function RankedLanding({ userProfile }: RankedLandingProps) {
               </div>
               <button
                 onClick={handleStartMatch}
-                className="w-full rounded-[10px] border border-[#00e5e5] bg-[#00e5e5] py-4 text-sm font-semibold uppercase tracking-[0.04em] text-[#101012] transition-all hover:bg-[#33ebeb]"
+                disabled={isCheckingBlock}
+                className={`w-full rounded-[10px] border py-4 text-sm font-semibold uppercase tracking-[0.04em] transition-all ${
+                  isCheckingBlock
+                    ? 'cursor-wait border-[rgba(255,255,255,0.2)] bg-[rgba(255,255,255,0.1)] text-[rgba(255,255,255,0.4)]'
+                    : 'border-[#00e5e5] bg-[#00e5e5] text-[#101012] hover:bg-[#33ebeb]'
+                }`}
               >
-                Start Ranked Match
+                {isCheckingBlock ? 'Checking...' : 'Start Ranked Match'}
               </button>
               <p className="mt-3 text-center text-xs text-[rgba(255,255,255,0.4)]">
                 Matchmaking within your tier
@@ -263,6 +315,15 @@ export default function RankedLanding({ userProfile }: RankedLandingProps) {
           </div>
         </section>
       </main>
+
+      {/* Block Modal */}
+      {showBlockModal && blockStatus && (
+        <BlockModal
+          blockStatus={blockStatus}
+          onClose={() => setShowBlockModal(false)}
+          onGoToPractice={handleGoToPractice}
+        />
+      )}
     </div>
   );
 }
