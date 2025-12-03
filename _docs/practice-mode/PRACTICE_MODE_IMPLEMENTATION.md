@@ -24,7 +24,7 @@ MVP is demo-ready with 2 lessons (Because/But/So, Appositives). The architecture
 
 > **Approach:** Extract grader configs from AlphaWrite instead of creating content from scratch.
 > See [AlphaWrite Integration Analysis](../implementation-explanation/curriculum/alphawrite/alphawrite-integration-analysis.md) for coverage mapping.
->
+> 
 > **Per lesson:** Extract grader config + create Phase 2 review examples
 
 ### Sentence Lessons (Bronze Skills) - 5 lessons
