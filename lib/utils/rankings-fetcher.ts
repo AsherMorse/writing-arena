@@ -86,10 +86,11 @@ export function mergeAIPlayerDataAcrossPhases(
 }
 
 /**
- * Filter AI players to only include those with valid scores from all phases
+ * Filter AI players to include those with at least phase 1 scores
+ * Missing phase scores default to 0
  * 
  * @param aiPlayers - Array of AI player data
- * @returns Array of valid AI players
+ * @returns Array of valid AI players with defaults for missing scores
  */
 export function filterValidAIPlayers(
   aiPlayers: Array<{
@@ -98,12 +99,20 @@ export function filterValidAIPlayers(
     phase3: number | null;
     [key: string]: any;
   }>
-): typeof aiPlayers {
-  return aiPlayers.filter(player => 
-    player.phase1 !== null && player.phase1 !== undefined &&
-    player.phase2 !== null && player.phase2 !== undefined &&
-    player.phase3 !== null && player.phase3 !== undefined
-  );
+): Array<{
+  phase1: number;
+  phase2: number;
+  phase3: number;
+  [key: string]: any;
+}> {
+  return aiPlayers
+    .filter(player => player.phase1 !== null && player.phase1 !== undefined)
+    .map(player => ({
+      ...player,
+      phase1: player.phase1 ?? 0,
+      phase2: player.phase2 ?? 0,
+      phase3: player.phase3 ?? 0,
+    }));
 }
 
 /**
