@@ -120,7 +120,7 @@ export function useAIGeneration({
             body: safeStringifyJSON({
               prompt: prompt.description,
               promptType: prompt.type,
-              rank: typeof aiPlayer.rank === 'string' ? parseInt(aiPlayer.rank) || 0 : aiPlayer.rank,
+              rank: aiPlayer.rank, // Keep as string for getSkillLevelFromRank()
               playerName: aiPlayer.displayName,
             }),
           });
