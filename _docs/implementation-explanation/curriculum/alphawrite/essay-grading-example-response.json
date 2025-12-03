@@ -1,0 +1,258 @@
+{
+  "success": true,
+  "grading": {
+    "scorecard": {
+      "essayType": "Argumentative",
+      "gradeLevel": 9,
+      "criteria": [
+        {
+          "criterion": "Each body paragraph has a topic sentence",
+          "score": "Yes",
+          "explanation": "Each body paragraph begins with a clear topic sentence that articulates a sub-claim supporting the thesis. The topic sentences are directly connected to the argument about technology improving education.",
+          "examplesOfGreatResults": [
+            "First, technology has made education more accessible than ever before.",
+            "Second, technology enables personalized learning experiences."
+          ],
+          "examplesOfWhereToImprove": []
+        },
+        {
+          "criterion": "Supporting details support topic sentence",
+          "score": "Developing",
+          "explanation": "While supporting details are relevant and well-sequenced, the body paragraphs fall short of the Grade 9-12 requirement of at least 3 supporting detail sentences per paragraph. The first body paragraph has approximately 2-3 supporting sentences, and the second paragraph has 2 supporting sentences. The counterclaim paragraph is very brief with minimal development.",
+          "examplesOfGreatResults": [
+            "Students can now access course materials, lectures, and educational resources from anywhere with an internet connection. This democratization of knowledge means that a student in a rural area can access the same quality materials as one in a major city."
+          ],
+          "examplesOfWhereToImprove": [
+            "Second, technology enables personalized learning experiences. Adaptive learning software can adjust to each student's pace and learning style, providing additional practice in areas where they struggle and advancing quickly through concepts they've mastered. This individualized approach was impossible in traditional classroom settings. → Add at least one more supporting detail sentence with specific evidence, such as: 'For example, programs like Khan Academy and DreamBox have shown significant improvements in student achievement by providing instant feedback and customized lesson paths.'"
+          ]
+        },
+        {
+          "criterion": "Developed thesis statement",
+          "score": "Developing",
+          "explanation": "The thesis statement 'Technology has fundamentally transformed modern education' expresses a clear position but lacks specificity about HOW technology has improved education or what specific claims will be defended. For argumentative writing at Grade 9, the thesis should preview the main supporting points or explicitly state the debatable stance more forcefully.",
+          "examplesOfGreatResults": [],
+          "examplesOfWhereToImprove": [
+            "Technology has fundamentally transformed modern education. → Strengthen to: 'Technology has fundamentally improved modern education by increasing accessibility to learning materials and enabling personalized instruction that meets individual student needs.'"
+          ]
+        },
+        {
+          "criterion": "Each body paragraph supports thesis",
+          "score": "Yes",
+          "explanation": "All body paragraphs clearly support the thesis that technology has improved education. The first two paragraphs present positive sub-claims (accessibility and personalization), and the third addresses a counterclaim, all of which connect back to the central argument.",
+          "examplesOfGreatResults": [
+            "First, technology has made education more accessible than ever before. Students can now access course materials, lectures, and educational resources from anywhere with an internet connection.",
+            "Second, technology enables personalized learning experiences. Adaptive learning software can adjust to each student's pace and learning style."
+          ],
+          "examplesOfWhereToImprove": []
+        },
+        {
+          "criterion": "Used sentence strategies",
+          "score": "Developing",
+          "explanation": "The essay demonstrates some sentence variety including subordinating conjunctions ('when technology is implemented thoughtfully') and compound sentences. However, for Grade 9-12, more varied and sophisticated sentence strategies are expected. There are no clear appositives, and sentence expansion strategies (because/but/so) are limited.",
+          "examplesOfGreatResults": [
+            "While this concern has merit, the benefits of technological integration outweigh these drawbacks when technology is implemented thoughtfully."
+          ],
+          "examplesOfWhereToImprove": [
+            "From interactive whiteboards to online learning platforms, digital tools have revolutionized how students learn and teachers teach. → Add an appositive: 'Digital tools, including interactive whiteboards and online learning platforms, have revolutionized how students learn and teachers teach.'",
+            "Adaptive learning software can adjust to each student's pace and learning style, providing additional practice in areas where they struggle and advancing quickly through concepts they've mastered. → Use subordinating conjunction for clarity: 'Because adaptive learning software can adjust to each student's pace and learning style, it provides additional practice in areas where students struggle while advancing quickly through concepts they've mastered.'"
+          ]
+        },
+        {
+          "criterion": "Used transitions correctly",
+          "score": "Yes",
+          "explanation": "The essay uses transitions correctly and appropriately for argumentative writing. Transitions include sequencing words ('First,' 'Second'), contrasting transitions ('However'), and connecting transitions ('In conclusion'). These effectively guide the reader through the argument.",
+          "examplesOfGreatResults": [
+            "First, technology has made education more accessible than ever before.",
+            "Second, technology enables personalized learning experiences.",
+            "However, critics argue that technology can be distracting.",
+            "In conclusion, technology has transformed education."
+          ],
+          "examplesOfWhereToImprove": []
+        },
+        {
+          "criterion": "Composed effective introduction",
+          "score": "Yes",
+          "explanation": "The introduction contains 3 sentences following the GST structure effectively: a general statement about technology transforming education, a specific statement providing examples of digital tools, and a thesis statement establishing the main claim.",
+          "examplesOfGreatResults": [
+            "Technology has fundamentally transformed modern education. From interactive whiteboards to online learning platforms, digital tools have revolutionized how students learn and teachers teach."
+          ],
+          "examplesOfWhereToImprove": []
+        },
+        {
+          "criterion": "Composed effective conclusion",
+          "score": "Developing",
+          "explanation": "The conclusion contains only 2 sentences, falling short of the minimum 3 sentences required. While it restates the thesis and adds a forward-looking statement, it lacks sufficient development for Grade 9 expectations. The conclusion should include a rephrased thesis, specific statement reinforcing key evidence, and a broader general statement about significance.",
+          "examplesOfGreatResults": [
+            "In conclusion, technology has transformed education by increasing accessibility and enabling personalization."
+          ],
+          "examplesOfWhereToImprove": [
+            "In conclusion, technology has transformed education by increasing accessibility and enabling personalization. As we continue to integrate digital tools into classrooms, we must do so intentionally to maximize benefits while minimizing potential downsides. → Add a third sentence for a complete TSG structure: 'In conclusion, technology has fundamentally improved education by increasing accessibility and enabling personalization. These advances allow students from all backgrounds to receive customized instruction that meets their unique learning needs. As we continue to integrate digital tools into classrooms, we must do so intentionally to prepare students for an increasingly digital future while maintaining essential human connections.'"
+          ]
+        },
+        {
+          "criterion": "Edited for grammar and mechanics",
+          "score": "Yes",
+          "explanation": "The essay demonstrates near-flawless mechanics with no identifiable fragments, run-ons, spelling errors, capitalization errors, tense agreement issues, number agreement problems, or problematic repetition. This meets the Grade 9-12 standard of at most 1 editing error.",
+          "examplesOfGreatResults": [
+            "The entire essay maintains consistent grammar and mechanics throughout."
+          ],
+          "examplesOfWhereToImprove": []
+        },
+        {
+          "criterion": "Addressed opposing view/counterclaim",
+          "score": "Developing",
+          "explanation": "The essay does acknowledge an opposing viewpoint about technology being distracting and reducing face-to-face interaction. However, the rebuttal is underdeveloped and lacks specific evidence or reasoning. For Grade 9 argumentative writing, the counterclaim paragraph should be more robust with concrete evidence supporting the rebuttal.",
+          "examplesOfGreatResults": [
+            "However, critics argue that technology can be distracting and may reduce face-to-face interaction skills."
+          ],
+          "examplesOfWhereToImprove": [
+            "However, critics argue that technology can be distracting and may reduce face-to-face interaction skills. While this concern has merit, the benefits of technological integration outweigh these drawbacks when technology is implemented thoughtfully. → Expand with specific evidence: 'However, critics argue that technology can be distracting and may reduce face-to-face interaction skills. While this concern has merit, research shows that when teachers establish clear guidelines for technology use and incorporate collaborative digital projects, students actually increase their communication skills. For instance, online discussion forums and video conferencing tools require students to articulate ideas clearly in writing and speech. Therefore, the benefits of technological integration outweigh these drawbacks when technology is implemented thoughtfully with proper classroom management.'"
+          ]
+        },
+        {
+          "criterion": "Used credible and relevant evidence",
+          "score": "Developing",
+          "explanation": "The essay presents relevant conceptual evidence (accessibility features, adaptive learning software) but lacks specific credible evidence such as statistics, data, research findings, or expert quotations required for Grade 9-12 argumentative writing. The evidence is more generalized observation than factual support.",
+          "examplesOfGreatResults": [
+            "Adaptive learning software can adjust to each student's pace and learning style, providing additional practice in areas where they struggle and advancing quickly through concepts they've mastered."
+          ],
+          "examplesOfWhereToImprove": [
+            "First, technology has made education more accessible than ever before. Students can now access course materials, lectures, and educational resources from anywhere with an internet connection. → Add specific data: 'First, technology has made education more accessible than ever before. According to a 2022 study by the U.S. Department of Education, online learning platforms have increased access to Advanced Placement courses in rural schools by 47%. Students can now access course materials, lectures, and educational resources from anywhere with an internet connection.'",
+            "Second, technology enables personalized learning experiences. Adaptive learning software can adjust to each student's pace and learning style. → Include research findings: 'Second, technology enables personalized learning experiences. A Stanford University study found that students using adaptive learning software improved their test scores by an average of 15% compared to traditional instruction. This software can adjust to each student's pace and learning style.'"
+          ]
+        },
+        {
+          "criterion": "Minimum paragraph count",
+          "score": "Yes",
+          "explanation": "The essay contains 5 paragraphs (introduction, 2 body paragraphs supporting the thesis, 1 counterclaim paragraph, and conclusion), meeting the Grade 8-12 requirement of at least 5 paragraphs.",
+          "examplesOfGreatResults": [
+            "The essay structure includes: Introduction, Body Paragraph 1 (accessibility), Body Paragraph 2 (personalization), Body Paragraph 3 (counterclaim), Conclusion."
+          ],
+          "examplesOfWhereToImprove": []
+        },
+        {
+          "criterion": "Clear reasoning from evidence to claim",
+          "score": "Developing",
+          "explanation": "The essay attempts to connect evidence to claims but lacks explicit 'bridging' that shows HOW the evidence proves the point. For Grade 9 argumentative writing, students should provide clear commentary explaining the significance of each piece of evidence and its connection to the thesis.",
+          "examplesOfGreatResults": [
+            "This democratization of knowledge means that a student in a rural area can access the same quality materials as one in a major city."
+          ],
+          "examplesOfWhereToImprove": [
+            "Adaptive learning software can adjust to each student's pace and learning style, providing additional practice in areas where they struggle and advancing quickly through concepts they've mastered. This individualized approach was impossible in traditional classroom settings. → Add explicit reasoning: 'Adaptive learning software can adjust to each student's pace and learning style, providing additional practice in areas where they struggle and advancing quickly through concepts they've mastered. This individualized approach was impossible in traditional classroom settings, which proves that technology has improved education because students no longer have to settle for one-size-fits-all instruction that leaves some behind while boring others.'",
+            "While this concern has merit, the benefits of technological integration outweigh these drawbacks when technology is implemented thoughtfully. → Explain WHY benefits outweigh drawbacks: 'While this concern has merit, the benefits of technological integration outweigh these drawbacks when technology is implemented thoughtfully because the increased access and personalization directly address long-standing educational inequities that affected millions of students, whereas the distraction issue can be managed through effective classroom policies.'"
+          ]
+        }
+      ],
+      "totalPoints": 19,
+      "maxPoints": 26,
+      "percentageScore": 73
+    },
+    "strengths": [
+      "Strength 1: 'First, technology has made education more accessible than ever before.' and 'Second, technology enables personalized learning experiences.' - Demonstrates effective use of transition words to introduce topic sentences that clearly state sub-claims.",
+      "Strength 2: 'While this concern has merit, the benefits of technological integration outweigh these drawbacks when technology is implemented thoughtfully.' - Shows sophisticated use of subordinating conjunction 'while' to acknowledge and refute a counterclaim.",
+      "Strength 3: 'Technology has fundamentally transformed modern education. From interactive whiteboards to online learning platforms, digital tools have revolutionized how students learn and teachers teach.' - Follows GST introduction structure effectively, moving from general to specific statements."
+    ],
+    "improvements": [
+      "Improvement 1: 'Technology has fundamentally transformed modern education.' → Revise to: 'Technology has fundamentally improved modern education by increasing accessibility to learning materials and enabling personalized instruction that meets individual student needs.' - Use a more developed thesis statement that previews your main supporting points.",
+      "Improvement 2: 'Students can now access course materials, lectures, and educational resources from anywhere with an internet connection.' → Add: 'According to a 2022 study by the U.S. Department of Education, online learning platforms have increased access to Advanced Placement courses in rural schools by 47%.' - Integrate credible evidence with specific statistics and citations to strengthen argumentative support.",
+      "Improvement 3: 'In conclusion, technology has transformed education by increasing accessibility and enabling personalization. As we continue to integrate digital tools into classrooms, we must do so intentionally to maximize benefits while minimizing potential downsides.' → Add a third sentence: 'As education continues to evolve in the digital age, embracing technology thoughtfully will ensure that all students receive the high-quality, individualized instruction they deserve.' - Complete the TSG conclusion structure (Thesis → Specific → General) with a broader statement about significance."
+    ],
+    "overallFeedback": "This essay demonstrates strong organizational structure with clear topic sentences, effective transitions, and proper acknowledgment of a counterclaim. To reach full proficiency for Grade 9 argumentative writing, focus on three priorities: (1) incorporating specific credible evidence (statistics, research data, expert quotations) rather than general observations, (2) developing fuller body paragraphs with at least 3 supporting detail sentences each, and (3) adding explicit reasoning that bridges evidence to claims by explaining WHY and HOW the evidence proves your point."
+  },
+  "normalizedScore": 73,
+  "gaps": {
+    "gaps": [
+      {
+        "criterion": "Supporting details support topic sentence",
+        "score": "Developing",
+        "severity": "medium",
+        "recommendedLessons": [
+          "transition-words",
+          "kernel-expansion",
+          "subordinating-conjunctions"
+        ],
+        "explanation": "While supporting details are relevant and well-sequenced, the body paragraphs fall short of the Grade 9-12 requirement of at least 3 supporting detail sentences per paragraph. The first body paragraph has approximately 2-3 supporting sentences, and the second paragraph has 2 supporting sentences. The counterclaim paragraph is very brief with minimal development."
+      },
+      {
+        "criterion": "Developed thesis statement",
+        "score": "Developing",
+        "severity": "medium",
+        "recommendedLessons": ["topic-sentence"],
+        "explanation": "The thesis statement 'Technology has fundamentally transformed modern education' expresses a clear position but lacks specificity about HOW technology has improved education or what specific claims will be defended. For argumentative writing at Grade 9, the thesis should preview the main supporting points or explicitly state the debatable stance more forcefully."
+      },
+      {
+        "criterion": "Used sentence strategies",
+        "score": "Developing",
+        "severity": "medium",
+        "recommendedLessons": [
+          "basic-conjunctions",
+          "write-appositives",
+          "subordinating-conjunctions",
+          "kernel-expansion"
+        ],
+        "explanation": "The essay demonstrates some sentence variety including subordinating conjunctions ('when technology is implemented thoughtfully') and compound sentences. However, for Grade 9-12, more varied and sophisticated sentence strategies are expected. There are no clear appositives, and sentence expansion strategies (because/but/so) are limited."
+      },
+      {
+        "criterion": "Composed effective conclusion",
+        "score": "Developing",
+        "severity": "medium",
+        "recommendedLessons": ["topic-sentence"],
+        "explanation": "The conclusion contains only 2 sentences, falling short of the minimum 3 sentences required. While it restates the thesis and adds a forward-looking statement, it lacks sufficient development for Grade 9 expectations. The conclusion should include a rephrased thesis, specific statement reinforcing key evidence, and a broader general statement about significance."
+      },
+      {
+        "criterion": "Addressed opposing view/counterclaim",
+        "score": "Developing",
+        "severity": "medium",
+        "recommendedLessons": ["subordinating-conjunctions"],
+        "explanation": "The essay does acknowledge an opposing viewpoint about technology being distracting and reducing face-to-face interaction. However, the rebuttal is underdeveloped and lacks specific evidence or reasoning. For Grade 9 argumentative writing, the counterclaim paragraph should be more robust with concrete evidence supporting the rebuttal."
+      },
+      {
+        "criterion": "Used credible and relevant evidence",
+        "score": "Developing",
+        "severity": "medium",
+        "recommendedLessons": ["transition-words", "kernel-expansion"],
+        "explanation": "The essay presents relevant conceptual evidence (accessibility features, adaptive learning software) but lacks specific credible evidence such as statistics, data, research findings, or expert quotations required for Grade 9-12 argumentative writing. The evidence is more generalized observation than factual support."
+      },
+      {
+        "criterion": "Clear reasoning from evidence to claim",
+        "score": "Developing",
+        "severity": "medium",
+        "recommendedLessons": ["subordinating-conjunctions", "kernel-expansion"],
+        "explanation": "The essay attempts to connect evidence to claims but lacks explicit 'bridging' that shows HOW the evidence proves the point. For Grade 9 argumentative writing, students should provide clear commentary explaining the significance of each piece of evidence and its connection to the thesis."
+      }
+    ],
+    "hasGaps": true,
+    "prioritizedLessons": [
+      "basic-conjunctions",
+      "write-appositives",
+      "kernel-expansion",
+      "subordinating-conjunctions",
+      "transition-words",
+      "topic-sentence"
+    ],
+    "summary": {
+      "highSeverity": 0,
+      "mediumSeverity": 7,
+      "total": 7
+    }
+  },
+  "recommendedLessons": [
+    "basic-conjunctions",
+    "write-appositives",
+    "kernel-expansion"
+  ],
+  "metadata": {
+    "essayType": "Argumentative",
+    "gradeLevel": 9,
+    "criteriaCount": 13,
+    "availableEssayTypes": [
+      "Expository",
+      "Problem/Solution",
+      "Argumentative",
+      "Opinion",
+      "Pro/Con",
+      "Narrative",
+      "Story"
+    ]
+  }
+}

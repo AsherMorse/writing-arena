@@ -754,75 +754,136 @@ Copy the entire `categorical-rubric/` folder:
 
 ---
 
-### Option B: Simplified Extraction (Recommended)
+### Option B: Simplified Extraction — Paragraph + Essay Graders (Recommended)
 
-Extract just the rubric criteria + build your own prompt:
+Extract rubric criteria and grading logic for **both single-paragraph and multi-paragraph essays**:
+
+**What You Get:**
+- ✅ **Single-Paragraph Grader** (1-5 point scale, 4 categories)
+  - Topic Sentence (0-5 points)
+  - Detail Sentences (0-5 points)
+  - Concluding Sentence (0-5 points)
+  - Conventions (0-5 points)
+  - Max score: 20 points
+- ✅ **Essay Grader** (Yes/Developing/No, 15 criteria)
+  - Full multi-paragraph assessment
+  - Grade-level filtering (6-12)
+  - Essay type-specific guidance
+- ✅ Accurate gap detection (criterion-based, not keyword-based)
+- ✅ Foundation for diagnostics
+
+**Files to Extract:**
+
+```
+Single-Paragraph Grader (~400 lines):
+packages/edu-core/src/grading/binary-rubric/criteria/paragraphs/
+├── paragraph-grader.ts                      # evaluateSingleParagraphWithRubric()
+├── paragraph-grading-prompts.ts             # generateInitialGradingPrompt()
+├── utils.ts                                 # getSingleParagraphRubric()
+└── rubrics/
+    ├── single-paragraph-argumentative-rubric.ts  # 4 categories, 1-5 scale
+    ├── single-paragraph-expository-rubric.ts     # 4 categories, 1-5 scale
+    ├── single-paragraph-opinion-rubric.ts        # 4 categories, 1-5 scale
+    └── single-paragraph-pro-con-rubric.ts        # 4 categories, 1-5 scale
+
+Essay Grader (~1,200 lines):
+packages/edu-core/src/grading/categorical-rubric/
+├── rubrics/composition-rubric.ts            # 15 essay criteria
+├── rubrics/utils.ts                         # getPreparedRubric()
+├── assessment.prompts.ts                    # generateInitialGradingPrompt()
+├── utils.ts                                 # getRubricPackage()
+└── types/
+    ├── index.ts                             # Core types, Submission schema
+    ├── scorecard.ts                         # Scorecard schemas
+    ├── single-paragraph.ts                  # SingleParagraphRubric types
+    └── rubric.ts                            # TextStructure, RubricType
+```
+
+**Total**: ~1,600 lines across 12-15 files
+
+---
+
+**Single-Paragraph Grading Example:**
 
 ```typescript
-import { criteria } from '@alphawrite/categorical-rubric/rubrics/composition-rubric';
-import { getPreparedRubric } from '@alphawrite/categorical-rubric/rubrics/utils';
+import { evaluateSingleParagraphWithRubric } from './paragraph-grader';
 
-async function simpleEssayGrader(essay: string, grade: number) {
-  // 1. Prepare rubric
-  const preparedRubric = getPreparedRubric({
-    baseRubric: { name: 'Composition', criteria },
-    submission: {
-      essay,
-      type: 'Expository',
-      gradeLevel: grade,
-      writingPhase: WritingPhase.ASSESSMENT,
-    },
-  });
+async function gradeParagraph(paragraphText: string) {
+  const result = await evaluateSingleParagraphWithRubric(
+    'Single Paragraph Expository',
+    paragraphText,
+    [],  // No previous messages
+    'o3-mini'
+  );
   
-  // 2. Build simple prompt
-  const prompt = buildSimplePrompt(essay, preparedRubric, grade);
-  
-  // 3. Call LLM directly
-  const response = await openai.chat.completions.create({
-    model: 'o3-mini',
-    messages: [{ role: 'user', content: prompt }],
-    response_format: { type: 'json_object' },
-  });
-  
-  // 4. Parse JSON
-  const scorecard = JSON.parse(response.choices[0].message.content);
-  
-  return scorecard;
+  return {
+    score: result.numCorrect,       // e.g., 16 out of 20
+    maxScore: result.totalPointValue,
+    rubric: result.rubric,
+  };
 }
 
-function buildSimplePrompt(essay: string, rubric: any, grade: number): string {
-  return `Grade this ${grade}th grade essay against TWR criteria.
+// Output:
+// {
+//   score: 16,
+//   maxScore: 20,
+//   rubric: {
+//     gradedCategories: [
+//       { title: "Topic Sentence", criteria: { score: 4, commentsAndFeedback: "Clear main idea..." } },
+//       { title: "Detail Sentences", criteria: { score: 3, commentsAndFeedback: "Needs transitions..." } },
+//       { title: "Concluding Sentence", criteria: { score: 4, commentsAndFeedback: "Good wrap-up..." } },
+//       { title: "Conventions", criteria: { score: 5, commentsAndFeedback: "No errors." } }
+//     ]
+//   }
+// }
+```
 
-For each criterion, rate as Yes/Developing/No and explain.
+**Gap Detection from Paragraph Rubric:**
 
-Criteria:
-${JSON.stringify(rubric.criteria.map(c => c.criterion), null, 2)}
+```typescript
+const PARAGRAPH_CATEGORY_TO_LESSONS = {
+  'Topic Sentence': ['identify-topic-sentence', 'make-topic-sentences'],
+  'Claim (Topic Sentence)': ['identify-topic-sentence', 'make-topic-sentences'],
+  'Detail Sentences': ['eliminate-irrelevant-sentences', 'using-transition-words'],
+  'Evidence and Reasoning (Detail Sentences)': ['writing-spos'],
+  'Concluding Sentence': ['write-cs-from-details'],
+};
 
-Essay:
-${essay}
-
-Return JSON:
-{
-  "criteria": [
-    {
-      "criterion": "Each body paragraph has a topic sentence",
-      "score": "Yes" | "Developing" | "No",
-      "feedback": "Explanation..."
-    }
-  ]
-}`;
+function detectGapsFromParagraph(rubric: SingleParagraphRubricFilledOut) {
+  return rubric.gradedCategories
+    .filter(cat => cat.criteria.score < 4)  // Below 4/5 = needs work
+    .flatMap(cat => {
+      const lessons = PARAGRAPH_CATEGORY_TO_LESSONS[cat.title] || [];
+      return lessons.map(lessonId => ({
+        lessonId,
+        category: cat.title,
+        score: cat.criteria.score,
+        feedback: cat.criteria.commentsAndFeedback,
+        severity: cat.criteria.score <= 2 ? 'high' : 'medium',
+      }));
+    });
 }
 ```
 
+---
+
+**Essay Grading Example:** (see Example 1 above)
+
+---
+
 **Pros:**
-- Much simpler (~100 lines)
-- No AlphaWrite dependencies
-- Easy to customize
+- ✅ Perfect for paragraph-based ranked matches (1-5 scoring)
+- ✅ More granular than Yes/Developing/No for paragraphs
+- ✅ Criterion-based gap detection (not keywords)
+- ✅ Can grade both paragraphs AND full essays
+- ✅ Simpler than Option A (~1,600 lines vs ~3,000)
+- ✅ Foundation for switching ranked matches to paragraph-only format
+- ✅ Battle-tested rubrics from TWR official guidelines
 
 **Cons:**
-- No automatic grade filtering
-- No text span highlighting
-- No type-specific guidance injection
+- Moderate complexity (12-15 files to extract)
+- Need to adapt AlphaWrite types to your schema
+- Text span highlighting requires additional extraction (optional)
 
 ---
 
