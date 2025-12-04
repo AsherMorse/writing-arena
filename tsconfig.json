@@ -36,6 +36,9 @@
   ],
   "exclude": [
     "node_modules",
-    "functions"
+    "functions",
+    "_alphawrite",
+    "__tests__",
+    "e2e"
   ]
 }

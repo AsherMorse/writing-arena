@@ -39,3 +39,5 @@ writing-arena-firebase-adminsdk-*.json
 next-env.d.ts
 
 .env
+
+_alphawrite/
