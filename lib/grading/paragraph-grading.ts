@@ -25,6 +25,28 @@ function generateGradingPrompt(
 ): string {
   const rubric = getRubric(rubricType, gradeLevel);
   const rubricString = JSON.stringify(rubric, null, 2);
+  
+  // Build grade-appropriate calibration guidance
+  const highSchoolGuidance = gradeLevel >= 9 ? `
+HIGH SCHOOL RUBRIC INTERPRETATION:
+- You are grading relative to grade ${gradeLevel} standards
+- The rubric mentions "sophisticated and powerful" word choice - interpret this relative to grade ${gradeLevel} expectations
+${gradeLevel === 9 ? `
+GRADE 9 STANDARDS:
+- Score 5: Uses transitions effectively, varied sentence structures, clear word choice appropriate for a high school freshman
+- Score 4: Good use of transitions and some sentence variety, appropriate vocabulary
+- Score 3: Basic transitions present, functional word choice, some sentence variety` : ''}
+${gradeLevel >= 10 && gradeLevel <= 11 ? `
+GRADE 10-11 STANDARDS:
+- Score 5: Sophisticated transitions that enhance flow, consistent use of complex sentence structures, precise word choice
+- Score 4: Effective transitions and varied structures, appropriate vocabulary with some precision
+- Score 3: Transitions present but may feel formulaic, basic sentence variety, functional word choice` : ''}
+${gradeLevel === 12 ? `
+GRADE 12 STANDARDS:
+- Score 5: Seamless transitions, sophisticated sentence variety as the norm, precise and purposeful word choice demonstrating college-readiness
+- Score 4: Natural transitions, consistent complex structures, precise vocabulary
+- Score 3: Transitions present but may be formulaic, some sentence variety, appropriate but not precise word choice` : ''}
+` : '';
 
   return `You are a writing instructor trained in The Writing Revolution (TWR) methodology. Grade the following paragraph that a grade ${gradeLevel} student submitted.
 
@@ -35,7 +57,7 @@ GRADE-LEVEL CALIBRATION (CRITICAL):
 - If the student uses TWR strategies (transitions, conjunctions, appositives), give them credit
 - "Sophisticated word choice" for grade ${gradeLevel} means age-appropriate vocabulary used well
 - Be encouraging - recognize what the student accomplished at their developmental level
-
+${highSchoolGuidance}
 WRITING PROMPT:
 ${prompt}
 

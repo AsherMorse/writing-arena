@@ -18,7 +18,7 @@ import type { ParagraphRubric } from './types';
  * - More achievable standards for grades 6-8
  */
 export const expositoryMiddleSchoolRubric: ParagraphRubric = {
-  id: 'expository-middle-school',
+  id: 'expository',
   title: 'Single Paragraph Rubric (Expository - Middle School)',
   description: 'For middle school paragraphs that explain or inform about a topic.',
   maxScore: 20,
