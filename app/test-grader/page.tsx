@@ -5,7 +5,7 @@
  * Allows grading essays/paragraphs without going through ranked match flow.
  */
 
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback, useEffect } from 'react';
 import Link from 'next/link';
 import { useAuth } from '@/contexts/AuthContext';
 import { saveGradingResult } from '@/lib/services/grading-history';
@@ -114,6 +114,7 @@ function InteractiveWritingSection({
       <div
         className="rounded-[10px] bg-[#101012] p-4 text-sm leading-relaxed text-[rgba(255,255,255,0.7)] font-mono whitespace-pre-wrap"
         onClick={onClearHighlight}
+        data-writing-content
       >
         {segments.map((segment, idx) => {
           if (segment.highlight) {
@@ -131,12 +132,7 @@ function InteractiveWritingSection({
         })}
       </div>
 
-      {/* Always render to maintain consistent height - use opacity for visibility */}
-      <p
-        className={`mt-3 text-xs text-[rgba(255,255,255,0.4)] italic transition-opacity ${
-          activeHighlight ? 'opacity-0' : 'opacity-100'
-        }`}
-      >
+      <p className="mt-3 text-xs text-[rgba(255,255,255,0.4)] italic">
         Hover or click on examples below to highlight them in your writing.
       </p>
     </div>
@@ -148,7 +144,7 @@ export default function TestGraderPage() {
   const [content, setContent] = useState(SAMPLE_PARAGRAPH);
   const [prompt, setPrompt] = useState('Write about an animal interaction');
   const [graderType, setGraderType] = useState<'paragraph' | 'essay'>('paragraph');
-  const [gradeLevel, setGradeLevel] = useState(8);
+  const [gradeLevel, setGradeLevel] = useState(6);
   const [isGrading, setIsGrading] = useState(false);
   const [result, setResult] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
@@ -220,6 +216,35 @@ export default function TestGraderPage() {
     setActiveHighlight(null);
   }, []);
 
+  /**
+   * @description Global click handler to clear locked highlights when clicking outside.
+   */
+  useEffect(() => {
+    if (!activeHighlight?.isLocked) return;
+
+    const handleGlobalClick = (e: MouseEvent) => {
+      // Check if click was on an example item (border-l-2 elements in feedback)
+      const target = e.target as HTMLElement;
+      const isExampleItem = target.closest('[class*="border-l-2"]');
+      const isWritingContent = target.closest('[data-writing-content]');
+      
+      // Don't clear if clicking on example items or the writing content
+      if (isExampleItem || isWritingContent) return;
+      
+      setActiveHighlight(null);
+    };
+
+    // Use setTimeout to avoid clearing immediately after clicking an example
+    const timeoutId = setTimeout(() => {
+      document.addEventListener('click', handleGlobalClick);
+    }, 0);
+
+    return () => {
+      clearTimeout(timeoutId);
+      document.removeEventListener('click', handleGlobalClick);
+    };
+  }, [activeHighlight?.isLocked]);
+
   const handleGrade = async () => {
     if (!user) {
       setError('You must be logged in to grade');
@@ -243,7 +268,7 @@ export default function TestGraderPage() {
           content,
           prompt,
           graderType,
-          gradeLevel: graderType === 'essay' ? gradeLevel : undefined,
+          gradeLevel,
         }),
       });
 
@@ -312,20 +337,18 @@ export default function TestGraderPage() {
       </header>
 
       <main className="mx-auto max-w-[1200px] px-8 py-8">
-        {/* Full Width Preview Mode */}
+        {/* Full Width Preview Mode - Two Column Layout */}
         {isFullWidthPreview && result ? (
-          <div className="mx-auto max-w-[1100px]">
-            {/* Back Button */}
-            <button
-              onClick={() => setIsFullWidthPreview(false)}
-              className="mb-6 flex items-center gap-2 rounded-[10px] border border-[rgba(255,255,255,0.1)] px-4 py-2 text-sm text-[rgba(255,255,255,0.6)] transition hover:bg-[rgba(255,255,255,0.05)] hover:text-white"
-            >
-              ← Back to Editor
-            </button>
-
-            {/* Version Toggle */}
+          <div className="mx-auto max-w-[1400px]">
+            {/* Header Bar */}
             <div className="mb-6 flex items-center justify-between">
-              <h2 className="text-lg font-semibold text-[rgba(255,255,255,0.8)]">Full Width Preview</h2>
+              <button
+                onClick={() => setIsFullWidthPreview(false)}
+                className="flex items-center gap-2 rounded-[10px] border border-[rgba(255,255,255,0.1)] px-4 py-2 text-sm text-[rgba(255,255,255,0.6)] transition hover:bg-[rgba(255,255,255,0.05)] hover:text-white"
+              >
+                ← Back to Editor
+              </button>
+
               <div className="flex rounded-lg border border-[rgba(255,255,255,0.1)] overflow-hidden">
                 <button
                   onClick={() => setFeedbackVersion('category')}
@@ -350,33 +373,60 @@ export default function TestGraderPage() {
               </div>
             </div>
 
-            {/* Your Writing with Interactive Highlights */}
-            <InteractiveWritingSection
-              content={content}
-              activeHighlight={activeHighlight}
-              onClearHighlight={handleClearHighlight}
-            />
+            {/* Two Column Layout */}
+            <div className="grid gap-8 lg:grid-cols-[1fr_1.2fr]">
+              {/* Left Column: Student Writing + Score */}
+              <div className="lg:sticky lg:top-8 lg:self-start space-y-6">
+                <InteractiveWritingSection
+                  content={content}
+                  activeHighlight={activeHighlight}
+                  onClearHighlight={handleClearHighlight}
+                />
 
-            {/* Full Width Feedback */}
-            {feedbackVersion === 'category' ? (
-              <WritingFeedback
-                graderType={result.graderType}
-                scorecard={result.scorecard}
-                gaps={result.gaps || []}
-                overallFeedback={result.overallFeedback || ''}
-                onExampleHover={handleExampleHover}
-                onExampleClick={handleExampleClick}
-              />
-            ) : (
-              <WritingFeedbackFlat
-                graderType={result.graderType}
-                scorecard={result.scorecard}
-                gaps={result.gaps || []}
-                strengths={[]}
-                improvements={[]}
-                overallFeedback={result.overallFeedback || ''}
-              />
-            )}
+                {/* Score Summary */}
+                <div className="rounded-[14px] border border-[rgba(255,255,255,0.1)] bg-[rgba(255,255,255,0.025)] p-5">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-sm font-semibold text-[rgba(255,255,255,0.6)]">Your Writing Score</h3>
+                    <div className="text-2xl font-bold text-[#00e5e5]">
+                      {result.scorecard?.percentageScore}%
+                    </div>
+                  </div>
+                  <div className="text-right text-xs pt-2 text-[rgba(255,255,255,0.4)]">
+                    ({result.scorecard?.totalScore ?? result.scorecard?.totalPoints}/{result.scorecard?.maxScore ?? result.scorecard?.maxPoints} points)
+                  </div>
+
+                  {result.hasSevereGap && (
+                    <div className="mt-4 rounded-lg bg-[rgba(255,95,143,0.15)] px-3 py-2 text-xs text-[#ff5f8f] text-center">
+                      Practice required
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Right Column: Feedback */}
+              <div>
+                {feedbackVersion === 'category' ? (
+                  <WritingFeedback
+                    graderType={result.graderType}
+                    scorecard={result.scorecard}
+                    gaps={result.gaps || []}
+                    overallFeedback={result.overallFeedback || ''}
+                    onExampleHover={handleExampleHover}
+                    onExampleClick={handleExampleClick}
+                    hideOverallScore
+                  />
+                ) : (
+                  <WritingFeedbackFlat
+                    graderType={result.graderType}
+                    scorecard={result.scorecard}
+                    gaps={result.gaps || []}
+                    strengths={[]}
+                    improvements={[]}
+                    overallFeedback={result.overallFeedback || ''}
+                  />
+                )}
+              </div>
+            </div>
           </div>
         ) : (
           /* Normal 2-Column Layout */
@@ -412,23 +462,24 @@ export default function TestGraderPage() {
                 </button>
               </div>
 
-              {/* Grade Level (Essay only) */}
-              {graderType === 'essay' && (
-                <div className="mb-4">
-                  <label className="mb-2 block text-xs text-[rgba(255,255,255,0.5)]">Grade Level</label>
-                  <select
-                    value={gradeLevel}
-                    onChange={(e) => setGradeLevel(Number(e.target.value))}
-                    className="w-full rounded-lg border border-[rgba(255,255,255,0.1)] bg-[#101012] px-4 py-2 text-sm text-white"
-                  >
-                    {[6, 7, 8, 9, 10, 11, 12].map((g) => (
-                      <option key={g} value={g}>
-                        Grade {g}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              )}
+              {/* Grade Level */}
+              <div className="mb-4">
+                <label className="mb-2 block text-xs text-[rgba(255,255,255,0.5)]">Grade Level</label>
+                <select
+                  value={gradeLevel}
+                  onChange={(e) => setGradeLevel(Number(e.target.value))}
+                  className="w-full rounded-lg border border-[rgba(255,255,255,0.1)] bg-[#101012] px-4 py-2 text-sm text-white"
+                >
+                  {[3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((g) => (
+                    <option key={g} value={g}>
+                      Grade {g}
+                    </option>
+                  ))}
+                </select>
+                <p className="mt-1 text-xs text-[rgba(255,255,255,0.3)]">
+                  Grading calibrated to this grade level
+                </p>
+              </div>
 
               {/* Prompt */}
               <div className="mb-4">

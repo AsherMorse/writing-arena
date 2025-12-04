@@ -63,7 +63,7 @@ export default function RankedLanding({ userProfile }: RankedLandingProps) {
     } catch (error) {
       console.error('Failed to check block status:', error);
       // Allow proceeding if check fails
-      router.push(`/ranked/matchmaking?trait=${selectedTrait}`);
+    router.push(`/ranked/matchmaking?trait=${selectedTrait}`);
     } finally {
       setIsCheckingBlock(false);
     }

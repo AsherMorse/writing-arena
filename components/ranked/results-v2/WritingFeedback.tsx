@@ -32,6 +32,8 @@ interface WritingFeedbackProps {
   onExampleHover?: (info: ExampleHighlightInfo | null) => void;
   /** Called when an example is clicked (for toggle behavior) */
   onExampleClick?: (info: ExampleHighlightInfo) => void;
+  /** Hide the overall score header (when displayed elsewhere) */
+  hideOverallScore?: boolean;
 }
 
 /**
@@ -148,7 +150,7 @@ function CategoryCard({ category, onExampleHover, onExampleClick }: CategoryCard
               {/* Great Results (strengths) */}
               {greatExamples.length > 0 && (
                 <div>
-                  <div className="text-xs font-semibold uppercase text-[#00d492] mb-2">✨ What You Did Well</div>
+                  <div className="text-xs font-semibold uppercase text-[#00d492] mb-2">What You Did Well</div>
                   <div className="space-y-3">
                     {greatExamples.map((ex, idx) => {
                       const highlightInfo: ExampleHighlightInfo = {
@@ -182,7 +184,7 @@ function CategoryCard({ category, onExampleHover, onExampleClick }: CategoryCard
               {/* Where to Improve */}
               {improveExamples.length > 0 && (
                 <div>
-                  <div className="text-xs font-semibold uppercase text-[#ff9030] mb-2">💡 Areas to Improve</div>
+                  <div className="text-xs font-semibold uppercase text-[#ff9030] mb-2">Areas to Improve</div>
                   <div className="space-y-3">
                     {improveExamples.map((ex, idx) => {
                       const highlightInfo: ExampleHighlightInfo = {
@@ -234,6 +236,7 @@ export function WritingFeedback({
   overallFeedback,
   onExampleHover,
   onExampleClick,
+  hideOverallScore = false,
 }: WritingFeedbackProps) {
   const isParagraph = graderType === 'paragraph';
   
@@ -250,22 +253,24 @@ export function WritingFeedback({
   return (
     <div className="space-y-6">
       {/* Overall Score Header */}
-      <div className="rounded-[14px] border border-[rgba(0,229,229,0.2)] bg-[rgba(0,229,229,0.05)] p-6">
-        <div className="flex items-center justify-between">
-          <h2 className="text-lg font-semibold text-[#00e5e5]">📊 Your Writing Score</h2>
-          <div className="text-right">
-            <div className="font-mono text-3xl font-bold text-[#00e5e5]">
-              {scorecard.percentageScore}%
-            </div>
-            <div className="text-xs text-[rgba(255,255,255,0.4)]">
-              {isParagraph 
-                ? `${(scorecard as ParagraphScorecard).totalScore}/${(scorecard as ParagraphScorecard).maxScore}` 
-                : `${(scorecard as EssayScorecard).totalPoints}/${(scorecard as EssayScorecard).maxPoints}`
-              } points
+      {!hideOverallScore && (
+        <div className="rounded-[14px] border border-[rgba(0,229,229,0.2)] bg-[rgba(0,229,229,0.05)] p-6">
+          <div className="flex items-center justify-between">
+            <h2 className="text-lg font-semibold text-[#00e5e5]">📊 Your Writing Score</h2>
+            <div className="text-right">
+              <div className="font-mono text-3xl font-bold text-[#00e5e5]">
+                {scorecard.percentageScore}%
+              </div>
+              <div className="text-xs text-[rgba(255,255,255,0.4)]">
+                {isParagraph 
+                  ? `${(scorecard as ParagraphScorecard).totalScore}/${(scorecard as ParagraphScorecard).maxScore}` 
+                  : `${(scorecard as EssayScorecard).totalPoints}/${(scorecard as EssayScorecard).maxPoints}`
+                } points
+              </div>
             </div>
           </div>
         </div>
-      </div>
+      )}
 
       {/* Category Cards (AlphaWrite style) */}
       {isParagraph && categories.length > 0 && (

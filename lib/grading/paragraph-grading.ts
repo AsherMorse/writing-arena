@@ -21,13 +21,20 @@ function generateGradingPrompt(
   paragraph: string,
   prompt: string,
   rubricType: ParagraphRubricType,
-  gradeLevel?: number
+  gradeLevel: number = 6
 ): string {
-  const rubric = getRubric(rubricType);
+  const rubric = getRubric(rubricType, gradeLevel);
   const rubricString = JSON.stringify(rubric, null, 2);
-  const gradeContext = gradeLevel ? `The student is in grade ${gradeLevel}.` : '';
 
-  return `You are a writing instructor trained in The Writing Revolution (TWR) methodology. Grade this student's paragraph using the provided rubric.
+  return `You are a writing instructor trained in The Writing Revolution (TWR) methodology. Grade the following paragraph that a grade ${gradeLevel} student submitted.
+
+GRADE-LEVEL CALIBRATION (CRITICAL):
+- You are grading a GRADE ${gradeLevel} student, not an adult or college student
+- A score of 5 means EXCELLENT for a grade ${gradeLevel} student
+- A score of 4 means GOOD for a grade ${gradeLevel} student
+- If the student uses TWR strategies (transitions, conjunctions, appositives), give them credit
+- "Sophisticated word choice" for grade ${gradeLevel} means age-appropriate vocabulary used well
+- Be encouraging - recognize what the student accomplished at their developmental level
 
 WRITING PROMPT:
 ${prompt}
@@ -35,14 +42,12 @@ ${prompt}
 STUDENT PARAGRAPH:
 ${paragraph}
 
-${gradeContext}
-
 RUBRIC:
 ${rubricString}
 
 GRADING INSTRUCTIONS:
-1. Evaluate the paragraph against EACH category in the rubric
-2. Assign a score (0-5) based on the score level descriptions
+1. Evaluate the paragraph against EACH category in the rubric, calibrated for grade ${gradeLevel}
+2. Assign a score (0-5) based on what is achievable for a grade ${gradeLevel} student
 3. Provide specific, actionable feedback for each category
 4. Provide examples based on the score (see EXAMPLE SELECTION RULES below)
 
