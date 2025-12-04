@@ -25,7 +25,7 @@ export default function RootLayout({
             {children}
           </RequireAuth>
         </Suspense>
-        <DebugMenu />
+        {process.env.NODE_ENV === 'development' && <DebugMenu />}
       </AuthProvider>
     </body>
     </html>
