@@ -5,14 +5,14 @@
  * Allows grading essays/paragraphs without going through ranked match flow.
  */
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import Link from 'next/link';
 import { useAuth } from '@/contexts/AuthContext';
 import { saveGradingResult } from '@/lib/services/grading-history';
-import { WritingFeedback } from '@/components/ranked/results-v2/WritingFeedback';
+import { WritingFeedback, type ExampleHighlightInfo } from '@/components/ranked/results-v2/WritingFeedback';
 import { WritingFeedbackFlat } from '@/components/ranked/results-v2/WritingFeedbackFlat';
-import HighlightedText from '@/components/shared/HighlightedText';
-import { extractAndLocateSpans } from '@/lib/grading/text-highlighting';
+import { locateSpan } from '@/lib/grading/text-highlighting';
+import type { LocatedSpan } from '@/lib/grading/text-highlighting/types';
 
 const SAMPLE_PARAGRAPH = `The dog ran fast because it was chasing a squirrel through the park. The squirrel was very clever, and it quickly climbed up a tall oak tree to escape. The dog barked loudly at the base of the tree, but it could not reach the squirrel. In conclusion, the squirrel outsmarted the dog by using its climbing abilities.`;
 
@@ -25,54 +25,120 @@ Third, dogs can improve mental health. Petting a dog has been shown to reduce st
 In conclusion, dogs are wonderful companions that benefit their owners physically and emotionally. Anyone considering a pet should seriously consider adopting a dog.`;
 
 /**
- * @description Component to display student writing with highlighted spans.
+ * @description Active highlight state (from hover or click).
  */
-function HighlightedWritingSection({ content, result }: { content: string; result: any }) {
-  const { improvementSpans, strengthSpans } = useMemo(() => {
-    if (!result) return { improvementSpans: [], strengthSpans: [] };
+interface ActiveHighlight {
+  span: LocatedSpan;
+  type: 'strength' | 'improvement';
+  categoryTitle: string;
+  isLocked: boolean; // true if clicked (stays until click elsewhere)
+}
 
-    const improvements = extractAndLocateSpans(result.improvements || [], content);
-    const strengths = extractAndLocateSpans(result.strengths || [], content);
+/**
+ * @description Component to display student writing with transient highlights.
+ * Highlights only appear on hover/click of examples in feedback section.
+ */
+function InteractiveWritingSection({
+  content,
+  activeHighlight,
+  onClearHighlight,
+}: {
+  content: string;
+  activeHighlight: ActiveHighlight | null;
+  onClearHighlight: () => void;
+}) {
+  // Build segments based on active highlight
+  const segments = useMemo(() => {
+    if (!activeHighlight || !activeHighlight.span) {
+      return [{ text: content, highlight: null }];
+    }
 
-    return { improvementSpans: improvements, strengthSpans: strengths };
-  }, [content, result]);
+    const { startIndex, endIndex } = activeHighlight.span;
+    const result: Array<{ text: string; highlight: ActiveHighlight | null }> = [];
 
-  const totalHighlights = improvementSpans.length + strengthSpans.length;
+    // Text before highlight
+    if (startIndex > 0) {
+      result.push({ text: content.slice(0, startIndex), highlight: null });
+    }
+
+    // Highlighted text
+    result.push({
+      text: content.slice(startIndex, endIndex),
+      highlight: activeHighlight,
+    });
+
+    // Text after highlight
+    if (endIndex < content.length) {
+      result.push({ text: content.slice(endIndex), highlight: null });
+    }
+
+    return result;
+  }, [content, activeHighlight]);
+
+  const getHighlightStyle = (type: 'strength' | 'improvement') => {
+    return type === 'improvement'
+      ? 'bg-[rgba(255,224,102,0.4)]'
+      : 'bg-[rgba(0,212,146,0.3)]';
+  };
 
   return (
     <div className="mb-8 rounded-[14px] border border-[rgba(255,255,255,0.1)] bg-[rgba(255,255,255,0.025)] p-6">
-      <div className="mb-4 flex items-center justify-between">
+      <div className="mb-4 flex items-center justify-between h-7">
         <h2 className="text-lg font-semibold text-[rgba(255,255,255,0.8)]">📝 Your Writing</h2>
-        <div className="flex items-center gap-4 text-xs">
-          <span className="flex items-center gap-1.5">
-            <span className="inline-block h-3 w-3 rounded-sm" style={{ backgroundColor: 'rgba(255, 224, 102, 0.5)' }} />
-            <span className="text-[rgba(255,255,255,0.5)]">Improvements ({improvementSpans.length})</span>
+        {/* Always reserve space, use opacity for visibility */}
+        <div
+          className={`flex items-center gap-2 text-xs transition-opacity ${
+            activeHighlight ? 'opacity-100' : 'opacity-0 pointer-events-none'
+          }`}
+        >
+          <span
+            className={`inline-block h-2.5 w-2.5 rounded-full ${
+              activeHighlight?.type === 'improvement' ? 'bg-[#ffe066]' : 'bg-[#00d492]'
+            }`}
+          />
+          <span className="text-[rgba(255,255,255,0.5)]">
+            {activeHighlight?.categoryTitle} • {activeHighlight?.type === 'improvement' ? 'Improvement' : 'Strength'}
           </span>
-          <span className="flex items-center gap-1.5">
-            <span className="inline-block h-3 w-3 rounded-sm" style={{ backgroundColor: 'rgba(0, 212, 146, 0.4)' }} />
-            <span className="text-[rgba(255,255,255,0.5)]">Strengths ({strengthSpans.length})</span>
-          </span>
+          {activeHighlight?.isLocked && (
+            <button
+              onClick={onClearHighlight}
+              className="ml-2 text-[rgba(255,255,255,0.4)] hover:text-white"
+              title="Clear highlight"
+            >
+              ✕
+            </button>
+          )}
         </div>
       </div>
 
-      {totalHighlights > 0 ? (
-        <HighlightedText
-          text={content}
-          improvements={improvementSpans}
-          strengths={strengthSpans}
-          className="rounded-[10px] bg-[#101012] p-4 text-sm leading-relaxed text-[rgba(255,255,255,0.7)] font-mono"
-          showTooltips={true}
-        />
-      ) : (
-        <div className="rounded-[10px] bg-[#101012] p-4">
-          <p className="text-sm leading-relaxed text-[rgba(255,255,255,0.7)] font-mono whitespace-pre-wrap">
-            {content}
-          </p>
-          <p className="mt-3 text-xs text-[rgba(255,255,255,0.4)] italic">
-            No highlights found. The grader may not have returned quotes in the expected format.
-          </p>
-        </div>
-      )}
+      <div
+        className="rounded-[10px] bg-[#101012] p-4 text-sm leading-relaxed text-[rgba(255,255,255,0.7)] font-mono whitespace-pre-wrap"
+        onClick={onClearHighlight}
+      >
+        {segments.map((segment, idx) => {
+          if (segment.highlight) {
+            return (
+              <span
+                key={idx}
+                className={`rounded-sm transition-colors ${getHighlightStyle(segment.highlight.type)}`}
+                onClick={(e) => e.stopPropagation()} // Don't clear when clicking on highlight
+              >
+                {segment.text}
+              </span>
+            );
+          }
+          return <span key={idx}>{segment.text}</span>;
+        })}
+      </div>
+
+      {/* Always render to maintain consistent height - use opacity for visibility */}
+      <p
+        className={`mt-3 text-xs text-[rgba(255,255,255,0.4)] italic transition-opacity ${
+          activeHighlight ? 'opacity-0' : 'opacity-100'
+        }`}
+      >
+        Hover or click on examples below to highlight them in your writing.
+      </p>
     </div>
   );
 }
@@ -88,6 +154,71 @@ export default function TestGraderPage() {
   const [error, setError] = useState<string | null>(null);
   const [feedbackVersion, setFeedbackVersion] = useState<'category' | 'flat'>('category');
   const [isFullWidthPreview, setIsFullWidthPreview] = useState(false);
+  const [activeHighlight, setActiveHighlight] = useState<ActiveHighlight | null>(null);
+
+  /**
+   * @description Handle hover on an example - show transient highlight.
+   */
+  const handleExampleHover = useCallback((info: ExampleHighlightInfo | null) => {
+    // Don't override a locked (clicked) highlight with hover
+    if (activeHighlight?.isLocked) return;
+
+    if (!info) {
+      setActiveHighlight(null);
+      return;
+    }
+
+    // Locate the span in the content
+    const span = locateSpan(
+      { substringOfInterest: info.substringOfInterest, explanation: '' },
+      content
+    );
+
+    if (span) {
+      setActiveHighlight({
+        span,
+        type: info.type,
+        categoryTitle: info.categoryTitle,
+        isLocked: false,
+      });
+    }
+  }, [content, activeHighlight?.isLocked]);
+
+  /**
+   * @description Handle click on an example - toggle locked highlight.
+   */
+  const handleExampleClick = useCallback((info: ExampleHighlightInfo) => {
+    // If clicking the same example that's already locked, unlock it
+    if (
+      activeHighlight?.isLocked &&
+      activeHighlight.span.substringOfInterest === info.substringOfInterest
+    ) {
+      setActiveHighlight(null);
+      return;
+    }
+
+    // Locate and lock the new highlight
+    const span = locateSpan(
+      { substringOfInterest: info.substringOfInterest, explanation: '' },
+      content
+    );
+
+    if (span) {
+      setActiveHighlight({
+        span,
+        type: info.type,
+        categoryTitle: info.categoryTitle,
+        isLocked: true,
+      });
+    }
+  }, [content, activeHighlight]);
+
+  /**
+   * @description Clear any active highlight.
+   */
+  const handleClearHighlight = useCallback(() => {
+    setActiveHighlight(null);
+  }, []);
 
   const handleGrade = async () => {
     if (!user) {
@@ -123,6 +254,7 @@ export default function TestGraderPage() {
       }
 
       // Step 2: Save to Firestore (client-side)
+      // Note: strengths/improvements now come from scorecard.categories for paragraph grader
       const gradingId = await saveGradingResult(user.uid, {
         matchId: testMatchId,
         phase: 3,
@@ -132,8 +264,8 @@ export default function TestGraderPage() {
         hasSevereGap: data.hasSevereGap,
         writingContent: content,
         prompt,
-        strengths: data.strengths || [],
-        improvements: data.improvements || [],
+        strengths: [], // Deprecated - now per-category
+        improvements: [], // Deprecated - now per-category
         overallFeedback: data.overallFeedback || '',
       });
 
@@ -218,8 +350,12 @@ export default function TestGraderPage() {
               </div>
             </div>
 
-            {/* Your Writing with Highlights */}
-            <HighlightedWritingSection content={content} result={result} />
+            {/* Your Writing with Interactive Highlights */}
+            <InteractiveWritingSection
+              content={content}
+              activeHighlight={activeHighlight}
+              onClearHighlight={handleClearHighlight}
+            />
 
             {/* Full Width Feedback */}
             {feedbackVersion === 'category' ? (
@@ -227,17 +363,17 @@ export default function TestGraderPage() {
                 graderType={result.graderType}
                 scorecard={result.scorecard}
                 gaps={result.gaps || []}
-                strengths={result.strengths || []}
-                improvements={result.improvements || []}
                 overallFeedback={result.overallFeedback || ''}
+                onExampleHover={handleExampleHover}
+                onExampleClick={handleExampleClick}
               />
             ) : (
               <WritingFeedbackFlat
                 graderType={result.graderType}
                 scorecard={result.scorecard}
                 gaps={result.gaps || []}
-                strengths={result.strengths || []}
-                improvements={result.improvements || []}
+                strengths={[]}
+                improvements={[]}
                 overallFeedback={result.overallFeedback || ''}
               />
             )}
@@ -426,17 +562,17 @@ export default function TestGraderPage() {
                       graderType={result.graderType}
                       scorecard={result.scorecard}
                       gaps={result.gaps || []}
-                      strengths={result.strengths || []}
-                      improvements={result.improvements || []}
                       overallFeedback={result.overallFeedback || ''}
+                      onExampleHover={handleExampleHover}
+                      onExampleClick={handleExampleClick}
                     />
                   ) : (
                     <WritingFeedbackFlat
                       graderType={result.graderType}
                       scorecard={result.scorecard}
                       gaps={result.gaps || []}
-                      strengths={result.strengths || []}
-                      improvements={result.improvements || []}
+                      strengths={[]}
+                      improvements={[]}
                       overallFeedback={result.overallFeedback || ''}
                     />
                   )}
@@ -475,7 +611,7 @@ export default function TestGraderPage() {
               <div className="rounded-[14px] border border-[rgba(255,255,255,0.05)] bg-[rgba(255,255,255,0.025)] p-6 text-center">
                 <div className="text-4xl mb-4">📝</div>
                 <p className="text-sm text-[rgba(255,255,255,0.5)]">
-                  Click "Grade Content" to test the grader
+                  Click &ldquo;Grade Content&rdquo; to test the grader
                 </p>
               </div>
             )}
@@ -486,4 +622,3 @@ export default function TestGraderPage() {
     </div>
   );
 }
-

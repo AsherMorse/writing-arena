@@ -278,3 +278,33 @@ export function extractAndLocateSpans(
   return locateSpans(spans, text, similarityThreshold);
 }
 
+/**
+ * @description CategoryExample from paragraph grader (AlphaWrite format).
+ */
+export interface CategoryExample {
+  substringOfInterest: string;
+  explanationOfSubstring: string;
+}
+
+/**
+ * @description Locate CategoryExample objects within text.
+ * Converts AlphaWrite-style {substringOfInterest, explanationOfSubstring} to LocatedSpan with indices.
+ */
+export function locateCategoryExamples(
+  examples: CategoryExample[],
+  text: string,
+  similarityThreshold: number = 0.85
+): LocatedSpan[] {
+  if (!examples || !Array.isArray(examples) || !text) {
+    return [];
+  }
+
+  // Convert CategoryExample to Span format
+  const spans: Span[] = examples.map((ex) => ({
+    substringOfInterest: ex.substringOfInterest,
+    explanation: ex.explanationOfSubstring,
+  }));
+
+  return locateSpans(spans, text, similarityThreshold);
+}
+

@@ -116,8 +116,6 @@ export async function POST(request: NextRequest) {
 
     let scorecard: ParagraphScorecard | EssayScorecard;
     let gaps: SkillGap[] | EssaySkillGap[];
-    let strengths: string[];
-    let improvements: string[];
     let overallFeedback: string;
 
     // Grade based on grader type
@@ -130,8 +128,6 @@ export async function POST(request: NextRequest) {
       });
 
       scorecard = result.scorecard;
-      strengths = result.strengths;
-      improvements = result.improvements;
       overallFeedback = result.overallFeedback;
 
       // Detect gaps
@@ -149,8 +145,7 @@ export async function POST(request: NextRequest) {
       });
 
       scorecard = result.scorecard;
-      strengths = result.strengths;
-      improvements = result.improvements;
+      // Essay grader still has top-level strengths/improvements (not yet refactored)
       overallFeedback = result.overallFeedback;
 
       // Detect gaps
@@ -166,6 +161,8 @@ export async function POST(request: NextRequest) {
     );
 
     // Return grading result - client will save to Firestore
+    // For paragraph grader: examples are in scorecard.categories[].examplesOfGreatResults/examplesOfWhereToImprove
+    // For essay grader: still using top-level strengths/improvements (not yet refactored)
     return NextResponse.json({
       success: true,
       matchId,
@@ -173,8 +170,6 @@ export async function POST(request: NextRequest) {
       scorecard,
       gaps,
       hasSevereGap: severeGap,
-      strengths,
-      improvements,
       overallFeedback,
     });
   } catch (error) {

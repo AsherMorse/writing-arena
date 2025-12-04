@@ -3,24 +3,35 @@
 /**
  * @fileoverview Student-friendly writing feedback display.
  * Shows feedback by category with score bars, summaries, and expandable grader notes.
- * Styled similar to AlphaWrite's feedback UI.
+ * Uses AlphaWrite's per-category example structure.
  */
 
 import { useState } from 'react';
 import Link from 'next/link';
-import type { ParagraphScorecard, GradedCategory } from '@/lib/grading/paragraph-rubrics';
+import type { ParagraphScorecard, GradedCategory, CategoryExample } from '@/lib/grading/paragraph-rubrics';
 import type { EssayScorecard } from '@/lib/grading/essay-rubrics';
 import type { SkillGap } from '@/lib/grading/paragraph-rubrics';
 import type { EssaySkillGap } from '@/lib/grading/essay-rubrics';
 import type { GraderType } from '@/lib/types/grading-history';
 
+/**
+ * @description Info about an example highlight (for hover/click interactions).
+ */
+export interface ExampleHighlightInfo {
+  substringOfInterest: string;
+  type: 'strength' | 'improvement';
+  categoryTitle: string;
+}
+
 interface WritingFeedbackProps {
   graderType: GraderType;
   scorecard: ParagraphScorecard | EssayScorecard;
   gaps: SkillGap[] | EssaySkillGap[];
-  strengths: string[];
-  improvements: string[];
   overallFeedback: string;
+  /** Called when an example is hovered (null on mouse leave) */
+  onExampleHover?: (info: ExampleHighlightInfo | null) => void;
+  /** Called when an example is clicked (for toggle behavior) */
+  onExampleClick?: (info: ExampleHighlightInfo) => void;
 }
 
 /**
@@ -51,29 +62,9 @@ function getScoreColor(score: number, max: number): string {
 }
 
 /**
- * @description Extract quoted text from feedback string.
- */
-function extractQuotes(text: string): string[] {
-  const quotes: string[] = [];
-  // Match text in single quotes
-  const singleQuoteMatches = text.match(/'([^']+)'/g);
-  if (singleQuoteMatches) {
-    singleQuoteMatches.forEach((match) => {
-      const content = match.slice(1, -1);
-      // Only include if it looks like a sentence (has words)
-      if (content.split(' ').length >= 3) {
-        quotes.push(content);
-      }
-    });
-  }
-  return quotes;
-}
-
-/**
  * @description Get first sentence(s) as summary from feedback.
  */
 function getSummary(feedback: string): string {
-  // Get first two sentences or up to 150 chars
   const sentences = feedback.split(/(?<=[.!?])\s+/);
   let summary = sentences[0] || '';
   if (sentences[1] && summary.length < 80) {
@@ -83,37 +74,32 @@ function getSummary(feedback: string): string {
 }
 
 /**
- * @description Parse an improvement string to extract before/after/reason.
+ * @description Check if example has valid substring (not N/A).
  */
-function parseImprovement(improvement: string): { before: string; after: string; reason: string } {
-  const changeMatch = improvement.match(/Change\s*['"]([^'"]+)['"]\s*to\s*['"]([^'"]+)['"]/i);
-  
-  if (changeMatch) {
-    const before = changeMatch[1];
-    const after = changeMatch[2];
-    const dashIndex = improvement.lastIndexOf(' - ');
-    const reason = dashIndex > 0 ? improvement.slice(dashIndex + 3) : '';
-    return { before, after, reason };
-  }
-  
-  return { before: '', after: '', reason: improvement };
+function hasValidSubstring(example: CategoryExample): boolean {
+  return Boolean(example.substringOfInterest) && example.substringOfInterest.toUpperCase() !== 'N/A';
 }
 
 interface CategoryCardProps {
   category: GradedCategory;
-  relatedImprovement?: { before: string; after: string; reason: string };
+  onExampleHover?: (info: ExampleHighlightInfo | null) => void;
+  onExampleClick?: (info: ExampleHighlightInfo) => void;
 }
 
 /**
  * @description Individual category feedback card with expandable grader notes.
  */
-function CategoryCard({ category, relatedImprovement }: CategoryCardProps) {
+function CategoryCard({ category, onExampleHover, onExampleClick }: CategoryCardProps) {
   const [showNotes, setShowNotes] = useState(false);
   const color = getScoreColor(category.score, category.maxScore);
   const pct = (category.score / category.maxScore) * 100;
-  const quotes = extractQuotes(category.feedback);
   const summary = getSummary(category.feedback);
-  const hasNotes = quotes.length > 0 || category.feedback.length > summary.length;
+  
+  // Get examples from the category
+  const greatExamples = category.examplesOfGreatResults || [];
+  const improveExamples = category.examplesOfWhereToImprove || [];
+  const totalExamples = greatExamples.length + improveExamples.length;
+  const hasNotes = totalExamples > 0 || category.feedback.length > summary.length;
 
   return (
     <div className="rounded-[14px] border border-[rgba(0,212,146,0.15)] bg-[rgba(0,212,146,0.02)] overflow-hidden">
@@ -154,45 +140,84 @@ function CategoryCard({ category, relatedImprovement }: CategoryCardProps) {
             className="w-full px-5 py-3 flex items-center gap-2 text-sm font-medium text-[#00e5e5] hover:bg-[rgba(0,229,229,0.05)] transition"
           >
             <span className={`transition-transform ${showNotes ? 'rotate-180' : ''}`}>▼</span>
-            {showNotes ? 'Hide grader notes' : `See grader notes${quotes.length > 0 ? ` (${quotes.length})` : ''}`}
+            {showNotes ? 'Hide grader notes' : `See grader notes${totalExamples > 0 ? ` (${totalExamples})` : ''}`}
           </button>
 
           {showNotes && (
             <div className="px-5 pb-5 space-y-4">
-              {/* Quoted text examples */}
-              {quotes.map((quote, idx) => (
-                <div key={idx} className="border-l-2 border-[#00e5e5] pl-4">
-                  <p className="text-sm italic text-[rgba(255,255,255,0.7)]">
-                    "{quote}"
-                  </p>
+              {/* Great Results (strengths) */}
+              {greatExamples.length > 0 && (
+                <div>
+                  <div className="text-xs font-semibold uppercase text-[#00d492] mb-2">✨ What You Did Well</div>
+                  <div className="space-y-3">
+                    {greatExamples.map((ex, idx) => {
+                      const highlightInfo: ExampleHighlightInfo = {
+                        substringOfInterest: ex.substringOfInterest,
+                        type: 'strength',
+                        categoryTitle: category.title,
+                      };
+                      return (
+                        <div
+                          key={idx}
+                          className="border-l-2 border-[#00d492] pl-4 cursor-pointer rounded-r-lg transition hover:bg-[rgba(0,212,146,0.1)]"
+                          onMouseEnter={() => hasValidSubstring(ex) && onExampleHover?.(highlightInfo)}
+                          onMouseLeave={() => onExampleHover?.(null)}
+                          onClick={() => hasValidSubstring(ex) && onExampleClick?.(highlightInfo)}
+                        >
+                          {hasValidSubstring(ex) && (
+                            <p className="text-sm italic text-[rgba(255,255,255,0.7)] mb-1">
+                              &ldquo;{ex.substringOfInterest}&rdquo;
+                            </p>
+                          )}
+                          <p className="text-xs text-[rgba(255,255,255,0.5)]">
+                            {ex.explanationOfSubstring}
+                          </p>
+                        </div>
+                      );
+                    })}
+                  </div>
                 </div>
-              ))}
+              )}
+
+              {/* Where to Improve */}
+              {improveExamples.length > 0 && (
+                <div>
+                  <div className="text-xs font-semibold uppercase text-[#ff9030] mb-2">💡 Areas to Improve</div>
+                  <div className="space-y-3">
+                    {improveExamples.map((ex, idx) => {
+                      const highlightInfo: ExampleHighlightInfo = {
+                        substringOfInterest: ex.substringOfInterest,
+                        type: 'improvement',
+                        categoryTitle: category.title,
+                      };
+                      return (
+                        <div
+                          key={idx}
+                          className="border-l-2 border-[#ff9030] pl-4 cursor-pointer rounded-r-lg transition hover:bg-[rgba(255,144,48,0.1)]"
+                          onMouseEnter={() => hasValidSubstring(ex) && onExampleHover?.(highlightInfo)}
+                          onMouseLeave={() => onExampleHover?.(null)}
+                          onClick={() => hasValidSubstring(ex) && onExampleClick?.(highlightInfo)}
+                        >
+                          {hasValidSubstring(ex) && (
+                            <p className="text-sm italic text-[rgba(255,255,255,0.7)] mb-1">
+                              &ldquo;{ex.substringOfInterest}&rdquo;
+                            </p>
+                          )}
+                          <p className="text-xs text-[rgba(255,255,255,0.5)]">
+                            {ex.explanationOfSubstring}
+                          </p>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
 
               {/* Full feedback if different from summary */}
-              {category.feedback.length > summary.length && (
+              {category.feedback.length > summary.length && totalExamples === 0 && (
                 <p className="text-xs leading-relaxed text-[rgba(255,255,255,0.5)]">
                   {category.feedback}
                 </p>
-              )}
-
-              {/* Related improvement suggestion */}
-              {relatedImprovement && relatedImprovement.before && (
-                <div className="mt-4 p-4 rounded-lg bg-[rgba(255,144,48,0.1)] border border-[rgba(255,144,48,0.2)]">
-                  <div className="text-xs font-semibold uppercase text-[#ff9030] mb-2">💡 Try This</div>
-                  <div className="space-y-2">
-                    <p className="text-xs text-[rgba(255,255,255,0.5)]">
-                      <span className="line-through">"{relatedImprovement.before}"</span>
-                    </p>
-                    <p className="text-xs text-[rgba(255,255,255,0.8)]">
-                      → "{relatedImprovement.after}"
-                    </p>
-                    {relatedImprovement.reason && (
-                      <p className="text-xs text-[rgba(255,255,255,0.5)] mt-2">
-                        {relatedImprovement.reason}
-                      </p>
-                    )}
-                  </div>
-                </div>
               )}
             </div>
           )}
@@ -206,9 +231,9 @@ export function WritingFeedback({
   graderType,
   scorecard,
   gaps,
-  strengths,
-  improvements,
   overallFeedback,
+  onExampleHover,
+  onExampleClick,
 }: WritingFeedbackProps) {
   const isParagraph = graderType === 'paragraph';
   
@@ -221,24 +246,6 @@ export function WritingFeedback({
   const allLessons = new Set<string>();
   gaps.forEach((gap) => gap.recommendedLessons.slice(0, 2).forEach((l) => allLessons.add(l)));
   const topLessons = Array.from(allLessons).slice(0, 3);
-
-  // Parse improvements and try to match to categories
-  const parsedImprovements = improvements.map(parseImprovement);
-  
-  /**
-   * @description Try to match an improvement to a category based on keywords.
-   */
-  function getRelatedImprovement(categoryTitle: string): { before: string; after: string; reason: string } | undefined {
-    const titleLower = categoryTitle.toLowerCase();
-    return parsedImprovements.find((imp) => {
-      const reasonLower = imp.reason.toLowerCase();
-      if (titleLower.includes('topic') && reasonLower.includes('topic sentence')) return true;
-      if (titleLower.includes('detail') && (reasonLower.includes('transition') || reasonLower.includes('detail'))) return true;
-      if (titleLower.includes('conclud') && reasonLower.includes('conclud')) return true;
-      if (titleLower.includes('convention') && (reasonLower.includes('grammar') || reasonLower.includes('spelling'))) return true;
-      return false;
-    });
-  }
 
   return (
     <div className="space-y-6">
@@ -264,10 +271,11 @@ export function WritingFeedback({
       {isParagraph && categories.length > 0 && (
         <div className="space-y-4">
           {categories.map((cat, idx) => (
-            <CategoryCard 
-              key={idx} 
-              category={cat} 
-              relatedImprovement={getRelatedImprovement(cat.title)}
+            <CategoryCard
+              key={idx}
+              category={cat}
+              onExampleHover={onExampleHover}
+              onExampleClick={onExampleClick}
             />
           ))}
         </div>

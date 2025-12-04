@@ -20,6 +20,8 @@ export type GraderType = 'paragraph' | 'essay';
 
 /**
  * @description Single grading history entry stored per session.
+ * Note: strengths/improvements are now per-category in scorecard.categories
+ * (examplesOfGreatResults/examplesOfWhereToImprove) for paragraph grader.
  */
 export interface GradingHistoryEntry {
   id: string;
@@ -32,9 +34,11 @@ export interface GradingHistoryEntry {
   hasSevereGap: boolean;
   writingContent: string;
   prompt: string;
-  strengths: string[];
-  improvements: string[];
   overallFeedback: string;
+  /** @deprecated Use scorecard.categories[].examplesOfGreatResults instead */
+  strengths?: string[];
+  /** @deprecated Use scorecard.categories[].examplesOfWhereToImprove instead */
+  improvements?: string[];
 }
 
 /**
@@ -49,12 +53,11 @@ export interface GradingHistoryInput {
   hasSevereGap: boolean;
   writingContent: string;
   prompt: string;
-<<<<<<< HEAD
-  strengths: string[];
-  improvements: string[];
   overallFeedback: string;
-=======
->>>>>>> 2fb2fc6eb687eeb197bef84f5b4bf0a3bff05f34
+  /** @deprecated Use scorecard.categories[].examplesOfGreatResults instead */
+  strengths?: string[];
+  /** @deprecated Use scorecard.categories[].examplesOfWhereToImprove instead */
+  improvements?: string[];
 }
 
 /**
@@ -97,6 +100,7 @@ export interface GradeRevisionInput {
 
 /**
  * @description Response from grading API endpoint.
+ * Note: For paragraph grader, examples are in scorecard.categories[].examplesOfGreatResults/examplesOfWhereToImprove.
  */
 export interface GradeRevisionResponse {
   success: boolean;
@@ -105,8 +109,5 @@ export interface GradeRevisionResponse {
   gaps: SkillGap[] | EssaySkillGap[];
   hasSevereGap: boolean;
   blockStatus: BlockStatus;
-  strengths: string[];
-  improvements: string[];
   overallFeedback: string;
 }
-

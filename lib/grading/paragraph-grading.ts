@@ -11,6 +11,7 @@ import {
   type ParagraphRubricType,
   type ParagraphScorecard,
   type GradedCategory,
+  type CategoryExample,
 } from './paragraph-rubrics';
 
 /**
@@ -43,10 +44,9 @@ GRADING INSTRUCTIONS:
 1. Evaluate the paragraph against EACH category in the rubric
 2. Assign a score (0-5) based on the score level descriptions
 3. Provide specific, actionable feedback for each category
-4. Identify 3 specific STRENGTHS - quote the student's text and name the TWR strategy used
-5. Identify 3 specific IMPROVEMENTS - quote what to change and name the TWR strategy to use
+4. Provide examples based on the score (see EXAMPLE SELECTION RULES below)
 
-TWR STRATEGIES TO LOOK FOR:
+TWR STRATEGIES TO REFERENCE:
 - Sentence Expansion (because/but/so)
 - Appositives (descriptive phrases)
 - Subordinating Conjunctions (although, since, while, when)
@@ -54,6 +54,17 @@ TWR STRATEGIES TO LOOK FOR:
 - Topic Sentence clarity
 - Supporting detail relevance
 - Concluding sentence effectiveness
+
+EXAMPLE SELECTION RULES (IMPORTANT - follow this exactly):
+- Total examples per category: 2-3 maximum (combined strengths + improvements)
+- Score 4-5 (strong): 1-2 examplesOfGreatResults, 0-1 examplesOfWhereToImprove
+- Score 3 (developing): 1 examplesOfGreatResults, 1-2 examplesOfWhereToImprove
+- Score 0-2 (needs work): 0-1 examplesOfGreatResults, 1-2 examplesOfWhereToImprove
+- Pick only the MOST important examples - quality over quantity
+
+EXAMPLE FORMAT RULES:
+- substringOfInterest: Copy the EXACT text from the student's paragraph (no changes). Use "N/A" only for general advice.
+- explanationOfSubstring: Explain why this text demonstrates the skill well OR what could be improved. Reference specific TWR strategies.
 
 Return your evaluation as JSON in this exact format:
 {
@@ -64,31 +75,65 @@ Return your evaluation as JSON in this exact format:
         "title": "Category Name",
         "score": 0-5,
         "maxScore": 5,
-        "feedback": "Specific feedback with examples from the text"
+        "feedback": "Specific feedback explaining the score",
+        "examplesOfGreatResults": [
+          {
+            "substringOfInterest": "exact text from paragraph where student did well",
+            "explanationOfSubstring": "Why this demonstrates the skill - reference TWR strategy"
+          }
+        ],
+        "examplesOfWhereToImprove": [
+          {
+            "substringOfInterest": "exact text that needs improvement",
+            "explanationOfSubstring": "What could be better and how - reference TWR strategy"
+          }
+        ]
       }
     ],
     "totalScore": number,
     "maxScore": 20,
     "percentageScore": number
   },
-  "strengths": [
-    "Quote: 'exact text from paragraph' - demonstrates [TWR strategy] (e.g., uses appositive to add description)",
-    "Quote: 'exact text' - shows [TWR strategy]",
-    "Quote: 'exact text' - [TWR strategy explanation]"
-  ],
-  "improvements": [
-    "Change 'current text' to 'improved version' - use [TWR strategy] to [benefit]",
-    "Add [TWR strategy] to sentence X: 'suggested revision'",
-    "[Specific TWR-based improvement suggestion]"
-  ],
-  "overallFeedback": "Brief overall assessment highlighting main strengths and priority areas for improvement"
+  "overallFeedback": "Brief overall assessment (2-3 sentences) highlighting main strengths and priority areas for improvement"
 }
 
-IMPORTANT: 
-- Quote the student's actual text in strengths and improvements
-- Name specific TWR strategies (appositives, subordinating conjunctions, transitions, etc.)
-- Provide concrete revision suggestions, not vague advice
+IMPORTANT:
+- Copy text EXACTLY as written in substringOfInterest (no paraphrasing, no ellipses)
+- Do NOT put quotes around the substringOfInterest value - just the raw text
+- Name specific TWR strategies in explanations
 - Return ONLY valid JSON, no markdown or additional text`;
+}
+
+/**
+ * @description Parse a single example object from LLM response.
+ */
+function parseExample(example: any): CategoryExample | null {
+  if (!example || typeof example !== 'object') return null;
+  
+  const substringOfInterest = example.substringOfInterest || example.substring || '';
+  const explanationOfSubstring = example.explanationOfSubstring || example.explanation || '';
+  
+  // Skip empty or N/A examples
+  if (!substringOfInterest || substringOfInterest.toUpperCase() === 'N/A') {
+    // Still include if there's an explanation (general feedback)
+    if (explanationOfSubstring) {
+      return { substringOfInterest: 'N/A', explanationOfSubstring };
+    }
+    return null;
+  }
+  
+  return { substringOfInterest, explanationOfSubstring };
+}
+
+/**
+ * @description Parse an array of examples, filtering out invalid ones.
+ */
+function parseExamples(examples: any): CategoryExample[] {
+  if (!Array.isArray(examples)) return [];
+  return examples
+    .map(parseExample)
+    .filter((ex): ex is CategoryExample => ex !== null)
+    .slice(0, 2); // Max 2 per array (total 2-3 per category)
 }
 
 /**
@@ -118,6 +163,8 @@ function parseGradingResponse(
         score: Math.min(5, Math.max(0, Number(cat.score) || 0)),
         maxScore: 5,
         feedback: cat.feedback || '',
+        examplesOfGreatResults: parseExamples(cat.examplesOfGreatResults),
+        examplesOfWhereToImprove: parseExamples(cat.examplesOfWhereToImprove),
       })),
       totalScore: 0,
       maxScore: 20,
@@ -130,8 +177,6 @@ function parseGradingResponse(
 
     return {
       scorecard,
-      strengths: Array.isArray(parsed.strengths) ? parsed.strengths.slice(0, 5) : [],
-      improvements: Array.isArray(parsed.improvements) ? parsed.improvements.slice(0, 5) : [],
       overallFeedback: parsed.overallFeedback || '',
     };
   } catch (error) {

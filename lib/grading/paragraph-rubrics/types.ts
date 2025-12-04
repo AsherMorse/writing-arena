@@ -36,6 +36,17 @@ export interface ParagraphRubric {
 }
 
 /**
+ * @description A specific example from the student's text with explanation.
+ * Matches AlphaWrite's per-category example structure.
+ */
+export interface CategoryExample {
+  /** The exact text from the student's writing (or "N/A" if not applicable) */
+  substringOfInterest: string;
+  /** Explanation of why this text is notable */
+  explanationOfSubstring: string;
+}
+
+/**
  * @description Graded result for a single category.
  */
 export interface GradedCategory {
@@ -43,6 +54,10 @@ export interface GradedCategory {
   score: number;
   maxScore: number;
   feedback: string;
+  /** Examples where the student did well for this category */
+  examplesOfGreatResults: CategoryExample[];
+  /** Examples where the student needs improvement for this category */
+  examplesOfWhereToImprove: CategoryExample[];
 }
 
 /**
@@ -58,11 +73,10 @@ export interface ParagraphScorecard {
 
 /**
  * @description Full grading result including scorecard and TWR-specific feedback.
+ * Examples are now per-category in scorecard.categories[].examplesOfGreatResults/examplesOfWhereToImprove.
  */
 export interface ParagraphGradingResult {
   scorecard: ParagraphScorecard;
-  strengths: string[];
-  improvements: string[];
   overallFeedback: string;
 }
 

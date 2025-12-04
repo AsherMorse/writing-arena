@@ -276,8 +276,6 @@ export default function ResultsContentV2({ session: sessionProp }: ResultsConten
             graderType={gradingResult.graderType}
             scorecard={gradingResult.scorecard}
             gaps={gradingResult.gaps}
-            strengths={gradingResult.strengths || []}
-            improvements={gradingResult.improvements || []}
             overallFeedback={gradingResult.overallFeedback || ''}
           />
         )}
