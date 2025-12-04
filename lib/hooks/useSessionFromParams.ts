@@ -22,28 +22,48 @@ export function useSessionFromParams(sessionProp?: GameSession | null) {
   
   // Try to get sessionId from matchState if we have matchId but no sessionId
   const [sessionIdFromMatch, setSessionIdFromMatch] = useState<string>('');
+  const [matchIdForSessionId, setMatchIdForSessionId] = useState<string>('');
   const loadingRef = useRef(false);
+  const currentFetchingMatchIdRef = useRef<string | null>(null);
   
   useEffect(() => {
     const fetchSessionIdFromMatch = async () => {
-      // Use ref to prevent re-triggering and check if we already have sessionId
-      if (matchIdFromParams && !sessionIdFromParams && !sessionProp && !loadingRef.current && !sessionIdFromMatch) {
+      // Check if we need to fetch (either no sessionId yet, or it's for a different match)
+      const needsFetch = matchIdFromParams && !sessionIdFromParams && !sessionProp && 
+                         !loadingRef.current && matchIdFromParams !== matchIdForSessionId;
+      
+      if (needsFetch) {
         loadingRef.current = true;
+        currentFetchingMatchIdRef.current = matchIdFromParams;
+        const fetchingMatchId = matchIdFromParams;
+        
         try {
           const matchState = await getMatchState(matchIdFromParams);
-          if (matchState?.sessionId) {
+          
+          // Only update state if the matchId hasn't changed during the fetch
+          if (currentFetchingMatchIdRef.current === fetchingMatchId && matchState?.sessionId) {
             console.log('📋 SESSION FROM PARAMS - Found sessionId from matchState:', matchState.sessionId);
             setSessionIdFromMatch(matchState.sessionId);
+            setMatchIdForSessionId(fetchingMatchId);
           }
         } catch (error) {
           console.error('❌ SESSION FROM PARAMS - Failed to get sessionId from matchState:', error);
         } finally {
-          loadingRef.current = false;
+          // Only reset loading if this is still the active fetch
+          if (currentFetchingMatchIdRef.current === fetchingMatchId) {
+            loadingRef.current = false;
+          }
         }
       }
     };
     fetchSessionIdFromMatch();
-  }, [matchIdFromParams, sessionIdFromParams, sessionProp, sessionIdFromMatch]);
+    
+    // Cleanup: reset refs when matchIdFromParams changes to allow new fetches
+    return () => {
+      currentFetchingMatchIdRef.current = null;
+      loadingRef.current = false;
+    };
+  }, [matchIdFromParams, sessionIdFromParams, sessionProp, matchIdForSessionId]);
   
   // Use sessionId from params, matchState, or null
   const finalSessionId = sessionIdFromParams || sessionIdFromMatch;
@@ -56,7 +76,6 @@ export function useSessionFromParams(sessionProp?: GameSession | null) {
     session,
     sessionId: finalSessionId,
     matchId: matchIdFromParams,
-    isLoading: loadingRef.current,
   };
 }
 
