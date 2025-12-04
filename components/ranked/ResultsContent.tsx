@@ -67,6 +67,7 @@ export default function ResultsContent({ session: sessionProp }: ResultsContentP
   const [isAnalyzing, setIsAnalyzing] = useState(true);
   const [results, setResults] = useState<any>(null);
   const lastAnalyzedMatchIdRef = useRef<string | null>(null);
+  const currentAnalysisMatchIdRef = useRef<string | null>(null);
   const lastLoggedMatchIdRef = useRef<string | null>(null);
   const { expanded: expandedPhase, toggle: togglePhase, isExpanded } = useExpanded<'writing' | 'feedback' | 'revision'>('writing');
   const [realFeedback, setRealFeedback] = useState<any>({ writing: null, feedback: null, revision: null });
@@ -107,11 +108,15 @@ export default function ResultsContent({ session: sessionProp }: ResultsContentP
     // Guard against re-running analysis for same match (prevents infinite loop from session updates)
     if (!matchId || lastAnalyzedMatchIdRef.current === matchId) return;
     
+    // Mark this matchId as the current analysis (used to prevent stale completions)
+    lastAnalyzedMatchIdRef.current = matchId;
+    currentAnalysisMatchIdRef.current = matchId;
+    const analysisMatchId = matchId; // Capture for closure
+    
     // Reset analyzing state for new match
     setIsAnalyzing(true);
     
     const analyzeRankedMatch = async () => {
-      lastAnalyzedMatchIdRef.current = matchId;
       try {
         // Fetch all phase rankings
         const { phase1: realPhase1Rankings, phase2: realPhase2Rankings, phase3: realPhase3Rankings } = matchId
@@ -200,11 +205,17 @@ export default function ResultsContent({ session: sessionProp }: ResultsContentP
           }
         }
 
-        setResults({ rankings, yourRank, lpChange, xpEarned, pointsEarned, isVictory, improvementBonus: roundScore(improvementBonus), phases: { writing: roundScore(writingScore), feedback: roundScore(feedbackScore), revision: roundScore(revisionScore), composite: roundScore(yourCompositeScore) } });
-        setIsAnalyzing(false);
+        // Only update state if this analysis is still current (prevents race conditions)
+        if (currentAnalysisMatchIdRef.current === analysisMatchId) {
+          setResults({ rankings, yourRank, lpChange, xpEarned, pointsEarned, isVictory, improvementBonus: roundScore(improvementBonus), phases: { writing: roundScore(writingScore), feedback: roundScore(feedbackScore), revision: roundScore(revisionScore), composite: roundScore(yourCompositeScore) } });
+          setIsAnalyzing(false);
+        }
       } catch (error) {
         logger.error(LOG_CONTEXTS.RESULTS, 'Failed to analyze results', error);
-        setIsAnalyzing(false);
+        // Only update state if this analysis is still current
+        if (currentAnalysisMatchIdRef.current === analysisMatchId) {
+          setIsAnalyzing(false);
+        }
       }
     };
     analyzeRankedMatch();
