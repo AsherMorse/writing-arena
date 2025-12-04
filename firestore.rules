@@ -28,6 +28,13 @@ service cloud.firestore {
       allow read: if isAuthenticated();
       allow create, update: if isOwner(userId);
       allow delete: if false;
+      
+      // Grading History (subcollection for TWR grader results)
+      match /gradingHistory/{gradingId} {
+        allow read: if isOwner(userId);
+        allow create: if isOwner(userId);
+        allow update, delete: if false;
+      }
     }
     
     // Matchmaking Queue

@@ -1,10 +1,11 @@
 /**
  * @fileoverview API endpoint for grading revision content using TWR rubrics.
- * Grades Phase 3 revision, detects skill gaps, and stores results in history.
+ * Grades Phase 3 revision and detects skill gaps. Returns result to client
+ * for client-side Firestore storage.
  *
  * POST /api/grade-revision
  * Body: { matchId, userId, content, prompt, graderType, gradeLevel? }
- * Returns: GradeRevisionResponse
+ * Returns: Grading result (client saves to Firestore)
  */
 
 import { NextRequest, NextResponse } from 'next/server';
@@ -12,13 +13,8 @@ import { gradeParagraph } from '@/lib/grading/paragraph-grading';
 import { gradeEssay } from '@/lib/grading/essay-grading';
 import { detectGapsFromScorecard } from '@/lib/grading/paragraph-gap-detection';
 import { detectGapsFromEssayScorecard } from '@/lib/grading/essay-gap-detection';
-import {
-  saveGradingResult,
-  checkBlockStatus,
-} from '@/lib/services/grading-history';
 import type {
   GradeRevisionInput,
-  GradeRevisionResponse,
   GraderType,
 } from '@/lib/types/grading-history';
 import type { ParagraphScorecard, SkillGap } from '@/lib/grading/paragraph-rubrics';
@@ -165,38 +161,22 @@ export async function POST(request: NextRequest) {
     // Determine if there's a severe gap
     const severeGap = hasSevereGap(graderType, gaps);
 
-    // Save to grading history
-    const gradingId = await saveGradingResult(userId, {
+    console.log(
+      `✅ GRADE REVISION - Score: ${scorecard.percentageScore}%, Severe Gap: ${severeGap}`
+    );
+
+    // Return grading result - client will save to Firestore
+    return NextResponse.json({
+      success: true,
       matchId,
-      phase: 3, // Phase 3 revision
       graderType,
       scorecard,
       gaps,
       hasSevereGap: severeGap,
-      writingContent: content,
-      prompt,
-    });
-
-    // Check block status (includes accumulated gaps)
-    const blockStatus = await checkBlockStatus(userId);
-
-    console.log(
-      `✅ GRADE REVISION - Score: ${scorecard.percentageScore}%, Severe Gap: ${severeGap}, Blocked: ${blockStatus.isBlocked}`
-    );
-
-    const response: GradeRevisionResponse = {
-      success: true,
-      gradingId,
-      scorecard,
-      gaps,
-      hasSevereGap: severeGap,
-      blockStatus,
       strengths,
       improvements,
       overallFeedback,
-    };
-
-    return NextResponse.json(response);
+    });
   } catch (error) {
     console.error('❌ GRADE REVISION - Error:', error);
 

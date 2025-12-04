@@ -44,8 +44,7 @@ import {
   getGradingResultByMatch,
   checkBlockStatus,
 } from '@/lib/services/grading-history';
-import { ScorecardDisplay } from './results-v2/ScorecardDisplay';
-import { GapDetectionSummary } from './results-v2/GapDetectionSummary';
+import { WritingFeedback } from './results-v2/WritingFeedback';
 import { BlockModal } from './results-v2/BlockModal';
 import type { GradingHistoryEntry, BlockStatus } from '@/lib/types/grading-history';
 
@@ -271,20 +270,16 @@ export default function ResultsContentV2({ session: sessionProp }: ResultsConten
       <main className="mx-auto max-w-[1100px] px-8 py-10">
         <ResultsHero isVictory={results.isVictory} yourRank={results.yourRank} lpChange={results.lpChange} />
 
-        {/* TWR Scorecard Section */}
+        {/* TWR Writing Feedback Section */}
         {gradingResult && (
-          <ScorecardDisplay
+          <WritingFeedback
             graderType={gradingResult.graderType}
             scorecard={gradingResult.scorecard}
-            strengths={[]}
-            improvements={[]}
-            overallFeedback=""
+            gaps={gradingResult.gaps}
+            strengths={gradingResult.strengths || []}
+            improvements={gradingResult.improvements || []}
+            overallFeedback={gradingResult.overallFeedback || ''}
           />
-        )}
-
-        {/* Gap Detection & Practice Recommendations */}
-        {gradingResult && gradingResult.gaps.length > 0 && (
-          <GapDetectionSummary gaps={gradingResult.gaps} graderType={gradingResult.graderType} />
         )}
 
         {/* Phase Scores Summary */}

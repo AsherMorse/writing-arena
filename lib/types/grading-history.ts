@@ -32,6 +32,9 @@ export interface GradingHistoryEntry {
   hasSevereGap: boolean;
   writingContent: string;
   prompt: string;
+  strengths: string[];
+  improvements: string[];
+  overallFeedback: string;
 }
 
 /**
@@ -46,6 +49,9 @@ export interface GradingHistoryInput {
   hasSevereGap: boolean;
   writingContent: string;
   prompt: string;
+  strengths: string[];
+  improvements: string[];
+  overallFeedback: string;
 }
 
 /**
