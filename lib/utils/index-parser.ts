@@ -73,15 +73,32 @@ export function mapRankingsWithIndexFix<T extends BaseSubmission, TResult>(
   endpointName: string,
   mapper: (ranking: RankingWithIndex, submission: T) => TResult | null
 ): TResult[] {
+  // Detect if ALL indices are 1-based (no 0 index, minimum is 1)
+  const indices = rankings.map(r => r[indexKey]).filter(i => typeof i === 'number');
+  const has0Index = indices.includes(0);
+  const minIndex = indices.length > 0 ? Math.min(...indices) : 0;
+  
+  // If no 0 index and minimum is 1, Claude used 1-based indexing - adjust all
+  const use1BasedFix = !has0Index && minIndex === 1;
+  if (use1BasedFix) {
+    console.warn(`⚠️ ${endpointName} - Detected 1-based indexing, adjusting all indices by -1`);
+  }
+
   return rankings
     .map((ranking) => {
-      const submission = fixIndexAndGetSubmission(ranking, submissions, indexKey, endpointName);
+      // Apply global 1-based fix if detected
+      let adjustedRanking = ranking;
+      if (use1BasedFix && typeof ranking[indexKey] === 'number') {
+        adjustedRanking = { ...ranking, [indexKey]: ranking[indexKey] - 1 };
+      }
+      
+      const submission = fixIndexAndGetSubmission(adjustedRanking, submissions, indexKey, endpointName);
       
       if (!submission) {
         return null;
       }
       
-      return mapper(ranking, submission);
+      return mapper(adjustedRanking, submission);
     })
     .filter((result): result is TResult => result !== null);
 }

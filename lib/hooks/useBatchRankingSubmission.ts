@@ -1,9 +1,16 @@
+/**
+ * @fileoverview Hook for batch ranking submissions in ranked matches.
+ * Handles collecting user + AI submissions, calling batch ranking API,
+ * and saving results to Firestore and session.
+ */
+
 import { useState } from 'react';
 import { getDoc, doc, updateDoc } from 'firebase/firestore';
 import { db } from '@/lib/config/firebase';
 import { clampScore } from '@/lib/constants/scoring';
 import { Phase } from '@/lib/types/session';
 import { retryUntilSuccess, retryWithBackoff } from '@/lib/utils/retry';
+import { logger, LOG_CONTEXTS } from '@/lib/utils/logger';
 
 function getNestedValue(obj: any, path: string): any {
   return path.split('.').reduce((current, key) => current?.[key], obj);
@@ -69,10 +76,10 @@ export function useBatchRankingSubmission<TSubmission, TSubmissionData>(
         if (!validation.isValid) {
           if (validation.isEmpty) {
             penaltyScore = options.emptyPenaltyScore ?? 0;
-            console.log(`⚠️ BATCH RANKING - Empty submission detected, will apply penalty score: ${penaltyScore}`);
+            logger.warn(LOG_CONTEXTS.BATCH_RANKING, `Empty submission detected, will apply penalty score: ${penaltyScore}`);
           } else if (validation.unchanged) {
             penaltyScore = options.unchangedPenaltyScore ?? 40;
-            console.log(`⚠️ BATCH RANKING - Unchanged submission detected, will apply penalty score: ${penaltyScore}`);
+            logger.warn(LOG_CONTEXTS.BATCH_RANKING, `Unchanged submission detected, will apply penalty score: ${penaltyScore}`);
           }
           // Continue with batch ranking so AI players get their scores
         }
@@ -100,21 +107,38 @@ export function useBatchRankingSubmission<TSubmission, TSubmissionData>(
             return true;
           },
           {
-            maxAttempts: 6,      // Fewer attempts needed with exponential backoff
-            delayMs: 500,        // Start faster
-            exponentialBackoff: true,  // 500ms, 1s, 2s, 4s, 8s, 16s = 31.5s total coverage
+            maxAttempts: 20,     // Wait up to ~100s for AI content (generated on component mount)
+            delayMs: 5000,       // 5 seconds between attempts
+            exponentialBackoff: false,  // Linear polling for predictable timing
           }
         );
       } catch (err) {
-        // Silent timeout
+        // Log the timeout/error so it's visible in console
+        logger.warn(LOG_CONTEXTS.BATCH_RANKING, 'Failed to fetch AI submissions after retries', {
+          phase: options.phase,
+          firestoreKey: options.firestoreKey,
+          error: err instanceof Error ? err.message : String(err),
+        });
       }
 
       if (aiSubmissions.length === 0) {
+        logger.error(LOG_CONTEXTS.BATCH_RANKING, 'AI submissions still empty after retries', undefined, {
+          phase: options.phase,
+          firestoreKey: options.firestoreKey,
+        });
         throw new Error('AI submissions not available after waiting');
       }
+      
+      logger.info(LOG_CONTEXTS.BATCH_RANKING, `Found ${aiSubmissions.length} AI submissions for phase ${options.phase}`);
 
       const userSubmission = options.prepareUserSubmission();
       const allSubmissions = [userSubmission, ...aiSubmissions];
+
+      // Debug: Log submission metadata (dev only, no PII)
+      logger.debug(LOG_CONTEXTS.BATCH_RANKING, `Submitting ${allSubmissions.length} total submissions for phase ${options.phase}`, {
+        aiSubmissionCount: aiSubmissions.length,
+        hasUserSubmission: !!(userSubmission as any).playerId,
+      });
 
       const requestBody: Record<string, any> = {
         [getRequestBodyKey(options.endpoint)]: allSubmissions,
@@ -152,8 +176,19 @@ export function useBatchRankingSubmission<TSubmission, TSubmissionData>(
         throw new Error('Batch ranking API failed after 3 attempts');
       }
 
+      // Debug: Log ranking metadata (dev only, no PII)
+      const userRankingExists = rankings.some((r: any) => r.playerId === options.userId);
+      logger.debug(LOG_CONTEXTS.BATCH_RANKING, `API returned ${rankings.length} rankings for phase ${options.phase}`, {
+        rankingCount: rankings.length,
+        userRankingFound: userRankingExists,
+      });
+
       const yourRanking = rankings.find((r: any) => r.playerId === options.userId);
       if (!yourRanking) {
+        logger.error(LOG_CONTEXTS.BATCH_RANKING, 'User ranking not found!', undefined, {
+          phase: options.phase,
+          rankingCount: rankings.length,
+        });
         throw new Error('Your ranking not found');
       }
 
@@ -190,9 +225,9 @@ export function useBatchRankingSubmission<TSubmission, TSubmissionData>(
       });
 
       const submissionData = options.prepareSubmissionData(clampScore(score));
-      console.log(`✅ BATCH RANKING - Submitting phase ${options.phase} with score:`, clampScore(score), 'data:', submissionData);
+      logger.info(LOG_CONTEXTS.BATCH_RANKING, `Submitting phase ${options.phase} with score: ${clampScore(score)}`);
       await options.submitPhase(options.phase, submissionData);
-      console.log(`✅ BATCH RANKING - Successfully saved phase ${options.phase} to session`);
+      logger.info(LOG_CONTEXTS.BATCH_RANKING, `Successfully saved phase ${options.phase} to session`);
 
     } catch (error) {
       setError(error as Error);
@@ -202,8 +237,13 @@ export function useBatchRankingSubmission<TSubmission, TSubmissionData>(
       }
 
       if (options.fallbackEvaluation) {
+        logger.warn(LOG_CONTEXTS.BATCH_RANKING, 'Using fallback evaluation (AI players will NOT be scored)', {
+          phase: options.phase,
+          originalError: error instanceof Error ? error.message : String(error),
+        });
         try {
           const fallbackScore = await options.fallbackEvaluation();
+          logger.info(LOG_CONTEXTS.BATCH_RANKING, `Fallback evaluation completed with score: ${fallbackScore}`);
           await options.submitPhase(
             options.phase,
             options.prepareSubmissionData(clampScore(fallbackScore))

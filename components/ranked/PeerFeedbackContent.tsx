@@ -39,7 +39,6 @@ import { useTimeWarnings } from '@/lib/hooks/useTimeWarnings';
 import { getSessionStorage } from '@/lib/utils/session-storage';
 import { TimeWarningNotification } from '@/components/shared/TimeWarningNotification';
 import { logger, LOG_CONTEXTS } from '@/lib/utils/logger';
-import { useAIFeedbackGeneration } from '@/lib/hooks/useAIFeedbackGeneration';
 import { TipsButton } from '@/components/shared/TipsButton';
 
 export default function PeerFeedbackContent() {
@@ -102,12 +101,81 @@ export default function PeerFeedbackContent() {
   
   const { showTipsModal, setShowTipsModal, showRankingModal, setShowRankingModal } = useModals();
 
-  // Use AI feedback generation hook
-  useAIFeedbackGeneration({
-    matchId,
-    userId: user?.uid,
-    enabled: !!matchId && !!user,
-  });
+  // Generate AI feedback for Phase 2 on mount
+  const [aiFeedbackGenerated, setAiFeedbackGenerated] = useState(false);
+
+  useEffect(() => {
+    const generateAIFeedback = async () => {
+      if (!matchId || !user || aiFeedbackGenerated) return;
+      setAiFeedbackGenerated(true);
+      
+      try {
+        const { getMatchState, updateMatchStateArray } = await import('@/lib/utils/firestore-match-state');
+        const matchState = await getMatchState(matchId);
+        if (!matchState) return;
+        
+        const players = matchState.players || [];
+        const aiPlayers = players.filter((p: any) => p.isAI);
+        const phase1Writings = matchState.aiWritings?.phase1 || [];
+        const phase1Rankings = matchState.rankings?.phase1 || [];
+        
+        // Get peer writing for each AI player (next player in rotation)
+        const aiFeedbackPromises = aiPlayers.map(async (aiPlayer: any) => {
+          const aiIndex = players.findIndex((p: any) => p.userId === aiPlayer.userId);
+          if (aiIndex === -1) return null;
+          
+          const peerIndex = (aiIndex + 1) % players.length;
+          const peer = players[peerIndex];
+          
+          // Get peer's writing (either from AI writings or user's ranking)
+          let peerWriting = '';
+          if (peer.isAI) {
+            const aiWriting = phase1Writings.find((w: any) => w.playerId === peer.userId);
+            peerWriting = aiWriting?.content || '';
+          } else {
+            const peerRanking = phase1Rankings.find((r: any) => r.playerId === peer.userId);
+            peerWriting = peerRanking?.content || '';
+          }
+          
+          if (!peerWriting) return null;
+          
+          const feedbackResponse = await fetch('/api/generate-ai-feedback', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: safeStringifyJSON({
+              peerWriting,
+              rank: aiPlayer.rank,
+              playerName: aiPlayer.displayName,
+            }) || '',
+          });
+          
+          const feedbackData = await parseJSONResponse<{ responses?: any; fallback?: { responses: any } }>(feedbackResponse);
+          // Handle both success response and error fallback
+          const responses = feedbackData.responses ?? feedbackData.fallback?.responses;
+          if (!responses) {
+            console.warn(`⚠️ PEER FEEDBACK - No responses for AI player ${aiPlayer.displayName}`);
+            return null;
+          }
+          return {
+            playerId: aiPlayer.userId,
+            playerName: aiPlayer.displayName,
+            responses,
+            peerWriting,
+            isAI: true,
+            rank: aiPlayer.rank,
+          };
+        });
+        
+        const aiFeedbacks = (await Promise.all(aiFeedbackPromises)).filter(f => f !== null);
+        await updateMatchStateArray(matchId, 'aiFeedbacks.phase2', aiFeedbacks);
+        logger.info(LOG_CONTEXTS.PEER_FEEDBACK, `Generated ${aiFeedbacks.length} AI feedback submissions`);
+      } catch (error) {
+        logger.error(LOG_CONTEXTS.PEER_FEEDBACK, 'Failed to generate AI feedback', error);
+      }
+    };
+    
+    generateAIFeedback();
+  }, [matchId, user, aiFeedbackGenerated]);
 
   // Use useAsyncData for loading peer writing
   const { data: currentPeer, loading: loadingPeer } = useAsyncData(
