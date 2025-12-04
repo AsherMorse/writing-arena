@@ -174,8 +174,9 @@ export default function PeerFeedbackContent() {
     }
   };
 
-  // Debug force submit listener
+  // Debug force submit listener (development only)
   useEffect(() => {
+    if (process.env.NODE_ENV !== 'development') return;
     const handleForceSubmit = () => { void handleSubmit(); };
     window.addEventListener('debug-force-submit', handleForceSubmit);
     return () => { window.removeEventListener('debug-force-submit', handleForceSubmit); };

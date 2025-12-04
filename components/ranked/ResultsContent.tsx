@@ -66,8 +66,8 @@ export default function ResultsContent({ session: sessionProp }: ResultsContentP
   
   const [isAnalyzing, setIsAnalyzing] = useState(true);
   const [results, setResults] = useState<any>(null);
-  const hasAnalyzedRef = useRef(false);
-  const hasLoggedRef = useRef(false);
+  const lastAnalyzedMatchIdRef = useRef<string | null>(null);
+  const lastLoggedMatchIdRef = useRef<string | null>(null);
   const { expanded: expandedPhase, toggle: togglePhase, isExpanded } = useExpanded<'writing' | 'feedback' | 'revision'>('writing');
   const [realFeedback, setRealFeedback] = useState<any>({ writing: null, feedback: null, revision: null });
 
@@ -89,10 +89,10 @@ export default function ResultsContent({ session: sessionProp }: ResultsContentP
     fetchAIFeedback();
   }, [user, matchId]);
 
-  // Log scores for debugging (only once)
+  // Log scores for debugging (only once per match)
   useEffect(() => {
-    if (user && finalSession && !hasLoggedRef.current) {
-      hasLoggedRef.current = true;
+    if (user && finalSession && matchId && lastLoggedMatchIdRef.current !== matchId) {
+      lastLoggedMatchIdRef.current = matchId;
       logger.debug(LOG_CONTEXTS.RESULTS, 'Session scores', {
         writingScore: userPlayer?.phases.phase1?.score,
         feedbackScore: (userPlayer?.phases.phase2 as any)?.score,
@@ -101,14 +101,17 @@ export default function ResultsContent({ session: sessionProp }: ResultsContentP
         hasUserPlayer: !!userPlayer,
       });
     }
-  }, [user, finalSession, userPlayer]);
+  }, [user, finalSession, userPlayer, matchId]);
   
   useEffect(() => {
-    // Guard against re-running analysis (prevents infinite loop from session updates)
-    if (hasAnalyzedRef.current) return;
+    // Guard against re-running analysis for same match (prevents infinite loop from session updates)
+    if (!matchId || lastAnalyzedMatchIdRef.current === matchId) return;
+    
+    // Reset analyzing state for new match
+    setIsAnalyzing(true);
     
     const analyzeRankedMatch = async () => {
-      hasAnalyzedRef.current = true;
+      lastAnalyzedMatchIdRef.current = matchId;
       try {
         // Fetch all phase rankings
         const { phase1: realPhase1Rankings, phase2: realPhase2Rankings, phase3: realPhase3Rankings } = matchId
