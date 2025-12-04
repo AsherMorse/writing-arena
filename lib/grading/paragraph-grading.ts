@@ -54,7 +54,7 @@ GRADE-LEVEL CALIBRATION (CRITICAL):
 - You are grading a GRADE ${gradeLevel} student, not an adult or college student
 - A score of 5 means EXCELLENT for a grade ${gradeLevel} student
 - A score of 4 means GOOD for a grade ${gradeLevel} student
-- If the student uses TWR strategies (transitions, conjunctions, appositives), give them credit
+- If the student uses good writing strategies (transitions, conjunctions, appositives), give them credit
 - "Sophisticated word choice" for grade ${gradeLevel} means age-appropriate vocabulary used well
 - Be encouraging - recognize what the student accomplished at their developmental level
 ${highSchoolGuidance}
@@ -73,7 +73,7 @@ GRADING INSTRUCTIONS:
 3. Provide specific, actionable feedback for each category
 4. Provide examples based on the score (see EXAMPLE SELECTION RULES below)
 
-TWR STRATEGIES TO REFERENCE:
+WRITING TECHNIQUES TO EVALUATE:
 - Sentence Expansion (because/but/so)
 - Appositives (descriptive phrases)
 - Subordinating Conjunctions (although, since, while, when)
@@ -91,7 +91,7 @@ EXAMPLE SELECTION RULES (IMPORTANT - follow this exactly):
 
 EXAMPLE FORMAT RULES:
 - substringOfInterest: Copy the EXACT text from the student's paragraph (no changes). Use "N/A" only for general advice.
-- explanationOfSubstring: Explain why this text demonstrates the skill well OR what could be improved. Reference specific TWR strategies.
+- explanationOfSubstring: Explain why this text demonstrates the skill well OR what could be improved.
 
 Return your evaluation as JSON in this exact format:
 {
@@ -106,13 +106,13 @@ Return your evaluation as JSON in this exact format:
         "examplesOfGreatResults": [
           {
             "substringOfInterest": "exact text from paragraph where student did well",
-            "explanationOfSubstring": "Why this demonstrates the skill - reference TWR strategy"
+            "explanationOfSubstring": "Why this demonstrates the skill"
           }
         ],
         "examplesOfWhereToImprove": [
           {
             "substringOfInterest": "exact text that needs improvement",
-            "explanationOfSubstring": "What could be better and how - reference TWR strategy"
+            "explanationOfSubstring": "What could be better and how"
           }
         ]
       }
@@ -127,7 +127,7 @@ Return your evaluation as JSON in this exact format:
 IMPORTANT:
 - Copy text EXACTLY as written in substringOfInterest (no paraphrasing, no ellipses)
 - Do NOT put quotes around the substringOfInterest value - just the raw text
-- Name specific TWR strategies in explanations
+- Do NOT mention the student's grade level in any feedback text
 - Return ONLY valid JSON, no markdown or additional text`;
 }
 
