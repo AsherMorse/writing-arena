@@ -40,7 +40,9 @@ interface UseBatchRankingSubmissionOptions<TSubmission, TSubmissionData> {
   submitPhase: (phase: Phase, data: TSubmissionData) => Promise<void | { transitioned: boolean; nextPhase?: Phase }>;
   fallbackEvaluation?: () => Promise<number>;
   validateSubmission?: () => { isValid: boolean; isEmpty?: boolean; unchanged?: boolean };
-  onEmptySubmission?: (isEmpty: boolean, unchanged?: boolean) => Promise<void>;
+  /** Penalty scores: isEmpty = 0, unchanged = 40. If not set, uses LLM score. */
+  emptyPenaltyScore?: number;
+  unchangedPenaltyScore?: number;
 }
 
 export function useBatchRankingSubmission<TSubmission, TSubmissionData>(
@@ -58,17 +60,21 @@ export function useBatchRankingSubmission<TSubmission, TSubmissionData>(
     setError(null);
 
     try {
+      // Check validation but DON'T skip batch ranking
+      // Note penalty score to apply after ranking (so AI players still get scored)
+      let penaltyScore: number | null = null;
+      
       if (options.validateSubmission) {
         const validation = options.validateSubmission();
         if (!validation.isValid) {
-          if (options.onEmptySubmission) {
-            await options.onEmptySubmission(
-              validation.isEmpty || false,
-              validation.unchanged
-            );
-            return;
+          if (validation.isEmpty) {
+            penaltyScore = options.emptyPenaltyScore ?? 0;
+            console.log(`⚠️ BATCH RANKING - Empty submission detected, will apply penalty score: ${penaltyScore}`);
+          } else if (validation.unchanged) {
+            penaltyScore = options.unchangedPenaltyScore ?? 40;
+            console.log(`⚠️ BATCH RANKING - Unchanged submission detected, will apply penalty score: ${penaltyScore}`);
           }
-          throw new Error('Invalid submission');
+          // Continue with batch ranking so AI players get their scores
         }
       }
 
@@ -151,7 +157,8 @@ export function useBatchRankingSubmission<TSubmission, TSubmissionData>(
         throw new Error('Your ranking not found');
       }
 
-      const score = yourRanking.score;
+      // Apply penalty score if submission was empty/unchanged, otherwise use LLM score
+      const score = penaltyScore !== null ? penaltyScore : yourRanking.score;
 
       const userFeedback: any = {
         strengths: yourRanking.strengths || [],

@@ -2,6 +2,35 @@ import { getMatchRankings } from './firestore-match-state';
 import { calculateCompositeScore } from './score-calculator';
 import { roundScore } from './math-utils';
 
+/** Default rank strings for fallback */
+const DEFAULT_RANKS = ['Silver II', 'Silver III', 'Gold I', 'Silver IV'];
+
+/**
+ * @description Convert a numeric skill level to a rank string.
+ * Handles cases where rank is stored as a number (1-7) instead of a string.
+ */
+function normalizeRank(rank: unknown, fallbackIndex: number): string {
+  // If it's already a valid rank string, return it
+  if (typeof rank === 'string' && rank.includes(' ')) {
+    return rank;
+  }
+  
+  // If it's a number, convert to rank string
+  if (typeof rank === 'number') {
+    const tiers = ['Bronze', 'Silver', 'Gold', 'Platinum', 'Diamond', 'Master'];
+    const divisions = ['IV', 'III', 'II', 'I'];
+    
+    // Map numeric ranks to tier/division (1 = Bronze IV, 5 = Silver IV, etc.)
+    const tierIndex = Math.min(Math.floor((rank - 1) / 4), tiers.length - 1);
+    const divisionIndex = (rank - 1) % 4;
+    
+    return `${tiers[Math.max(0, tierIndex)]} ${divisions[Math.max(0, Math.min(3, divisionIndex))]}`;
+  }
+  
+  // Fallback to default ranks
+  return DEFAULT_RANKS[fallbackIndex % DEFAULT_RANKS.length];
+}
+
 /**
  * Fetch all phase rankings for a match
  * 
@@ -75,7 +104,7 @@ export function mergeAIPlayerDataAcrossPhases(
     return {
       name: p1.playerName,
       avatar: ['🎯', '📖', '✨', '🏅'][idx % 4],
-      rank: p1.rank || ['Silver II', 'Silver III', 'Silver II', 'Silver IV'][idx % 4],
+      rank: normalizeRank(p1.rank, idx),
       userId: p1.playerId,
       phase1: p1.score, // Always from LLM
       phase2: phase2Score, // From LLM or null if missing

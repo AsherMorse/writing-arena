@@ -17,7 +17,6 @@ import { getTimeColor, getTimeProgressColor } from '@/lib/utils/time-utils';
 import { SCORING, getDefaultScore, TIMING } from '@/lib/constants/scoring';
 import { getPhaseTimeColor } from '@/lib/utils/phase-colors';
 import { countWords } from '@/lib/utils/text-utils';
-import { buildResultsURL } from '@/lib/utils/navigation';
 import { usePastePrevention } from '@/lib/hooks/usePastePrevention';
 import { LoadingState } from '@/components/shared/LoadingState';
 import { ErrorState } from '@/components/shared/ErrorState';
@@ -64,16 +63,19 @@ export default function RevisionContent() {
   // Auto-save revision content
   const revisionKey = sessionId ? `revision-${sessionId}` : '';
   const [revisedContent, setRevisedContent] = useState(() => {
-    if (!sessionId || typeof window === 'undefined') return originalContent;
+    if (!sessionId || typeof window === 'undefined') return '';
     const restored = getSessionStorage<string>(`draft-${revisionKey}`);
-    return restored || originalContent;
+    return restored || '';
   });
   useEffect(() => { 
-    // Only update if no restored draft exists
-    if (!sessionId || typeof window === 'undefined') {
-      setRevisedContent(originalContent);
+    // Prefill with original content if no draft exists and original content is available
+    if (sessionId && originalContent) {
+      const restored = getSessionStorage<string>(`draft-${revisionKey}`);
+      if (!restored && !revisedContent) {
+        setRevisedContent(originalContent);
+      }
     }
-  }, [originalContent, sessionId]);
+  }, [originalContent, sessionId, revisionKey]);
   
   // Auto-save revision
   useAutoSave({
@@ -189,8 +191,8 @@ export default function RevisionContent() {
     endpoint: '/api/batch-rank-revisions',
     firestoreKey: 'aiRevisions.phase3',
     rankingsKey: 'rankings.phase3',
-    prepareUserSubmission: () => ({ playerId: user?.uid || '', playerName: 'You', originalContent, revisedContent, feedback: aiFeedback, wordCount: wordCountRevised, isAI: false }),
-    prepareSubmissionData: (score: number) => ({ revisedContent, wordCount: wordCountRevised, score }),
+    prepareUserSubmission: () => ({ playerId: user?.uid || '', playerName: 'You', originalContent, revisedContent: revisedContent || originalContent, feedback: aiFeedback, wordCount: wordCountRevised, isAI: false }),
+    prepareSubmissionData: (score: number) => ({ revisedContent: revisedContent || originalContent, wordCount: wordCountRevised, score }),
     submitPhase: async (phase, data) => {
       await submitPhase(phase, data);
       const yourRanking = await getRankingFromStorage();
@@ -199,13 +201,8 @@ export default function RevisionContent() {
       navigateToResults({ matchId, trait, promptId, promptType, originalContent, revisedContent, wordCount, revisedWordCount: wordCountRevised, writingScore: yourScore, feedbackScore, revisionScore, aiScores });
     },
     validateSubmission: () => validateRevisionSubmission(originalContent, revisedContent, wordCountRevised),
-    onEmptySubmission: async (isEmpty, unchanged) => {
-      if (isEmpty || unchanged) {
-        const score = isEmpty ? SCORING.MIN_SCORE : 40;
-        await submitPhase(3, { revisedContent: revisedContent || originalContent, wordCount: wordCountRevised, score });
-        router.push(buildResultsURL({ matchId, trait, promptId, promptType, originalContent, revisedContent, wordCount, revisedWordCount: wordCountRevised, writingScore: yourScore, feedbackScore, revisionScore: score, aiScores }));
-      }
-    },
+    emptyPenaltyScore: SCORING.MIN_SCORE,
+    unchangedPenaltyScore: 40,
     fallbackEvaluation: async () => {
       const response = await fetch('/api/evaluate-revision', {
         method: 'POST',

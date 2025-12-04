@@ -150,7 +150,7 @@ export default function PeerFeedbackContent() {
     prepareSubmissionData: (score: number) => ({ responses, score }),
     submitPhase: async (phase, data) => { await submitPhase(phase, data); },
     validateSubmission: () => validateFeedbackSubmission(responses),
-    onEmptySubmission: async (isEmpty) => { if (isEmpty) await submitPhase(2, { responses, score: 0 }); },
+    emptyPenaltyScore: 0,
     fallbackEvaluation: async () => {
       const response = await fetch('/api/evaluate-peer-feedback', {
         method: 'POST',
