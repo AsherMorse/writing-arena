@@ -4,7 +4,7 @@
  * Supports grades 6-12 and all 7 essay types.
  */
 
-import type { EssayCriterion, EssayType, PreparedEssayRubric } from './types';
+import type { CriterionCategory, EssayCriterion, EssayType, PreparedEssayRubric } from './types';
 
 /**
  * @description All 16 composition criteria from the TWR rubric.
@@ -16,6 +16,7 @@ export const COMPOSITION_CRITERIA: EssayCriterion[] = [
     name: 'Composition follows outline',
     description:
       'The composition should adhere to the structure and sequence of ideas in the outline. Each paragraph should correspond to a main idea from the outline.',
+    category: 'Structure',
     applicableGrades: { min: 6, max: 12 },
     // This criterion is skipped when there's no outline
   },
@@ -25,6 +26,7 @@ export const COMPOSITION_CRITERIA: EssayCriterion[] = [
     name: 'Each body paragraph has a topic sentence',
     description:
       'Each paragraph should have a topic sentence that clearly expresses the main idea and is connected to the thesis statement.',
+    category: 'Content',
     applicableGrades: { min: 6, max: 12 },
     essayTypeGuidance: {
       Expository:
@@ -49,6 +51,7 @@ export const COMPOSITION_CRITERIA: EssayCriterion[] = [
     name: 'Supporting details support topic sentence',
     description:
       'Each supporting detail sentence should support the topic sentence, and supporting details should be well-sequenced.',
+    category: 'Content',
     applicableGrades: { min: 6, max: 12 },
     essayTypeGuidance: {
       Expository:
@@ -81,6 +84,7 @@ export const COMPOSITION_CRITERIA: EssayCriterion[] = [
     name: 'Developed thesis statement',
     description:
       "The thesis statement should be well-developed and clearly express the main idea of the composition. It doesn't need to be complicated.",
+    category: 'Structure',
     applicableGrades: { min: 6, max: 12 },
     essayTypeGuidance: {
       Expository: 'Clearly state the main topic or focus to be explained.',
@@ -100,6 +104,7 @@ export const COMPOSITION_CRITERIA: EssayCriterion[] = [
   {
     name: 'Each body paragraph supports thesis',
     description: 'Each paragraph should support the thesis statement.',
+    category: 'Structure',
     applicableGrades: { min: 6, max: 12 },
     essayTypeGuidance: {
       Expository:
@@ -121,6 +126,7 @@ export const COMPOSITION_CRITERIA: EssayCriterion[] = [
     name: 'Used sentence strategies',
     description:
       'The essay should use multiple sentence strategies (sentence expansion, conjunctions, appositives) correctly.',
+    category: 'Craft',
     applicableGrades: { min: 6, max: 12 },
     subcriteria: ['sentence expansion', 'basic and subordinating conjunctions', 'appositives'],
     gradeLevelGuidance: [
@@ -138,6 +144,7 @@ export const COMPOSITION_CRITERIA: EssayCriterion[] = [
     name: 'Used transitions correctly',
     description:
       'All transition words/phrases should be used correctly. Most paragraphs should include transitions.',
+    category: 'Craft',
     applicableGrades: { min: 6, max: 12 },
     essayTypeGuidance: {
       Expository:
@@ -170,6 +177,7 @@ export const COMPOSITION_CRITERIA: EssayCriterion[] = [
     name: 'Composed effective introduction',
     description:
       'Introduction must have at least 3 sentences. If using GST structure: General statement → Specific statement → Thesis statement.',
+    category: 'Structure',
     applicableGrades: { min: 7, max: 12 },
     subcriteria: ['general statement', 'specific statement', 'thesis statement'],
     essayTypeGuidance: {
@@ -195,6 +203,7 @@ export const COMPOSITION_CRITERIA: EssayCriterion[] = [
     name: 'Composed effective conclusion',
     description:
       'Conclusion should contain at least 3 sentences. If using TSG: Thesis → Specific statement → General statement.',
+    category: 'Structure',
     applicableGrades: { min: 7, max: 12 },
     subcriteria: ['rephrased thesis statement', 'specific statement', 'general statement'],
     essayTypeGuidance: {
@@ -220,6 +229,7 @@ export const COMPOSITION_CRITERIA: EssayCriterion[] = [
     name: 'Edited for grammar and mechanics',
     description:
       'Count instances of editing errors: fragments, run-ons, spelling, capitalization, tense agreement, number agreement, repetition.',
+    category: 'Craft',
     applicableGrades: { min: 6, max: 12 },
     subcriteria: [
       'fragments',
@@ -250,6 +260,7 @@ export const COMPOSITION_CRITERIA: EssayCriterion[] = [
     name: 'Addressed opposing view/counterclaim',
     description:
       'The writer should clearly acknowledge at least one opposing viewpoint and offer some form of rebuttal or concession.',
+    category: 'Content',
     applicableGrades: { min: 9, max: 12 },
     applicableEssayTypes: ['Argumentative'],
     essayTypeGuidance: {
@@ -263,6 +274,7 @@ export const COMPOSITION_CRITERIA: EssayCriterion[] = [
     name: 'Composed effective concluding sentence',
     description:
       "The concluding sentence must provide a clear, logical wrap-up of the essay's main idea. It should rephrase the thesis in a fresh way.",
+    category: 'Structure',
     applicableGrades: { min: 6, max: 6 },
     essayTypeGuidance: {
       Expository: 'Summarize main points.',
@@ -283,6 +295,7 @@ export const COMPOSITION_CRITERIA: EssayCriterion[] = [
     name: 'Used credible and relevant evidence',
     description:
       'The essay must use credible and relevant evidence (facts, data, statistics, quotations) that directly supports the thesis.',
+    category: 'Content',
     applicableGrades: { min: 6, max: 12 },
     applicableEssayTypes: ['Argumentative', 'Expository', 'Problem/Solution', 'Pro/Con', 'Narrative'],
     essayTypeGuidance: {
@@ -318,6 +331,7 @@ export const COMPOSITION_CRITERIA: EssayCriterion[] = [
     name: 'Presented both sides fairly',
     description:
       'The essay should introduce both the "pro" and "con" sides without implying one side is superior. Language remains neutral.',
+    category: 'Content',
     applicableGrades: { min: 6, max: 12 },
     applicableEssayTypes: ['Pro/Con'],
     essayTypeGuidance: {
@@ -330,6 +344,7 @@ export const COMPOSITION_CRITERIA: EssayCriterion[] = [
   {
     name: 'Minimum paragraph count',
     description: 'The essay should have at least the minimum number of paragraphs.',
+    category: 'Structure',
     applicableGrades: { min: 6, max: 12 },
     gradeLevelGuidance: [
       {
@@ -350,6 +365,7 @@ export const COMPOSITION_CRITERIA: EssayCriterion[] = [
     name: 'Clear reasoning from evidence to claim',
     description:
       'The essay should explicitly show how each piece of evidence supports the thesis or refutes a counterclaim.',
+    category: 'Content',
     applicableGrades: { min: 9, max: 12 },
     applicableEssayTypes: ['Argumentative'],
     essayTypeGuidance: {

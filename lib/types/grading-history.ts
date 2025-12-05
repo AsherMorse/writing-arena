@@ -7,10 +7,12 @@ import type { Timestamp } from 'firebase/firestore';
 import type {
   ParagraphScorecard,
   SkillGap,
+  ParagraphRubricType,
 } from '@/lib/grading/paragraph-rubrics';
 import type {
   EssayScorecard,
   EssaySkillGap,
+  EssayType,
 } from '@/lib/grading/essay-rubrics';
 
 /**
@@ -96,6 +98,8 @@ export interface GradeRevisionInput {
   prompt: string;
   graderType: GraderType;
   gradeLevel?: number;
+  essayType?: EssayType;
+  rubricType?: ParagraphRubricType;
 }
 
 /**

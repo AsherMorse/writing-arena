@@ -4,7 +4,7 @@
  * for client-side Firestore storage.
  *
  * POST /api/grade-revision
- * Body: { matchId, userId, content, prompt, graderType, gradeLevel? }
+ * Body: { matchId, userId, content, prompt, graderType, gradeLevel?, essayType?, rubricType? }
  * Returns: Grading result (client saves to Firestore)
  */
 
@@ -17,8 +17,8 @@ import type {
   GradeRevisionInput,
   GraderType,
 } from '@/lib/types/grading-history';
-import type { ParagraphScorecard, SkillGap } from '@/lib/grading/paragraph-rubrics';
-import type { EssayScorecard, EssaySkillGap } from '@/lib/grading/essay-rubrics';
+import type { ParagraphScorecard, SkillGap, ParagraphRubricType } from '@/lib/grading/paragraph-rubrics';
+import type { EssayScorecard, EssaySkillGap, EssayType } from '@/lib/grading/essay-rubrics';
 
 /**
  * @description Validate the request body.
@@ -78,6 +78,8 @@ function validateRequestBody(body: unknown): {
       prompt: data.prompt as string,
       graderType,
       gradeLevel: data.gradeLevel ? Number(data.gradeLevel) : undefined,
+      essayType: data.essayType as EssayType | undefined,
+      rubricType: data.rubricType as ParagraphRubricType | undefined,
     },
   };
 }
@@ -109,13 +111,14 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { matchId, userId, content, prompt, graderType, gradeLevel } =
+    const { matchId, userId, content, prompt, graderType, gradeLevel, essayType, rubricType } =
       validation.input;
 
-    console.log(`📝 GRADE REVISION - Type: ${graderType}, Match: ${matchId}`);
+    console.log(`📝 GRADE REVISION - Type: ${graderType}, Match: ${matchId}${essayType ? `, Essay Type: ${essayType}` : ''}${rubricType ? `, Rubric: ${rubricType}` : ''}`);
 
     let scorecard: ParagraphScorecard | EssayScorecard;
     let gaps: SkillGap[] | EssaySkillGap[];
+    let prioritizedLessons: string[] = [];
     let overallFeedback: string;
 
     // Grade based on grader type
@@ -123,7 +126,7 @@ export async function POST(request: NextRequest) {
       const result = await gradeParagraph({
         paragraph: content,
         prompt,
-        rubricType: 'expository', // Default to expository for now
+        rubricType: rubricType || 'expository',
         gradeLevel,
       });
 
@@ -133,6 +136,7 @@ export async function POST(request: NextRequest) {
       // Detect gaps
       const gapResult = detectGapsFromScorecard(result.scorecard);
       gaps = gapResult.gaps;
+      prioritizedLessons = gapResult.prioritizedLessons;
     } else {
       // Essay grading requires grade level
       const effectiveGradeLevel = gradeLevel || 8; // Default to grade 8
@@ -140,7 +144,7 @@ export async function POST(request: NextRequest) {
       const result = await gradeEssay({
         essay: content,
         prompt,
-        essayType: 'Expository', // Default to Expository for now
+        essayType: essayType || 'Expository',
         gradeLevel: effectiveGradeLevel,
       });
 
@@ -151,6 +155,7 @@ export async function POST(request: NextRequest) {
       // Detect gaps
       const gapResult = detectGapsFromEssayScorecard(result.scorecard);
       gaps = gapResult.gaps;
+      prioritizedLessons = gapResult.prioritizedLessons;
     }
 
     // Determine if there's a severe gap
@@ -169,6 +174,7 @@ export async function POST(request: NextRequest) {
       graderType,
       scorecard,
       gaps,
+      prioritizedLessons, // Sorted by severity, then TWR tier (sentence → paragraph → essay)
       hasSevereGap: severeGap,
       overallFeedback,
     });

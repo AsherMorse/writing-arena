@@ -13,6 +13,9 @@ import { WritingFeedback, type ExampleHighlightInfo } from '@/components/ranked/
 import { WritingFeedbackFlat } from '@/components/ranked/results-v2/WritingFeedbackFlat';
 import { locateSpan } from '@/lib/grading/text-highlighting';
 import type { LocatedSpan } from '@/lib/grading/text-highlighting/types';
+import { getAvailableEssayTypes, type EssayType } from '@/lib/grading/essay-rubrics';
+import { getAvailableRubricTypes } from '@/lib/grading/paragraph-grading';
+import type { ParagraphRubricType } from '@/lib/grading/paragraph-rubrics';
 
 const SAMPLE_PARAGRAPH = `The dog ran fast because it was chasing a squirrel through the park. The squirrel was very clever, and it quickly climbed up a tall oak tree to escape. The dog barked loudly at the base of the tree, but it could not reach the squirrel. In conclusion, the squirrel outsmarted the dog by using its climbing abilities.`;
 
@@ -145,6 +148,8 @@ export default function TestGraderPage() {
   const [prompt, setPrompt] = useState('Write about an animal interaction');
   const [graderType, setGraderType] = useState<'paragraph' | 'essay'>('paragraph');
   const [gradeLevel, setGradeLevel] = useState(6);
+  const [essayType, setEssayType] = useState<EssayType>('Expository');
+  const [paragraphType, setParagraphType] = useState<ParagraphRubricType>('expository');
   const [isGrading, setIsGrading] = useState(false);
   const [result, setResult] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
@@ -269,6 +274,8 @@ export default function TestGraderPage() {
           prompt,
           graderType,
           gradeLevel,
+          essayType: graderType === 'essay' ? essayType : undefined,
+          rubricType: graderType === 'paragraph' ? paragraphType : undefined,
         }),
       });
 
@@ -410,6 +417,7 @@ export default function TestGraderPage() {
                     graderType={result.graderType}
                     scorecard={result.scorecard}
                     gaps={result.gaps || []}
+                    prioritizedLessons={result.prioritizedLessons}
                     overallFeedback={result.overallFeedback || ''}
                     onExampleHover={handleExampleHover}
                     onExampleClick={handleExampleClick}
@@ -480,6 +488,48 @@ export default function TestGraderPage() {
                   Grading calibrated to this grade level
                 </p>
               </div>
+
+              {/* Essay Type (only for essay grader) */}
+              {graderType === 'essay' && (
+                <div className="mb-4">
+                  <label className="mb-2 block text-xs text-[rgba(255,255,255,0.5)]">Essay Type</label>
+                  <select
+                    value={essayType}
+                    onChange={(e) => setEssayType(e.target.value as EssayType)}
+                    className="w-full rounded-lg border border-[rgba(255,255,255,0.1)] bg-[#101012] px-4 py-2 text-sm text-white"
+                  >
+                    {getAvailableEssayTypes().map((type) => (
+                      <option key={type} value={type}>
+                        {type}
+                      </option>
+                    ))}
+                  </select>
+                  <p className="mt-1 text-xs text-[rgba(255,255,255,0.3)]">
+                    Criteria and guidance adapt to essay type
+                  </p>
+                </div>
+              )}
+
+              {/* Paragraph Type (only for paragraph grader) */}
+              {graderType === 'paragraph' && (
+                <div className="mb-4">
+                  <label className="mb-2 block text-xs text-[rgba(255,255,255,0.5)]">Paragraph Type</label>
+                  <select
+                    value={paragraphType}
+                    onChange={(e) => setParagraphType(e.target.value as ParagraphRubricType)}
+                    className="w-full rounded-lg border border-[rgba(255,255,255,0.1)] bg-[#101012] px-4 py-2 text-sm text-white"
+                  >
+                    {getAvailableRubricTypes().map((type) => (
+                      <option key={type} value={type}>
+                        {type.charAt(0).toUpperCase() + type.slice(1).replace('-', '/')}
+                      </option>
+                    ))}
+                  </select>
+                  <p className="mt-1 text-xs text-[rgba(255,255,255,0.3)]">
+                    Criteria adapt to paragraph type
+                  </p>
+                </div>
+              )}
 
               {/* Prompt */}
               <div className="mb-4">
@@ -613,6 +663,7 @@ export default function TestGraderPage() {
                       graderType={result.graderType}
                       scorecard={result.scorecard}
                       gaps={result.gaps || []}
+                      prioritizedLessons={result.prioritizedLessons}
                       overallFeedback={result.overallFeedback || ''}
                       onExampleHover={handleExampleHover}
                       onExampleClick={handleExampleClick}

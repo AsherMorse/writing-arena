@@ -21,6 +21,14 @@ export type EssayType =
 export type CriterionScore = 'Yes' | 'Developing' | 'No';
 
 /**
+ * @description Category groupings for essay criteria.
+ * Structure: Organization and framework (thesis, intro, conclusion, paragraph count)
+ * Content: What's inside (topic sentences, supporting details, evidence)
+ * Craft: How it's written (sentence strategies, transitions, editing)
+ */
+export type CriterionCategory = 'Structure' | 'Content' | 'Craft';
+
+/**
  * @description Grade level range for criterion applicability.
  */
 export interface GradeRange {
@@ -43,6 +51,7 @@ export interface GradeLevelGuidance {
 export interface EssayCriterion {
   name: string;
   description: string;
+  category: CriterionCategory;
   applicableGrades: GradeRange;
   applicableEssayTypes?: EssayType[];
   essayTypeGuidance?: Partial<Record<EssayType, string>>;
@@ -51,14 +60,23 @@ export interface EssayCriterion {
 }
 
 /**
+ * @description Example with text span for highlighting (matches paragraph grader format).
+ */
+export interface CriterionExample {
+  substringOfInterest: string;
+  explanationOfSubstring: string;
+}
+
+/**
  * @description Graded result for a single criterion.
  */
 export interface GradedCriterion {
   criterion: string;
+  category?: CriterionCategory;
   score: CriterionScore;
   explanation: string;
-  examplesOfGreatResults: string[];
-  examplesOfWhereToImprove: string[];
+  examplesOfGreatResults: CriterionExample[];
+  examplesOfWhereToImprove: CriterionExample[];
 }
 
 /**

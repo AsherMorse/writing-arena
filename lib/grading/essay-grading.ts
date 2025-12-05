@@ -8,12 +8,15 @@ import {
   getPreparedRubric,
   formatCriteriaForPrompt,
   getAvailableEssayTypes,
+  COMPOSITION_CRITERIA,
   type EssayType,
   type EssayGradingInput,
   type EssayGradingResult,
   type EssayScorecard,
   type GradedCriterion,
   type CriterionScore,
+  type CriterionExample,
+  type CriterionCategory,
 } from './essay-rubrics';
 
 /**
@@ -77,6 +80,17 @@ TWR STRATEGIES TO REFERENCE IN FEEDBACK:
 - TSG structure for conclusions (Thesis → Specific → General)
 - Evidence integration with commentary
 
+EXAMPLE SELECTION RULES (IMPORTANT - follow this exactly):
+- Total examples per criterion: 2-3 maximum (combined strengths + improvements)
+- Score "Yes" (strong): 1-2 examplesOfGreatResults, 0-1 examplesOfWhereToImprove
+- Score "Developing": 1 examplesOfGreatResults, 1-2 examplesOfWhereToImprove
+- Score "No" (needs work): 0-1 examplesOfGreatResults, 1-2 examplesOfWhereToImprove
+- Pick only the MOST important examples - quality over quantity
+
+EXAMPLE FORMAT RULES:
+- substringOfInterest: Copy the EXACT text from the student's essay (no changes). Use "N/A" only for general advice.
+- explanationOfSubstring: Explain why this text demonstrates the skill well OR what could be improved.
+
 Return your evaluation as JSON in this exact format:
 {
   "scorecard": {
@@ -87,8 +101,18 @@ Return your evaluation as JSON in this exact format:
         "criterion": "Criterion Name",
         "score": "Yes" | "Developing" | "No",
         "explanation": "Detailed explanation of why this score was given",
-        "examplesOfGreatResults": ["Quote from essay showing mastery (or empty if No)"],
-        "examplesOfWhereToImprove": ["Quote from essay with suggestion (or empty if Yes)"]
+        "examplesOfGreatResults": [
+          {
+            "substringOfInterest": "exact text from essay where student did well",
+            "explanationOfSubstring": "Why this demonstrates the skill"
+          }
+        ],
+        "examplesOfWhereToImprove": [
+          {
+            "substringOfInterest": "exact text that needs improvement",
+            "explanationOfSubstring": "What could be better and how"
+          }
+        ]
       }
     ]
   },
@@ -107,10 +131,12 @@ Return your evaluation as JSON in this exact format:
 
 IMPORTANT:
 - Evaluate EVERY criterion in the rubric
-- Quote the student's actual text in examples and feedback
+- Copy text EXACTLY as written in substringOfInterest (no paraphrasing, no ellipses)
+- Do NOT put quotes around the substringOfInterest value - just the raw text
 - Name specific TWR strategies (appositives, subordinating conjunctions, transitions, etc.)
 - Provide concrete revision suggestions, not vague advice
-- Return ONLY valid JSON, no markdown or additional text`;
+- Return ONLY valid JSON, no markdown or additional text
+- Do NOT mention the grade level in feedback (avoid "For Grade 12...", "At this level...", etc.). Provide feedback directly without referencing grade expectations.`;
 }
 
 /**
@@ -148,22 +174,30 @@ function parseGradingResponse(
     jsonStr = jsonMatch[1].trim();
   }
 
+  console.log('📄 RAW ESSAY GRADING RESPONSE:', jsonStr);
+
   try {
     const parsed = JSON.parse(jsonStr);
 
     // Validate and normalize the criteria
     const criteria: GradedCriterion[] = (parsed.scorecard?.criteria || []).map(
-      (c: Record<string, unknown>): GradedCriterion => ({
-        criterion: String(c.criterion || 'Unknown'),
-        score: validateScore(c.score),
-        explanation: String(c.explanation || ''),
-        examplesOfGreatResults: Array.isArray(c.examplesOfGreatResults)
-          ? c.examplesOfGreatResults.map(String)
-          : [],
-        examplesOfWhereToImprove: Array.isArray(c.examplesOfWhereToImprove)
-          ? c.examplesOfWhereToImprove.map(String)
-          : [],
-      })
+      (c: Record<string, unknown>): GradedCriterion => {
+        const criterionName = String(c.criterion || 'Unknown');
+        // Look up category from the rubric definition
+        const rubricCriterion = COMPOSITION_CRITERIA.find(
+          (rc) => rc.name === criterionName
+        );
+        const category: CriterionCategory = rubricCriterion?.category || 'Content';
+
+        return {
+          criterion: criterionName,
+          category,
+          score: validateScore(c.score),
+          explanation: String(c.explanation || ''),
+          examplesOfGreatResults: parseExamples(c.examplesOfGreatResults),
+          examplesOfWhereToImprove: parseExamples(c.examplesOfWhereToImprove),
+        };
+      }
     );
 
     // Calculate totals
@@ -214,6 +248,44 @@ function validateScore(score: unknown): CriterionScore {
   // Default to No if unrecognized
   console.warn(`Unrecognized score value: ${scoreStr}, defaulting to No`);
   return 'No';
+}
+
+/**
+ * @description Parse a single example object from LLM response.
+ */
+function parseExample(example: unknown): CriterionExample | null {
+  if (!example || typeof example !== 'object') {
+    // Handle old string format for backwards compatibility
+    if (typeof example === 'string' && example.trim()) {
+      return { substringOfInterest: example, explanationOfSubstring: '' };
+    }
+    return null;
+  }
+
+  const exampleObj = example as Record<string, unknown>;
+  const substringOfInterest = String(exampleObj.substringOfInterest || exampleObj.substring || '');
+  const explanationOfSubstring = String(exampleObj.explanationOfSubstring || exampleObj.explanation || '');
+
+  // Skip empty examples but keep N/A if there's an explanation
+  if (!substringOfInterest || substringOfInterest.toUpperCase() === 'N/A') {
+    if (explanationOfSubstring) {
+      return { substringOfInterest: 'N/A', explanationOfSubstring };
+    }
+    return null;
+  }
+
+  return { substringOfInterest, explanationOfSubstring };
+}
+
+/**
+ * @description Parse an array of examples, filtering out invalid ones.
+ */
+function parseExamples(examples: unknown): CriterionExample[] {
+  if (!Array.isArray(examples)) return [];
+  return examples
+    .map(parseExample)
+    .filter((ex): ex is CriterionExample => ex !== null)
+    .slice(0, 2); // Max 2 per array
 }
 
 /**

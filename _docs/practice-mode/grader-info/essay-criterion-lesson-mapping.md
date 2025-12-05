@@ -242,6 +242,40 @@ CRITERION_NAME:
 
 ---
 
+## Lesson Prioritization Logic
+
+When displaying "Practice These Skills" recommendations, lessons are prioritized as follows:
+
+### Sort Order
+
+1. **Severity first** - Fix what's most broken
+   - `No` gaps (high severity) come before `Developing` gaps (medium severity)
+
+2. **TWR tier second (within same severity)** - Bottom-up skill building
+   - Sentence-level lessons (Tier 1): `basic-conjunctions`, `write-appositives`, `subordinating-conjunctions`, `kernel-expansion`, `fragment-or-sentence`
+   - Paragraph-level lessons (Tier 2): `make-topic-sentences`, `identify-topic-sentence`, `writing-spos`, `eliminate-irrelevant-sentences`, `elaborate-paragraphs`, `using-transition-words`, `finishing-transition-words`, `write-cs-from-details`
+   - Essay-level lessons (Tier 3): `distinguish-g-s-t`, `write-g-s-from-t`, `write-introductory-sentences`, `craft-conclusion-from-gst`, `write-t-from-topic`, `match-details-pro-con`
+
+### Rationale
+
+- **Severity first**: Urgent issues ("No" scores) need attention before refinement ("Developing" scores)
+- **TWR tier second**: Within same severity, foundational skills (sentence-level) must be solid before building paragraph and essay skills
+
+### Example
+
+| Criterion | Score | Tier | Priority |
+|-----------|-------|------|----------|
+| Composed effective introduction | No | Essay (3) | 2nd |
+| Used transitions correctly | No | Paragraph (2) | 1st |
+| Used sentence strategies | Developing | Sentence (1) | 3rd |
+| Supporting details | Developing | Paragraph (2) | 4th |
+
+**Top 3 lessons shown:** Transitions (No+P), Introduction (No+E), Sentence strategies (Dev+S)
+
+> Implementation: See `lib/grading/essay-gap-detection.ts` → `detectGapsFromEssayScorecard()`
+
+---
+
 ## Instructions
 
 1. Review each mapping above

@@ -120,15 +120,55 @@ function getSeverity(score: CriterionScore): 'low' | 'medium' | 'high' {
 }
 
 /**
+ * @description TWR tier definitions for lesson prioritization.
+ * Lower tier = more foundational = higher priority within same severity.
+ */
+const LESSON_TIERS: Record<string, number> = {
+  // Tier 1: Sentence-level lessons (foundational TWR skills)
+  'basic-conjunctions': 1,
+  'write-appositives': 1,
+  'subordinating-conjunctions': 1,
+  'kernel-expansion': 1,
+  'fragment-or-sentence': 1,
+  // Tier 2: Paragraph-level lessons
+  'make-topic-sentences': 2,
+  'identify-topic-sentence': 2,
+  'writing-spos': 2,
+  'eliminate-irrelevant-sentences': 2,
+  'elaborate-paragraphs': 2,
+  'using-transition-words': 2,
+  'finishing-transition-words': 2,
+  'write-cs-from-details': 2,
+  'write-ts-from-details': 2,
+  // Tier 3: Essay-level lessons
+  'distinguish-g-s-t': 3,
+  'write-g-s-from-t': 3,
+  'write-introductory-sentences': 3,
+  'craft-conclusion-from-gst': 3,
+  'write-t-from-topic': 3,
+  'match-details-pro-con': 3,
+};
+
+/**
+ * @description Get TWR tier for a lesson (1=sentence, 2=paragraph, 3=essay, 4=unknown).
+ */
+function getLessonTier(lesson: string): number {
+  return LESSON_TIERS[lesson] || 4;
+}
+
+/**
  * @description Detect skill gaps from an essay scorecard.
  * Returns gaps for any criterion not scoring "Yes".
+ * 
+ * Prioritization: Severity first, TWR tier second (within same severity).
+ * See _docs/practice-mode/grader-info/essay-criterion-lesson-mapping.md
  */
 export function detectGapsFromEssayScorecard(
   scorecard: EssayScorecard
 ): EssayGapDetectionResult {
   const gaps: EssaySkillGap[] = [];
-  const allLessons = new Set<string>();
 
+  // Collect all gaps with their lessons
   for (const criterion of scorecard.criteria) {
     if (criterion.score === 'Yes') continue;
 
@@ -142,75 +182,42 @@ export function detectGapsFromEssayScorecard(
       recommendedLessons,
       explanation: criterion.explanation,
     });
+  }
 
-    // High severity lessons get added first
-    if (severity === 'high') {
-      recommendedLessons.forEach((lesson) => allLessons.add(lesson));
+  // Sort gaps: severity first (high before medium), then TWR tier within severity
+  const sortedGaps = [...gaps].sort((a, b) => {
+    // Severity order: high (0) > medium (1) > low (2)
+    const severityOrder = { high: 0, medium: 1, low: 2 };
+    const severityDiff = severityOrder[a.severity] - severityOrder[b.severity];
+    if (severityDiff !== 0) return severityDiff;
+
+    // Within same severity, sort by lowest tier lesson available
+    const aMinTier = Math.min(...a.recommendedLessons.map(getLessonTier));
+    const bMinTier = Math.min(...b.recommendedLessons.map(getLessonTier));
+    return aMinTier - bMinTier;
+  });
+
+  // Build prioritized lessons list in gap order
+  const seenLessons = new Set<string>();
+  const prioritizedLessons: string[] = [];
+
+  for (const gap of sortedGaps) {
+    // Sort this gap's lessons by tier
+    const sortedLessons = [...gap.recommendedLessons].sort(
+      (a, b) => getLessonTier(a) - getLessonTier(b)
+    );
+
+    for (const lesson of sortedLessons) {
+      if (!seenLessons.has(lesson)) {
+        seenLessons.add(lesson);
+        prioritizedLessons.push(lesson);
+      }
     }
   }
 
-  // Add medium severity lessons
-  gaps
-    .filter((g) => g.severity === 'medium')
-    .forEach((g) => g.recommendedLessons.forEach((lesson) => allLessons.add(lesson)));
-
-  // Prioritize lessons (TWR approach: sentence → paragraph → essay)
-  const prioritizedLessons = Array.from(allLessons).sort((a, b) => {
-    // Tier 1: Sentence-level lessons (foundational TWR skills)
-    const sentenceLessons = [
-      'basic-conjunctions',
-      'write-appositives',
-      'subordinating-conjunctions',
-      'kernel-expansion',
-      'fragment-or-sentence',
-    ];
-
-    // Tier 2: Paragraph-level lessons
-    const paragraphLessons = [
-      'make-topic-sentences',
-      'identify-topic-sentence',
-      'writing-spos',
-      'eliminate-irrelevant-sentences',
-      'elaborate-paragraphs',
-      'using-transition-words',
-      'finishing-transition-words',
-      'write-cs-from-details',
-    ];
-
-    // Tier 3: Essay-level lessons
-    const essayLessons = [
-      'distinguish-g-s-t',
-      'write-g-s-from-t',
-      'write-introductory-sentences',
-      'craft-conclusion-from-gst',
-      'write-t-from-topic',
-      'match-details-pro-con',
-    ];
-
-    // Get tier for each lesson (lower = higher priority)
-    const getTier = (lesson: string) => {
-      if (sentenceLessons.includes(lesson)) return 1;
-      if (paragraphLessons.includes(lesson)) return 2;
-      if (essayLessons.includes(lesson)) return 3;
-      return 4; // Unknown lessons last
-    };
-
-    const tierDiff = getTier(a) - getTier(b);
-    if (tierDiff !== 0) return tierDiff;
-
-    // Within same tier, prioritize available lessons
-    const availableLessons = ['basic-conjunctions', 'write-appositives'];
-    const aAvailable = availableLessons.includes(a);
-    const bAvailable = availableLessons.includes(b);
-    if (aAvailable && !bAvailable) return -1;
-    if (!aAvailable && bAvailable) return 1;
-
-    return 0;
-  });
-
   return {
-    gaps,
-    hasGaps: gaps.length > 0,
+    gaps: sortedGaps, // Return sorted gaps (severity first, then TWR tier)
+    hasGaps: sortedGaps.length > 0,
     prioritizedLessons,
   };
 }
