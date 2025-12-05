@@ -37,7 +37,8 @@ export const MIDDLE_SCHOOL_RUBRICS: Partial<Record<ParagraphRubricType, Paragrap
 
 /**
  * @description Get a paragraph rubric by type and grade level.
- * For grades 8 and below, uses simplified middle school rubrics where available.
+ * Currently using middle school rubric for all grades since high school
+ * rubric is too strict.
  * 
  * @param type - The rubric type (expository, argumentative, etc.)
  * @param gradeLevel - Student grade level (default 6)
@@ -47,6 +48,17 @@ export function getRubric(
   type: ParagraphRubricType = 'expository',
   gradeLevel: number = 6
 ): ParagraphRubric {
+  // TEMPORARY: Use middle school rubric for all grades
+  // High school rubric requirements are too harsh
+  const middleSchoolRubric = MIDDLE_SCHOOL_RUBRICS[type];
+  if (middleSchoolRubric) {
+    return middleSchoolRubric;
+  }
+  
+  // Fall back to default (high school) rubric if no middle school version exists
+  return PARAGRAPH_RUBRICS[type];
+  
+  /* ORIGINAL LOGIC (commented out for reference):
   // Use middle school rubric for grades 8 and below (if available)
   if (gradeLevel <= 8) {
     const middleSchoolRubric = MIDDLE_SCHOOL_RUBRICS[type];
@@ -57,5 +69,6 @@ export function getRubric(
   
   // Fall back to default (high school) rubric
   return PARAGRAPH_RUBRICS[type];
+  */
 }
 

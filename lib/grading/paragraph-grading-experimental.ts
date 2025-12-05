@@ -23,12 +23,41 @@ function generateGradingPrompt(
   rubricType: ParagraphRubricType,
   gradeLevel: number = 6
 ): string {
-  // Pass gradeLevel to getRubric - uses middle school rubric for grades ≤8, high school for ≥9
   const rubric = getRubric(rubricType, gradeLevel);
   const rubricString = JSON.stringify(rubric, null, 2);
   
-  return `You are a writing instructor trained in The Writing Revolution methodology. Grade this student's paragraph using the provided rubric.
+  // Build grade-appropriate calibration guidance
+  const highSchoolGuidance = gradeLevel >= 9 ? `
+HIGH SCHOOL RUBRIC INTERPRETATION:
+- You are grading relative to grade ${gradeLevel} standards
+- The rubric mentions "sophisticated and powerful" word choice - interpret this relative to grade ${gradeLevel} expectations
+${gradeLevel === 9 ? `
+GRADE 9 STANDARDS:
+- Score 5: Uses transitions effectively, varied sentence structures, clear word choice appropriate for a high school freshman
+- Score 4: Good use of transitions and some sentence variety, appropriate vocabulary
+- Score 3: Basic transitions present, functional word choice, some sentence variety` : ''}
+${gradeLevel >= 10 && gradeLevel <= 11 ? `
+GRADE 10-11 STANDARDS:
+- Score 5: Sophisticated transitions that enhance flow, consistent use of complex sentence structures, precise word choice
+- Score 4: Effective transitions and varied structures, appropriate vocabulary with some precision
+- Score 3: Transitions present but may feel formulaic, basic sentence variety, functional word choice` : ''}
+${gradeLevel === 12 ? `
+GRADE 12 STANDARDS:
+- Score 5: Seamless transitions, sophisticated sentence variety as the norm, precise and purposeful word choice demonstrating college-readiness
+- Score 4: Natural transitions, consistent complex structures, precise vocabulary
+- Score 3: Transitions present but may be formulaic, some sentence variety, appropriate but not precise word choice` : ''}
+` : '';
 
+  return `You are a writing instructor trained in The Writing Revolution (TWR) methodology. Grade the following paragraph that a grade ${gradeLevel} student submitted.
+
+GRADE-LEVEL CALIBRATION (CRITICAL):
+- You are grading a GRADE ${gradeLevel} student, not an adult or college student
+- A score of 5 means EXCELLENT for a grade ${gradeLevel} student
+- A score of 4 means GOOD for a grade ${gradeLevel} student
+- If the student uses good writing strategies (transitions, conjunctions, appositives), give them credit
+- "Sophisticated word choice" for grade ${gradeLevel} means age-appropriate vocabulary used well
+- Be encouraging - recognize what the student accomplished at their developmental level
+${highSchoolGuidance}
 WRITING PROMPT:
 ${prompt}
 
@@ -39,8 +68,8 @@ RUBRIC:
 ${rubricString}
 
 GRADING INSTRUCTIONS:
-1. Evaluate the paragraph against EACH category in the rubric
-2. Assign a score (0-5) based on the score level descriptions
+1. Evaluate the paragraph against EACH category in the rubric, calibrated for grade ${gradeLevel}
+2. Assign a score (0-5) based on what is achievable for a grade ${gradeLevel} student
 3. Provide specific, actionable feedback for each category
 4. Provide examples based on the score (see EXAMPLE SELECTION RULES below)
 
@@ -62,7 +91,7 @@ EXAMPLE SELECTION RULES (IMPORTANT - follow this exactly):
 
 EXAMPLE FORMAT RULES:
 - substringOfInterest: Copy the EXACT text from the student's paragraph (no changes). Use "N/A" only for general advice.
-- explanationOfSubstring: Explain why this text demonstrates the skill well OR what could be improved.
+- explanationOfSubstring: Explain why this text demonstrates the skill well OR what could be improved. Reference specific TWR strategies.
 
 Return your evaluation as JSON in this exact format:
 {
@@ -98,6 +127,8 @@ Return your evaluation as JSON in this exact format:
 IMPORTANT:
 - Copy text EXACTLY as written in substringOfInterest (no paraphrasing, no ellipses)
 - Do NOT put quotes around the substringOfInterest value - just the raw text
+- Do NOT mention the student's grade level in any feedback text
+- Name specific TWR strategies in explanations
 - Return ONLY valid JSON, no markdown or additional text`;
 }
 
@@ -185,7 +216,7 @@ function parseGradingResponse(
 /**
  * @description Grade a paragraph using TWR rubrics and Claude Sonnet 4.
  * @param input - The grading input parameters
- * @returns Structured grading result with scorecard and feedback
+ * @returns Structured grading result with scorecard and TWR-specific feedback
  */
 export async function gradeParagraph(input: ParagraphGradingInput): Promise<ParagraphGradingResult> {
   const { paragraph, prompt, rubricType = 'expository', gradeLevel } = input;
@@ -205,7 +236,7 @@ export async function gradeParagraph(input: ParagraphGradingInput): Promise<Para
 
   const gradingPrompt = generateGradingPrompt(paragraph, prompt, rubricType, gradeLevel);
   
-  console.log(`🔍 PARAGRAPH GRADING - Grading with ${rubricType} rubric (grade ${gradeLevel})`);
+  console.log(`🔍 PARAGRAPH GRADING - Grading with ${rubricType} rubric`);
   
   const response = await callAnthropicAPI(apiKey, gradingPrompt, 2500);
   const responseText = response.content[0].text;
@@ -230,3 +261,4 @@ export function normalizeToRankedScore(paragraphScore: number, maxScore: number 
 export function getAvailableRubricTypes(): ParagraphRubricType[] {
   return ['expository', 'argumentative', 'opinion', 'pro-con'];
 }
+

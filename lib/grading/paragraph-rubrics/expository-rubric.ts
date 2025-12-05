@@ -23,7 +23,7 @@ export const expositoryRubric: ParagraphRubric = {
         {
           score: 5,
           description:
-            'Topic Sentence (T.S.) expresses a clear main idea and accurately addresses the prompt using a sentence type (e.g., appositive or subordinating conjunction). Word choice is precise, sophisticated, and powerful.',
+            'Topic Sentence (T.S.) expresses a clear main idea and accurately addresses the prompt using a sentence type (e.g., appositive or subordinating conjunction). Word choice is precise.',
         },
         {
           score: 4,
@@ -91,7 +91,7 @@ export const expositoryRubric: ParagraphRubric = {
         {
           score: 5,
           description:
-            'Concluding Sentence (C.S.) summarizes or concludes the paragraph using a sentence type (e.g., appositive, subordinating conjunction, or transition). Word choice is precise and sophisticated.',
+            'Concluding Sentence (C.S.) summarizes or concludes the paragraph using a sentence type (e.g., appositive, subordinating conjunction, or transition). Word choice is precise.',
         },
         {
           score: 4,
