@@ -111,7 +111,7 @@ export function LessonCard({
           </div>
         ) : (
           <Link
-            href={`/practice/${lesson.id}`}
+            href={`/improve/activities/${lesson.id}`}
             className="block w-full rounded-[10px] border border-[#00e5e5] bg-transparent px-4 py-2.5 text-center text-sm font-medium text-[#00e5e5] transition hover:bg-[rgba(0,229,229,0.1)]"
           >
             {attempts > 0 ? 'Practice Again' : 'Start Lesson'}
@@ -136,7 +136,7 @@ export function LessonCardCompact({
 
   return (
     <Link
-      href={isComingSoon ? '#' : `/practice/${lesson.id}`}
+      href={isComingSoon ? '#' : `/improve/activities/${lesson.id}`}
       className={`flex items-center justify-between rounded-[10px] border px-4 py-3 transition ${
         isComingSoon
           ? 'cursor-not-allowed border-[rgba(255,255,255,0.03)] bg-[rgba(255,255,255,0.01)]'

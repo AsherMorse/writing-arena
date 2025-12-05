@@ -40,15 +40,21 @@ export default function PracticeLanding() {
       {/* Header */}
       <header className="border-b border-[rgba(255,255,255,0.05)]">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-6">
-          <Link href="/dashboard" className="flex items-center gap-3">
-            <span className="text-xl font-semibold tracking-wide">Practice Studio</span>
-          </Link>
-          <Link
-            href="/dashboard"
-            className="rounded-[10px] border border-[rgba(255,255,255,0.05)] bg-[rgba(255,255,255,0.025)] px-4 py-2 text-sm font-medium transition hover:bg-[rgba(255,255,255,0.04)]"
-          >
-            Back to dashboard
-          </Link>
+          <span className="text-xl font-semibold tracking-wide">Practice Studio</span>
+          <div className="flex items-center gap-3">
+            <Link
+              href="/improve"
+              className="rounded-[10px] border border-[rgba(255,255,255,0.05)] bg-[rgba(255,255,255,0.025)] px-4 py-2 text-sm font-medium transition hover:bg-[rgba(255,255,255,0.04)]"
+            >
+              ← Back to improve
+            </Link>
+            <Link
+              href="/dashboard"
+              className="rounded-[10px] border border-[rgba(255,255,255,0.05)] bg-[rgba(255,255,255,0.025)] px-4 py-2 text-sm font-medium transition hover:bg-[rgba(255,255,255,0.04)]"
+            >
+              Dashboard
+            </Link>
+          </div>
         </div>
       </header>
 

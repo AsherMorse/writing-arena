@@ -105,13 +105,13 @@ function PracticeResultsContentInner() {
   const actions = (
     <>
       <Link
-        href={`/practice/${lessonId}`}
+        href={`/improve/activities/${lessonId}`}
         className="rounded-[10px] border border-[#00e5e5] bg-[#00e5e5] px-8 py-3 text-center text-sm font-medium text-[#101012] transition hover:bg-[#33ebeb]"
       >
         Practice Again
       </Link>
       <Link
-        href="/practice"
+        href="/improve/activities"
         className="rounded-[10px] border border-[rgba(255,255,255,0.05)] bg-[rgba(255,255,255,0.025)] px-8 py-3 text-center text-sm font-medium transition hover:bg-[rgba(255,255,255,0.04)]"
       >
         All Lessons

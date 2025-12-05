@@ -261,7 +261,7 @@ export default function PracticeSessionContent({ lessonId }: PracticeSessionCont
       }));
 
       // Navigate to results (all data in session storage)
-      router.push(`/practice/${lessonId}/results`);
+      router.push(`/improve/activities/${lessonId}/results`);
     } catch (err) {
       console.error('Session submission failed:', err);
       // Store error state in session storage for consistent handling
@@ -277,7 +277,7 @@ export default function PracticeSessionContent({ lessonId }: PracticeSessionCont
         writeRemarks: [],
         reviseRemarks: [],
       }));
-      router.push(`/practice/${lessonId}/results`);
+      router.push(`/improve/activities/${lessonId}/results`);
     }
   }
 

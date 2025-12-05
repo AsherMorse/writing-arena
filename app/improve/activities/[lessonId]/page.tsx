@@ -38,7 +38,7 @@ export default function LessonPage({ params }: LessonPageProps) {
   };
 
   function handleStartSession() {
-    router.push(`/practice/${lessonId}/session`);
+    router.push(`/improve/activities/${lessonId}/session`);
   }
 
   return (
@@ -46,7 +46,7 @@ export default function LessonPage({ params }: LessonPageProps) {
       {/* Header */}
       <header className="border-b border-[rgba(255,255,255,0.05)]">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-6">
-          <Link href="/practice" className="flex items-center gap-2 text-sm text-[rgba(255,255,255,0.5)] hover:text-white">
+          <Link href="/improve/activities" className="flex items-center gap-2 text-sm text-[rgba(255,255,255,0.5)] hover:text-white">
             ← Back to lessons
           </Link>
           <Link
