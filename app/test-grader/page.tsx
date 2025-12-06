@@ -87,7 +87,7 @@ function InteractiveWritingSection({
   return (
     <div className="mb-8 rounded-[14px] border border-[rgba(255,255,255,0.1)] bg-[rgba(255,255,255,0.025)] p-6">
       <div className="mb-4 flex items-center justify-between h-7">
-        <h2 className="text-lg font-semibold text-[rgba(255,255,255,0.8)]">📝 Your Writing</h2>
+        <h2 className="text-md font-semibold text-[rgba(255,255,255,0.8)]">Your Writing</h2>
         {/* Always reserve space, use opacity for visibility */}
         <div
           className={`flex items-center gap-2 text-xs transition-opacity ${
