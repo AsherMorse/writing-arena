@@ -1,0 +1,111 @@
+{
+  "success": true,
+  "matchId": "test-1764898902094",
+  "graderType": "paragraph",
+  "scorecard": {
+    "rubricId": "expository",
+    "categories": [
+      {
+        "title": "Topic Sentence",
+        "score": 2,
+        "maxScore": 5,
+        "feedback": "The first sentence narrates an action rather than stating a clear main idea about animal interactions. A topic sentence should introduce what the paragraph will explain or inform about, not simply begin telling a story.",
+        "examplesOfGreatResults": [
+          {
+            "substringOfInterest": "The dog ran fast because it was chasing a squirrel through the park.",
+            "explanationOfSubstring": "Good use of the subordinating conjunction 'because' to show cause and effect in the sentence structure."
+          }
+        ],
+        "examplesOfWhereToImprove": [
+          {
+            "substringOfInterest": "The dog ran fast because it was chasing a squirrel through the park.",
+            "explanationOfSubstring": "This is a narrative action sentence, not a topic sentence. Try: 'Squirrels use their natural abilities to outsmart predators like dogs' or 'Animal interactions often demonstrate survival instincts in action.'"
+          }
+        ]
+      },
+      {
+        "title": "Detail Sentences",
+        "score": 3,
+        "maxScore": 5,
+        "feedback": "The details describe the interaction sequence but lack variety in sentence structure and transitions. The writing uses some subordinating conjunctions and compound sentences, but would benefit from transition words to show logical progression.",
+        "examplesOfGreatResults": [
+          {
+            "substringOfInterest": "The squirrel was very clever, and it quickly climbed up a tall oak tree to escape.",
+            "explanationOfSubstring": "This compound sentence effectively combines two related ideas and shows the squirrel's response to the threat."
+          }
+        ],
+        "examplesOfWhereToImprove": [
+          {
+            "substringOfInterest": "The dog barked loudly at the base of the tree, but it could not reach the squirrel.",
+            "explanationOfSubstring": "While this uses 'but' correctly, adding a transition word like 'However' or 'Then' at the beginning would help show the sequence of events and improve logical flow."
+          }
+        ]
+      },
+      {
+        "title": "Concluding Sentence",
+        "score": 4,
+        "maxScore": 5,
+        "feedback": "The concluding sentence effectively uses the transition 'In conclusion' and summarizes the main point about the squirrel outsmarting the dog. It appropriately wraps up the paragraph with clear word choice.",
+        "examplesOfGreatResults": [
+          {
+            "substringOfInterest": "In conclusion, the squirrel outsmarted the dog by using its climbing abilities.",
+            "explanationOfSubstring": "Strong use of the transition phrase 'In conclusion' and effectively summarizes the outcome of the interaction."
+          }
+        ],
+        "examplesOfWhereToImprove": [
+          {
+            "substringOfInterest": "In conclusion, the squirrel outsmarted the dog by using its climbing abilities.",
+            "explanationOfSubstring": "To reach a score of 5, consider making this more reflective or insightful, such as: 'In conclusion, this interaction demonstrates how animals rely on their unique physical adaptations to survive in nature.'"
+          }
+        ]
+      },
+      {
+        "title": "Conventions",
+        "score": 5,
+        "maxScore": 5,
+        "feedback": "The paragraph demonstrates strong control of conventions with no errors in grammar, punctuation, capitalization, or spelling. All sentences are properly structured and punctuated.",
+        "examplesOfGreatResults": [
+          {
+            "substringOfInterest": "N/A",
+            "explanationOfSubstring": "All sentences show correct comma usage, capitalization, punctuation, and subject-verb agreement throughout the paragraph."
+          }
+        ],
+        "examplesOfWhereToImprove": []
+      }
+    ],
+    "totalScore": 14,
+    "maxScore": 20,
+    "percentageScore": 70
+  },
+  "gaps": [
+    {
+      "category": "Topic Sentence",
+      "score": 2,
+      "maxScore": 5,
+      "severity": "medium",
+      "recommendedLessons": [
+        "make-topic-sentences",
+        "identify-topic-sentence",
+        "basic-conjunctions",
+        "write-appositives"
+      ],
+      "feedback": "The first sentence narrates an action rather than stating a clear main idea about animal interactions. A topic sentence should introduce what the paragraph will explain or inform about, not simply begin telling a story."
+    },
+    {
+      "category": "Detail Sentences",
+      "score": 3,
+      "maxScore": 5,
+      "severity": "low",
+      "recommendedLessons": [
+        "writing-spos",
+        "eliminate-irrelevant-sentences",
+        "elaborate-paragraphs",
+        "using-transition-words"
+      ],
+      "feedback": "The details describe the interaction sequence but lack variety in sentence structure and transitions. The writing uses some subordinating conjunctions and compound sentences, but would benefit from transition words to show logical progression."
+    }
+  ],
+  "hasSevereGap": false,
+  "overallFeedback": "This paragraph demonstrates solid writing conventions and a clear concluding sentence with good transition use. The primary area for improvement is developing a true topic sentence that states a main idea about animal interactions rather than jumping directly into narration. Additionally, incorporating transition words between detail sentences would strengthen the logical flow and organization of the paragraph.",
+  "gradingId": "a60INcBgW6dSeEK80EpX"
+}

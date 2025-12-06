@@ -42,5 +42,4 @@ next-env.d.ts
 
 # Reference codebase (not committed)
 _alphawrite/
-_docs/
 *.OLD.tsx
