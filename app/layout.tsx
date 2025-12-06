@@ -5,6 +5,7 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import DebugMenu from "@/components/shared/DebugMenu";
 import { RequireAuth } from "@/components/auth/RequireAuth";
 import { LoadingState } from "@/components/shared/LoadingState";
+import { dutch809, avenirNext, memento } from "./fonts";
 
 export const metadata: Metadata = {
   title: "Writing Arena - Competitive Writing Platform",
@@ -18,7 +19,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
-    <body className="antialiased" suppressHydrationWarning>
+    <body className={`antialiased ${dutch809.variable} ${avenirNext.variable} ${memento.variable}`} suppressHydrationWarning>
       <AuthProvider>
         <Suspense fallback={<LoadingState message="Loading..." />}>
           <RequireAuth>

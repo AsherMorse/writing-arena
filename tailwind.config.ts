@@ -33,6 +33,12 @@ const config: Config = {
       fontFamily: {
         sans: ["Inter", "-apple-system", "BlinkMacSystemFont", "sans-serif"],
         mono: ["JetBrains Mono", "SF Mono", "Consolas", "monospace"],
+        cinzel: ["Cinzel", "serif"],
+        cormorant: ["Cormorant Garamond", "serif"],
+        // Fantasy theme fonts
+        dutch809: ["var(--font-dutch809)", "serif"],
+        avenir: ["var(--font-avenir)", "sans-serif"],
+        memento: ["var(--font-memento)", "sans-serif"],
       },
     },
   },
