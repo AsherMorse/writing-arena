@@ -17,7 +17,7 @@ export function RequireAuth({ children }: { children: React.ReactNode }) {
     if (!loading) {
       if (!user) {
         // Public routes that don't require auth
-        const publicRoutes = ['/', '/auth'];
+        const publicRoutes = ['/', '/auth', '/fantasy'];
         const isPublicRoute = publicRoutes.includes(pathname) || pathname.startsWith('/auth');
         
         if (!isPublicRoute) {
