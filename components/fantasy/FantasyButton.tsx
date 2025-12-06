@@ -37,12 +37,13 @@ export function FantasyButton({
     font-memento font-black uppercase font-bold
     transition-all duration-200
     cursor-pointer
+    rounded-md
   `;
 
   const variantStyles = variant === 'primary' 
     ? {
         background: '#2a1a0f',
-        border: '1px solid #c9a84c',
+        border: '1px solid rgba(201, 168, 76, 0.75)',
         color: '#f5e6b8',
         boxShadow: `
           inset 0 0 15px rgba(201, 168, 76, 0.15),
@@ -64,18 +65,9 @@ export function FantasyButton({
   };
 
   const content = (
-    <>
-      {/* Inner gold trim */}
-      <span 
-        className="absolute inset-[3px] rounded-sm pointer-events-none"
-        style={{
-          border: '1px solid rgba(201, 168, 76, 0.25)',
-        }}
-      />
-      <span className="relative" style={{ textShadow: '0 2px 4px rgba(0, 0, 0, 0.5)' }}>
-        {children}
-      </span>
-    </>
+    <span className="relative" style={{ textShadow: '0 2px 4px rgba(0, 0, 0, 0.5)' }}>
+      {children}
+    </span>
   );
 
   const combinedClassName = `${baseStyles} ${className} group hover:scale-[1.02] active:scale-[0.98]`;
