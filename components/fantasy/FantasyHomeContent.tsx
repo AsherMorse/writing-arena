@@ -65,7 +65,7 @@ export function FantasyHomeContent({ userProfile }: FantasyHomeContentProps) {
     <div className="relative min-h-screen w-full overflow-hidden">
       {/* Background image */}
       <Image
-        src="/images/backgrounds/home.png"
+        src="/images/backgrounds/home.webp"
         alt=""
         fill
         className="object-cover"
