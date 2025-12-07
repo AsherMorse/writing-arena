@@ -9,12 +9,20 @@ interface WritingEditorProps {
   disabled?: boolean;
   placeholder?: string;
   showRequirements?: boolean;
+  minWords?: number;
 }
 
-export function WritingEditor({ value, onChange, disabled, placeholder, showRequirements = true }: WritingEditorProps) {
+export function WritingEditor({ 
+  value, 
+  onChange, 
+  disabled, 
+  placeholder, 
+  showRequirements = true,
+  minWords = MIN_WORDS,
+}: WritingEditorProps) {
   const wordCount = value.trim() ? value.trim().split(/\s+/).length : 0;
   const charCount = value.length;
-  const meetsMinimum = wordCount >= MIN_WORDS;
+  const meetsMinimum = wordCount >= minWords;
   const underMax = charCount <= MAX_CHARS;
 
   const handleChange = (text: string) => {
@@ -41,7 +49,7 @@ export function WritingEditor({ value, onChange, disabled, placeholder, showRequ
       <div className="flex justify-between text-sm font-avenir">
         <span style={{ color: meetsMinimum ? 'rgba(245, 230, 184, 0.6)' : '#ff6b6b' }}>
           {wordCount} {wordCount === 1 ? 'word' : 'words'}
-          {showRequirements && !meetsMinimum && ` (${MIN_WORDS} minimum)`}
+          {showRequirements && !meetsMinimum && ` (${minWords} minimum)`}
         </span>
         {showRequirements && (
           <span style={{ color: underMax ? 'rgba(245, 230, 184, 0.4)' : '#ff6b6b' }}>

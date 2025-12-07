@@ -1,5 +1,8 @@
 import { gradeWithAdaptiveGrader, type AdaptiveGraderInput } from './adaptive-paragraph-grader';
+import { gradeWithAdaptiveEssayGrader, type AdaptiveEssayGraderInput } from './adaptive-essay-grader';
 import type { GraderResult, GraderRemark } from './grader-config';
+import type { EssayGraderResult, EssayCriterionResult, CriterionStatus, EssayScores } from './essay-grader-config';
+export { HIGHLIGHTABLE_CRITERIA } from './essay-grader-config';
 
 export type WritingType = 'paragraph' | 'essay';
 
@@ -9,6 +12,15 @@ export interface GradeRequest {
   type: WritingType;
   gradeLevel?: number;
   previousResult?: GraderResult;
+  previousContent?: string;
+}
+
+export interface EssayGradeRequest {
+  content: string;
+  prompt: string;
+  type: 'essay';
+  gradeLevel?: number;
+  previousResult?: EssayGraderResult;
   previousContent?: string;
 }
 
@@ -22,6 +34,12 @@ export interface SkillGap {
 
 export interface GradeResponse {
   result: GraderResult;
+  gaps: SkillGap[];
+  hasSevereGap: boolean;
+}
+
+export interface EssayGradeResponse {
+  result: EssayGraderResult;
   gaps: SkillGap[];
   hasSevereGap: boolean;
 }
@@ -70,9 +88,35 @@ function detectGapsFromResult(result: GraderResult): SkillGap[] {
   return gaps;
 }
 
+function detectEssayGaps(result: EssayGraderResult): SkillGap[] {
+  const gaps: SkillGap[] = [];
+
+  for (const criterion of result.criteria) {
+    if (criterion.status === 'no') {
+      gaps.push({
+        category: criterion.criterionId,
+        score: 0,
+        maxScore: 1,
+        severity: 'high',
+        feedback: criterion.feedback,
+      });
+    } else if (criterion.status === 'developing') {
+      gaps.push({
+        category: criterion.criterionId,
+        score: 0.5,
+        maxScore: 1,
+        severity: 'medium',
+        feedback: criterion.feedback,
+      });
+    }
+  }
+
+  return gaps;
+}
+
 export async function gradeWriting(request: GradeRequest): Promise<GradeResponse> {
   if (request.type === 'essay') {
-    throw new Error('Essay grading not yet implemented');
+    throw new Error('Use gradeEssay for essay grading');
   }
 
   const graderInput: AdaptiveGraderInput = {
@@ -93,4 +137,23 @@ export async function gradeWriting(request: GradeRequest): Promise<GradeResponse
   };
 }
 
-export type { GraderResult, GraderRemark };
+export async function gradeEssay(request: EssayGradeRequest): Promise<EssayGradeResponse> {
+  const graderInput: AdaptiveEssayGraderInput = {
+    essay: request.content,
+    prompt: request.prompt,
+    gradeLevel: request.gradeLevel,
+    previousResult: request.previousResult,
+    previousEssay: request.previousContent,
+  };
+
+  const result = await gradeWithAdaptiveEssayGrader(graderInput);
+  const gaps = detectEssayGaps(result);
+
+  return {
+    result,
+    gaps,
+    hasSevereGap: gaps.some((g) => g.severity === 'high'),
+  };
+}
+
+export type { GraderResult, GraderRemark, EssayGraderResult, EssayCriterionResult, CriterionStatus, EssayScores };

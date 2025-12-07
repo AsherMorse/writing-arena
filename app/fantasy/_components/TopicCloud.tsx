@@ -1,16 +1,20 @@
 'use client';
 
-import type { PracticeTopic } from '../_lib/practice-topics';
+export interface Topic {
+  id: string;
+  label: string;
+  prompt: string;
+}
 
-interface TopicCloudProps {
-  topics: PracticeTopic[];
-  onSelect: (topic: PracticeTopic) => void;
+interface TopicCloudProps<T extends Topic> {
+  topics: T[];
+  onSelect: (topic: T) => void;
   disabled?: boolean;
 }
 
 const CLOUD_SHAPE = [3, 3, 3];
 
-export function TopicCloud({ topics, onSelect, disabled }: TopicCloudProps) {
+export function TopicCloud<T extends Topic>({ topics, onSelect, disabled }: TopicCloudProps<T>) {
   let topicIndex = 0;
 
   return (

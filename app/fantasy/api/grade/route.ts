@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { gradeWriting, type WritingType } from '../../_lib/grading';
+import { gradeWriting, gradeEssay, type WritingType } from '../../_lib/grading';
 
 export async function POST(request: NextRequest) {
   try {
@@ -14,6 +14,18 @@ export async function POST(request: NextRequest) {
     }
 
     const type: WritingType = body.type === 'essay' ? 'essay' : 'paragraph';
+
+    if (type === 'essay') {
+      const response = await gradeEssay({
+        content: body.content,
+        prompt: body.prompt,
+        type: 'essay',
+        gradeLevel: body.gradeLevel,
+        previousResult: body.previousResult,
+        previousContent: body.previousContent,
+      });
+      return NextResponse.json(response);
+    }
 
     const response = await gradeWriting({
       content: body.content,

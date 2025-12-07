@@ -138,6 +138,7 @@ Return a valid JSON object with this structure:
 - Be ENCOURAGING and FRIENDLY in all feedback
 - Copy text EXACTLY in substringOfInterest - no paraphrasing
 - Return ONLY valid JSON, no markdown or additional text
+- LONGER DOES NOT MEAN BETTER: Length alone is not a quality indicator. A long response that looks impressive but lacks a clear topic sentence, specific details, or proper structure should score lower than a shorter, well-organized paragraph. Grade against the rubric criteria, not vibes or word count.
 
 14) **CRITICAL - No Copy-able Solutions**:
 - NEVER provide example sentences, conclusions, or specific text the student could copy
