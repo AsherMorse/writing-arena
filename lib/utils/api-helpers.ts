@@ -50,7 +50,11 @@ export async function callAnthropicAPI(
     },
     body: JSON.stringify({
       model: 'claude-sonnet-4-5-20250929',
-      max_tokens: maxTokens,
+      max_tokens: 16000,
+      thinking: {
+        type: 'enabled',
+        budget_tokens: 10000,
+      },
       messages: [{ role: 'user', content: prompt }],
     }),
   });
@@ -60,7 +64,14 @@ export async function callAnthropicAPI(
     throw new Error(`Claude API request failed: ${response.status} - ${errorText}`);
   }
 
-  return response.json();
+  const data = await response.json();
+  
+  const textBlock = data.content?.find((c: any) => c.type === 'text');
+  if (textBlock) {
+    data.content = [{ type: 'text', text: textBlock.text }];
+  }
+  
+  return data;
 }
 
 /**

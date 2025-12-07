@@ -111,11 +111,10 @@ Return a valid JSON object with this structure:
       "severity": "error" | "nit",
       "category": "CategoryName",
       "concreteProblem": "Brief, friendly description of the issue (50-85 chars)",
-      "callToAction": "1-2 encouraging sentences on how to fix it (70-150 chars)",
+      "callToAction": "1-2 encouraging sentences guiding HOW to improve, NOT what to write (70-150 chars)",
       "substringOfInterest": "exact text from student's writing that shows the issue (optional)"
     }
   ],
-  "solution": "A corrected/improved version of the paragraph (only if there are errors)",
   "scores": {
     "topicSentence": 0-5,
     "detailSentences": 0-5,
@@ -138,7 +137,16 @@ Return a valid JSON object with this structure:
 - Limit remarks to the 3 most important issues
 - Be ENCOURAGING and FRIENDLY in all feedback
 - Copy text EXACTLY in substringOfInterest - no paraphrasing
-- Return ONLY valid JSON, no markdown or additional text${revisionInstructions}`;
+- Return ONLY valid JSON, no markdown or additional text
+
+14) **CRITICAL - No Copy-able Solutions**:
+- NEVER provide example sentences, conclusions, or specific text the student could copy
+- NEVER write "try something like..." or "for example, you could write..."
+- Instead, explain the TECHNIQUE or APPROACH they should use
+- Guide them to think about WHAT makes a good conclusion, not WHAT to write
+- Bad: "Try ending with: Summer truly is the best season."
+- Good: "Your conclusion should remind the reader of your main reasons without repeating the exact same words."
+- The student must do the thinking and writing themselves${revisionInstructions}`;
 }
 
 function buildUserPrompt(
@@ -222,7 +230,6 @@ function parseGraderResponse(response: string): GraderResult {
     return {
       isCorrect: !hasErrors,
       remarks,
-      solution: hasErrors ? parsed.solution : undefined,
       scores,
     };
   } catch (error) {

@@ -12,7 +12,6 @@ export interface GraderRemark {
 export interface GraderResult {
   isCorrect: boolean;
   remarks: GraderRemark[];
-  solution?: string;
   scores: {
     topicSentence: number;
     detailSentences: number;

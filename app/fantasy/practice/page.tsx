@@ -399,7 +399,7 @@ export default function PracticePage() {
           )}
 
           {phase === 'feedback' && response && (
-            <div className="w-full max-w-2xl space-y-6">
+            <div className="w-full max-w-5xl space-y-6">
               <div className="text-center">
                 <h2
                   className="font-dutch809 text-3xl mb-4"
@@ -417,25 +417,7 @@ export default function PracticePage() {
                 />
               </div>
 
-              <div
-                className="rounded-md p-4"
-                style={{
-                  background: 'rgba(26, 18, 8, 0.8)',
-                  border: '1px solid rgba(201, 168, 76, 0.2)',
-                }}
-              >
-                <div
-                  className="text-xs uppercase tracking-widest mb-2 font-memento"
-                  style={{ color: '#c9a84c' }}
-                >
-                  Your Writing
-                </div>
-                <p className="text-sm font-avenir whitespace-pre-wrap" style={{ color: 'rgba(245, 230, 184, 0.8)' }}>
-                  {originalContent}
-                </p>
-              </div>
-
-              <FeedbackDisplay result={response.result} />
+              <FeedbackDisplay result={response.result} content={originalContent} />
 
               <div className="flex justify-center gap-4">
                 <FantasyButton onClick={reset} variant="secondary">
@@ -484,7 +466,7 @@ export default function PracticePage() {
           )}
 
           {phase === 'results' && response && originalResponse && (
-            <div className="w-full max-w-2xl space-y-6">
+            <div className="w-full max-w-5xl space-y-6">
               <div className="text-center">
                 <h2
                   className="font-dutch809 text-3xl mb-4"
@@ -516,7 +498,7 @@ export default function PracticePage() {
                 )}
               </div>
 
-              <FeedbackDisplay result={response.result} />
+              <FeedbackDisplay result={response.result} content={content} />
 
               <div className="flex justify-center gap-4">
                 <FantasyButton onClick={reset} size="large">
