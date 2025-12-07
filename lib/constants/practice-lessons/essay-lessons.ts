@@ -307,4 +307,101 @@ export const ESSAY_LESSONS: Record<string, PracticeLesson> = {
         'PRO arguments support the position (longer recess). CON arguments oppose it. Each detail is sorted based on whether it supports or contradicts the main question.',
     },
   },
+
+  'write-s-from-g-t': {
+    id: 'write-s-from-g-t',
+    name: 'Write S from G+T',
+    description: 'Write a Specific statement to connect General and Thesis statements.',
+    category: 'essay',
+    status: 'available',
+    phaseDurations: { reviewPhase: 1, writePhase: 4, revisePhase: 2 },
+    instruction:
+      'Write a Specific statement that bridges the General statement to the Thesis statement.',
+    prompts: [
+      {
+        id: 'sgt-1',
+        prompt:
+          'Write a Specific statement to connect:\n\nGeneral: "Quebec is a beautiful province in eastern Canada with diverse landscapes and natural features."\n\nThesis: "Understanding Quebec\'s varied landscapes helps us appreciate why it is one of Canada\'s most environmentally diverse provinces."',
+        hint: 'Add details about specific geographic features in Quebec.',
+      },
+      {
+        id: 'sgt-2',
+        prompt:
+          'Write a Specific statement to connect:\n\nGeneral: "The Gulf of Mexico is one of the most important bodies of water in North America."\n\nThesis: "The incredible diversity of sea life in the Gulf of Mexico makes it one of the most valuable marine ecosystems that needs our protection."',
+        hint: 'Mention specific types of marine life found in the Gulf.',
+      },
+      {
+        id: 'sgt-3',
+        prompt:
+          'Write a Specific statement to connect:\n\nGeneral: "Catherine the Great was one of the most powerful rulers in Russian history."\n\nThesis: "Catherine the Great\'s smart leadership and love of art helped transform Russia into a major European power during the 18th century."',
+        hint: 'Add details about her reign or accomplishments.',
+      },
+      {
+        id: 'sgt-4',
+        prompt:
+          'Write a Specific statement to connect:\n\nGeneral: "In the 1400s, Johannes Gutenberg created an invention that changed the world forever."\n\nThesis: "Gutenberg\'s printing press helped more people learn to read and spread new ideas across Europe."',
+        hint: 'Explain what the printing press did or how it worked.',
+      },
+      {
+        id: 'sgt-5',
+        prompt:
+          'Write a Specific statement to connect:\n\nGeneral: "The Renaissance was a time of amazing new ideas and creativity in Europe."\n\nThesis: "Renaissance scientists made important discoveries about the human body, plants, and the stars that changed how people understood the world around them."',
+        hint: 'Mention what artists and thinkers were interested in during this time.',
+      },
+    ],
+    exampleResponse: {
+      prompt:
+        'Write a Specific statement:\n\nGeneral: "Animals live in many different places around the world."\nThesis: "Forest animals need protection so they can have safe homes."',
+      response:
+        'Some animals like bears and wolves live in forests where they can find food and shelter.',
+      explanation:
+        'This Specific statement narrows from "animals everywhere" to forest animals specifically, bridging logically to the thesis about protecting forest habitats.',
+    },
+  },
+
+  'pre-transition-outline': {
+    id: 'pre-transition-outline',
+    name: 'Pre-Transition Outline',
+    description: 'Create a multi-paragraph essay outline with thesis, topic sentences, and details.',
+    category: 'essay',
+    status: 'available',
+    phaseDurations: { reviewPhase: 2, writePhase: 8, revisePhase: 3 },
+    instruction:
+      'Create an outline with: Thesis statement, 2 body paragraphs (each with topic sentence + supporting details), and a concluding statement.',
+    prompts: [
+      {
+        id: 'pto-1',
+        prompt: 'Create a Pre-Transition Outline for:\n\n"How Family Traditions Make Our Lives Special"',
+        hint: 'Think about different types of family traditions (holidays, everyday routines) and why they matter.',
+      },
+      {
+        id: 'pto-2',
+        prompt: 'Create a Pre-Transition Outline for:\n\n"Why Community Helpers Deserve Our Thanks"',
+        hint: 'Consider different community helpers and specific ways they help us.',
+      },
+      {
+        id: 'pto-3',
+        prompt: 'Create a Pre-Transition Outline for:\n\n"How Pets Teach Us Responsibility"',
+        hint: 'Think about daily care tasks and emotional responsibilities of pet ownership.',
+      },
+      {
+        id: 'pto-4',
+        prompt: 'Create a Pre-Transition Outline for:\n\n"Should Schools Have Longer Recess?"',
+        hint: 'Consider both physical benefits and academic considerations.',
+      },
+      {
+        id: 'pto-5',
+        prompt:
+          'Create a Pre-Transition Outline for:\n\n"How Technology Helps Students Learn Better"',
+        hint: 'Think about access to resources and engagement in learning.',
+      },
+    ],
+    exampleResponse: {
+      prompt: 'Create a Pre-Transition Outline for: "Why Reading Is Important for Kids"',
+      response:
+        'Thesis: Reading helps children succeed in school and life by building vocabulary and imagination.\n\nParagraph 1\nTS: Reading builds vocabulary and language skills.\nSD1: learning new words from stories\nSD2: understanding how sentences work\nSD3: improving spelling through exposure\n\nParagraph 2\nTS: Reading develops creativity and imagination.\nSD1: picturing story worlds in your mind\nSD2: thinking about different perspectives\nSD3: inspiring new ideas\n\nConclusion: By building language skills and sparking imagination, reading gives children tools they will use throughout their lives.',
+      explanation:
+        'This outline has a clear thesis with two supporting ideas. Each paragraph develops one idea with specific supporting details. The conclusion summarizes without repeating exactly.',
+    },
+  },
 };

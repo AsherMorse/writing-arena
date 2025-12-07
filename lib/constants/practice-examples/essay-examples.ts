@@ -447,6 +447,174 @@ export const MATCH_DETAILS_PRO_CON_EXAMPLES: ReviewExample[] = [
 ];
 
 /**
+ * @description Review examples for Write S from G+T activity.
+ * Given General + Thesis, students write a Specific statement to connect them.
+ */
+export const WRITE_S_FROM_GT_EXAMPLES: ReviewExample[] = [
+  // Correct examples
+  {
+    question:
+      'Write a Specific statement to connect:\nGeneral: "Quebec is a beautiful province in eastern Canada with diverse landscapes."\nThesis: "Understanding Quebec\'s varied landscapes helps us appreciate why it is one of Canada\'s most environmentally diverse provinces."',
+    answer: 'Quebec has mountains, rivers, forests, and many lakes throughout the province.',
+    isCorrect: true,
+    explanation:
+      'Good! This Specific statement adds concrete details about Quebec\'s geography that bridge the General to the Thesis.',
+    topic: 'geography',
+  },
+  {
+    question:
+      'Write a Specific statement to connect:\nGeneral: "The Gulf of Mexico is one of the most important bodies of water in North America."\nThesis: "The incredible diversity of sea life in the Gulf of Mexico makes it one of the most valuable marine ecosystems that needs our protection."',
+    answer: 'Many different fish, sea turtles, and dolphins live in the warm Gulf waters.',
+    isCorrect: true,
+    explanation:
+      'Excellent! Adds specific marine life examples that connect the importance (General) to the diversity argument (Thesis).',
+    topic: 'environment',
+  },
+  {
+    question:
+      'Write a Specific statement to connect:\nGeneral: "Different materials make up everything we see and touch in our everyday world."\nThesis: "Understanding the properties of common materials helps us choose the right ones for building projects and solving problems."',
+    answer: 'Some materials are hard and strong while others are soft and flexible.',
+    isCorrect: true,
+    explanation:
+      'Good bridging! Adds details about material properties that connect everyday materials to the thesis about choosing the right ones.',
+    topic: 'science',
+  },
+  {
+    question:
+      'Write a Specific statement to connect:\nGeneral: "Physical activity is important for staying healthy."\nThesis: "Children who exercise regularly develop strong bodies and healthy habits that last a lifetime."',
+    answer: 'Activities like biking and playing soccer make our bodies stronger.',
+    isCorrect: true,
+    explanation:
+      'Nice work! Provides specific examples of activities that support both the general importance and the thesis about children.',
+    topic: 'health',
+  },
+  {
+    question:
+      'Write a Specific statement to connect:\nGeneral: "Space exploration has taught us many things about our universe."\nThesis: "The discoveries from space exploration inspire young people to become scientists and engineers."',
+    answer: 'Scientists have discovered new planets and learned about how stars are born.',
+    isCorrect: true,
+    explanation:
+      'Great! Adds specific discoveries that bridge from "teaching us things" to "inspiring young people."',
+    topic: 'science',
+  },
+  // Incorrect examples
+  {
+    question:
+      'Write a Specific statement to connect:\nGeneral: "The seasons change throughout the year."\nThesis: "Winter is the best season because of snow activities and holidays."',
+    answer: 'The seasons change throughout the year.',
+    isCorrect: false,
+    explanation:
+      'This just repeats the General statement! The Specific should add NEW details that connect to the Thesis.',
+    topic: 'weather',
+  },
+  {
+    question:
+      'Write a Specific statement to connect:\nGeneral: "Books are important for learning."\nThesis: "Reading different types of books helps children develop imagination and knowledge."',
+    answer: 'My dog likes to play with toys.',
+    isCorrect: false,
+    explanation:
+      'Completely unrelated! The Specific statement must be about books and learning, not dogs.',
+    topic: 'education',
+  },
+  {
+    question:
+      'Write a Specific statement to connect:\nGeneral: "People travel in many different ways."\nThesis: "Public transportation reduces traffic and helps protect the environment."',
+    answer: 'cars buses trains',
+    isCorrect: false,
+    explanation:
+      'Not a complete sentence! The Specific statement should be a full sentence that explains how these connect.',
+    topic: 'transportation',
+  },
+  {
+    question:
+      'Write a Specific statement to connect:\nGeneral: "Art allows people to express themselves creatively."\nThesis: "Art classes in school help students develop creativity and problem-solving skills."',
+    answer: 'People like to express themselves.',
+    isCorrect: false,
+    explanation:
+      'Too vague! This just rephrases the General without adding specific details about art or creativity.',
+    topic: 'arts',
+  },
+  {
+    question:
+      'Write a Specific statement to connect:\nGeneral: "Oceans cover most of Earth\'s surface."\nThesis: "Protecting our oceans is crucial for maintaining Earth\'s climate and food supply."',
+    answer: 'Basketball is played on a court.',
+    isCorrect: false,
+    explanation:
+      'Off-topic! The Specific statement must be about oceans, not basketball.',
+    topic: 'geography',
+  },
+];
+
+/**
+ * @description Review examples for Pre-Transition Outline activity.
+ * Students create multi-paragraph essay outlines with thesis, topic sentences, and supporting details.
+ */
+export const PRE_TRANSITION_OUTLINE_EXAMPLES: ReviewExample[] = [
+  // Correct examples
+  {
+    question:
+      'Create an outline for: "How Family Traditions Make Our Lives Special"\n\nInclude: Thesis, 2 body paragraphs with topic sentences and supporting details, and a concluding statement.',
+    answer:
+      'Thesis: Family traditions create lasting memories and strengthen bonds between family members.\n\nParagraph 1\nTS: Holiday traditions bring families together in meaningful ways.\nSD1: preparing special meals together\nSD2: sharing stories and memories\nSD3: creating new traditions each year\n\nParagraph 2\nTS: Everyday traditions help families stay connected.\nSD1: weekly family dinners\nSD2: bedtime routines with children\nSD3: weekend activities together\n\nConclusion: Family traditions, whether big holidays or small daily habits, help create the special moments that families remember forever.',
+    isCorrect: true,
+    explanation:
+      'Excellent structure! Clear thesis, two distinct topic sentences that support it, relevant supporting details in note form, and a summarizing conclusion.',
+    topic: 'family',
+  },
+  {
+    question:
+      'Create an outline for: "Why Pets Teach Us Responsibility"\n\nInclude: Thesis, 2 body paragraphs with topic sentences and supporting details, and a concluding statement.',
+    answer:
+      'Thesis: Taking care of pets teaches children important lessons about responsibility and caring for others.\n\nParagraph 1\nTS: Pets require daily care that teaches routine responsibility.\nSD1: feeding at regular times\nSD2: providing fresh water\nSD3: cleaning up after them\n\nParagraph 2\nTS: Caring for a pet teaches emotional responsibility.\nSD1: recognizing when pet needs attention\nSD2: showing patience during training\nSD3: making time for play\n\nConclusion: Through daily tasks and emotional connections, pets help children develop responsibility skills they will use throughout their lives.',
+    isCorrect: true,
+    explanation:
+      'Well-organized! The thesis is clear, topic sentences cover different aspects of responsibility, and supporting details are specific.',
+    topic: 'animals',
+  },
+  {
+    question:
+      'Create an outline for: "How Technology Helps Students Learn"\n\nInclude: Thesis, 2 body paragraphs with topic sentences and supporting details, and a concluding statement.',
+    answer:
+      'Thesis: Technology improves learning by giving students access to more resources and making lessons more engaging.\n\nParagraph 1\nTS: Technology provides access to endless learning resources.\nSD1: online libraries and databases\nSD2: educational videos and tutorials\nSD3: practice apps for all subjects\n\nParagraph 2\nTS: Interactive technology makes learning more engaging.\nSD1: games that teach math and reading\nSD2: virtual field trips to faraway places\nSD3: hands-on coding activities\n\nConclusion: By expanding resources and making learning fun, technology helps students succeed in new ways.',
+    isCorrect: true,
+    explanation:
+      'Strong outline! Thesis identifies two benefits, each paragraph develops one benefit with specific examples.',
+    topic: 'technology',
+  },
+  // Incorrect examples
+  {
+    question:
+      'Create an outline for: "The Importance of Exercise"\n\nInclude: Thesis, 2 body paragraphs with topic sentences and supporting details, and a concluding statement.',
+    answer:
+      'Thesis: Exercise is important.\n\nParagraph 1\nTS: Exercise is good for health.\nSD1: helps you feel better\nSD2: is good for you\nSD3: doctors recommend it\n\nParagraph 2\nTS: Working out is beneficial.\nSD1: makes you stronger\nSD2: is healthy\nSD3: people should exercise more\n\nConclusion: In conclusion, exercise is really important and good for people.',
+    isCorrect: false,
+    explanation:
+      'Too vague! The thesis needs specific reasons. Topic sentences repeat the same idea. Supporting details are general statements, not specific examples.',
+    topic: 'health',
+  },
+  {
+    question:
+      'Create an outline for: "Should Schools Have Longer Recess?"\n\nInclude: Thesis, 2 body paragraphs with topic sentences and supporting details, and a concluding statement.',
+    answer:
+      'Thesis: Schools should have longer recess because it helps students.\n\nParagraph 1\nTS: Longer recess would be good.\nSD1: kids like recess\nSD2: recess is fun\nSD3: more time to play\n\nParagraph 2\nTS: Recess helps students in many ways.\nSD1: exercise\nSD2: friends\nSD3: fun\n\nConclusion: Recess should be longer.',
+    isCorrect: false,
+    explanation:
+      'Weak structure! Topic sentences are repetitive (both say "recess is good"). Supporting details are single words, not developed ideas. Conclusion adds nothing.',
+    topic: 'education',
+  },
+  {
+    question:
+      'Create an outline for: "How Community Helpers Deserve Our Thanks"\n\nInclude: Thesis, 2 body paragraphs with topic sentences and supporting details, and a concluding statement.',
+    answer:
+      'Thesis: Community helpers work hard to keep us safe.\n\nParagraph 1\nTS: Firefighters protect us from fires.\nSD1: they wear special suits\nSD2: they drive fire trucks\nSD3: my cousin is a firefighter\n\nParagraph 2\nTS: I like pizza for dinner.\nSD1: pepperoni is my favorite\nSD2: cheese pizza is good too\nSD3: we order pizza on Fridays\n\nConclusion: Community helpers are important people in our towns.',
+    isCorrect: false,
+    explanation:
+      'Paragraph 2 is completely off-topic! An outline must stay focused on the thesis. The pizza paragraph has nothing to do with community helpers.',
+    topic: 'community',
+  },
+];
+
+/**
  * @description Map of essay lesson IDs to their review examples.
  */
 export const ESSAY_EXAMPLES: Record<string, ReviewExample[]> = {
@@ -456,4 +624,6 @@ export const ESSAY_EXAMPLES: Record<string, ReviewExample[]> = {
   'craft-conclusion-from-gst': CRAFT_CONCLUSION_FROM_GST_EXAMPLES,
   'write-t-from-topic': WRITE_T_FROM_TOPIC_EXAMPLES,
   'match-details-pro-con': MATCH_DETAILS_PRO_CON_EXAMPLES,
+  'write-s-from-g-t': WRITE_S_FROM_GT_EXAMPLES,
+  'pre-transition-outline': PRE_TRANSITION_OUTLINE_EXAMPLES,
 };

@@ -30,6 +30,8 @@ export { writeIntroductorySentencesConfig } from './write-introductory-sentences
 export { craftConclusionFromGstConfig } from './craft-conclusion-from-gst';
 export { writeTFromTopicConfig } from './write-t-from-topic';
 export { matchDetailsProConConfig } from './match-details-pro-con';
+export { writeSFromGTConfig } from './write-s-from-g-t';
+export { preTransitionOutlineConfig } from './pre-transition-outline';
 
 import { ActivityGraderConfig } from './types';
 
@@ -58,6 +60,8 @@ import { writeIntroductorySentencesConfig } from './write-introductory-sentences
 import { craftConclusionFromGstConfig } from './craft-conclusion-from-gst';
 import { writeTFromTopicConfig } from './write-t-from-topic';
 import { matchDetailsProConConfig } from './match-details-pro-con';
+import { writeSFromGTConfig } from './write-s-from-g-t';
+import { preTransitionOutlineConfig } from './pre-transition-outline';
 
 /**
  * @description Map of lesson IDs to their grader configurations.
@@ -88,6 +92,8 @@ const GRADER_CONFIGS: Record<string, ActivityGraderConfig> = {
   'craft-conclusion-from-gst': craftConclusionFromGstConfig,
   'write-t-from-topic': writeTFromTopicConfig,
   'match-details-pro-con': matchDetailsProConConfig,
+  'write-s-from-g-t': writeSFromGTConfig,
+  'pre-transition-outline': preTransitionOutlineConfig,
 };
 
 /**

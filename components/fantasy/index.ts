@@ -5,4 +5,5 @@
 export { FantasyLogo } from './FantasyLogo';
 export { FantasyButton } from './FantasyButton';
 export { FantasyHero } from './FantasyHero';
+export { FantasyHomeContent } from './FantasyHomeContent';
 
