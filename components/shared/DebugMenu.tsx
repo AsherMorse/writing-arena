@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
+import { usePathname } from 'next/navigation';
 
 type DebugButton = {
   label: string;
@@ -13,12 +14,9 @@ type PhaseActionsDetail = {
 };
 
 export default function DebugMenu() {
+  const pathname = usePathname();
   const [isOpen, setIsOpen] = useState(false);
   const [phaseActions, setPhaseActions] = useState<PhaseActionsDetail>({});
-  const dispatchDebugEvent = (eventName: string) => {
-    if (typeof window === 'undefined') return;
-    window.dispatchEvent(new CustomEvent(eventName));
-  };
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -54,6 +52,15 @@ export default function DebugMenu() {
 
     return dynamicButtons;
   }, [phaseActions]);
+
+  if (pathname?.startsWith('/fantasy')) {
+    return null;
+  }
+
+  const dispatchDebugEvent = (eventName: string) => {
+    if (typeof window === 'undefined') return;
+    window.dispatchEvent(new CustomEvent(eventName));
+  };
 
   const handleButtonClick = (eventName?: string) => {
     if (!eventName) return;
@@ -104,4 +111,3 @@ export default function DebugMenu() {
     </>
   );
 }
-
