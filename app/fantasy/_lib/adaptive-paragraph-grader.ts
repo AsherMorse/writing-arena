@@ -22,7 +22,8 @@ function getTWRLevel(gradeLevel: number): 1 | 2 {
 
 function buildSystemPrompt(
   config: GraderConfig,
-  gradeLevel: number
+  gradeLevel: number,
+  isRevision: boolean
 ): string {
   const twrLevel = getTWRLevel(gradeLevel);
   const levelConsiderations = twrLevel === 1 
@@ -44,6 +45,17 @@ function buildSystemPrompt(
   const formatReqs = config.formatRequirements
     .map((r, i) => `${i + 1}. ${r.requirement}${r.correctExample ? `\n   Correct: "${r.correctExample}"` : ''}${r.incorrectExample ? `\n   Incorrect: "${r.incorrectExample}"` : ''}`)
     .join('\n');
+
+  const revisionInstructions = isRevision ? `
+14) **Revision Grading Instructions**:
+This is a REVISION. The student has already received feedback and is submitting an improved version.
+- Check if the student addressed the issues from the previous feedback
+- Acknowledge improvements explicitly ("You fixed the topic sentence issue!")
+- Only flag issues that still exist or new issues introduced
+- Do NOT flip-flop on severity unless the writing materially changed
+- Be encouraging about progress made
+- If they fixed an issue, don't re-flag it as a different issue
+- Compare against the previous submission to evaluate improvement` : '';
 
   return `You are an expert writing coach trained in The Writing Revolution (TWR) methodology. Your task is to evaluate student writing and provide helpful, actionable feedback.
 
@@ -126,15 +138,43 @@ Return a valid JSON object with this structure:
 - Limit remarks to the 3 most important issues
 - Be ENCOURAGING and FRIENDLY in all feedback
 - Copy text EXACTLY in substringOfInterest - no paraphrasing
-- Return ONLY valid JSON, no markdown or additional text`;
+- Return ONLY valid JSON, no markdown or additional text${revisionInstructions}`;
 }
 
 function buildUserPrompt(
   paragraph: string,
   prompt: string,
-  gradeLevel: number
+  gradeLevel: number,
+  previousResult?: GraderResult,
+  previousParagraph?: string
 ): string {
-  return `Grade this ${gradeLevel}th grade student's paragraph.
+  const isRevision = !!previousResult;
+
+  let revisionContext = '';
+  if (isRevision && previousResult && previousParagraph) {
+    const previousIssues = previousResult.remarks
+      .map((r, i) => `${i + 1}. [${r.severity.toUpperCase()}] ${r.category}: ${r.concreteProblem}`)
+      .join('\n');
+
+    revisionContext = `
+--- REVISION CONTEXT ---
+The student submitted a revision. Check if they fixed old mistakes or introduced new ones.
+
+PREVIOUS SUBMISSION:
+${previousParagraph}
+
+PREVIOUS SCORE: ${previousResult.scores.percentage}%
+
+PREVIOUS FEEDBACK GIVEN:
+${previousIssues || 'No issues were flagged.'}
+
+Now grade the revised version below and acknowledge any improvements.
+--- END REVISION CONTEXT ---
+
+`;
+  }
+
+  return `${revisionContext}Grade this ${gradeLevel}th grade student's paragraph${isRevision ? ' (REVISION)' : ''}.
 
 WRITING PROMPT:
 ${prompt}
@@ -142,7 +182,7 @@ ${prompt}
 STUDENT'S PARAGRAPH:
 ${paragraph}
 
-REMINDER: Return ONLY the JSON object as specified. Be encouraging and specific in feedback.`;
+REMINDER: Return ONLY the JSON object as specified. Be encouraging and specific in feedback.${isRevision ? ' Acknowledge improvements from the previous submission.' : ''}`;
 }
 
 function parseGraderResponse(response: string): GraderResult {
@@ -196,6 +236,8 @@ export interface AdaptiveGraderInput {
   prompt: string;
   gradeLevel?: number;
   config?: GraderConfig;
+  previousResult?: GraderResult;
+  previousParagraph?: string;
 }
 
 export async function gradeWithAdaptiveGrader(
@@ -205,7 +247,9 @@ export async function gradeWithAdaptiveGrader(
     paragraph, 
     prompt, 
     gradeLevel = 6,
-    config = PARAGRAPH_GRADER_CONFIG 
+    config = PARAGRAPH_GRADER_CONFIG,
+    previousResult,
+    previousParagraph,
   } = input;
 
   if (!paragraph || paragraph.trim().length === 0) {
@@ -221,10 +265,11 @@ export async function gradeWithAdaptiveGrader(
     throw new Error('ANTHROPIC_API_KEY is not configured');
   }
 
-  const systemPrompt = buildSystemPrompt(config, gradeLevel);
-  const userPrompt = buildUserPrompt(paragraph, prompt, gradeLevel);
+  const isRevision = !!previousResult;
+  const systemPrompt = buildSystemPrompt(config, gradeLevel, isRevision);
+  const userPrompt = buildUserPrompt(paragraph, prompt, gradeLevel, previousResult, previousParagraph);
 
-  console.log(`🎯 ADAPTIVE GRADER - Grading grade ${gradeLevel} paragraph`);
+  console.log(`🎯 ADAPTIVE GRADER - Grading grade ${gradeLevel} paragraph${isRevision ? ' (REVISION)' : ''}`);
 
   const response = await callAnthropicAPI(
     apiKey,
@@ -241,4 +286,3 @@ export async function gradeWithAdaptiveGrader(
 
   return result;
 }
-

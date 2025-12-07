@@ -20,6 +20,8 @@ export async function POST(request: NextRequest) {
       prompt: body.prompt,
       type,
       gradeLevel: body.gradeLevel,
+      previousResult: body.previousResult,
+      previousContent: body.previousContent,
     });
 
     return NextResponse.json(response);
@@ -31,4 +33,3 @@ export async function POST(request: NextRequest) {
     );
   }
 }
-

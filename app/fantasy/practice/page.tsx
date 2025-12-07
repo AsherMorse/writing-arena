@@ -11,6 +11,8 @@ import { FeedbackDisplay } from '../_components/FeedbackDisplay';
 import { FeedbackSidebar } from '../_components/FeedbackSidebar';
 import { ScoreDisplay } from '../_components/ScoreDisplay';
 import { LoadingOverlay } from '../_components/LoadingOverlay';
+import { TopicCloud } from '../_components/TopicCloud';
+import { PRACTICE_TOPICS, getRandomTopic, type PracticeTopic } from '../_lib/practice-topics';
 import type { GradeResponse } from '../_lib/grading';
 
 type Phase = 'prompt' | 'write' | 'feedback' | 'revise' | 'results';
@@ -21,6 +23,7 @@ const REVISE_TIME = 2 * 60;
 export default function PracticePage() {
   const router = useRouter();
   const [phase, setPhase] = useState<Phase>('prompt');
+  const [selectedTopic, setSelectedTopic] = useState<PracticeTopic | null>(null);
   const [customTopic, setCustomTopic] = useState('');
   const [content, setContent] = useState('');
   const [originalContent, setOriginalContent] = useState('');
@@ -44,11 +47,27 @@ export default function PracticePage() {
     }
   }, [hasUnsavedWork, router]);
 
+  const handleTopicSelect = useCallback((topic: PracticeTopic) => {
+    setSelectedTopic(topic);
+    setCustomTopic('');
+    setContent('');
+    setOriginalContent('');
+    setOriginalResponse(null);
+    setResponse(null);
+    setError(null);
+    setPhase('write');
+  }, []);
+
+  const handleSurpriseMe = useCallback(() => {
+    handleTopicSelect(getRandomTopic());
+  }, [handleTopicSelect]);
+
   const startWriting = useCallback(() => {
     if (!customTopic.trim()) {
       setError('Please enter a topic first.');
       return;
     }
+    setSelectedTopic(null);
     setContent('');
     setOriginalContent('');
     setOriginalResponse(null);
@@ -58,11 +77,16 @@ export default function PracticePage() {
   }, [customTopic]);
 
   const getPromptText = (): string => {
+    if (selectedTopic) {
+      return selectedTopic.prompt;
+    }
     return `Write a paragraph about: ${customTopic.trim()}`;
   };
 
+  const hasValidTopic = selectedTopic || customTopic.trim();
+
   const submitWriting = useCallback(async () => {
-    if (!customTopic.trim()) return;
+    if (!selectedTopic && !customTopic.trim()) return;
 
     const wordCount = getWordCount(content);
     if (wordCount < MIN_WORDS) {
@@ -99,7 +123,7 @@ export default function PracticePage() {
     } finally {
       setIsGrading(false);
     }
-  }, [customTopic, content]);
+  }, [selectedTopic, customTopic, content]);
 
   const handleTimerComplete = useCallback(() => {
     const wordCount = getWordCount(content);
@@ -119,7 +143,7 @@ export default function PracticePage() {
   }, []);
 
   const submitRevision = useCallback(async () => {
-    if (!customTopic.trim()) return;
+    if ((!selectedTopic && !customTopic.trim()) || !originalResponse) return;
 
     const wordCount = getWordCount(content);
     if (wordCount < MIN_WORDS) {
@@ -138,6 +162,8 @@ export default function PracticePage() {
           content,
           prompt: getPromptText(),
           type: 'paragraph',
+          previousResult: originalResponse.result,
+          previousContent: originalContent,
         }),
       });
 
@@ -154,10 +180,11 @@ export default function PracticePage() {
     } finally {
       setIsGrading(false);
     }
-  }, [customTopic, content]);
+  }, [selectedTopic, customTopic, content, originalResponse, originalContent]);
 
   const reset = useCallback(() => {
     setPhase('prompt');
+    setSelectedTopic(null);
     setCustomTopic('');
     setContent('');
     setOriginalContent('');
@@ -209,69 +236,87 @@ export default function PracticePage() {
 
         <main className="flex-1 flex items-center justify-center p-4 overflow-y-auto">
           {phase === 'prompt' && (
-            <div className="w-full max-w-xl">
-              <div className="text-center space-y-6">
-                <h1
-                  className="font-dutch809 text-4xl"
-                  style={{
-                    color: '#f6d493',
-                    textShadow: '0 2px 4px rgba(0, 0, 0, 0.8)',
-                  }}
-                >
-                  Practice Arena
-                </h1>
-                <p
-                  className="font-avenir text-lg"
-                  style={{ color: 'rgba(245, 230, 184, 0.8)' }}
-                >
-                  Write a paragraph in 7 minutes, then revise based on feedback.
-                </p>
+            <div className="w-full max-w-2xl">
+              <div className="text-center space-y-8">
+                <div>
+                  <h1
+                    className="font-dutch809 text-4xl mb-2"
+                    style={{
+                      color: '#f6d493',
+                      textShadow: '0 2px 4px rgba(0, 0, 0, 0.8)',
+                    }}
+                  >
+                    Choose Your Quest
+                  </h1>
+                  <p
+                    className="font-avenir text-lg"
+                    style={{ color: 'rgba(245, 230, 184, 0.7)' }}
+                  >
+                    Pick a topic or create your own
+                  </p>
+                </div>
+
+                <TopicCloud
+                  topics={PRACTICE_TOPICS}
+                  onSelect={handleTopicSelect}
+                  disabled={isGrading}
+                />
+
+                <div className="flex items-center gap-4">
+                  <div className="flex-1 h-px" style={{ background: 'rgba(201, 168, 76, 0.3)' }} />
+                  <span className="font-memento text-xs uppercase tracking-widest" style={{ color: 'rgba(245, 230, 184, 0.5)' }}>
+                    or
+                  </span>
+                  <div className="flex-1 h-px" style={{ background: 'rgba(201, 168, 76, 0.3)' }} />
+                </div>
 
                 <div
-                  className="rounded-md p-6 text-left"
+                  className="rounded-md p-5"
                   style={{
                     background: 'rgba(26, 18, 8, 0.8)',
                     border: '1px solid rgba(201, 168, 76, 0.3)',
                   }}
                 >
-                  <label
-                    className="block text-sm font-memento uppercase tracking-widest mb-3"
-                    style={{ color: '#c9a84c' }}
-                  >
-                    What are you going to write about?
-                  </label>
-                  <input
-                    type="text"
-                    value={customTopic}
-                    onChange={(e) => {
-                      setCustomTopic(e.target.value);
-                      setError(null);
-                    }}
-                    placeholder="e.g., Why summer is my favorite season"
-                    className="w-full px-4 py-3 rounded-md font-avenir text-base outline-none"
-                    style={{
-                      background: 'rgba(0, 0, 0, 0.3)',
-                      border: '1px solid rgba(201, 168, 76, 0.2)',
-                      color: '#f5e6b8',
-                    }}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter' && customTopic.trim()) {
-                        startWriting();
-                      }
-                    }}
-                  />
+                  <div className="flex gap-3">
+                    <input
+                      type="text"
+                      value={customTopic}
+                      onChange={(e) => {
+                        setCustomTopic(e.target.value);
+                        setError(null);
+                      }}
+                      placeholder="Choose your own adventure..."
+                      className="flex-1 px-4 py-3 rounded-md font-avenir text-base outline-none"
+                      style={{
+                        background: 'rgba(0, 0, 0, 0.3)',
+                        border: '1px solid rgba(201, 168, 76, 0.2)',
+                        color: '#f5e6b8',
+                      }}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' && customTopic.trim()) {
+                          startWriting();
+                        }
+                      }}
+                    />
+                    <FantasyButton
+                      onClick={startWriting}
+                      disabled={!customTopic.trim()}
+                    >
+                      Go
+                    </FantasyButton>
+                  </div>
                   {error && (
                     <p className="text-red-400 text-sm mt-2">{error}</p>
                   )}
                 </div>
 
-                <FantasyButton
-                  onClick={startWriting}
-                  size="large"
-                  disabled={!customTopic.trim()}
+                <button
+                  onClick={handleSurpriseMe}
+                  className="font-avenir text-sm transition-all hover:underline"
+                  style={{ color: 'rgba(245, 230, 184, 0.6)' }}
                 >
-                  Start Writing
-                </FantasyButton>
+                  ✦ Surprise me with a random topic
+                </button>
               </div>
             </div>
           )}

@@ -8,6 +8,8 @@ export interface GradeRequest {
   prompt: string;
   type: WritingType;
   gradeLevel?: number;
+  previousResult?: GraderResult;
+  previousContent?: string;
 }
 
 export interface SkillGap {
@@ -77,6 +79,8 @@ export async function gradeWriting(request: GradeRequest): Promise<GradeResponse
     paragraph: request.content,
     prompt: request.prompt,
     gradeLevel: request.gradeLevel,
+    previousResult: request.previousResult,
+    previousParagraph: request.previousContent,
   };
 
   const result = await gradeWithAdaptiveGrader(graderInput);
@@ -90,4 +94,3 @@ export async function gradeWriting(request: GradeRequest): Promise<GradeResponse
 }
 
 export type { GraderResult, GraderRemark };
-
