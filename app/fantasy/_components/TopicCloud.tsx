@@ -8,7 +8,7 @@ interface TopicCloudProps {
   disabled?: boolean;
 }
 
-const CLOUD_SHAPE = [4, 5, 4];
+const CLOUD_SHAPE = [3, 3, 3];
 
 export function TopicCloud({ topics, onSelect, disabled }: TopicCloudProps) {
   let topicIndex = 0;

@@ -12,19 +12,24 @@ import { FeedbackSidebar } from '../_components/FeedbackSidebar';
 import { ScoreDisplay } from '../_components/ScoreDisplay';
 import { LoadingOverlay } from '../_components/LoadingOverlay';
 import { TopicCloud } from '../_components/TopicCloud';
-import { PRACTICE_TOPICS, getRandomTopic, type PracticeTopic } from '../_lib/practice-topics';
+import { getRandomTopics, getRandomTopic, type PracticeTopic } from '../_lib/practice-topics';
 import type { GradeResponse } from '../_lib/grading';
 
 type Phase = 'prompt' | 'write' | 'feedback' | 'revise' | 'results';
 
 const WRITE_TIME = 7 * 60;
 const REVISE_TIME = 2 * 60;
+const MIN_TOPIC_LENGTH = 3;
+const MAX_TOPIC_LENGTH = 20;
 
 export default function PracticePage() {
   const router = useRouter();
   const [phase, setPhase] = useState<Phase>('prompt');
+  const [displayedTopics, setDisplayedTopics] = useState<PracticeTopic[]>(() => getRandomTopics(9));
   const [selectedTopic, setSelectedTopic] = useState<PracticeTopic | null>(null);
   const [customTopic, setCustomTopic] = useState('');
+  const [generatedPrompt, setGeneratedPrompt] = useState<string | null>(null);
+  const [isGeneratingPrompt, setIsGeneratingPrompt] = useState(false);
   const [content, setContent] = useState('');
   const [originalContent, setOriginalContent] = useState('');
   const [originalResponse, setOriginalResponse] = useState<GradeResponse | null>(null);
@@ -62,25 +67,52 @@ export default function PracticePage() {
     handleTopicSelect(getRandomTopic());
   }, [handleTopicSelect]);
 
-  const startWriting = useCallback(() => {
-    if (!customTopic.trim()) {
+  const startWriting = useCallback(async () => {
+    const topic = customTopic.trim();
+    if (!topic) {
       setError('Please enter a topic first.');
       return;
     }
-    setSelectedTopic(null);
-    setContent('');
-    setOriginalContent('');
-    setOriginalResponse(null);
-    setResponse(null);
+    if (topic.length < MIN_TOPIC_LENGTH) {
+      setError(`Topic must be at least ${MIN_TOPIC_LENGTH} characters.`);
+      return;
+    }
+
+    setIsGeneratingPrompt(true);
     setError(null);
-    setPhase('write');
+
+    try {
+      const res = await fetch('/fantasy/api/generate-prompt', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ topic }),
+      });
+
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || 'Failed to generate prompt');
+      }
+
+      const data = await res.json();
+      setGeneratedPrompt(data.prompt);
+      setSelectedTopic(null);
+      setContent('');
+      setOriginalContent('');
+      setOriginalResponse(null);
+      setResponse(null);
+      setPhase('write');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Something went wrong');
+    } finally {
+      setIsGeneratingPrompt(false);
+    }
   }, [customTopic]);
 
   const getPromptText = (): string => {
     if (selectedTopic) {
       return selectedTopic.prompt;
     }
-    return `Write a paragraph about: ${customTopic.trim()}`;
+    return generatedPrompt || `Write a paragraph about: ${customTopic.trim()}`;
   };
 
   const hasValidTopic = selectedTopic || customTopic.trim();
@@ -184,8 +216,10 @@ export default function PracticePage() {
 
   const reset = useCallback(() => {
     setPhase('prompt');
+    setDisplayedTopics(getRandomTopics(9));
     setSelectedTopic(null);
     setCustomTopic('');
+    setGeneratedPrompt(null);
     setContent('');
     setOriginalContent('');
     setOriginalResponse(null);
@@ -257,9 +291,9 @@ export default function PracticePage() {
                 </div>
 
                 <TopicCloud
-                  topics={PRACTICE_TOPICS}
+                  topics={displayedTopics}
                   onSelect={handleTopicSelect}
-                  disabled={isGrading}
+                  disabled={isGrading || isGeneratingPrompt}
                 />
 
                 <div className="flex items-center gap-4">
@@ -282,9 +316,22 @@ export default function PracticePage() {
                       type="text"
                       value={customTopic}
                       onChange={(e) => {
-                        setCustomTopic(e.target.value);
-                        setError(null);
+                        const value = e.target.value;
+                        if (value.length <= MAX_TOPIC_LENGTH) {
+                          setCustomTopic(value);
+                          setError(null);
+                        }
                       }}
+                      onKeyDown={(e) => {
+                        const allowedKeys = ['Backspace', 'Delete', 'ArrowLeft', 'ArrowRight', 'Home', 'End', 'Enter'];
+                        if (!/^[a-zA-Z0-9]$/.test(e.key) && e.key !== ' ' && !allowedKeys.includes(e.key)) {
+                          e.preventDefault();
+                        }
+                        if (e.key === 'Enter' && customTopic.trim().length >= MIN_TOPIC_LENGTH) {
+                          startWriting();
+                        }
+                      }}
+                      onPaste={(e) => e.preventDefault()}
                       placeholder="Choose your own adventure..."
                       className="flex-1 px-4 py-3 rounded-md font-avenir text-base outline-none"
                       style={{
@@ -292,18 +339,21 @@ export default function PracticePage() {
                         border: '1px solid rgba(201, 168, 76, 0.2)',
                         color: '#f5e6b8',
                       }}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter' && customTopic.trim()) {
-                          startWriting();
-                        }
-                      }}
+                      disabled={isGeneratingPrompt}
+                      maxLength={MAX_TOPIC_LENGTH}
                     />
                     <FantasyButton
                       onClick={startWriting}
-                      disabled={!customTopic.trim()}
+                      disabled={customTopic.trim().length < MIN_TOPIC_LENGTH || isGeneratingPrompt}
                     >
-                      Go
+                      {isGeneratingPrompt ? '...' : 'Go'}
                     </FantasyButton>
+                  </div>
+                  <div className="flex justify-between mt-2 text-xs" style={{ color: 'rgba(245, 230, 184, 0.4)' }}>
+                    <span>{customTopic.length}/{MAX_TOPIC_LENGTH}</span>
+                    {customTopic.length > 0 && customTopic.length < MIN_TOPIC_LENGTH && (
+                      <span style={{ color: '#fbbf24' }}>Min {MIN_TOPIC_LENGTH} characters</span>
+                    )}
                   </div>
                   {error && (
                     <p className="text-red-400 text-sm mt-2">{error}</p>
@@ -312,7 +362,8 @@ export default function PracticePage() {
 
                 <button
                   onClick={handleSurpriseMe}
-                  className="font-avenir text-sm transition-all hover:underline"
+                  disabled={isGeneratingPrompt}
+                  className="font-avenir text-sm transition-all hover:underline disabled:opacity-50"
                   style={{ color: 'rgba(245, 230, 184, 0.6)' }}
                 >
                   ✦ Surprise me with a random topic

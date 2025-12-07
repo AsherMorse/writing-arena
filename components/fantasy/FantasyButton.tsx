@@ -13,6 +13,7 @@ interface FantasyButtonProps {
   className?: string;
   variant?: 'primary' | 'secondary';
   size?: 'default' | 'large';
+  disabled?: boolean;
 }
 
 /**
@@ -25,7 +26,8 @@ export function FantasyButton({
   children, 
   className = '',
   variant = 'primary',
-  size = 'default'
+  size = 'default',
+  disabled = false
 }: FantasyButtonProps) {
   const sizeStyles = size === 'large' 
     ? 'px-8 py-3 text-lg md:text-xl tracking-[0.1em]'
@@ -70,7 +72,8 @@ export function FantasyButton({
     </span>
   );
 
-  const combinedClassName = `${baseStyles} ${className} group hover:scale-[1.02] active:scale-[0.98]`;
+  const disabledStyles = disabled ? 'opacity-50 cursor-not-allowed' : 'hover:scale-[1.02] active:scale-[0.98]';
+  const combinedClassName = `${baseStyles} ${className} group ${disabledStyles}`;
 
   if (href) {
     return (
@@ -89,7 +92,8 @@ export function FantasyButton({
 
   return (
     <button 
-      onClick={onClick}
+      onClick={disabled ? undefined : onClick}
+      disabled={disabled}
       className={combinedClassName}
       style={{
         ...variantStyles,
