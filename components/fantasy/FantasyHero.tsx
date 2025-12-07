@@ -10,7 +10,6 @@ import { FantasyLogo } from './FantasyLogo';
 import { FantasyButton } from './FantasyButton';
 
 interface FantasyHeroProps {
-  showOverlay: boolean;
   heroCtaHref: string;
   heroCtaLabel: string;
 }
@@ -19,7 +18,7 @@ interface FantasyHeroProps {
  * @description Renders the hero section with medieval valley background,
  * ornate logo, headline text, and call-to-action button.
  */
-export function FantasyHero({ showOverlay, heroCtaHref, heroCtaLabel }: FantasyHeroProps) {
+export function FantasyHero({ heroCtaHref, heroCtaLabel }: FantasyHeroProps) {
   return (
     <section className="relative min-h-screen w-full overflow-hidden">
       {/* Background image */}
@@ -40,27 +39,42 @@ export function FantasyHero({ showOverlay, heroCtaHref, heroCtaLabel }: FantasyH
         }}
       />
 
-      {/* Content overlay - toggleable */}
-      {showOverlay && (
-        <div className="absolute inset-0 flex flex-col items-center px-4">
+      {/* Content overlay */}
+      <div className="absolute inset-0 flex flex-col items-center px-4">
           {/* Logo at top */}
           <FantasyLogo className="mt-4 md:mt-6" />
 
           {/* Main content - centered on screen */}
           <div className="flex-1 flex flex-col items-center justify-center text-center -mt-6">
-            <h2 
-              className="font-dutch809 text-4xl sm:text-5xl md:text-6xl lg:text-[4.5rem] leading-[1.1] mb-5 md:mb-6"
-              style={{
-                color: '#f6d493',
-                textShadow: `
-                  0 2px 4px rgba(0, 0, 0, 0.8),
-                  0 4px 16px rgba(0, 0, 0, 0.5)
-                `,
-              }}
-            >
-              Learn to write,
-              <br />
-              one quest at a time
+            <h2 className="font-dutch809 text-4xl sm:text-5xl md:text-6xl lg:text-[4.5rem] leading-[1.1] mb-5 md:mb-6 flex flex-col items-center">
+              <span
+                style={{
+                  background: 'linear-gradient(to bottom, #f8e8b0 0%, #f6d493 100%)',
+                  WebkitBackgroundClip: 'text',
+                  backgroundClip: 'text',
+                  color: 'transparent',
+                  filter: `
+                    drop-shadow(0 2px 4px rgba(0, 0, 0, 0.8))
+                    drop-shadow(0 4px 16px rgba(0, 0, 0, 0.5))
+                  `,
+                }}
+              >
+                Learn to write,
+              </span>
+              <span
+                style={{
+                  background: 'linear-gradient(to bottom, #f8e8b0 0%, #f6d493 100%)',
+                  WebkitBackgroundClip: 'text',
+                  backgroundClip: 'text',
+                  color: 'transparent',
+                  filter: `
+                    drop-shadow(0 2px 4px rgba(0, 0, 0, 0.8))
+                    drop-shadow(0 4px 16px rgba(0, 0, 0, 0.5))
+                  `,
+                }}
+              >
+                one quest at a time
+              </span>
             </h2>
 
             {/* Subheadline - Avenir Next Medium */}
@@ -82,7 +96,6 @@ export function FantasyHero({ showOverlay, heroCtaHref, heroCtaLabel }: FantasyH
             </FantasyButton>
           </div>
         </div>
-      )}
     </section>
   );
 }
