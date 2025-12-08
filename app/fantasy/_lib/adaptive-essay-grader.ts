@@ -1,4 +1,7 @@
-import { callAnthropicAPI, getAnthropicApiKey } from '@/lib/utils/api-helpers';
+// ANTHROPIC (commented out - keeping for reference)
+// import { callAnthropicAPI, getAnthropicApiKey } from '@/lib/utils/api-helpers';
+// OPENAI (active)
+import { callOpenAIAPI, getOpenAIApiKey } from '@/lib/utils/api-helpers';
 import {
   ESSAY_GRADER_CONFIG,
   ESSAY_CRITERIA,
@@ -282,9 +285,16 @@ export async function gradeWithAdaptiveEssayGrader(
     throw new Error('Writing prompt is required');
   }
 
-  const apiKey = getAnthropicApiKey();
+  // ANTHROPIC (commented out)
+  // const apiKey = getAnthropicApiKey();
+  // if (!apiKey) {
+  //   throw new Error('ANTHROPIC_API_KEY is not configured');
+  // }
+  
+  // OPENAI (active)
+  const apiKey = getOpenAIApiKey();
   if (!apiKey) {
-    throw new Error('ANTHROPIC_API_KEY is not configured');
+    throw new Error('OPENAI_API_KEY is not configured');
   }
 
   const isRevision = !!previousResult;
@@ -293,7 +303,15 @@ export async function gradeWithAdaptiveEssayGrader(
 
   console.log(`🎯 ESSAY GRADER - Grading grade ${gradeLevel} essay${isRevision ? ' (REVISION)' : ''}`);
 
-  const response = await callAnthropicAPI(
+  // ANTHROPIC (commented out)
+  // const response = await callAnthropicAPI(
+  //   apiKey,
+  //   `${systemPrompt}\n\n---\n\n${userPrompt}`,
+  //   4000
+  // );
+  
+  // OPENAI (active)
+  const response = await callOpenAIAPI(
     apiKey,
     `${systemPrompt}\n\n---\n\n${userPrompt}`,
     4000

@@ -16,9 +16,11 @@
     "test:full-match": "node scripts/test-full-match-flow.js"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.71.2",
     "firebase": "^12.5.0",
     "firebase-admin": "^13.6.0",
     "next": "^15.0.3",
+    "openai": "^6.10.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-markdown": "^10.1.0"

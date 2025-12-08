@@ -1,7 +1,45 @@
 /**
- * API helper utilities for Anthropic API integration
+ * @fileoverview API helper utilities for LLM integrations (Anthropic + OpenAI).
  */
 
+import OpenAI from 'openai';
+
+/**
+ * @description Get the OpenAI API key from environment.
+ */
+export function getOpenAIApiKey(): string | null {
+  const apiKey = process.env.OPENAI_API_KEY;
+  if (!apiKey) return null;
+  return apiKey;
+}
+
+/**
+ * @description Call OpenAI API with o3-mini model and JSON mode.
+ * Returns response in same format as Anthropic for compatibility.
+ */
+export async function callOpenAIAPI(
+  apiKey: string,
+  prompt: string,
+  maxTokens: number = 2000
+): Promise<{ content: [{ type: string; text: string }] }> {
+  const openai = new OpenAI({ apiKey });
+
+  const response = await openai.chat.completions.create({
+    model: 'o3-mini',
+    messages: [{ role: 'user', content: prompt }],
+    response_format: { type: 'json_object' },
+  });
+
+  const text = response.choices[0].message.content || '';
+
+  return {
+    content: [{ type: 'text', text }],
+  };
+}
+
+/**
+ * @description Get the Anthropic API key from environment.
+ */
 export function getAnthropicApiKey(): string | null {
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey || apiKey === 'your_api_key_here') {

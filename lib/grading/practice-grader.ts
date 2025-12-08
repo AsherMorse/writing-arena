@@ -1,15 +1,15 @@
 /**
- * @fileoverview Practice mode grader using Claude Sonnet 4.
- * Implements AlphaWrite-style grading with structured output.
+ * @fileoverview Practice mode grader using OpenAI o3-mini.
+ * Implements AlphaWrite-style grading with structured JSON output.
  * Supports per-section scoring for cardinal rubric activities.
  */
 
-import Anthropic from '@anthropic-ai/sdk';
+import OpenAI from 'openai';
 import { getGraderConfig, GradingResult, SectionScores } from '@/lib/constants/grader-configs';
 import { buildSystemPrompt, buildUserPrompt } from './prompt-builder';
 
-const anthropic = new Anthropic({
-  apiKey: process.env.ANTHROPIC_API_KEY,
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY,
 });
 
 /**
@@ -70,47 +70,6 @@ export interface GradePracticeInput {
 }
 
 /**
- * @description Build section scores schema for cardinal rubric activities.
- */
-function buildSectionScoresSchema(rubricType: CardinalRubricType): object | null {
-  if (!rubricType) return null;
-
-  const scoreProperty = {
-    type: 'integer',
-    minimum: 0,
-    maximum: 5,
-  };
-
-  if (rubricType === 'spo' || rubricType === 'freeform-paragraph') {
-    return {
-      type: 'object',
-      description: 'Per-section scores (0-5 each) for the rubric categories',
-      properties: {
-        topicSentence: { ...scoreProperty, description: 'Topic Sentence score (0-5)' },
-        supportingDetails: { ...scoreProperty, description: 'Supporting Details & Organization score (0-5)' },
-        concludingSentence: { ...scoreProperty, description: 'Concluding Sentence score (0-5)' },
-        conventions: { ...scoreProperty, description: 'Conventions score (0-5)' },
-      },
-      required: ['topicSentence', 'supportingDetails', 'concludingSentence', 'conventions'],
-    };
-  }
-
-  if (rubricType === 'elaborate') {
-    return {
-      type: 'object',
-      description: 'Per-section scores (0-5 each) for the rubric categories',
-      properties: {
-        improvements: { ...scoreProperty, description: 'Improvements to Paragraph score (0-5)' },
-        conventions: { ...scoreProperty, description: 'Conventions score (0-5)' },
-      },
-      required: ['improvements', 'conventions'],
-    };
-  }
-
-  return null;
-}
-
-/**
  * @description Add section scoring instructions to the system prompt for cardinal activities.
  */
 function addSectionScoringInstructions(basePrompt: string, rubricType: CardinalRubricType): string {
@@ -128,7 +87,9 @@ You must also provide per-section scores (0-5 each) for:
 3. **Concluding Sentence (C.S.)**: Does it reaffirm the main idea and provide closure?
 4. **Conventions**: Grammar, spelling, punctuation control in T.S. and C.S. (note form not evaluated).
 
-Score levels: 5=Exceptional, 4=Skilled, 3=Proficient, 2=Developing, 1=Beginning, 0=Absent/Incomplete`;
+Score levels: 5=Exceptional, 4=Skilled, 3=Proficient, 2=Developing, 1=Beginning, 0=Absent/Incomplete
+
+Include a "sectionScores" object with keys: topicSentence, supportingDetails, concludingSentence, conventions (each 0-5).`;
   } else if (rubricType === 'elaborate') {
     rubricInstructions = `
 
@@ -137,15 +98,49 @@ You must also provide per-section scores (0-5 each) for:
 1. **Improvements to Paragraph**: Did the student address the requested improvements from the instructions?
 2. **Conventions**: Grammar, spelling, punctuation, and capitalization control.
 
-Score levels: 5=Exceptional, 4=Skilled, 3=Proficient, 2=Developing, 1=Beginning, 0=No improvement`;
+Score levels: 5=Exceptional, 4=Skilled, 3=Proficient, 2=Developing, 1=Beginning, 0=No improvement
+
+Include a "sectionScores" object with keys: improvements, conventions (each 0-5).`;
   }
 
   return basePrompt + rubricInstructions;
 }
 
 /**
- * @description Grades a practice submission using Claude Sonnet 4.
- * Uses structured output via tool use for reliable JSON responses.
+ * @description Build JSON output instructions for the system prompt.
+ */
+function buildJsonInstructions(rubricType: CardinalRubricType): string {
+  const baseSchema = `
+## Output Format
+You MUST respond with valid JSON only. No other text before or after.
+
+{
+  "isCorrect": boolean,
+  "score": number (0-100),
+  "remarks": [
+    {
+      "severity": "error" | "nit",
+      "category": "content" | "grammar" | "structure" | "logic",
+      "concreteProblem": "Brief description (50-85 chars, friendly tone)",
+      "callToAction": "How to fix it (70-150 chars, friendly tone)"
+    }
+  ],
+  "solution": "Corrected version if incorrect, empty string if correct"${rubricType ? `,
+  "sectionScores": { ... }` : ''}
+}
+
+Rules:
+- If perfect, remarks should be an empty array []
+- Limit to 3 most important issues
+- "error" = answer is fundamentally wrong, "nit" = minor issue but acceptable
+- Use age-appropriate vocabulary`;
+
+  return baseSchema;
+}
+
+/**
+ * @description Grades a practice submission using OpenAI o3-mini.
+ * Uses JSON mode for reliable structured responses.
  * Supports per-section scoring for cardinal rubric activities.
  */
 export async function gradePracticeSubmission({
@@ -158,95 +153,31 @@ export async function gradePracticeSubmission({
   const config = getGraderConfig(lessonId);
   const rubricType = getCardinalRubricType(lessonId);
   const baseSystemPrompt = buildSystemPrompt(config, grade);
-  const systemPrompt = addSectionScoringInstructions(baseSystemPrompt, rubricType);
+  const systemPromptWithScoring = addSectionScoringInstructions(baseSystemPrompt, rubricType);
+  const systemPrompt = systemPromptWithScoring + buildJsonInstructions(rubricType);
   const userPrompt = buildUserPrompt(question, studentAnswer, config.questionLabel, previousAttempts);
 
-  // Build tool schema - add sectionScores for cardinal rubric activities
-  const baseProperties: Record<string, object> = {
-    isCorrect: {
-      type: 'boolean',
-      description: 'Whether the answer meets the activity requirements',
-    },
-    score: {
-      type: 'number',
-      minimum: 0,
-      maximum: 100,
-      description: 'Numerical score from 0-100',
-    },
-    remarks: {
-      type: 'array',
-      description: 'Array of feedback items (empty if perfect)',
-      items: {
-        type: 'object',
-        properties: {
-          severity: {
-            type: 'string',
-            enum: ['error', 'nit'],
-            description: '"error" for major issues, "nit" for minor issues',
-          },
-          category: {
-            type: 'string',
-            description: 'Category of the issue (e.g., "logic", "grammar", "structure")',
-          },
-          concreteProblem: {
-            type: 'string',
-            description: 'Brief description of the issue (50-85 characters, friendly tone)',
-          },
-          callToAction: {
-            type: 'string',
-            description: 'How to fix it (70-150 characters, friendly tone)',
-          },
-        },
-        required: ['severity', 'concreteProblem', 'callToAction'],
-      },
-    },
-    solution: {
-      type: 'string',
-      description: 'Corrected version if incorrect, empty string if correct',
-    },
-  };
-
-  const requiredFields = ['isCorrect', 'score', 'remarks', 'solution'];
-
-  // Add section scores for cardinal rubric activities
-  const sectionScoresSchema = buildSectionScoresSchema(rubricType);
-  if (sectionScoresSchema) {
-    baseProperties.sectionScores = sectionScoresSchema;
-    requiredFields.push('sectionScores');
-  }
-
-  const response = await anthropic.messages.create({
-    model: 'claude-sonnet-4-20250514',
-    max_tokens: 1024,
-    system: systemPrompt,
+  const response = await openai.chat.completions.create({
+    model: 'o3-mini',
     messages: [
-      {
-        role: 'user',
-        content: userPrompt,
-      },
+      { role: 'system', content: systemPrompt },
+      { role: 'user', content: userPrompt },
     ],
-    tools: [
-      {
-        name: 'submit_grading_result',
-        description: 'Submit the grading result for the student submission',
-        input_schema: {
-          type: 'object' as const,
-          properties: baseProperties,
-          required: requiredFields,
-        },
-      },
-    ],
-    tool_choice: { type: 'tool', name: 'submit_grading_result' },
+    response_format: { type: 'json_object' },
   });
 
-  // Extract tool use result
-  const toolUseBlock = response.content.find(block => block.type === 'tool_use');
-  
-  if (!toolUseBlock || toolUseBlock.type !== 'tool_use') {
-    throw new Error('No grading result returned from Claude');
+  // Parse JSON response
+  const content = response.choices[0].message.content;
+  if (!content) {
+    throw new Error('No grading result returned from OpenAI');
   }
 
-  const result = toolUseBlock.input as GradingResult;
+  let result: GradingResult;
+  try {
+    result = JSON.parse(content) as GradingResult;
+  } catch {
+    throw new Error(`Failed to parse grading response: ${content.substring(0, 200)}`);
+  }
 
   // Validate the result structure
   if (typeof result.isCorrect !== 'boolean') {
@@ -257,6 +188,11 @@ export async function gradePracticeSubmission({
   }
   if (!Array.isArray(result.remarks)) {
     throw new Error('Invalid grading result: remarks must be an array');
+  }
+
+  // Ensure solution exists
+  if (typeof result.solution !== 'string') {
+    result.solution = '';
   }
 
   // For cardinal rubric activities, calculate score from section scores
@@ -282,4 +218,3 @@ export async function gradePracticeSubmission({
 
   return result;
 }
-
