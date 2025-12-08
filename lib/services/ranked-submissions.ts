@@ -71,3 +71,18 @@ export async function getSubmissionByUserAndPrompt(
     ...docSnap.data(),
   } as RankedSubmission;
 }
+
+export async function deleteAllUserSubmissions(userId: string): Promise<number> {
+  const submissionsRef = collection(db, 'rankedSubmissions');
+  const q = query(submissionsRef, where('userId', '==', userId));
+  const snapshot = await getDocs(q);
+
+  const { deleteDoc } = await import('firebase/firestore');
+  
+  const deletePromises = snapshot.docs.map((docSnap) => 
+    deleteDoc(doc(db, 'rankedSubmissions', docSnap.id))
+  );
+  
+  await Promise.all(deletePromises);
+  return snapshot.size;
+}

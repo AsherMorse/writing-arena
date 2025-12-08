@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { usePathname } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { resetUserProgress } from '@/lib/services/ranked-progress';
+import { deleteAllUserSubmissions } from '@/lib/services/ranked-submissions';
 
 export function FantasyDebugMenu() {
   const pathname = usePathname();
@@ -33,16 +34,43 @@ export function FantasyDebugMenu() {
     }
   };
 
+  const handleDeleteSubmissions = async () => {
+    if (!user) {
+      showStatus('Not logged in');
+      return;
+    }
+    try {
+      const count = await deleteAllUserSubmissions(user.uid);
+      showStatus(`Deleted ${count} submission(s)! Refresh.`);
+    } catch (err) {
+      showStatus('Failed to delete submissions');
+    }
+  };
+
+  const handleFullReset = async () => {
+    if (!user) {
+      showStatus('Not logged in');
+      return;
+    }
+    try {
+      await resetUserProgress(user.uid);
+      const count = await deleteAllUserSubmissions(user.uid);
+      showStatus(`Full reset! Deleted ${count} sub(s). Refresh.`);
+    } catch (err) {
+      showStatus('Failed to reset');
+    }
+  };
+
   const handleDispatchEvent = (eventName: string, label: string) => {
     window.dispatchEvent(new CustomEvent(eventName));
     showStatus(`${label} triggered`);
   };
 
   const buttons = [
+    { label: 'Full Reset', action: handleFullReset },
     { label: 'Reset Progress', action: handleResetProgress },
-    { label: 'Skip to Results', action: () => handleDispatchEvent('debug-skip-to-results', 'Skip to Results') },
+    { label: 'Delete Submissions', action: handleDeleteSubmissions },
     { label: 'Fill Editor', action: () => handleDispatchEvent('debug-fill-editor', 'Fill Editor') },
-    { label: 'Force Submit', action: () => handleDispatchEvent('debug-force-submit', 'Force Submit') },
   ];
 
   return (

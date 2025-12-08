@@ -44,6 +44,7 @@ export default function RankedPage() {
   const [error, setError] = useState<string | null>(null);
   const [submissionId, setSubmissionId] = useState<string | null>(null);
   const [existingSubmission, setExistingSubmission] = useState<RankedSubmission | null>(null);
+  const [isAllComplete, setIsAllComplete] = useState(false);
 
   const fetchCurrentPrompt = useCallback(async () => {
     if (!user) return;
@@ -51,6 +52,7 @@ export default function RankedPage() {
     setPhase('loading');
     setExistingSubmission(null);
     setSubmissionId(null);
+    setIsAllComplete(false);
 
     try {
       const progress = await getUserRankedProgress(user.uid);
@@ -66,6 +68,18 @@ export default function RankedPage() {
       }
 
       if (progress.currentPromptSequence > max) {
+        const lastPrompt = await getPromptBySequence(max, 'paragraph');
+        if (lastPrompt) {
+          const lastSubmission = await getSubmissionByUserAndPrompt(user.uid, lastPrompt.id);
+          if (lastSubmission) {
+            setCurrentPrompt(lastPrompt);
+            setPromptSequence(max);
+            setExistingSubmission(lastSubmission);
+            setIsAllComplete(true);
+            setPhase('already_submitted');
+            return;
+          }
+        }
         setCurrentPrompt(null);
         setPhase('completed');
         return;
@@ -375,44 +389,53 @@ export default function RankedPage() {
                     textShadow: '0 2px 4px rgba(0, 0, 0, 0.8)',
                   }}
                 >
-                  Challenge {promptSequence} Submitted
+                  {isAllComplete ? 'All Challenges Complete!' : `Challenge ${promptSequence} Complete!`}
                 </h1>
-                <p
-                  className="font-avenir text-lg"
-                  style={{ color: 'rgba(245, 230, 184, 0.7)' }}
-                >
-                  You've already completed this challenge
-                </p>
+                {isAllComplete && (
+                  <p
+                    className="font-avenir text-lg"
+                    style={{ color: 'rgba(245, 230, 184, 0.7)' }}
+                  >
+                    You&apos;ve conquered all {maxSequence} challenge{maxSequence > 1 ? 's' : ''}
+                  </p>
+                )}
               </div>
 
-              <div
-                className="rounded-lg p-6"
-                style={{
-                  background: 'rgba(26, 18, 8, 0.9)',
-                  border: '1px solid rgba(201, 168, 76, 0.3)',
-                }}
-              >
-                <div className="space-y-4">
-                  <div>
-                    <span className="text-sm" style={{ color: 'rgba(245, 230, 184, 0.5)' }}>Original Score</span>
-                    <p className="text-2xl font-bold" style={{ color: '#f6d493' }}>{existingSubmission.originalScore}%</p>
-                  </div>
-                  {existingSubmission.revisedScore !== undefined && (
-                    <div>
-                      <span className="text-sm" style={{ color: 'rgba(245, 230, 184, 0.5)' }}>Revised Score</span>
-                      <p className="text-2xl font-bold" style={{ color: '#4ade80' }}>{existingSubmission.revisedScore}%</p>
-                    </div>
+              <ScoreDisplay
+                percentage={existingSubmission.revisedScore ?? existingSubmission.originalScore}
+                total={Math.round((existingSubmission.revisedScore ?? existingSubmission.originalScore) / 10)}
+                max={10}
+              />
+
+              {existingSubmission.revisedScore !== undefined && existingSubmission.revisedScore !== existingSubmission.originalScore && (
+                <div>
+                  {existingSubmission.revisedScore > existingSubmission.originalScore ? (
+                    <span className="font-avenir text-lg" style={{ color: '#4ade80' }}>
+                      +{existingSubmission.revisedScore - existingSubmission.originalScore}% from revision!
+                    </span>
+                  ) : (
+                    <span className="font-avenir text-sm" style={{ color: '#fbbf24' }}>
+                      Original: {existingSubmission.originalScore}% → Revised: {existingSubmission.revisedScore}%
+                    </span>
                   )}
                 </div>
-              </div>
+              )}
 
               <div className="flex justify-center gap-4">
-                <FantasyButton onClick={() => router.push('/fantasy/home')} variant="secondary">
-                  Return Home
-                </FantasyButton>
-                <FantasyButton onClick={handleContinue} size="large">
-                  {promptSequence < maxSequence ? `Continue to Challenge ${promptSequence + 1}` : 'Finish'}
-                </FantasyButton>
+                {!isAllComplete && promptSequence < maxSequence ? (
+                  <>
+                    <FantasyButton onClick={() => router.push('/fantasy/home')} variant="secondary">
+                      Return Home
+                    </FantasyButton>
+                    <FantasyButton onClick={handleContinue} size="large">
+                      Continue to Challenge {promptSequence + 1}
+                    </FantasyButton>
+                  </>
+                ) : (
+                  <FantasyButton onClick={() => router.push('/fantasy/home')} size="large">
+                    Return Home
+                  </FantasyButton>
+                )}
               </div>
             </div>
           )}
