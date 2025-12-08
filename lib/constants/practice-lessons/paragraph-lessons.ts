@@ -391,4 +391,51 @@ export const PARAGRAPH_LESSONS: Record<string, PracticeLesson> = {
       explanation: 'The topic sentence captures the main idea that sleep benefits both body and mind.',
     },
   },
+
+  'write-freeform-paragraph': {
+    id: 'write-freeform-paragraph',
+    name: 'Write a Free-Form Paragraph',
+    description: 'Write a complete paragraph with topic sentence, supporting details, and conclusion.',
+    category: 'paragraph',
+    status: 'available',
+    phaseDurations: { reviewPhase: 1, writePhase: 6, revisePhase: 3 },
+    instruction: 'Write a complete paragraph with a topic sentence, supporting details, and a concluding sentence.',
+    prompts: [
+      {
+        id: 'wfp-1',
+        prompt: 'Write a paragraph about how dolphins communicate underwater. Consider their use of clicks, whistles, and body language.',
+        hint: 'Start with a topic sentence about dolphin communication, give specific examples, and end with a conclusion.',
+      },
+      {
+        id: 'wfp-2',
+        prompt: 'Write a paragraph about what makes Tokyo a unique city. Consider its mix of modern features and traditional history.',
+        hint: 'Begin with what makes Tokyo special, support with specific details, and wrap up the main idea.',
+      },
+      {
+        id: 'wfp-3',
+        prompt: 'Write a paragraph about the importance of recycling. Explain how it helps the environment.',
+        hint: 'State why recycling matters, give reasons and examples, and conclude with its overall impact.',
+      },
+      {
+        id: 'wfp-4',
+        prompt: 'Write a paragraph about how bees help plants grow. Discuss the pollination process.',
+        hint: 'Introduce the topic, explain the process with details, and summarize the importance.',
+      },
+      {
+        id: 'wfp-5',
+        prompt: 'Write a paragraph about the benefits of exercise for both body and mind.',
+        hint: 'Make a claim about exercise, support it with specific benefits, and conclude effectively.',
+      },
+      {
+        id: 'wfp-6',
+        prompt: 'Write a paragraph about what makes rainforests important to our planet.',
+        hint: 'State the importance, explain with examples, and wrap up why we should care.',
+      },
+    ],
+    exampleResponse: {
+      prompt: 'Write a paragraph about the water cycle.',
+      response: 'The water cycle is a continuous process that keeps water moving around our planet. First, the sun heats water in oceans and lakes, causing it to evaporate into the air as water vapor. This vapor rises and cools, forming clouds through condensation. When the clouds become heavy with water droplets, precipitation falls as rain or snow. The water then flows into streams and rivers, eventually returning to the ocean to start the cycle again. This never-ending cycle is essential for providing fresh water to all living things on Earth.',
+      explanation: 'The paragraph has a clear topic sentence, detailed supporting points that follow a logical order, and a strong concluding sentence.',
+    },
+  },
 };

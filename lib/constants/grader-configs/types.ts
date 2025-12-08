@@ -76,6 +76,23 @@ export interface ActivityGraderConfig {
 }
 
 /**
+ * @description Per-section scores for cardinal rubric activities.
+ * Only populated for writing-spos, elaborate-paragraphs, and write-freeform-paragraph.
+ */
+export interface SectionScores {
+  /** Topic Sentence score (0-5) - SPO and freeform paragraph */
+  topicSentence?: number;
+  /** Supporting Details & Organization score (0-5) - SPO and freeform paragraph */
+  supportingDetails?: number;
+  /** Concluding Sentence score (0-5) - SPO and freeform paragraph */
+  concludingSentence?: number;
+  /** Conventions score (0-5) - All cardinal rubric activities */
+  conventions?: number;
+  /** Improvements to Paragraph score (0-5) - elaborate-paragraphs only */
+  improvements?: number;
+}
+
+/**
  * @description Result returned from the grading LLM.
  */
 export interface GradingResult {
@@ -83,6 +100,8 @@ export interface GradingResult {
   score: number;
   remarks: GradingRemark[];
   solution: string;
+  /** Per-section scores (only for cardinal rubric activities) */
+  sectionScores?: SectionScores;
 }
 
 /**

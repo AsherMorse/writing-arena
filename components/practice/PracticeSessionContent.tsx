@@ -25,12 +25,13 @@ import { useDebounce } from '@/lib/hooks/useDebounce';
 import { usePastePrevention } from '@/lib/hooks/usePastePrevention';
 import { SkillFocusBanner } from './SkillFocusBanner';
 import { ExampleSidebar } from './ExampleSidebar';
+import { GradingSidebar } from './GradingSidebar';
 import { PracticeReviewPhase } from './PracticeReviewPhase';
 import { SPOEditor, SPOData, createEmptySPO, spoToText, countSPOWords } from './SPOEditor';
 import { PTOEditor, PTOData, createEmptyPTO, ptoToText, countPTOWords } from './PTOEditor';
 import { LoadingState } from '@/components/shared/LoadingState';
 import { ErrorState } from '@/components/shared/ErrorState';
-import { GradingResult, GradingRemark } from '@/lib/constants/grader-configs';
+import { GradingResult, GradingRemark, SectionScores } from '@/lib/constants/grader-configs';
 
 /** Editor type for different lesson types */
 type EditorType = 'freeform' | 'spo' | 'pto';
@@ -41,11 +42,32 @@ const LESSON_EDITOR_MAP: Record<string, EditorType> = {
   'pre-transition-outline': 'pto',
 };
 
+/** Activities that use cardinal rubric (per-section scoring) */
+const CARDINAL_RUBRIC_ACTIVITIES: Record<string, { maxScore: number }> = {
+  'writing-spos': { maxScore: 20 },
+  'elaborate-paragraphs': { maxScore: 10 },
+  'write-freeform-paragraph': { maxScore: 20 },
+};
+
 /**
  * @description Get the editor type for a lesson.
  */
 function getEditorType(lessonId: string): EditorType {
   return LESSON_EDITOR_MAP[lessonId] || 'freeform';
+}
+
+/**
+ * @description Check if a lesson uses cardinal rubric (per-section scoring).
+ */
+function usesCardinalRubric(lessonId: string): boolean {
+  return lessonId in CARDINAL_RUBRIC_ACTIVITIES;
+}
+
+/**
+ * @description Get max score for cardinal rubric activities.
+ */
+function getCardinalMaxScore(lessonId: string): number {
+  return CARDINAL_RUBRIC_ACTIVITIES[lessonId]?.maxScore || 100;
 }
 
 interface PracticeSessionContentProps {
@@ -100,6 +122,10 @@ export default function PracticeSessionContent({ lessonId }: PracticeSessionCont
   const [writeRemarks, setWriteRemarks] = useState<GradingRemark[]>([]);
   const [reviseRemarks, setReviseRemarks] = useState<GradingRemark[]>([]);
   const [isGrading, setIsGrading] = useState(false);
+  
+  // Per-section scores for cardinal rubric activities
+  const [writeSectionScores, setWriteSectionScores] = useState<SectionScores | null>(null);
+  const [reviseSectionScores, setReviseSectionScores] = useState<SectionScores | null>(null);
   
   // Blocking grading state - when student needs to fix errors before advancing
   const [isBlocked, setIsBlocked] = useState(false);
@@ -201,6 +227,11 @@ export default function PracticeSessionContent({ lessonId }: PracticeSessionCont
         const result = await gradeSubmission(contentToGrade);
         setWriteScore(result.score);
         setWriteRemarks(result.remarks);
+        
+        // Capture section scores for cardinal rubric activities
+        if (result.sectionScores) {
+          setWriteSectionScores(result.sectionScores);
+        }
         
         // Check if there are blocking errors
         if (hasBlockingErrors(result.remarks)) {
@@ -327,11 +358,18 @@ export default function PracticeSessionContent({ lessonId }: PracticeSessionCont
       const revisedContentText = getRevisedContentAsText();
       let reviseScore = 0;
       let reviseRemarksLocal: GradingRemark[] = [];
+      let reviseSectionScoresLocal: SectionScores | null = null;
       try {
         const result = await gradeSubmission(revisedContentText);
         reviseScore = result.score;
         reviseRemarksLocal = result.remarks;
         setReviseRemarks(result.remarks);
+        
+        // Capture section scores for cardinal rubric activities
+        if (result.sectionScores) {
+          reviseSectionScoresLocal = result.sectionScores;
+          setReviseSectionScores(result.sectionScores);
+        }
       } catch (error) {
         // TEMPORARY: Debug logging for grading failures
         console.error('[DEBUG] Revise phase grading failed:', error);
@@ -368,6 +406,9 @@ export default function PracticeSessionContent({ lessonId }: PracticeSessionCont
         revisedWordCount: revisedWordCount ?? 0,
         writeRemarks,
         reviseRemarks: reviseRemarksLocal,
+        // Include section scores for cardinal rubric activities
+        writeSectionScores: writeSectionScores ?? null,
+        reviseSectionScores: reviseSectionScoresLocal ?? null,
       }));
 
       // Navigate to results (all data in session storage)
@@ -676,6 +717,17 @@ export default function PracticeSessionContent({ lessonId }: PracticeSessionCont
 
           {/* Sidebar */}
           <aside className="space-y-6">
+            {/* Show GradingSidebar for cardinal rubric activities after grading */}
+            {usesCardinalRubric(lessonId) && (isRevisionPhase ? reviseSectionScores : writeSectionScores) && (
+              <GradingSidebar
+                sectionScores={(isRevisionPhase ? reviseSectionScores : writeSectionScores)!}
+                totalScore={isRevisionPhase 
+                  ? Object.values(reviseSectionScores || {}).reduce((a, b) => a + (b || 0), 0)
+                  : Object.values(writeSectionScores || {}).reduce((a, b) => a + (b || 0), 0)
+                }
+                maxScore={getCardinalMaxScore(lessonId)}
+              />
+            )}
             <ExampleSidebar lesson={lesson} collapsed={false} />
           </aside>
         </div>

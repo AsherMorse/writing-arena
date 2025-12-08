@@ -22,6 +22,7 @@ export { usingTransitionWordsConfig } from './using-transition-words';
 export { finishingTransitionWordsConfig } from './finishing-transition-words';
 export { writeCsFromDetailsConfig } from './write-cs-from-details';
 export { writeTsFromDetailsConfig } from './write-ts-from-details';
+export { writeFreeformParagraphConfig } from './write-freeform-paragraph';
 
 // Essay-level configs (Tier 3)
 export { distinguishGstConfig } from './distinguish-g-s-t';
@@ -52,6 +53,7 @@ import { usingTransitionWordsConfig } from './using-transition-words';
 import { finishingTransitionWordsConfig } from './finishing-transition-words';
 import { writeCsFromDetailsConfig } from './write-cs-from-details';
 import { writeTsFromDetailsConfig } from './write-ts-from-details';
+import { writeFreeformParagraphConfig } from './write-freeform-paragraph';
 
 // Essay-level imports
 import { distinguishGstConfig } from './distinguish-g-s-t';
@@ -84,6 +86,7 @@ const GRADER_CONFIGS: Record<string, ActivityGraderConfig> = {
   'finishing-transition-words': finishingTransitionWordsConfig,
   'write-cs-from-details': writeCsFromDetailsConfig,
   'write-ts-from-details': writeTsFromDetailsConfig,
+  'write-freeform-paragraph': writeFreeformParagraphConfig,
 
   // Essay-level (Tier 3)
   'distinguish-g-s-t': distinguishGstConfig,
