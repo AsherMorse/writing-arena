@@ -40,9 +40,39 @@ export interface UserProfile {
   practiceMastery?: {
     [lessonId: string]: LessonMasteryStatus;
   };
+
+  // Ranked mode progress tracking
+  rankedProgress?: RankedProgress;
   
   createdAt: Timestamp;
   updatedAt: Timestamp;
+}
+
+export interface RankedPrompt {
+  id: string;
+  level: 'paragraph' | 'essay';
+  sequenceNumber: number;
+  promptText: string;
+  createdAt: Timestamp;
+}
+
+export interface RankedProgress {
+  currentPromptSequence: number;
+  completedPrompts: string[];
+}
+
+export interface RankedSubmission {
+  id: string;
+  userId: string;
+  promptId: string;
+  originalContent: string;
+  originalScore: number;
+  originalFeedback: Record<string, unknown>;
+  revisedContent?: string;
+  revisedScore?: number;
+  revisedFeedback?: Record<string, unknown>;
+  submittedAt: Timestamp;
+  completedAt?: Timestamp;
 }
 
 export interface AIStudent {

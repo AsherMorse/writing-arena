@@ -46,7 +46,7 @@ const ACTION_CARDS = [
     id: 'battle',
     label: 'BATTLE',
     icon: '/icons/swords-icon.png',
-    href: '/ranked',
+    href: '/fantasy/ranked',
     tooltip: 'Face today\'s challenge and earn your place on the Scroll of Champions',
   },
   {

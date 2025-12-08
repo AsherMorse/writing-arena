@@ -7,4 +7,5 @@ export { FantasyButton } from './FantasyButton';
 export { FantasyHero } from './FantasyHero';
 export { FantasyHomeContent } from './FantasyHomeContent';
 export { FantasyAuthContent } from './FantasyAuthContent';
+export { FantasyDebugMenu } from './FantasyDebugMenu';
 
