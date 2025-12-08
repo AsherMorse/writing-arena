@@ -474,7 +474,7 @@ export default function PracticeSessionContent({ lessonId }: PracticeSessionCont
               onClick={handleStart}
               className="mt-8 w-full rounded-[10px] border border-[#00e5e5] bg-[#00e5e5] px-8 py-3 text-sm font-medium text-[#101012] transition hover:bg-[#33ebeb]"
             >
-              Start Practice
+              Start
             </button>
           </section>
         </main>

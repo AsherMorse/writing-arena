@@ -176,7 +176,7 @@ export default function LessonPage({ params }: LessonPageProps) {
             onClick={handleStartSession}
             className="w-full rounded-[10px] border border-[#00e5e5] bg-[#00e5e5] px-8 py-4 text-base font-medium text-[#101012] transition hover:bg-[#33ebeb] sm:w-auto sm:px-16"
           >
-            Start Practice Session
+            Start Session
           </button>
           <p className="mt-3 text-xs text-[rgba(255,255,255,0.4)]">
             Score 90%+ to master this skill{canEarnLP ? ' and earn LP!' : '.'}

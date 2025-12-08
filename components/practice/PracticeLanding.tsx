@@ -121,14 +121,19 @@ export default function PracticeLanding() {
           </div>
         </section>
 
-        {/* Paragraph Skills Section (Coming Soon) */}
+        {/* Paragraph Skills Section */}
         {paragraphLessons.length > 0 && (
-          <section className="opacity-60">
-            <header className="mb-6">
-              <h2 className="text-xl font-semibold">📝 Paragraph Skills</h2>
-              <p className="mt-1 text-sm text-[rgba(255,255,255,0.5)]">
-                Structure and organize your ideas effectively
-              </p>
+          <section>
+            <header className="mb-6 flex items-center justify-between">
+              <div>
+                <h2 className="text-xl font-semibold">📝 Paragraph Skills</h2>
+                <p className="mt-1 text-sm text-[rgba(255,255,255,0.5)]">
+                  Structure and organize your ideas effectively
+                </p>
+              </div>
+              <div className="rounded-full bg-[rgba(0,229,229,0.1)] px-3 py-1 text-xs font-medium text-[#00e5e5]">
+                {getCategoryMasterySummary(masteryStatus, 'paragraph').mastered}/{getCategoryMasterySummary(masteryStatus, 'paragraph').total} mastered
+              </div>
             </header>
 
             <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
@@ -136,24 +141,29 @@ export default function PracticeLanding() {
                 <LessonCard
                   key={lesson.id}
                   lesson={lesson}
-                  isMastered={false}
-                  bestScore={0}
-                  attempts={0}
-                  canEarnLP={false}
+                  isMastered={checkLessonMastery(lesson.id)}
+                  bestScore={getBestScore(lesson.id)}
+                  attempts={getAttemptCount(lesson.id)}
+                  canEarnLP={checkCanEarnLP(lesson.id)}
                 />
               ))}
             </div>
           </section>
         )}
 
-        {/* Essay Skills Section (Coming Soon) */}
+        {/* Essay Skills Section */}
         {essayLessons.length > 0 && (
-          <section className="opacity-60">
-            <header className="mb-6">
-              <h2 className="text-xl font-semibold">📄 Essay Skills</h2>
-              <p className="mt-1 text-sm text-[rgba(255,255,255,0.5)]">
-                Master full essay composition
-              </p>
+          <section>
+            <header className="mb-6 flex items-center justify-between">
+              <div>
+                <h2 className="text-xl font-semibold">📄 Essay Skills</h2>
+                <p className="mt-1 text-sm text-[rgba(255,255,255,0.5)]">
+                  Master full essay composition
+                </p>
+              </div>
+              <div className="rounded-full bg-[rgba(0,229,229,0.1)] px-3 py-1 text-xs font-medium text-[#00e5e5]">
+                {getCategoryMasterySummary(masteryStatus, 'essay').mastered}/{getCategoryMasterySummary(masteryStatus, 'essay').total} mastered
+              </div>
             </header>
 
             <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
@@ -161,10 +171,10 @@ export default function PracticeLanding() {
                 <LessonCard
                   key={lesson.id}
                   lesson={lesson}
-                  isMastered={false}
-                  bestScore={0}
-                  attempts={0}
-                  canEarnLP={false}
+                  isMastered={checkLessonMastery(lesson.id)}
+                  bestScore={getBestScore(lesson.id)}
+                  attempts={getAttemptCount(lesson.id)}
+                  canEarnLP={checkCanEarnLP(lesson.id)}
                 />
               ))}
             </div>
