@@ -25,10 +25,24 @@ export interface ExampleCard {
 }
 
 /**
- * @description Union type for items in the review phase sequence.
- * Can be either an instruction card or an example to evaluate.
+ * @description A tutorial card shown at the start of review phase.
+ * Contains markdown content teaching the concept.
  */
-export type ReviewItem = InstructionCard | ExampleCard;
+export interface TutorialCard {
+  type: 'tutorial';
+  /** Lesson ID (for finding custom components) */
+  lessonId: string;
+  /** Markdown content for the tutorial */
+  content: string;
+  /** Lesson name for the header */
+  lessonName: string;
+}
+
+/**
+ * @description Union type for items in the review phase sequence.
+ * Can be a tutorial, instruction card, or an example to evaluate.
+ */
+export type ReviewItem = TutorialCard | InstructionCard | ExampleCard;
 
 export interface ReviewExample {
   /** The question/prompt shown to the AI */

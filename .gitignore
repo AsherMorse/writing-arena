@@ -39,6 +39,7 @@ writing-arena-firebase-adminsdk-*.json
 next-env.d.ts
 
 .env
+.playwright/
 
 # Reference codebase (not committed)
 _alphawrite/

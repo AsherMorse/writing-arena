@@ -457,21 +457,6 @@ export default function PracticeSessionContent({ lessonId }: PracticeSessionCont
               {lesson.description}
             </p>
 
-            {/* Prompt Preview */}
-            {currentPrompt && (
-              <div className="mt-6 rounded-[10px] border border-[rgba(0,229,229,0.15)] bg-[rgba(0,229,229,0.05)] p-4">
-                <div className="text-[10px] font-semibold uppercase tracking-wider text-[rgba(255,255,255,0.4)]">
-                  Your prompt
-                </div>
-                <p className="mt-2 text-sm font-medium text-white">
-                  {currentPrompt.prompt}
-                  {currentPrompt.nounPhrase && (
-                    <span className="text-[#00e5e5]"> &quot;{currentPrompt.nounPhrase}&quot;</span>
-                  )}
-                </p>
-              </div>
-            )}
-
             {/* Phase Info - Order: Review → Write → Revise */}
             <div className="mt-6 grid gap-4 text-sm text-[rgba(255,255,255,0.5)] sm:grid-cols-3">
               <div className="rounded-[10px] border border-[rgba(255,255,255,0.05)] bg-[#101012] px-4 py-3">

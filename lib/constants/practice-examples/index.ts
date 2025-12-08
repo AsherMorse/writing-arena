@@ -3,17 +3,18 @@
  * Re-exports all examples organized by category (sentence, paragraph, essay).
  *
  * The Review phase is now FIRST in the flow (I Do, We Do, You Do pedagogy).
- * Students see instruction cards and evaluate examples BEFORE writing.
+ * Students see tutorial content and evaluate examples BEFORE writing.
  */
 
-import { getGraderConfig } from '../grader-configs';
 import { SENTENCE_EXAMPLES } from './sentence-examples';
 import { PARAGRAPH_EXAMPLES } from './paragraph-examples';
 import { ESSAY_EXAMPLES } from './essay-examples';
 import { ReviewExample, ReviewItem } from './types';
+import { getTutorialContent } from '@/lib/constants/practice-tutorials';
+import { getLesson } from '@/lib/constants/practice-lessons';
 
 // Re-export types
-export type { InstructionCard, ExampleCard, ReviewItem, ReviewExample, LessonExamples } from './types';
+export type { InstructionCard, ExampleCard, TutorialCard, ReviewItem, ReviewExample, LessonExamples } from './types';
 
 // Re-export category-specific examples
 export { SENTENCE_EXAMPLES } from './sentence-examples';
@@ -111,7 +112,7 @@ export function getRandomReviewExamples(
 
 /**
  * @description Builds the complete review phase sequence.
- * Includes instruction cards (from grader config) followed by examples to evaluate.
+ * Includes tutorial content followed by examples to evaluate.
  * This implements the "I Do" part of "I Do, We Do, You Do".
  */
 export function buildReviewSequence(
@@ -120,35 +121,17 @@ export function buildReviewSequence(
 ): ReviewItem[] {
   const items: ReviewItem[] = [];
 
-  // Try to get grader config for instruction content
-  try {
-    const config = getGraderConfig(lessonId);
-
-    // Add "How this works" instruction card
-    if (config.howTheActivityWorks) {
-      items.push({
-        type: 'instruction',
-        title: 'How this works',
-        content: config.howTheActivityWorks,
-      });
-    }
-
-    // Add a "key rules" card from the first few grading principles
-    const keyRules = config.importantPrinciplesForGrading
-      ?.filter(p => p.trim().length > 0)
-      ?.slice(0, 3)
-      ?.join('\n');
-
-    if (keyRules) {
-      items.push({
-        type: 'instruction',
-        title: 'Key rules to remember',
-        content: keyRules,
-        tip: 'Look for these patterns in the examples below!',
-      });
-    }
-  } catch {
-    // No grader config available - skip instruction cards
+  // Add tutorial as first item (if available)
+  const tutorialContent = getTutorialContent(lessonId);
+  const lesson = getLesson(lessonId);
+  
+  if (tutorialContent && lesson) {
+    items.push({
+      type: 'tutorial',
+      lessonId,
+      content: tutorialContent,
+      lessonName: lesson.name,
+    });
   }
 
   // Add examples to evaluate

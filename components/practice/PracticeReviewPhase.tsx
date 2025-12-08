@@ -1,6 +1,6 @@
 /**
  * @fileoverview Review phase component for practice sessions.
- * Now the FIRST phase - students see instruction cards and evaluate examples.
+ * Now the FIRST phase - students see tutorial content and evaluate examples.
  * Implements the "I Do" part of "I Do, We Do, You Do" pedagogy.
  */
 
@@ -8,6 +8,7 @@
 
 import { useState } from 'react';
 import { ReviewItem, ReviewExample } from '@/lib/constants/practice-examples';
+import { TutorialRenderer, getTutorialComponent } from '@/components/practice/tutorials';
 
 interface PracticeReviewPhaseProps {
   /** Sequence of instruction cards and examples to show */
@@ -79,7 +80,35 @@ export function PracticeReviewPhase({
 
 
   // Calculate progress percentage
-  const progressPercent = ((currentIndex + (hasAnsweredCurrent || currentItem?.type === 'instruction' ? 1 : 0)) / reviewItems.length) * 100;
+  const isTutorialOrInstruction = currentItem?.type === 'tutorial' || currentItem?.type === 'instruction';
+  const progressPercent = ((currentIndex + (hasAnsweredCurrent || isTutorialOrInstruction ? 1 : 0)) / reviewItems.length) * 100;
+
+  // Get status text for header
+  function getStatusText() {
+    if (currentItem?.type === 'tutorial') return 'Learning the concept...';
+    if (currentItem?.type === 'instruction') return 'Learning the concept...';
+    return `Example ${currentExampleIndex} of ${exampleItems.length}`;
+  }
+
+  // Tutorial uses its own header, so we only show progress header for other types
+  if (currentItem?.type === 'tutorial') {
+    // Check if there's a custom tutorial component with placeholders
+    const TutorialComponent = getTutorialComponent(currentItem.lessonId);
+    
+    if (TutorialComponent) {
+      // Use custom component with placeholders
+      return <TutorialComponent onComplete={handleNext} />;
+    }
+    
+    // Fall back to generic renderer
+    return (
+      <TutorialRenderer
+        markdown={currentItem.content}
+        lessonName={currentItem.lessonName}
+        onComplete={handleNext}
+      />
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -90,10 +119,7 @@ export function PracticeReviewPhase({
             Phase 1: Review
           </span>
           <span className="text-sm text-[rgba(255,255,255,0.5)]">
-            {currentItem?.type === 'instruction' 
-              ? 'Learning the concept...'
-              : `Example ${currentExampleIndex} of ${exampleItems.length}`
-            }
+            {getStatusText()}
           </span>
         </div>
       </div>
@@ -210,20 +236,20 @@ function ExampleCard({
   return (
       <div className="rounded-[14px] border border-[rgba(255,255,255,0.05)] bg-[rgba(255,255,255,0.025)] p-6">
         <div className="text-[10px] font-semibold uppercase tracking-wider text-[rgba(255,255,255,0.4)]">
-          AI Response to Evaluate
+          Example to Evaluate
         </div>
 
         {/* Question */}
         <div className="mt-4 rounded-[10px] border border-[rgba(255,255,255,0.05)] bg-[#101012] p-4">
-          <div className="text-xs text-[rgba(255,255,255,0.4)]">Prompt:</div>
-        <p className="mt-1 text-sm text-white whitespace-pre-line">{example.question}</p>
+          <div className="text-xs text-[rgba(255,255,255,0.4)]">Question:</div>
+          <p className="mt-1 text-sm text-white whitespace-pre-line">{example.question}</p>
         </div>
 
-        {/* AI Answer */}
+        {/* Answer */}
         <div className="mt-4 rounded-[10px] border border-[rgba(0,229,229,0.15)] bg-[rgba(0,229,229,0.05)] p-4">
-          <div className="text-xs text-[#00e5e5]">AI Answer:</div>
+          <div className="text-xs text-[#00e5e5]">Answer:</div>
           <p className="mt-1 text-base font-medium text-white whitespace-pre-line">
-          &quot;{example.answer}&quot;
+            {example.answer}
           </p>
         </div>
 
