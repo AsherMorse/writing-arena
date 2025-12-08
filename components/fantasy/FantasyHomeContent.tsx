@@ -233,9 +233,11 @@ interface ActionCardProps {
 
 /**
  * @description Renders a clickable action card with icon and hover tooltip.
+ * Enhanced with 3D mobile game button styling.
  */
 function ActionCard({ label, icon, href, tooltip }: ActionCardProps) {
   const [isHovered, setIsHovered] = useState(false);
+  const [isPressed, setIsPressed] = useState(false);
 
   return (
     <div 
@@ -245,20 +247,67 @@ function ActionCard({ label, icon, href, tooltip }: ActionCardProps) {
     >
       <Link
         href={href}
-        className="group relative flex flex-col items-center justify-center rounded-xl transition-all duration-200 hover:scale-105 active:scale-95 overflow-hidden"
+        onMouseDown={() => setIsPressed(true)}
+        onMouseUp={() => setIsPressed(false)}
+        onMouseLeave={() => setIsPressed(false)}
+        className="group relative flex flex-col items-center justify-center rounded-xl transition-all duration-150 overflow-hidden"
         style={{
           width: '150px',
           height: '170px',
-          background: 'linear-gradient(to bottom, #f5e6c8, #e8d4a8)',
-          boxShadow: '0 6px 20px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.3)',
-          border: '3px solid #3a2010',
+          // Muted gradient - less bright at top
+          background: isPressed 
+            ? 'linear-gradient(to bottom, #d4c5a8 0%, #e0d0b5 30%, #ebe0c8 100%)'
+            : 'linear-gradient(to bottom, #ebe0c8 0%, #ebe0c8 15%, #e0d0b5 85%, #e0d0b5 100%)',
+          // Deep shadows with darker 3D base (#423820)
+          boxShadow: isPressed
+            ? '0 2px 4px rgba(0, 0, 0, 0.5), inset 0 3px 8px rgba(0, 0, 0, 0.2), inset 0 -1px 0 rgba(255, 255, 255, 0.2)'
+            : '0 6px 0 #423820, 0 10px 25px rgba(0, 0, 0, 0.5), inset 0 2px 0 rgba(255, 255, 255, 0.4), inset 0 -2px 0 rgba(0, 0, 0, 0.15)',
+          // Dark outer border for definition
+          border: '1px solidrgb(42, 38, 27)',
+          transform: isPressed ? 'translateY(6px)' : isHovered ? 'translateY(-2px)' : 'translateY(0)',
         }}
       >
         {/* Paper texture overlay */}
         <PaperTexture className="rounded-xl" />
         
-        {/* Icon */}
-        <div className="relative w-20 h-20 transition-transform duration-200">
+        {/* Top highlight rim for extra bevel effect */}
+        <div 
+          className="absolute top-0 left-0 right-0 h-1 pointer-events-none"
+          style={{
+            background: 'linear-gradient(to bottom, rgba(255, 255, 255, 0.6), transparent)',
+            borderRadius: '8px 8px 0 0',
+          }}
+        />
+        
+        {/* Bottom shadow rim */}
+        <div 
+          className="absolute bottom-0 left-0 right-0 h-2 pointer-events-none"
+          style={{
+            background: 'linear-gradient(to top, rgba(0, 0, 0, 0.2), transparent)',
+            borderRadius: '0 0 8px 8px',
+          }}
+        />
+        
+        {/* Icon with inner shadow effect */}
+        <div 
+          className="relative w-20 h-20 transition-transform duration-150"
+          style={{
+            transform: isPressed ? 'scale(0.92)' : 'scale(1)',
+          }}
+        >
+          {/* Base icon - slightly lighter, acts as highlight edge */}
+          {/* <Image
+            src={icon}
+            alt=""
+            fill
+            sizes="80px"
+            className="object-contain"
+            style={{
+              filter: 'brightness(1.3)',
+              transform: 'translate(-1px, -1px)',
+            }}
+          /> */}
+          {/* Main icon on top */}
           <Image
             src={icon}
             alt={label}
@@ -268,10 +317,14 @@ function ActionCard({ label, icon, href, tooltip }: ActionCardProps) {
           />
         </div>
         
-        {/* Label - memento font */}
+        {/* Label - memento font with text shadow for depth */}
         <span 
-          className="relative font-memento font-black text-[22px] tracking-wide mt-3"
-          style={{ color: '#2a1a0f' }}
+          className="relative font-memento font-black text-[22px] tracking-wide mt-3 transition-transform duration-150"
+          style={{ 
+            color: '#2a1a0f',
+            textShadow: '0 2px 4px rgba(0, 0, 0, 0.15), 0 1px 0 rgba(255, 255, 255, 0.5)',
+            transform: isPressed ? 'scale(0.95)' : 'scale(1)',
+          }}
         >
           {label}
         </span>

@@ -43,9 +43,9 @@ export function renderMarkdown(nodes: MarkdownNode[]): React.ReactNode[] {
         // Check if children are list items (they should all be 'list' type nodes)
         if (node.children && node.children.length > 0) {
           return (
-            <ul key={index} className="list-disc list-inside ml-4 mb-2 space-y-1">
+            <ul key={index} className="list-disc pl-6 mb-2 space-y-2">
               {node.children.map((item, itemIndex) => (
-                <li key={itemIndex} className="ml-2">
+                <li key={itemIndex} className="pl-1">
                   {item.children && renderMarkdown(item.children)}
                 </li>
               ))}

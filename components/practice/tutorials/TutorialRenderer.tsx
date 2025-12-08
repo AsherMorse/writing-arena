@@ -146,27 +146,21 @@ export function TutorialRenderer({
                         {children}
                       </p>
                     ),
-                    // Style blockquotes in blue
-                    blockquote: ({ children }) => (
-                      <blockquote className="my-4 border-l-4 border-[#3b82f6] bg-[rgba(59,130,246,0.1)] pl-4 py-3 pr-3 rounded-r-lg">
-                        <div className="text-sm text-[rgba(255,255,255,0.85)] italic">
-                          {children}
-                        </div>
-                      </blockquote>
-                    ),
+                    // Hide blockquotes - they contain duplicate audio/TTS content
+                    blockquote: () => null,
                     // Style lists
                     ul: ({ children }) => (
-                      <ul className="list-disc list-inside space-y-1 text-sm text-[rgba(255,255,255,0.8)] mb-3 ml-2">
+                      <ul className="list-disc pl-6 space-y-2 text-sm text-[rgba(255,255,255,0.8)] mb-3">
                         {children}
                       </ul>
                     ),
                     ol: ({ children }) => (
-                      <ol className="list-decimal list-inside space-y-1 text-sm text-[rgba(255,255,255,0.8)] mb-3 ml-2">
+                      <ol className="list-decimal pl-6 space-y-2 text-sm text-[rgba(255,255,255,0.8)] mb-3">
                         {children}
                       </ol>
                     ),
                     li: ({ children }) => (
-                      <li className="text-sm text-[rgba(255,255,255,0.8)]">
+                      <li className="text-sm text-[rgba(255,255,255,0.8)] pl-1">
                         {children}
                       </li>
                     ),
