@@ -16,9 +16,8 @@ export function RequireAuth({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (!loading) {
       if (!user) {
-        // Public routes that don't require auth
         const publicRoutes = ['/', '/auth', '/fantasy'];
-        const isPublicRoute = publicRoutes.includes(pathname) || pathname.startsWith('/auth');
+        const isPublicRoute = publicRoutes.includes(pathname) || pathname.startsWith('/auth') || pathname.startsWith('/fantasy');
         
         if (!isPublicRoute) {
           logger.debug(LOG_CONTEXTS.AUTH, `Redirecting to auth page from: ${pathname}`);
