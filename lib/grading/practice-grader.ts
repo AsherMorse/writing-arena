@@ -12,6 +12,16 @@ const anthropic = new Anthropic({
 });
 
 /**
+ * @description A previous attempt with content and grading feedback.
+ */
+export interface PreviousAttempt {
+  /** The content the student submitted */
+  content: string;
+  /** The feedback remarks from grading */
+  remarks: { severity: string; concreteProblem: string; callToAction: string }[];
+}
+
+/**
  * @description Input parameters for grading a practice submission.
  */
 export interface GradePracticeInput {
@@ -23,6 +33,8 @@ export interface GradePracticeInput {
   studentAnswer: string;
   /** Student's grade level (default: 5) */
   grade?: number;
+  /** Previous attempts with their feedback (for retry context) */
+  previousAttempts?: PreviousAttempt[];
 }
 
 /**
@@ -34,10 +46,11 @@ export async function gradePracticeSubmission({
   question,
   studentAnswer,
   grade = 9,
+  previousAttempts = [],
 }: GradePracticeInput): Promise<GradingResult> {
   const config = getGraderConfig(lessonId);
   const systemPrompt = buildSystemPrompt(config, grade);
-  const userPrompt = buildUserPrompt(question, studentAnswer, config.questionLabel);
+  const userPrompt = buildUserPrompt(question, studentAnswer, config.questionLabel, previousAttempts);
 
   const response = await anthropic.messages.create({
     model: 'claude-sonnet-4-20250514',

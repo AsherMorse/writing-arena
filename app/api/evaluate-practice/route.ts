@@ -7,6 +7,14 @@ import { NextRequest, NextResponse } from 'next/server';
 import { gradePracticeSubmission } from '@/lib/grading/practice-grader';
 
 /**
+ * @description A previous attempt with content and grading feedback.
+ */
+interface PreviousAttempt {
+  content: string;
+  remarks: { severity: string; concreteProblem: string; callToAction: string }[];
+}
+
+/**
  * @description Request body for practice evaluation.
  */
 interface EvaluatePracticeRequest {
@@ -14,6 +22,7 @@ interface EvaluatePracticeRequest {
   question: string;
   studentAnswer: string;
   grade?: number;
+  previousAttempts?: PreviousAttempt[];
 }
 
 /**
@@ -66,6 +75,7 @@ export async function POST(request: NextRequest) {
       question: body.question,
       studentAnswer: body.studentAnswer,
       grade: body.grade,
+      previousAttempts: body.previousAttempts,
     });
 
     return NextResponse.json(result);

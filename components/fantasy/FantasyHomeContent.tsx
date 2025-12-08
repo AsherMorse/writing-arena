@@ -1,13 +1,15 @@
 /**
- * @fileoverview Fantasy home content with tavern background, rank bar, and action cards.
+ * @fileoverview Fantasy home content with tavern background, player panel, and action cards.
  */
 
 'use client';
 
+import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { UserProfile } from '@/lib/types';
 import { FantasyLogo } from './FantasyLogo';
+import { getGradingSummary } from '@/lib/services/grading-history';
 
 interface FantasyHomeContentProps {
   userProfile: UserProfile;
@@ -37,18 +39,21 @@ const ACTION_CARDS = [
     label: 'PRACTICE',
     icon: '/icons/target-icon.png',
     href: '/fantasy/practice',
+    tooltip: 'Pick a prompt you love and sharpen your writing',
   },
   {
     id: 'battle',
     label: 'BATTLE',
     icon: '/icons/swords-icon.png',
     href: '/ranked',
+    tooltip: 'Face today\'s challenge and earn your place on the Scroll of Champions',
   },
   {
     id: 'study',
     label: 'STUDY',
     icon: '/icons/candle-icon.png',
     href: '/improve/activities',
+    tooltip: 'Close the gaps in your writing armor',
   },
 ] as const;
 
@@ -56,10 +61,19 @@ const ACTION_CARDS = [
  * @description Renders the fantasy home page content with tavern aesthetic.
  */
 export function FantasyHomeContent({ userProfile }: FantasyHomeContentProps) {
-  const { currentRank, rankLP } = userProfile;
+  const { currentRank, rankLP, totalPoints, stats, uid } = userProfile;
+  const [averageScore, setAverageScore] = useState<number | null>(null);
   
-  // Calculate progress percentage (assuming 100 LP per rank tier)
-  const progressPercent = Math.min(100, Math.max(0, rankLP));
+  // Calculate progress percentage (0-100 LP per rank tier)
+  // Safety: if LP somehow exceeds 100, show the remainder
+  const progressPercent = Math.min(100, Math.max(0, rankLP > 100 ? rankLP % 100 : rankLP));
+
+  // Fetch average score from grading history
+  useEffect(() => {
+    getGradingSummary(uid).then((summary) => {
+      setAverageScore(summary.averageScore);
+    });
+  }, [uid]);
 
   return (
     <div className="relative min-h-screen w-full overflow-hidden">
@@ -87,8 +101,14 @@ export function FantasyHomeContent({ userProfile }: FantasyHomeContentProps) {
 
         {/* Main content - centered but shifted up */}
         <div className="flex-1 flex flex-col items-center justify-center w-full -mt-16">
-          {/* Rank progress bar - matches button row width */}
-          <RankBar rank={currentRank} progress={progressPercent} />
+          {/* Player panel with rank and stats */}
+          <PlayerPanel 
+            rank={currentRank} 
+            progress={progressPercent}
+            totalPoints={totalPoints}
+            currentStreak={stats.currentStreak}
+            averageScore={averageScore}
+          />
 
           {/* Action cards - smaller with more spacing to match panel width */}
           <div className="flex gap-8 mt-6">
@@ -98,6 +118,7 @@ export function FantasyHomeContent({ userProfile }: FantasyHomeContentProps) {
                 label={card.label}
                 icon={card.icon}
                 href={card.href}
+                tooltip={card.tooltip}
               />
             ))}
           </div>
@@ -107,53 +128,98 @@ export function FantasyHomeContent({ userProfile }: FantasyHomeContentProps) {
   );
 }
 
-interface RankBarProps {
+interface PlayerPanelProps {
   rank: string;
   progress: number;
+  totalPoints: number;
+  currentStreak: number;
+  averageScore: number | null;
 }
 
 /**
- * @description Renders the rank display bar with progress indicator.
+ * @description Renders the player panel with rank progress and stats.
  */
-function RankBar({ rank, progress }: RankBarProps) {
+function PlayerPanel({ rank, progress, totalPoints, currentStreak, averageScore }: PlayerPanelProps) {
   // Width matches 3 buttons (150px each) + 2 gaps (32px each) = 514px
   return (
     <div 
-      className="relative rounded-lg px-6 py-3 flex items-center gap-4 overflow-hidden"
+      className="relative rounded-lg overflow-hidden"
       style={{
         width: '514px',
         background: 'linear-gradient(to bottom, #f5e6c8, #e8d4a8)',
         boxShadow: '0 4px 12px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.3)',
+        border: '3px solid #3a2010',
       }}
     >
       {/* Paper texture overlay */}
       <PaperTexture className="rounded-lg" />
       
+      {/* Rank row */}
+      <div className="relative px-6 py-3 flex items-center gap-4">
+        <span 
+          className="relative font-memento font-semibold text-lg whitespace-nowrap"
+          style={{ color: '#2a1a0f' }}
+        >
+          Rank: {rank}
+        </span>
+        
+        {/* Progress bar container */}
+        <div 
+          className="relative flex-1 h-5 rounded overflow-hidden"
+          style={{
+            background: '#e0d0b0',
+            boxShadow: 'inset 0 2px 4px rgba(0, 0, 0, 0.15)',
+          }}
+        >
+          {/* Progress fill */}
+          <div 
+            className="h-full rounded transition-all duration-300"
+            style={{
+              width: `${progress}%`,
+              background: 'linear-gradient(to bottom, #d4a84b, #c49a3c)',
+              boxShadow: 'inset 0 1px 0 rgba(255, 255, 255, 0.3)',
+            }}
+          />
+        </div>
+      </div>
+
+      {/* Divider */}
+      <div 
+        className="relative mx-4"
+        style={{ 
+          height: '1px', 
+          background: 'linear-gradient(to right, transparent, rgba(58, 32, 16, 0.25), transparent)' 
+        }}
+      />
+
+      {/* Stats row */}
+      <div className="relative px-6 py-3 flex items-center justify-between">
+        <StatItem label="Points" value={totalPoints.toLocaleString()} />
+        <StatItem label="Streak" value={`${currentStreak} day${currentStreak !== 1 ? 's' : ''}`} />
+        <StatItem label="Avg Score" value={averageScore !== null ? `${averageScore}%` : '—'} />
+      </div>
+    </div>
+  );
+}
+
+/**
+ * @description Renders a single stat item with label and value.
+ */
+function StatItem({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex flex-col items-center">
       <span 
-        className="relative font-memento font-semibold text-lg whitespace-nowrap"
+        className="text-xs uppercase tracking-wide"
+        style={{ color: 'rgba(42, 26, 15, 0.5)' }}
+      >
+        {label}
+      </span>
+      <span 
+        className="font-memento font-semibold text-base"
         style={{ color: '#2a1a0f' }}
       >
-        Rank: {rank}
+        {value}
       </span>
-      
-      {/* Progress bar container */}
-      <div 
-        className="relative flex-1 h-5 rounded overflow-hidden"
-        style={{
-          background: '#e0d0b0',
-          boxShadow: 'inset 0 2px 4px rgba(0, 0, 0, 0.15)',
-        }}
-      >
-        {/* Progress fill */}
-        <div 
-          className="h-full rounded transition-all duration-300"
-          style={{
-            width: `${progress}%`,
-            background: 'linear-gradient(to bottom, #d4a84b, #c49a3c)',
-            boxShadow: 'inset 0 1px 0 rgba(255, 255, 255, 0.3)',
-          }}
-        />
-      </div>
     </div>
   );
 }
@@ -162,44 +228,94 @@ interface ActionCardProps {
   label: string;
   icon: string;
   href: string;
+  tooltip: string;
 }
 
 /**
- * @description Renders a clickable action card with icon.
+ * @description Renders a clickable action card with icon and hover tooltip.
  */
-function ActionCard({ label, icon, href }: ActionCardProps) {
+function ActionCard({ label, icon, href, tooltip }: ActionCardProps) {
+  const [isHovered, setIsHovered] = useState(false);
+
   return (
-    <Link
-      href={href}
-      className="group relative flex flex-col items-center justify-center rounded-xl transition-all duration-200 hover:scale-105 active:scale-95 overflow-hidden"
-      style={{
-        width: '150px',
-        height: '170px',
-        background: 'linear-gradient(to bottom, #f5e6c8, #e8d4a8)',
-        boxShadow: '0 6px 20px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.3)',
-      }}
+    <div 
+      className="relative"
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
     >
-      {/* Paper texture overlay */}
-      <PaperTexture className="rounded-xl" />
-      
-      {/* Icon */}
-      <div className="relative w-20 h-20 transition-transform duration-200">
-        <Image
-          src={icon}
-          alt={label}
-          fill
-          sizes="80px"
-          className="object-contain"
-        />
-      </div>
-      
-      {/* Label - memento font */}
-      <span 
-        className="relative font-memento font-black text-[22px] tracking-wide mt-3"
-        style={{ color: '#2a1a0f' }}
+      <Link
+        href={href}
+        className="group relative flex flex-col items-center justify-center rounded-xl transition-all duration-200 hover:scale-105 active:scale-95 overflow-hidden"
+        style={{
+          width: '150px',
+          height: '170px',
+          background: 'linear-gradient(to bottom, #f5e6c8, #e8d4a8)',
+          boxShadow: '0 6px 20px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.3)',
+          border: '3px solid #3a2010',
+        }}
       >
-        {label}
-      </span>
-    </Link>
+        {/* Paper texture overlay */}
+        <PaperTexture className="rounded-xl" />
+        
+        {/* Icon */}
+        <div className="relative w-20 h-20 transition-transform duration-200">
+          <Image
+            src={icon}
+            alt={label}
+            fill
+            sizes="80px"
+            className="object-contain"
+          />
+        </div>
+        
+        {/* Label - memento font */}
+        <span 
+          className="relative font-memento font-black text-[22px] tracking-wide mt-3"
+          style={{ color: '#2a1a0f' }}
+        >
+          {label}
+        </span>
+      </Link>
+
+      {/* Tooltip - outside Link to avoid overflow:hidden clipping */}
+      {isHovered && (
+        <div 
+          className="absolute top-full left-1/2 -translate-x-1/2 mt-5 px-4 py-2 rounded-lg text-sm text-center z-50 pointer-events-none"
+          style={{
+            background: '#000',
+            color: '#fff',
+            boxShadow: '0 4px 12px rgba(0, 0, 0, 0.4)',
+            width: '240px',
+            whiteSpace: 'normal',
+            outline: '1px solid rgba(255, 255, 255, 0.3)',
+          }}
+        >
+          {/* Arrow pointing up - outline layer */}
+          <div 
+            className="absolute bottom-full left-1/2 -translate-x-1/2"
+            style={{
+              width: 0,
+              height: 0,
+              borderLeft: '9px solid transparent',
+              borderRight: '9px solid transparent',
+              borderBottom: '9px solid rgba(255, 255, 255, 0.3)',
+              marginBottom: '1px',
+            }}
+          />
+          {/* Arrow pointing up - fill layer */}
+          <div 
+            className="absolute bottom-full left-1/2 -translate-x-1/2"
+            style={{
+              width: 0,
+              height: 0,
+              borderLeft: '8px solid transparent',
+              borderRight: '8px solid transparent',
+              borderBottom: '8px solid #000',
+            }}
+          />
+          <span className="font-medium">{tooltip}</span>
+        </div>
+      )}
+    </div>
   );
 }

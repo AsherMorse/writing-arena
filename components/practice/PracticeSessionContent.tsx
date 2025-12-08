@@ -15,7 +15,6 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import {
   usePracticeLesson,
-  formatTimeRemaining,
   getPhaseName,
   getPhaseNumber,
 } from '@/lib/hooks/usePracticeLesson';
@@ -27,9 +26,27 @@ import { usePastePrevention } from '@/lib/hooks/usePastePrevention';
 import { SkillFocusBanner } from './SkillFocusBanner';
 import { ExampleSidebar } from './ExampleSidebar';
 import { PracticeReviewPhase } from './PracticeReviewPhase';
+import { SPOEditor, SPOData, createEmptySPO, spoToText, countSPOWords } from './SPOEditor';
+import { PTOEditor, PTOData, createEmptyPTO, ptoToText, countPTOWords } from './PTOEditor';
 import { LoadingState } from '@/components/shared/LoadingState';
 import { ErrorState } from '@/components/shared/ErrorState';
 import { GradingResult, GradingRemark } from '@/lib/constants/grader-configs';
+
+/** Editor type for different lesson types */
+type EditorType = 'freeform' | 'spo' | 'pto';
+
+/** Map lesson IDs to their editor types */
+const LESSON_EDITOR_MAP: Record<string, EditorType> = {
+  'writing-spos': 'spo',
+  'pre-transition-outline': 'pto',
+};
+
+/**
+ * @description Get the editor type for a lesson.
+ */
+function getEditorType(lessonId: string): EditorType {
+  return LESSON_EDITOR_MAP[lessonId] || 'freeform';
+}
 
 interface PracticeSessionContentProps {
   lessonId: string;
@@ -56,20 +73,25 @@ export default function PracticeSessionContent({ lessonId }: PracticeSessionCont
     currentPrompt,
     reviewExamples,
     currentPhase,
-    timeRemaining,
-    isTimerRunning,
     isLoading,
     error,
     startSession,
     nextPhase,
-    pauseTimer,
   } = usePracticeLesson(lessonId);
 
   const { recordAttempt } = useLessonMastery(lessonId);
 
   const [sessionPhase, setSessionPhase] = useState<SessionPhase>('ready');
+  // Freeform text state
   const [writingContent, setWritingContent] = useState('');
   const [revisedContent, setRevisedContent] = useState('');
+  // Structured editor state (SPO)
+  const [spoData, setSpoData] = useState<SPOData>(() => createEmptySPO(3));
+  const [revisedSpoData, setRevisedSpoData] = useState<SPOData>(() => createEmptySPO(3));
+  // Structured editor state (PTO)
+  const [ptoData, setPtoData] = useState<PTOData>(() => createEmptyPTO(2, 3));
+  const [revisedPtoData, setRevisedPtoData] = useState<PTOData>(() => createEmptyPTO(2, 3));
+  
   const [wordCount, setWordCount] = useState(0);
   const [revisedWordCount, setRevisedWordCount] = useState(0);
   const [reviewFeedback, setReviewFeedback] = useState<ReviewFeedback[]>([]);
@@ -78,10 +100,24 @@ export default function PracticeSessionContent({ lessonId }: PracticeSessionCont
   const [writeRemarks, setWriteRemarks] = useState<GradingRemark[]>([]);
   const [reviseRemarks, setReviseRemarks] = useState<GradingRemark[]>([]);
   const [isGrading, setIsGrading] = useState(false);
+  
+  // Blocking grading state - when student needs to fix errors before advancing
+  const [isBlocked, setIsBlocked] = useState(false);
+  const [blockingRemarks, setBlockingRemarks] = useState<GradingRemark[]>([]);
+  const [blockingSolution, setBlockingSolution] = useState<string>('');
+  const [attemptCount, setAttemptCount] = useState(0);
+  
+  // Previous attempts tracking - for context in retry grading
+  const [previousAttempts, setPreviousAttempts] = useState<
+    { content: string; remarks: GradingRemark[] }[]
+  >([]);
 
   const debouncedContent = useDebounce(writingContent, 300);
   const debouncedRevisedContent = useDebounce(revisedContent, 300);
   const { showPasteWarning, handlePaste, handleCut } = usePastePrevention({ warningDuration: 2500 });
+
+  // Determine editor type for this lesson
+  const editorType = getEditorType(lessonId);
 
   // Memoize review sequence (instruction cards + examples) so they don't regenerate on every timer tick
   const reviewItems = useMemo(
@@ -89,22 +125,27 @@ export default function PracticeSessionContent({ lessonId }: PracticeSessionCont
     [lessonId]
   );
 
-  // Update word counts
+  // Update word counts based on editor type
   useEffect(() => {
-    setWordCount(countWords(debouncedContent));
-  }, [debouncedContent]);
-
-  useEffect(() => {
-    setRevisedWordCount(countWords(debouncedRevisedContent));
-  }, [debouncedRevisedContent]);
-
-  // Handle time running out
-  // eslint-disable-next-line react-hooks/exhaustive-deps -- handlePhaseComplete intentionally omitted to prevent infinite loops
-  useEffect(() => {
-    if (timeRemaining === 0 && isTimerRunning === false && sessionPhase !== 'ready') {
-      handlePhaseComplete();
+    if (editorType === 'spo') {
+      setWordCount(countSPOWords(spoData));
+    } else if (editorType === 'pto') {
+      setWordCount(countPTOWords(ptoData));
+    } else {
+      setWordCount(countWords(debouncedContent));
     }
-  }, [timeRemaining, isTimerRunning, sessionPhase]);
+  }, [editorType, debouncedContent, spoData, ptoData]);
+
+  useEffect(() => {
+    if (editorType === 'spo') {
+      setRevisedWordCount(countSPOWords(revisedSpoData));
+    } else if (editorType === 'pto') {
+      setRevisedWordCount(countPTOWords(revisedPtoData));
+    } else {
+      setRevisedWordCount(countWords(debouncedRevisedContent));
+    }
+  }, [editorType, debouncedRevisedContent, revisedSpoData, revisedPtoData]);
+
 
   /**
    * @description Start the practice session.
@@ -116,8 +157,34 @@ export default function PracticeSessionContent({ lessonId }: PracticeSessionCont
   }
 
   /**
+   * @description Get the current content as text (handles structured editors).
+   */
+  function getCurrentContentAsText(): string {
+    if (editorType === 'spo') return spoToText(spoData);
+    if (editorType === 'pto') return ptoToText(ptoData);
+    return writingContent;
+  }
+
+  /**
+   * @description Get the revised content as text (handles structured editors).
+   */
+  function getRevisedContentAsText(): string {
+    if (editorType === 'spo') return spoToText(revisedSpoData);
+    if (editorType === 'pto') return ptoToText(revisedPtoData);
+    return revisedContent;
+  }
+
+  /**
+   * @description Check if grading result has any blocking errors.
+   */
+  function hasBlockingErrors(remarks: GradingRemark[]): boolean {
+    return remarks.some(r => r.severity === 'error');
+  }
+
+  /**
    * @description Handle phase completion and transitions.
    * Order: review → write → revise
+   * Write phase blocks advancement if there are errors.
    */
   async function handlePhaseComplete() {
     if (sessionPhase === 'reviewPhase') {
@@ -125,28 +192,69 @@ export default function PracticeSessionContent({ lessonId }: PracticeSessionCont
       setSessionPhase('writePhase');
       nextPhase();
     } else if (sessionPhase === 'writePhase') {
-      // Write complete → Grade writing, then move to Revise phase
+      // Write complete → Grade writing
       setIsGrading(true);
+      setAttemptCount(prev => prev + 1);
+      const contentToGrade = getCurrentContentAsText();
+      
       try {
-        const result = await gradeSubmission(writingContent);
+        const result = await gradeSubmission(contentToGrade);
         setWriteScore(result.score);
         setWriteRemarks(result.remarks);
+        
+        // Check if there are blocking errors
+        if (hasBlockingErrors(result.remarks)) {
+          // Track this attempt for context in future grading
+          setPreviousAttempts(prev => [
+            ...prev,
+            { content: contentToGrade, remarks: result.remarks },
+          ]);
+          
+          // Block advancement - show feedback and let student retry
+          setIsBlocked(true);
+          setBlockingRemarks(result.remarks);
+          setBlockingSolution(result.solution);
+          setIsGrading(false);
+          return; // Don't advance to Revise phase
+        }
+        
+        // No blocking errors - can advance (nits are OK)
+        setIsBlocked(false);
+        setBlockingRemarks([]);
+        setBlockingSolution('');
       } catch (error) {
         // TEMPORARY: Debug logging for grading failures
         console.error('[DEBUG] Write phase grading failed:', error);
-        setWriteScore(0); // Don't reward failed grading
+        setWriteScore(0);
         setWriteRemarks([]);
+        // On grading failure, allow advancement to avoid blocking forever
       }
       setIsGrading(false);
       
       // Pre-fill revised content with original
-      setRevisedContent(writingContent);
+      if (editorType === 'spo') {
+        setRevisedSpoData({ ...spoData });
+      } else if (editorType === 'pto') {
+        setRevisedPtoData({ ...ptoData });
+      } else {
+        setRevisedContent(writingContent);
+      }
       setSessionPhase('revisePhase');
       nextPhase();
     } else if (sessionPhase === 'revisePhase') {
       // Revise complete → Submit session
       await handleSubmitSession();
     }
+  }
+
+  /**
+   * @description Handle retry after blocking feedback.
+   * Clears feedback and lets student continue editing.
+   */
+  function handleRetry() {
+    setIsBlocked(false);
+    setBlockingRemarks([]);
+    setBlockingSolution('');
   }
 
   /**
@@ -177,6 +285,7 @@ export default function PracticeSessionContent({ lessonId }: PracticeSessionCont
       lessonId,
       question: currentPrompt.prompt + (currentPrompt.nounPhrase || ''),
       studentAnswer: content,
+      previousAttempts: previousAttempts.length > 0 ? previousAttempts : undefined,
     };
 
     // TEMPORARY: Debug logging for grading request
@@ -215,10 +324,11 @@ export default function PracticeSessionContent({ lessonId }: PracticeSessionCont
 
     try {
       // Grade revised content
+      const revisedContentText = getRevisedContentAsText();
       let reviseScore = 0;
       let reviseRemarksLocal: GradingRemark[] = [];
       try {
-        const result = await gradeSubmission(revisedContent);
+        const result = await gradeSubmission(revisedContentText);
         reviseScore = result.score;
         reviseRemarksLocal = result.remarks;
         setReviseRemarks(result.remarks);
@@ -285,7 +395,6 @@ export default function PracticeSessionContent({ lessonId }: PracticeSessionCont
    * @description Manual submit button handler.
    */
   function handleManualSubmit() {
-    pauseTimer();
     handlePhaseComplete();
   }
 
@@ -325,13 +434,13 @@ export default function PracticeSessionContent({ lessonId }: PracticeSessionCont
             {/* Phase Info - Order: Review → Write → Revise */}
             <div className="mt-6 grid gap-4 text-sm text-[rgba(255,255,255,0.5)] sm:grid-cols-3">
               <div className="rounded-[10px] border border-[rgba(255,255,255,0.05)] bg-[#101012] px-4 py-3">
-                👀 Review ({lesson.phaseDurations.reviewPhase} min)
+                👀 Review
               </div>
               <div className="rounded-[10px] border border-[rgba(255,255,255,0.05)] bg-[#101012] px-4 py-3">
-                ✍️ Write ({lesson.phaseDurations.writePhase} min)
+                ✍️ Write
               </div>
               <div className="rounded-[10px] border border-[rgba(255,255,255,0.05)] bg-[#101012] px-4 py-3">
-                ✨ Revise ({lesson.phaseDurations.revisePhase} min)
+                ✨ Revise
               </div>
             </div>
 
@@ -370,7 +479,6 @@ export default function PracticeSessionContent({ lessonId }: PracticeSessionCont
             <PracticeReviewPhase
               reviewItems={reviewItems}
               onComplete={handleReviewComplete}
-              timeRemaining={timeRemaining}
             />
           </div>
         </main>
@@ -380,30 +488,32 @@ export default function PracticeSessionContent({ lessonId }: PracticeSessionCont
 
   // Write & Revise phases: Writing UI
   const isRevisionPhase = sessionPhase === 'revisePhase';
+  const currentWordCount = isRevisionPhase ? revisedWordCount : wordCount;
+  
+  // For freeform editor
   const currentContent = isRevisionPhase ? revisedContent : writingContent;
   const setCurrentContent = isRevisionPhase ? setRevisedContent : setWritingContent;
-  const currentWordCount = isRevisionPhase ? revisedWordCount : wordCount;
+  
+  // For SPO editor
+  const currentSpoData = isRevisionPhase ? revisedSpoData : spoData;
+  const setCurrentSpoData = isRevisionPhase ? setRevisedSpoData : setSpoData;
+  
+  // For PTO editor
+  const currentPtoData = isRevisionPhase ? revisedPtoData : ptoData;
+  const setCurrentPtoData = isRevisionPhase ? setRevisedPtoData : setPtoData;
 
   return (
     <div className="min-h-screen bg-[#101012] text-[rgba(255,255,255,0.8)]">
       {/* Header */}
       <header className="sticky top-0 z-20 border-b border-[rgba(255,255,255,0.05)] bg-[#101012]/90 backdrop-blur">
         <div className="mx-auto flex max-w-6xl flex-col gap-4 px-6 py-5 lg:flex-row lg:items-center lg:justify-between">
-          <div className="flex items-center gap-4">
-            <div
-              className="flex h-14 w-14 items-center justify-center rounded-[14px] border border-[rgba(255,255,255,0.05)] bg-[rgba(255,255,255,0.025)] font-mono text-xl font-medium"
-              style={{ color: currentPhaseColor }}
-            >
-              {formatTimeRemaining(timeRemaining)}
+          <div>
+            <div className="text-[10px] font-semibold uppercase tracking-wider text-[rgba(255,255,255,0.4)]">
+              Phase {getPhaseNumber(currentPhase)}: {getPhaseName(currentPhase)}
             </div>
-            <div>
-              <div className="text-[10px] font-semibold uppercase tracking-wider text-[rgba(255,255,255,0.4)]">
-                Phase {getPhaseNumber(currentPhase)}: {getPhaseName(currentPhase)}
-              </div>
-              <p className="text-sm font-medium" style={{ color: currentPhaseColor }}>
-                {isRevisionPhase ? 'Improve your response' : lesson.instruction}
-              </p>
-            </div>
+            <p className="text-sm font-medium" style={{ color: currentPhaseColor }}>
+              {isRevisionPhase ? 'Improve your response' : lesson.instruction}
+            </p>
           </div>
           <div className="flex items-center gap-3 text-sm">
             <div className="rounded-[20px] border border-[rgba(255,255,255,0.05)] bg-[#101012] px-3 py-1 text-[rgba(255,255,255,0.5)]">
@@ -417,16 +527,6 @@ export default function PracticeSessionContent({ lessonId }: PracticeSessionCont
             </button>
           </div>
         </div>
-        {/* Progress Bar */}
-        <div className="mx-auto h-[6px] max-w-6xl rounded-[3px] bg-[rgba(255,255,255,0.05)]">
-          <div
-            className="h-full rounded-[3px] transition-all"
-            style={{
-              width: `${(timeRemaining / (lesson.phaseDurations[currentPhase as keyof typeof lesson.phaseDurations] * 60)) * 100}%`,
-              background: currentPhaseColor,
-            }}
-          />
-        </div>
       </header>
 
       <main className="mx-auto max-w-6xl px-6 py-10">
@@ -437,15 +537,29 @@ export default function PracticeSessionContent({ lessonId }: PracticeSessionCont
 
             {/* Writing Editor */}
             <div className="relative rounded-[14px] border border-[rgba(255,255,255,0.1)] bg-white p-8 text-[#1b1f24] shadow-xl">
-              <textarea
-                value={currentContent}
-                onChange={e => setCurrentContent(e.target.value)}
-                onPaste={handlePaste}
-                onCut={handleCut}
-                placeholder={isRevisionPhase ? 'Revise your response here...' : 'Start writing here...'}
-                className="h-[400px] w-full resize-none bg-transparent text-base leading-relaxed focus:outline-none"
-                autoFocus
-              />
+              {editorType === 'spo' ? (
+                <SPOEditor
+                  value={currentSpoData}
+                  onChange={setCurrentSpoData}
+                  isRevision={isRevisionPhase}
+                />
+              ) : editorType === 'pto' ? (
+                <PTOEditor
+                  value={currentPtoData}
+                  onChange={setCurrentPtoData}
+                  isRevision={isRevisionPhase}
+                />
+              ) : (
+                <textarea
+                  value={currentContent}
+                  onChange={e => setCurrentContent(e.target.value)}
+                  onPaste={handlePaste}
+                  onCut={handleCut}
+                  placeholder={isRevisionPhase ? 'Revise your response here...' : 'Start writing here...'}
+                  className="h-[400px] w-full resize-none bg-transparent text-base leading-relaxed focus:outline-none"
+                  autoFocus
+                />
+              )}
               {showPasteWarning && (
                 <div className="absolute inset-x-0 top-6 mx-auto w-max rounded-[20px] border border-[rgba(255,144,48,0.3)] bg-[rgba(255,144,48,0.15)] px-4 py-2 text-xs font-medium text-[#ff9030] shadow-lg">
                   Paste disabled during practice
@@ -453,22 +567,80 @@ export default function PracticeSessionContent({ lessonId }: PracticeSessionCont
               )}
             </div>
 
+            {/* Blocking Feedback - shown when student needs to fix errors */}
+            {isBlocked && !isRevisionPhase && blockingRemarks.length > 0 && (
+              <div className="space-y-4">
+                {/* Feedback Banner */}
+                <div className="rounded-[14px] border border-[rgba(255,95,143,0.3)] bg-[rgba(255,95,143,0.08)] p-6">
+                  <div className="flex items-center gap-2 text-sm font-medium text-[#ff5f8f]">
+                    <span>⚠️</span>
+                    <span>Please fix the following before continuing</span>
+                    <span className="ml-auto text-xs text-[rgba(255,255,255,0.4)]">
+                      Attempt {attemptCount}
+                    </span>
+                  </div>
+                  
+                  <ul className="mt-4 space-y-4">
+                    {blockingRemarks.map((remark, idx) => (
+                      <li key={idx} className="text-sm">
+                        <div className="flex items-start gap-3">
+                          <span className={remark.severity === 'error' ? 'text-[#ff5f8f]' : 'text-[#ff9030]'}>
+                            {remark.severity === 'error' ? '❌' : '💡'}
+                          </span>
+                          <div className="flex-1">
+                            <p className="font-medium text-white">{remark.concreteProblem}</p>
+                            <p className="mt-1 text-[rgba(255,255,255,0.6)]">{remark.callToAction}</p>
+                          </div>
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+
+                  {/* Model Solution (if available) */}
+                  {blockingSolution && (
+                    <details className="mt-4">
+                      <summary className="cursor-pointer text-xs text-[rgba(255,255,255,0.5)] hover:text-white">
+                        💡 Show example solution
+                      </summary>
+                      <pre className="mt-2 whitespace-pre-wrap rounded-[8px] bg-[rgba(0,0,0,0.2)] p-3 text-xs text-[rgba(255,255,255,0.7)]">
+                        {blockingSolution}
+                      </pre>
+                    </details>
+                  )}
+
+                  {/* Try Again Button */}
+                  <button
+                    onClick={handleRetry}
+                    className="mt-6 w-full rounded-[10px] border border-[#00e5e5] bg-[#00e5e5] py-3 text-sm font-medium text-[#101012] transition hover:bg-[#33ebeb]"
+                  >
+                    ✏️ Edit & Try Again
+                  </button>
+                </div>
+              </div>
+            )}
+
             {/* Revise Phase: Show original response and feedback for revision */}
-            {isRevisionPhase && writingContent && (
+            {isRevisionPhase && (editorType !== 'freeform' || writingContent) && (
               <div className="space-y-4">
                 {/* Original Response */}
-              <div className="rounded-[10px] border border-[rgba(255,255,255,0.05)] bg-[rgba(255,255,255,0.025)] p-4">
-                <div className="text-[10px] font-semibold uppercase tracking-wider text-[rgba(255,255,255,0.4)]">
-                  Your original response
-                </div>
-                <p className="mt-2 text-sm text-[rgba(255,255,255,0.6)]">{writingContent}</p>
+                <div className="rounded-[10px] border border-[rgba(255,255,255,0.05)] bg-[rgba(255,255,255,0.025)] p-4">
+                  <div className="text-[10px] font-semibold uppercase tracking-wider text-[rgba(255,255,255,0.4)]">
+                    Your original response
+                  </div>
+                  <pre className="mt-2 whitespace-pre-wrap text-sm text-[rgba(255,255,255,0.6)]">
+                    {editorType === 'spo' 
+                      ? spoToText(spoData) 
+                      : editorType === 'pto' 
+                        ? ptoToText(ptoData) 
+                        : writingContent}
+                  </pre>
                   {writeScore !== null && (
-                  <div className="mt-3 flex items-center gap-2 text-xs">
+                    <div className="mt-3 flex items-center gap-2 text-xs">
                       <span className="text-[rgba(255,255,255,0.4)]">Write Phase Score:</span>
-                    <span
-                      className="font-medium"
+                      <span
+                        className="font-medium"
                         style={{ color: writeScore >= 90 ? '#00d492' : writeScore >= 70 ? '#00e5e5' : '#ff9030' }}
-                    >
+                      >
                         {writeScore}%
                       </span>
                     </div>
@@ -487,7 +659,7 @@ export default function PracticeSessionContent({ lessonId }: PracticeSessionCont
                           <div className="flex items-start gap-2">
                             <span className={remark.severity === 'error' ? 'text-[#ff5f8f]' : 'text-[#ff9030]'}>
                               {remark.severity === 'error' ? '⚠️' : '💡'}
-                    </span>
+                            </span>
                             <div>
                               <p className="text-[rgba(255,255,255,0.7)]">{remark.concreteProblem}</p>
                               <p className="mt-1 text-xs text-[rgba(255,255,255,0.5)]">{remark.callToAction}</p>

@@ -87,18 +87,51 @@ Keep feedback age-appropriate and encouraging. Limit to the 3 most important iss
 }
 
 /**
+ * @description A previous attempt with content and grading feedback.
+ */
+interface PreviousAttempt {
+  content: string;
+  remarks: { severity: string; concreteProblem: string; callToAction: string }[];
+}
+
+/**
  * @description Builds the user prompt with the question and student answer.
+ * Includes previous attempts context if this is a retry.
  */
 export function buildUserPrompt(
   question: string,
   studentAnswer: string,
-  questionLabel?: string
+  questionLabel?: string,
+  previousAttempts: PreviousAttempt[] = []
 ): string {
   const label = questionLabel || 'Question';
-  return `${label}: ${question}
-
-Student Answer: ${studentAnswer}
-
-Please evaluate this answer using the submit_grading_result tool.`;
+  
+  let prompt = `${label}: ${question}\n\n`;
+  
+  // Include previous attempts context if this is a retry
+  if (previousAttempts.length > 0) {
+    prompt += `## Previous Attempts\n\n`;
+    prompt += `The student has attempted this ${previousAttempts.length} time(s) before. `;
+    prompt += `Consider what they've already tried and avoid repeating the same feedback.\n\n`;
+    
+    previousAttempts.forEach((attempt, idx) => {
+      prompt += `### Attempt ${idx + 1}\n`;
+      prompt += `**Submitted**: ${attempt.content}\n`;
+      if (attempt.remarks.length > 0) {
+        prompt += `**Feedback given**:\n`;
+        attempt.remarks.forEach(r => {
+          prompt += `- [${r.severity}] ${r.concreteProblem}\n`;
+        });
+      }
+      prompt += `\n`;
+    });
+    
+    prompt += `### Current Attempt (${previousAttempts.length + 1})\n`;
+  }
+  
+  prompt += `Student Answer: ${studentAnswer}\n\n`;
+  prompt += `Please evaluate this answer using the submit_grading_result tool.`;
+  
+  return prompt;
 }
 

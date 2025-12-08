@@ -121,7 +121,7 @@ export default function LessonPage({ params }: LessonPageProps) {
         )}
 
         {/* Goal & Instructions */}
-        <section className="mt-6 rounded-[14px] border border-[rgba(255,255,255,0.05)] bg-[rgba(255,255,255,0.025)] p-6">
+        {/* <section className="mt-6 rounded-[14px] border border-[rgba(255,255,255,0.05)] bg-[rgba(255,255,255,0.025)] p-6">
           <h2 className="font-semibold">Learning Goal</h2>
           <p className="mt-2 text-sm leading-relaxed text-[rgba(255,255,255,0.6)]">
             {graderConfig.goalForThisExercise.primaryGoal}
@@ -131,7 +131,7 @@ export default function LessonPage({ params }: LessonPageProps) {
           <p className="mt-2 text-sm leading-relaxed text-[rgba(255,255,255,0.5)]">
             {graderConfig.howTheActivityWorks}
           </p>
-        </section>
+        </section> */}
 
         {/* Session Phases - Order: Review → Write → Revise */}
         <section className="mt-6 rounded-[14px] border border-[rgba(255,255,255,0.05)] bg-[rgba(255,255,255,0.025)] p-6">

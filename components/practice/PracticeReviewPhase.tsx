@@ -14,8 +14,6 @@ interface PracticeReviewPhaseProps {
   reviewItems: ReviewItem[];
   /** Callback when review phase is complete */
   onComplete: (feedback: ReviewFeedback[]) => void;
-  /** Time remaining in seconds */
-  timeRemaining: number;
 }
 
 interface ReviewFeedback {
@@ -32,7 +30,6 @@ interface ReviewFeedback {
 export function PracticeReviewPhase({
   reviewItems,
   onComplete,
-  timeRemaining,
 }: PracticeReviewPhaseProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [feedback, setFeedback] = useState<ReviewFeedback[]>([]);
@@ -80,14 +77,6 @@ export function PracticeReviewPhase({
     }
   }
 
-  /**
-   * @description Format seconds as MM:SS.
-   */
-  function formatTime(seconds: number): string {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${mins}:${secs.toString().padStart(2, '0')}`;
-  }
 
   // Calculate progress percentage
   const progressPercent = ((currentIndex + (hasAnsweredCurrent || currentItem?.type === 'instruction' ? 1 : 0)) / reviewItems.length) * 100;
@@ -106,10 +95,6 @@ export function PracticeReviewPhase({
               : `Example ${currentExampleIndex} of ${exampleItems.length}`
             }
           </span>
-        </div>
-        <div className="flex items-center gap-2 text-sm">
-          <span className="text-[rgba(255,255,255,0.4)]">⏱️</span>
-          <span className="font-mono text-[#ff9030]">{formatTime(timeRemaining)}</span>
         </div>
       </div>
 
@@ -231,13 +216,13 @@ function ExampleCard({
         {/* Question */}
         <div className="mt-4 rounded-[10px] border border-[rgba(255,255,255,0.05)] bg-[#101012] p-4">
           <div className="text-xs text-[rgba(255,255,255,0.4)]">Prompt:</div>
-        <p className="mt-1 text-sm text-white">{example.question}</p>
+        <p className="mt-1 text-sm text-white whitespace-pre-line">{example.question}</p>
         </div>
 
         {/* AI Answer */}
         <div className="mt-4 rounded-[10px] border border-[rgba(0,229,229,0.15)] bg-[rgba(0,229,229,0.05)] p-4">
           <div className="text-xs text-[#00e5e5]">AI Answer:</div>
-          <p className="mt-1 text-base font-medium text-white">
+          <p className="mt-1 text-base font-medium text-white whitespace-pre-line">
           &quot;{example.answer}&quot;
           </p>
         </div>

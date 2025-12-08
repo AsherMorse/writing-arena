@@ -68,7 +68,7 @@ export function ExampleSidebar({ lesson, collapsed = false }: ExampleSidebarProp
         <div className="mt-3 space-y-3">
           {positiveExamples.map((ex, i) => (
             <div key={i} className="text-xs">
-              <p className="italic text-[rgba(255,255,255,0.7)]">&quot;{ex.example}&quot;</p>
+              <p className="italic text-[rgba(255,255,255,0.7)] whitespace-pre-line">&quot;{ex.example}&quot;</p>
               <p className="mt-1 text-[rgba(255,255,255,0.4)]">{ex.explainer}</p>
             </div>
           ))}
@@ -85,7 +85,7 @@ export function ExampleSidebar({ lesson, collapsed = false }: ExampleSidebarProp
           <div className="mt-3 space-y-3">
             {negativeExamples.map((ex, i) => (
               <div key={i} className="text-xs">
-                <p className="italic text-[rgba(255,255,255,0.7)]">&quot;{ex.example}&quot;</p>
+                <p className="italic text-[rgba(255,255,255,0.7)] whitespace-pre-line">&quot;{ex.example}&quot;</p>
                 <p className="mt-1 text-[rgba(255,255,255,0.4)]">{ex.explainer}</p>
               </div>
             ))}
