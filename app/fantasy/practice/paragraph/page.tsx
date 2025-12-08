@@ -3,6 +3,7 @@
 import { useState, useCallback, useEffect } from 'react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
+import { useAuth } from '@/contexts/AuthContext';
 import { FantasyButton } from '@/components/fantasy';
 import { Timer } from '../../_components/Timer';
 import { WritingEditor } from '../../_components/WritingEditor';
@@ -13,6 +14,10 @@ import { ScoreDisplay } from '../../_components/ScoreDisplay';
 import { LoadingOverlay } from '../../_components/LoadingOverlay';
 import { TopicCloud } from '../../_components/TopicCloud';
 import { getRandomTopics, getRandomTopic, type PracticeTopic } from '../../_lib/practice-topics';
+import {
+  createPracticeSubmission,
+  updatePracticeSubmission,
+} from '@/lib/services/practice-submissions';
 import type { GradeResponse } from '../../_lib/grading';
 
 type Phase = 'prompt' | 'write' | 'feedback' | 'revise' | 'results';
@@ -24,6 +29,7 @@ const MAX_TOPIC_LENGTH = 20;
 
 export default function ParagraphPracticePage() {
   const router = useRouter();
+  const { user } = useAuth();
   const [phase, setPhase] = useState<Phase>('prompt');
   const [displayedTopics, setDisplayedTopics] = useState<PracticeTopic[]>(() => getRandomTopics(9));
   const [selectedTopic, setSelectedTopic] = useState<PracticeTopic | null>(null);
@@ -37,6 +43,7 @@ export default function ParagraphPracticePage() {
   const [isGrading, setIsGrading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [hasUnsavedWork, setHasUnsavedWork] = useState(false);
+  const [submissionId, setSubmissionId] = useState<string | null>(null);
 
   useEffect(() => {
     setHasUnsavedWork(phase === 'write' || phase === 'revise');
@@ -124,12 +131,13 @@ export default function ParagraphPracticePage() {
     setError(null);
 
     try {
+      const promptText = getPromptText();
       const res = await fetch('/fantasy/api/grade', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           content,
-          prompt: getPromptText(),
+          prompt: promptText,
           type: 'paragraph',
         }),
       });
@@ -140,6 +148,21 @@ export default function ParagraphPracticePage() {
       }
 
       const data: GradeResponse = await res.json();
+
+      if (user) {
+        const topic = selectedTopic?.label || customTopic.trim();
+        const newSubmissionId = await createPracticeSubmission(
+          user.uid,
+          'paragraph',
+          topic,
+          promptText,
+          content,
+          data.result.scores.percentage,
+          data.result as unknown as Record<string, unknown>
+        );
+        setSubmissionId(newSubmissionId);
+      }
+
       setOriginalContent(content);
       setOriginalResponse(data);
       setResponse(data);
@@ -149,7 +172,7 @@ export default function ParagraphPracticePage() {
     } finally {
       setIsGrading(false);
     }
-  }, [selectedTopic, customTopic, content]);
+  }, [selectedTopic, customTopic, content, user]);
 
   const handleTimerComplete = useCallback(() => {
     if (!content.trim()) {
@@ -194,6 +217,16 @@ export default function ParagraphPracticePage() {
       }
 
       const data: GradeResponse = await res.json();
+
+      if (submissionId) {
+        await updatePracticeSubmission(
+          submissionId,
+          content,
+          data.result.scores.percentage,
+          data.result as unknown as Record<string, unknown>
+        );
+      }
+
       setResponse(data);
       setPhase('results');
     } catch (err) {
@@ -201,7 +234,7 @@ export default function ParagraphPracticePage() {
     } finally {
       setIsGrading(false);
     }
-  }, [selectedTopic, customTopic, content, originalResponse, originalContent]);
+  }, [selectedTopic, customTopic, content, originalResponse, originalContent, submissionId]);
 
   const reset = useCallback(() => {
     setPhase('prompt');
@@ -214,6 +247,7 @@ export default function ParagraphPracticePage() {
     setOriginalResponse(null);
     setResponse(null);
     setError(null);
+    setSubmissionId(null);
   }, []);
 
   const canSubmit = content.trim().length > 0 && !isGrading;

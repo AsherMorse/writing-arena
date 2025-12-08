@@ -75,6 +75,22 @@ export interface RankedSubmission {
   completedAt?: Timestamp;
 }
 
+export interface PracticeSubmission {
+  id: string;
+  userId: string;
+  type: 'paragraph' | 'essay';
+  topic: string;
+  prompt: string;
+  originalContent: string;
+  originalScore: number;
+  originalFeedback: Record<string, unknown>;
+  revisedContent?: string;
+  revisedScore?: number;
+  revisedFeedback?: Record<string, unknown>;
+  submittedAt: Timestamp;
+  completedAt?: Timestamp;
+}
+
 export interface AIStudent {
   id: string;
   displayName: string;

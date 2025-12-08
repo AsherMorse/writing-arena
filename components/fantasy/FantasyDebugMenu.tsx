@@ -4,7 +4,8 @@ import { useState } from 'react';
 import { usePathname } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { resetUserProgress } from '@/lib/services/ranked-progress';
-import { deleteAllUserSubmissions } from '@/lib/services/ranked-submissions';
+import { deleteAllUserSubmissions as deleteAllRankedSubmissions } from '@/lib/services/ranked-submissions';
+import { deleteAllUserPracticeSubmissions } from '@/lib/services/practice-submissions';
 
 export function FantasyDebugMenu() {
   const pathname = usePathname();
@@ -34,16 +35,29 @@ export function FantasyDebugMenu() {
     }
   };
 
-  const handleDeleteSubmissions = async () => {
+  const handleDeleteRankedSubmissions = async () => {
     if (!user) {
       showStatus('Not logged in');
       return;
     }
     try {
-      const count = await deleteAllUserSubmissions(user.uid);
-      showStatus(`Deleted ${count} submission(s)! Refresh.`);
+      const count = await deleteAllRankedSubmissions(user.uid);
+      showStatus(`Deleted ${count} ranked sub(s)! Refresh.`);
     } catch (err) {
-      showStatus('Failed to delete submissions');
+      showStatus('Failed to delete');
+    }
+  };
+
+  const handleDeletePracticeSubmissions = async () => {
+    if (!user) {
+      showStatus('Not logged in');
+      return;
+    }
+    try {
+      const count = await deleteAllUserPracticeSubmissions(user.uid);
+      showStatus(`Deleted ${count} practice sub(s)!`);
+    } catch (err) {
+      showStatus('Failed to delete');
     }
   };
 
@@ -54,8 +68,9 @@ export function FantasyDebugMenu() {
     }
     try {
       await resetUserProgress(user.uid);
-      const count = await deleteAllUserSubmissions(user.uid);
-      showStatus(`Full reset! Deleted ${count} sub(s). Refresh.`);
+      const rankedCount = await deleteAllRankedSubmissions(user.uid);
+      const practiceCount = await deleteAllUserPracticeSubmissions(user.uid);
+      showStatus(`Reset! Deleted ${rankedCount + practiceCount} subs. Refresh.`);
     } catch (err) {
       showStatus('Failed to reset');
     }
@@ -69,7 +84,8 @@ export function FantasyDebugMenu() {
   const buttons = [
     { label: 'Full Reset', action: handleFullReset },
     { label: 'Reset Progress', action: handleResetProgress },
-    { label: 'Delete Submissions', action: handleDeleteSubmissions },
+    { label: 'Del Ranked', action: handleDeleteRankedSubmissions },
+    { label: 'Del Practice', action: handleDeletePracticeSubmissions },
     { label: 'Fill Editor', action: () => handleDispatchEvent('debug-fill-editor', 'Fill Editor') },
   ];
 
