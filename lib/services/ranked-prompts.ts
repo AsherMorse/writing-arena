@@ -108,7 +108,7 @@ export async function getPromptByDate(
 export async function getTodaysPrompt(
   level: 'paragraph' | 'essay' = 'paragraph'
 ): Promise<RankedPrompt | null> {
-  const { getDebugDate } = await import('@/components/fantasy/FantasyDebugMenu');
+  const { getDebugDate } = await import('@/lib/utils/debug-date');
   const today = getDebugDate();
   const dateString = formatDateString(today);
 

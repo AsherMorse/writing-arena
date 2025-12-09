@@ -16,7 +16,7 @@ import { LoadingOverlay } from '../_components/LoadingOverlay';
 import { Leaderboard } from '../_components/Leaderboard';
 import { RecommendedLessons } from '../_components/RecommendedLessons';
 import { getTodaysPrompt, formatDateString } from '@/lib/services/ranked-prompts';
-import { getDebugDate } from '@/components/fantasy/FantasyDebugMenu';
+import { getDebugDate, setDebugPromptId } from '@/lib/utils/debug-date';
 import {
   createRankedSubmission,
   updateRankedSubmission,
@@ -106,10 +106,10 @@ export default function RankedPage() {
 
   useEffect(() => {
     if (currentPrompt) {
-      window.__debugPromptId = currentPrompt.id;
+      setDebugPromptId(currentPrompt.id);
     }
     return () => {
-      window.__debugPromptId = undefined;
+      setDebugPromptId(undefined);
     };
   }, [currentPrompt]);
 

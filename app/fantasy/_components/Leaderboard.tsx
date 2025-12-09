@@ -299,7 +299,7 @@ export function Leaderboard({ promptId, userId }: LeaderboardProps) {
       <div className="space-y-2 max-h-80 overflow-y-auto">
         {data.rankings.map((entry) => (
           <LeaderboardEntryRow
-            key={`${entry.rank}-${entry.odisplayName}`}
+            key={entry.rank}
             entry={entry}
             onViewSubmission={entry.originalContent ? setSelectedEntry : undefined}
           />
@@ -312,3 +312,4 @@ export function Leaderboard({ promptId, userId }: LeaderboardProps) {
     </div>
   );
 }
+

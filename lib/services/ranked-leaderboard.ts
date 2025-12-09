@@ -1,17 +1,20 @@
 import { db } from '../config/firebase';
 import {
   collection,
+  doc,
   query,
   where,
   orderBy,
   getDocs,
   limit,
   Timestamp,
+  addDoc,
+  deleteDoc,
+  serverTimestamp,
 } from 'firebase/firestore';
 import { RankedSubmission } from '@/lib/types';
 
 export interface LeaderboardEntry {
-  odisplayName: string;
   displayName: string;
   originalScore: number;
   revisedScore?: number;
@@ -62,7 +65,6 @@ export async function getLeaderboard(
     }
 
     return {
-      odisplayName: data.userId.slice(0, 8),
       displayName: `Scribe #${rank}`,
       originalScore: data.originalScore,
       revisedScore: data.revisedScore,
@@ -101,7 +103,6 @@ export async function getTopThree(promptId: string): Promise<LeaderboardEntry[]>
     const data = docSnap.data() as RankedSubmission;
     const rank = index + 1;
     return {
-      odisplayName: data.userId.slice(0, 8),
       displayName: `Scribe #${rank}`,
       originalScore: data.originalScore,
       revisedScore: data.revisedScore,
@@ -116,7 +117,6 @@ export async function createFakeSubmission(
   originalScore: number,
   revisedScore?: number
 ): Promise<string> {
-  const { addDoc, serverTimestamp } = await import('firebase/firestore');
   const submissionsRef = collection(db, 'rankedSubmissions');
 
   const fakeUserId = `fake-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
@@ -142,8 +142,6 @@ export async function deleteAllSubmissionsForPrompt(promptId: string): Promise<n
   const q = query(submissionsRef, where('promptId', '==', promptId));
   const snapshot = await getDocs(q);
 
-  const { deleteDoc, doc } = await import('firebase/firestore');
-
   const deletePromises = snapshot.docs.map((docSnap) =>
     deleteDoc(doc(db, 'rankedSubmissions', docSnap.id))
   );
@@ -151,3 +149,4 @@ export async function deleteAllSubmissionsForPrompt(promptId: string): Promise<n
   await Promise.all(deletePromises);
   return snapshot.size;
 }
+

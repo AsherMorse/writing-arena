@@ -4,6 +4,7 @@ import {
   doc,
   addDoc,
   updateDoc,
+  deleteDoc,
   query,
   where,
   orderBy,
@@ -92,8 +93,6 @@ export async function deleteAllUserPracticeSubmissions(userId: string): Promise<
   const q = query(submissionsRef, where('userId', '==', userId));
   const snapshot = await getDocs(q);
 
-  const { deleteDoc } = await import('firebase/firestore');
-  
   const deletePromises = snapshot.docs.map((docSnap) => 
     deleteDoc(doc(db, 'practiceSubmissions', docSnap.id))
   );

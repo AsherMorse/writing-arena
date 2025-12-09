@@ -10,42 +10,29 @@ import {
   createFakeSubmission,
   deleteAllSubmissionsForPrompt,
 } from '@/lib/services/ranked-leaderboard';
+import {
+  getDebugDate,
+  getDebugDayOffset,
+  setDebugDayOffset,
+  getDebugPromptId,
+} from '@/lib/utils/debug-date';
 
-declare global {
-  interface Window {
-    __debugDayOffset?: number;
-    __debugPromptId?: string;
-  }
-}
-
-export function getDebugDayOffset(): number {
-  if (typeof window === 'undefined') return 0;
-  return window.__debugDayOffset ?? 0;
-}
-
-export function getDebugDate(): Date {
-  const now = new Date();
-  const offset = getDebugDayOffset();
-  now.setDate(now.getDate() + offset);
-  return now;
-}
-
-export function getDebugYesterday(): Date {
-  const debugNow = getDebugDate();
-  debugNow.setDate(debugNow.getDate() - 1);
-  return debugNow;
-}
+export { getDebugDate, getDebugDayOffset, getDebugPromptId } from '@/lib/utils/debug-date';
 
 export function FantasyDebugMenu() {
   const pathname = usePathname();
   const { user } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
   const [status, setStatus] = useState<string | null>(null);
-  const [dayOffset, setDayOffset] = useState(0);
+  const [dayOffset, setDayOffsetState] = useState(0);
 
   useEffect(() => {
-    setDayOffset(window.__debugDayOffset ?? 0);
+    setDayOffsetState(getDebugDayOffset());
   }, [isOpen]);
+
+  if (process.env.NODE_ENV === 'production') {
+    return null;
+  }
 
   if (!pathname?.startsWith('/fantasy')) {
     return null;
@@ -116,7 +103,7 @@ export function FantasyDebugMenu() {
   };
 
   const handleAddFakeSubmissions = async () => {
-    const promptId = window.__debugPromptId;
+    const promptId = getDebugPromptId();
     if (!promptId) {
       showStatus('No prompt ID (open /ranked first)');
       return;
@@ -134,7 +121,7 @@ export function FantasyDebugMenu() {
   };
 
   const handleClearPromptSubmissions = async () => {
-    const promptId = window.__debugPromptId;
+    const promptId = getDebugPromptId();
     if (!promptId) {
       showStatus('No prompt ID (open /ranked first)');
       return;
@@ -148,24 +135,24 @@ export function FantasyDebugMenu() {
   };
 
   const handleTimeForward = () => {
-    const newOffset = (window.__debugDayOffset ?? 0) + 1;
-    window.__debugDayOffset = newOffset;
-    setDayOffset(newOffset);
+    const newOffset = getDebugDayOffset() + 1;
+    setDebugDayOffset(newOffset);
+    setDayOffsetState(newOffset);
     const date = getDebugDate();
     showStatus(`Now: ${date.toLocaleDateString()}`);
   };
 
   const handleTimeBack = () => {
-    const newOffset = (window.__debugDayOffset ?? 0) - 1;
-    window.__debugDayOffset = newOffset;
-    setDayOffset(newOffset);
+    const newOffset = getDebugDayOffset() - 1;
+    setDebugDayOffset(newOffset);
+    setDayOffsetState(newOffset);
     const date = getDebugDate();
     showStatus(`Now: ${date.toLocaleDateString()}`);
   };
 
   const handleTimeReset = () => {
-    window.__debugDayOffset = 0;
-    setDayOffset(0);
+    setDebugDayOffset(0);
+    setDayOffsetState(0);
     showStatus('Time reset to today');
   };
 
