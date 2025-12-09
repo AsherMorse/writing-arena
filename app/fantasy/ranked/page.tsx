@@ -22,7 +22,7 @@ import {
   updateRankedSubmission,
   getSubmissionByUserAndPrompt,
 } from '@/lib/services/ranked-submissions';
-import { checkBlockStatus } from '@/lib/services/skill-gap-tracker';
+import { checkBlockStatus, updateSkillGaps } from '@/lib/services/skill-gap-tracker';
 import type { GradeResponse } from '../_lib/grading';
 import type { RankedPrompt, RankedSubmission, BlockCheckResult } from '@/lib/types';
 
@@ -159,10 +159,6 @@ export default function RankedPage() {
           content,
           prompt: getPromptText(),
           type: 'paragraph',
-          // Pass user context for gap tracking
-          userId: user.uid,
-          submissionId: gapTrackingId,
-          source: 'ranked',
         }),
       });
 
@@ -181,6 +177,15 @@ export default function RankedPage() {
         data.result as unknown as Record<string, unknown>
       );
       setSubmissionId(newSubmissionId);
+
+      // Track skill gaps client-side (has auth context)
+      if (data.gaps.length > 0) {
+        try {
+          await updateSkillGaps(user.uid, data.gaps, 'ranked', gapTrackingId);
+        } catch (gapErr) {
+          console.error('Failed to track skill gaps:', gapErr);
+        }
+      }
 
       setOriginalContent(content);
       setOriginalResponse(data);
@@ -228,10 +233,6 @@ export default function RankedPage() {
           type: 'paragraph',
           previousResult: originalResponse.result,
           previousContent: originalContent,
-          // Pass user context for gap tracking
-          userId: user.uid,
-          submissionId: gapTrackingId,
-          source: 'ranked',
         }),
       });
 
@@ -248,6 +249,15 @@ export default function RankedPage() {
         data.result.scores.percentage,
         data.result as unknown as Record<string, unknown>
       );
+
+      // Track skill gaps client-side (has auth context)
+      if (data.gaps.length > 0) {
+        try {
+          await updateSkillGaps(user.uid, data.gaps, 'ranked', gapTrackingId);
+        } catch (gapErr) {
+          console.error('Failed to track skill gaps:', gapErr);
+        }
+      }
 
       setResponse(data);
       setPhase('results');

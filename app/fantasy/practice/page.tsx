@@ -73,7 +73,7 @@ export default function PracticePage() {
       <div className="relative z-10 min-h-screen flex flex-col">
         <header className="flex items-center justify-between p-4">
           <button
-            onClick={() => router.push('/fantasy')}
+            onClick={() => router.push('/fantasy/home')}
             className="font-memento text-sm uppercase tracking-wider"
             style={{ color: 'rgba(245, 230, 184, 0.6)' }}
           >

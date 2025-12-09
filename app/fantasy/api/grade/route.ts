@@ -1,12 +1,10 @@
 /**
  * @fileoverview Grading API route for paragraph and essay submissions.
- * Optionally tracks skill gaps when userId and submissionId are provided.
+ * Returns grading results with detected skill gaps for client-side tracking.
  */
 
 import { NextRequest, NextResponse } from 'next/server';
 import { gradeWriting, gradeEssay, type WritingType } from '../../_lib/grading';
-import { updateSkillGaps } from '@/lib/services/skill-gap-tracker';
-import type { SubmissionSource } from '@/lib/types/skill-gaps';
 
 export async function POST(request: NextRequest) {
   try {
@@ -22,11 +20,6 @@ export async function POST(request: NextRequest) {
 
     const type: WritingType = body.type === 'essay' ? 'essay' : 'paragraph';
 
-    // Optional gap tracking params
-    const userId: string | undefined = body.userId;
-    const submissionId: string | undefined = body.submissionId;
-    const source: SubmissionSource = body.source === 'ranked' ? 'ranked' : 'practice';
-
     if (type === 'essay') {
       const response = await gradeEssay({
         content: body.content,
@@ -36,16 +29,6 @@ export async function POST(request: NextRequest) {
         previousResult: body.previousResult,
         previousContent: body.previousContent,
       });
-
-      // Track skill gaps if user context provided
-      if (userId && submissionId && response.gaps.length > 0) {
-        try {
-          await updateSkillGaps(userId, response.gaps, source, submissionId);
-        } catch (gapError) {
-          // Log but don't fail the request if gap tracking fails
-          console.error('Failed to update skill gaps:', gapError);
-        }
-      }
 
       return NextResponse.json(response);
     }
@@ -58,16 +41,6 @@ export async function POST(request: NextRequest) {
       previousResult: body.previousResult,
       previousContent: body.previousContent,
     });
-
-    // Track skill gaps if user context provided
-    if (userId && submissionId && response.gaps.length > 0) {
-      try {
-        await updateSkillGaps(userId, response.gaps, source, submissionId);
-      } catch (gapError) {
-        // Log but don't fail the request if gap tracking fails
-        console.error('Failed to update skill gaps:', gapError);
-      }
-    }
 
     return NextResponse.json(response);
   } catch (error) {
