@@ -1,7 +1,13 @@
+/**
+ * @fileoverview Writing editor textarea with parchment styling and paper texture.
+ */
 'use client';
+
+import { getParchmentContainerStyle, getParchmentTextStyle, PaperTexture, ParchmentVariant } from './parchment-styles';
 
 export const MIN_WORDS = 20;
 export const MAX_CHARS = 5000;
+export const DEFAULT_MAX_WORDS = 150;
 
 interface WritingEditorProps {
   value: string;
@@ -10,8 +16,14 @@ interface WritingEditorProps {
   placeholder?: string;
   showRequirements?: boolean;
   minWords?: number;
+  maxWords?: number;
+  /** Color variant */
+  variant?: ParchmentVariant;
 }
 
+/**
+ * @description A textarea component styled as parchment paper for writing responses.
+ */
 export function WritingEditor({ 
   value, 
   onChange, 
@@ -19,6 +31,8 @@ export function WritingEditor({
   placeholder, 
   showRequirements = true,
   minWords = MIN_WORDS,
+  maxWords = DEFAULT_MAX_WORDS,
+  variant = 'default',
 }: WritingEditorProps) {
   const wordCount = value.trim() ? value.trim().split(/\s+/).length : 0;
   const charCount = value.length;
@@ -32,35 +46,50 @@ export function WritingEditor({
   };
 
   return (
-    <div className="flex flex-col gap-2">
+    <div
+      className="relative rounded-xl overflow-hidden"
+      style={{
+        ...getParchmentContainerStyle({ variant }),
+        padding: '12px',
+      }}
+    >
+      <PaperTexture />
+      <div className="relative z-10">
+        {/* Wrapper for textarea with rounded corners and overflow hidden to clip scrollbar */}
+        <div
+          className="rounded-lg overflow-hidden"
+          style={{
+            border: '2px solid rgba(61, 50, 37, 0.4)',
+            boxShadow: 'inset 0 2px 4px rgba(0, 0, 0, 0.1)',
+          }}
+        >
       <textarea
         value={value}
         onChange={(e) => handleChange(e.target.value)}
         disabled={disabled}
         placeholder={placeholder}
-        rows={10}
-        className="w-full rounded-md p-4 text-lg leading-relaxed resize-none focus:outline-none focus:ring-2 focus:ring-[#c9a84c]"
+            spellCheck={false}
+            rows={8}
+            className="block w-full p-4 text-lg leading-relaxed resize-none focus:outline-none font-avenir parchment-scrollbar"
         style={{
-          background: '#1a1208',
-          border: '1px solid rgba(201, 168, 76, 0.3)',
-          color: '#f5e6b8',
+              background: 'rgba(255, 255, 255, 0.15)',
+              color: '#2d2d2d',
         }}
       />
-      <div className="flex justify-between text-sm font-avenir">
-        <span style={{ color: meetsMinimum ? 'rgba(245, 230, 184, 0.6)' : '#ff6b6b' }}>
-          {wordCount} {wordCount === 1 ? 'word' : 'words'}
-          {showRequirements && !meetsMinimum && ` (${minWords} minimum)`}
-        </span>
-        {showRequirements && (
-          <span style={{ color: underMax ? 'rgba(245, 230, 184, 0.4)' : '#ff6b6b' }}>
-            {charCount}/{MAX_CHARS}
+        </div>
+        <div className="flex justify-end mt-2 text-sm font-avenir px-1">
+          <span style={getParchmentTextStyle(variant)}>
+            Word Count: {wordCount}/{maxWords}
           </span>
-        )}
+        </div>
       </div>
     </div>
   );
 }
 
+/**
+ * @description Utility function to count words in a string.
+ */
 export function getWordCount(text: string): number {
   return text.trim() ? text.trim().split(/\s+/).length : 0;
 }

@@ -1,3 +1,7 @@
+/**
+ * @fileoverview Paragraph practice page with parchment-styled fantasy UI.
+ * Allows users to practice writing with customizable topics or prompts.
+ */
 'use client';
 
 import { useState, useCallback, useEffect } from 'react';
@@ -13,6 +17,10 @@ import { FeedbackSidebar } from '../../_components/FeedbackSidebar';
 import { ScoreDisplay } from '../../_components/ScoreDisplay';
 import { LoadingOverlay } from '../../_components/LoadingOverlay';
 import { TopicCloud } from '../../_components/TopicCloud';
+import { ParchmentCard } from '../../_components/ParchmentCard';
+import { ParchmentButton } from '../../_components/ParchmentButton';
+import { HintsCard } from '../../_components/HintsCard';
+import { getParchmentTextStyle } from '../../_components/parchment-styles';
 import { getRandomTopics, getRandomTopic, type PracticeTopic } from '../../_lib/practice-topics';
 import {
   createPracticeSubmission,
@@ -27,6 +35,13 @@ const WRITE_TIME = 7 * 60;
 const REVISE_TIME = 2 * 60;
 const MIN_TOPIC_LENGTH = 3;
 const MAX_TOPIC_LENGTH = 20;
+
+/** Default hints shown during writing */
+const DEFAULT_HINTS = [
+  'Think about cause and effect',
+  'Expand on several benefits',
+  'Use specific examples',
+];
 
 export default function ParagraphPracticePage() {
   const router = useRouter();
@@ -117,21 +132,17 @@ export default function ParagraphPracticePage() {
   }, [customTopic]);
 
   const getPromptText = (): string => {
-    if (selectedTopic) {
-      return selectedTopic.prompt;
-    }
+    if (selectedTopic) return selectedTopic.prompt;
     return generatedPrompt || `Write a paragraph about: ${customTopic.trim()}`;
   };
 
   const submitWriting = useCallback(async () => {
     if (!selectedTopic && !customTopic.trim()) return;
-
     if (!content.trim()) return;
 
     setIsGrading(true);
     setError(null);
 
-    // Generate a unique ID for gap tracking
     const gapTrackingId = crypto.randomUUID();
 
     try {
@@ -143,7 +154,6 @@ export default function ParagraphPracticePage() {
           content,
           prompt: promptText,
           type: 'paragraph',
-          // Pass user context for gap tracking
           userId: user?.uid,
           submissionId: gapTrackingId,
           source: 'practice',
@@ -200,13 +210,11 @@ export default function ParagraphPracticePage() {
 
   const submitRevision = useCallback(async () => {
     if ((!selectedTopic && !customTopic.trim()) || !originalResponse) return;
-
     if (!content.trim()) return;
 
     setIsGrading(true);
     setError(null);
 
-    // Generate a unique ID for gap tracking (revision is separate occurrence)
     const gapTrackingId = crypto.randomUUID();
 
     try {
@@ -219,7 +227,6 @@ export default function ParagraphPracticePage() {
           type: 'paragraph',
           previousResult: originalResponse.result,
           previousContent: originalContent,
-          // Pass user context for gap tracking
           userId: user?.uid,
           submissionId: gapTrackingId,
           source: 'practice',
@@ -282,12 +289,13 @@ export default function ParagraphPracticePage() {
       <div
         className="absolute inset-0"
         style={{
-          background: 'radial-gradient(ellipse at center, rgba(0,0,0,0.4) 0%, rgba(0,0,0,0.7) 100%)',
+          background: 'radial-gradient(ellipse at center, rgba(0,0,0,0.3) 0%, rgba(0,0,0,0.6) 100%)',
         }}
       />
 
       <div className="relative z-10 min-h-screen flex flex-col">
-        <header className="flex items-center justify-between p-4">
+        {/* Minimal header for back button */}
+        <header className="p-4">
           <button
             onClick={handleBack}
             className="font-memento text-sm uppercase tracking-wider"
@@ -295,17 +303,10 @@ export default function ParagraphPracticePage() {
           >
             ← Back
           </button>
-          {(phase === 'write' || phase === 'revise') && (
-            <Timer
-              key={phase}
-              seconds={phase === 'write' ? WRITE_TIME : REVISE_TIME}
-              onComplete={handleTimerComplete}
-            />
-          )}
-          <div className="w-16" />
         </header>
 
         <main className="flex-1 flex items-center justify-center p-4 overflow-y-auto">
+          {/* Topic Selection Phase */}
           {phase === 'prompt' && (
             <div className="w-full max-w-2xl">
               <div className="text-center space-y-8">
@@ -409,33 +410,64 @@ export default function ParagraphPracticePage() {
             </div>
           )}
 
+          {/* Writing Phase - Parchment Style */}
           {phase === 'write' && (
-            <div className="w-full max-w-2xl space-y-6">
+            <div className="w-full max-w-4xl">
+              <div className="flex gap-6">
+                {/* Left column: Title, Prompt, Editor */}
+                <div className="flex-1 space-y-4">
+                  <ParchmentCard>
+                    <h1 
+                      className="font-memento text-3xl tracking-wide pl-2" 
+                      style={getParchmentTextStyle()}
+                    >
+                      Daily Challenge
+                    </h1>
+                  </ParchmentCard>
+
               <PromptCard prompt={getPromptText()} />
+
               <WritingEditor
                 value={content}
                 onChange={setContent}
                 placeholder="Begin your response..."
                 showRequirements={false}
               />
+
               {error && (
                 <div className="text-center space-y-4">
                   <div className="text-red-400 text-sm">{error}</div>
-                  <FantasyButton onClick={reset} variant="secondary">
+                      <ParchmentButton onClick={reset}>
                     Start Over
-                  </FantasyButton>
+                      </ParchmentButton>
+                    </div>
+                  )}
                 </div>
-              )}
-              {!error && (
-                <div className="flex justify-end">
-                  <FantasyButton onClick={submitWriting} disabled={!canSubmit}>
-                    {isGrading ? 'Grading...' : 'Submit Early'}
-                  </FantasyButton>
+
+                {/* Right column: Timer, Hints, Submit */}
+                <div className="w-48 space-y-4 flex flex-col">
+                  <Timer
+                    key={phase}
+                    seconds={WRITE_TIME}
+                    onComplete={handleTimerComplete}
+                    parchmentStyle
+                  />
+
+                  <HintsCard hints={DEFAULT_HINTS} />
+
+                  <div className="mt-auto">
+                    {!error && (
+                      <ParchmentButton onClick={submitWriting} disabled={!canSubmit} className="w-full">
+                        {isGrading ? 'Grading...' : 'Submit'}
+                      </ParchmentButton>
+                    )}
+                  </div>
                 </div>
-              )}
+              </div>
             </div>
           )}
 
+          {/* Feedback Phase */}
           {phase === 'feedback' && response && (
             <div className="w-full max-w-5xl space-y-6">
               <div className="text-center">
@@ -457,7 +489,6 @@ export default function ParagraphPracticePage() {
 
               <FeedbackDisplay result={response.result} content={originalContent} />
 
-              {/* Show recommended lessons if there are gaps */}
               {response.prioritizedLessons.length > 0 && (
                 <RecommendedLessons
                   lessons={response.prioritizedLessons}
@@ -477,6 +508,7 @@ export default function ParagraphPracticePage() {
             </div>
           )}
 
+          {/* Revision Phase */}
           {phase === 'revise' && originalResponse && (
             <div className="w-full max-w-5xl">
               <div className="mb-4">
@@ -500,19 +532,26 @@ export default function ParagraphPracticePage() {
                   )}
                   {!error && (
                     <div className="flex justify-end">
-                      <FantasyButton onClick={submitRevision} disabled={!canSubmit}>
+                      <ParchmentButton onClick={submitRevision} disabled={!canSubmit}>
                         {isGrading ? 'Grading...' : 'Submit Revision'}
-                      </FantasyButton>
+                      </ParchmentButton>
                     </div>
                   )}
                 </div>
-                <div className="w-72 shrink-0">
+                <div className="w-72 shrink-0 space-y-4">
+                  <Timer
+                    key={phase}
+                    seconds={REVISE_TIME}
+                    onComplete={handleTimerComplete}
+                    parchmentStyle
+                  />
                   <FeedbackSidebar result={originalResponse.result} />
                 </div>
               </div>
             </div>
           )}
 
+          {/* Results Phase */}
           {phase === 'results' && response && originalResponse && (
             <div className="w-full max-w-5xl space-y-6">
               <div className="text-center">
@@ -549,9 +588,9 @@ export default function ParagraphPracticePage() {
               <FeedbackDisplay result={response.result} content={content} />
 
               <div className="flex justify-center gap-4">
-                <FantasyButton onClick={reset} size="large">
+                <ParchmentButton onClick={reset}>
                   Practice Again
-                </FantasyButton>
+                </ParchmentButton>
               </div>
             </div>
           )}

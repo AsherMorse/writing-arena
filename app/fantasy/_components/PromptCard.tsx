@@ -1,31 +1,29 @@
+/**
+ * @fileoverview Writing prompt card with parchment styling and paper texture.
+ */
 'use client';
+
+import { ParchmentCard } from './ParchmentCard';
+import { getParchmentTextStyle, ParchmentVariant } from './parchment-styles';
 
 interface PromptCardProps {
   prompt: string;
+  /** Color variant */
+  variant?: ParchmentVariant;
 }
 
-export function PromptCard({ prompt }: PromptCardProps) {
+/**
+ * @description Displays a writing prompt in a parchment-styled card.
+ */
+export function PromptCard({ prompt, variant = 'default' }: PromptCardProps) {
   return (
-    <div
-      className="rounded-md p-6"
-      style={{
-        background: 'rgba(42, 26, 15, 0.9)',
-        border: '1px solid rgba(201, 168, 76, 0.4)',
-        boxShadow: 'inset 0 0 20px rgba(201, 168, 76, 0.1)',
-      }}
-    >
-      <div
-        className="text-xs uppercase tracking-widest mb-3 font-memento"
-        style={{ color: '#c9a84c' }}
-      >
-        Your Quest
-      </div>
+    <ParchmentCard title="Your Quest" variant={variant}>
       <p
         className="text-lg leading-relaxed font-avenir"
-        style={{ color: '#f5e6b8' }}
+        style={getParchmentTextStyle(variant)}
       >
         {prompt}
       </p>
-    </div>
+    </ParchmentCard>
   );
 }
