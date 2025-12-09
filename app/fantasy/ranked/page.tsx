@@ -23,6 +23,7 @@ import {
   getSubmissionByUserAndPrompt,
 } from '@/lib/services/ranked-submissions';
 import { checkBlockStatus, updateSkillGaps } from '@/lib/services/skill-gap-tracker';
+import { getLessonDisplayName } from '@/lib/constants/lesson-display-names';
 import type { GradeResponse } from '../_lib/grading';
 import type { RankedPrompt, RankedSubmission, BlockCheckResult } from '@/lib/types';
 
@@ -508,7 +509,7 @@ export default function RankedPage() {
                         className="font-avenir text-base"
                         style={{ color: 'rgba(245, 230, 184, 0.9)' }}
                       >
-                        • {lesson.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')}
+                        • {getLessonDisplayName(lesson)}
                       </div>
                     ))}
                     {blockStatus.requiredLessons.length > 5 && (

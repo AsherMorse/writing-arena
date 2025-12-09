@@ -15,6 +15,8 @@ interface LessonCardProps {
   bestScore: number;
   attempts: number;
   canEarnLP: boolean;
+  /** Whether this lesson is recommended based on skill gaps */
+  isRecommended?: boolean;
 }
 
 /**
@@ -26,6 +28,7 @@ export function LessonCard({
   bestScore,
   attempts,
   canEarnLP,
+  isRecommended = false,
 }: LessonCardProps) {
   const isComingSoon = lesson.status === 'coming-soon';
   const totalMinutes = lesson.phaseDurations.reviewPhase + lesson.phaseDurations.writePhase + lesson.phaseDurations.revisePhase;
@@ -36,14 +39,30 @@ export function LessonCard({
     essay: '📄',
   };
 
+  /**
+   * @description Get border/background classes based on card state.
+   */
+  function getCardStyles(): string {
+    if (isComingSoon) {
+      return 'border-[rgba(255,255,255,0.03)] bg-[rgba(255,255,255,0.01)]';
+    }
+    if (isRecommended) {
+      return 'border-[rgba(251,191,36,0.4)] bg-[rgba(251,191,36,0.08)] hover:border-[rgba(251,191,36,0.6)] hover:bg-[rgba(251,191,36,0.12)]';
+    }
+    return 'border-[rgba(255,255,255,0.05)] bg-[rgba(255,255,255,0.025)] hover:border-[rgba(0,229,229,0.2)] hover:bg-[rgba(0,229,229,0.03)]';
+  }
+
   return (
     <div
-      className={`group relative rounded-[14px] border ${
-        isComingSoon
-          ? 'border-[rgba(255,255,255,0.03)] bg-[rgba(255,255,255,0.01)]'
-          : 'border-[rgba(255,255,255,0.05)] bg-[rgba(255,255,255,0.025)] hover:border-[rgba(0,229,229,0.2)] hover:bg-[rgba(0,229,229,0.03)]'
-      } p-6 transition-all`}
+      className={`group relative rounded-[14px] border ${getCardStyles()} p-6 transition-all`}
     >
+      {/* Required Badge */}
+      {isRecommended && (
+        <span className="absolute -right-2 -top-2 rounded-full bg-amber-500 px-2 py-0.5 text-xs font-bold text-black shadow-md">
+          Required
+        </span>
+      )}
+
       {/* Header: Icon + Title + Mastery */}
       <div className="flex items-start justify-between gap-3">
         <div className="flex items-start gap-3">

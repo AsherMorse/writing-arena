@@ -7,6 +7,7 @@
 
 import { useRouter } from 'next/navigation';
 import { FantasyButton } from '@/components/fantasy';
+import { getLessonDisplayName } from '@/lib/constants/lesson-display-names';
 
 interface RecommendedLessonsProps {
   /** Array of lesson IDs to recommend */
@@ -17,16 +18,6 @@ interface RecommendedLessonsProps {
   maxDisplay?: number;
   /** Whether to show the practice button */
   showPracticeButton?: boolean;
-}
-
-/**
- * @description Converts a lesson ID like "make-topic-sentences" to "Make Topic Sentences"
- */
-function formatLessonName(lessonId: string): string {
-  return lessonId
-    .split('-')
-    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-    .join(' ');
 }
 
 /**
@@ -82,7 +73,7 @@ export function RecommendedLessons({
                 className="font-avenir text-sm"
                 style={{ color: 'rgba(245, 230, 184, 0.9)' }}
               >
-                • {formatLessonName(lessonId)}
+                • {getLessonDisplayName(lessonId)}
               </div>
             ))}
             {remainingCount > 0 && (
