@@ -1,5 +1,5 @@
 import { db } from '../config/firebase';
-import { collection, query, where, getDocs, orderBy, addDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, doc, query, where, getDocs, getDoc, orderBy, setDoc, serverTimestamp } from 'firebase/firestore';
 import { RankedPrompt } from '@/lib/types';
 
 const RANKED_TOPICS = [
@@ -116,6 +116,7 @@ export async function getTodaysPrompt(
   if (existing) return existing;
 
   const topic = getTopicForDate(dateString);
+  const deterministicId = `${level}-${dateString}`;
 
   try {
     const response = await fetch('/fantasy/api/daily-prompt', {
@@ -143,11 +144,17 @@ export async function getTodaysPrompt(
       createdAt: serverTimestamp(),
     };
 
-    const docRef = await addDoc(promptsRef, newPrompt);
+    const docRef = doc(promptsRef, deterministicId);
+    await setDoc(docRef, newPrompt, { merge: false });
+
+    const created = await getDoc(docRef);
+    if (!created.exists()) {
+      throw new Error('Failed to create prompt');
+    }
 
     return {
-      id: docRef.id,
-      ...newPrompt,
+      id: created.id,
+      ...created.data(),
     } as RankedPrompt;
   } catch (error) {
     console.error('getTodaysPrompt error:', error);

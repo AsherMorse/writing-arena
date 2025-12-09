@@ -199,29 +199,12 @@ export default function RankedPage() {
     }
   }, [content, currentPrompt, user]);
 
-  const handleTimerComplete = useCallback(() => {
-    if (!content.trim()) {
-      setError(`Time's up! You need to write something to submit. Click "Start Over" to try again.`);
-      return;
-    }
-    if (phase === 'write') {
-      submitWriting();
-    } else if (phase === 'revise') {
-      submitRevision();
-    }
-  }, [content, phase]);
-
-  const startRevision = useCallback(() => {
-    setPhase('revise');
-  }, []);
-
   const submitRevision = useCallback(async () => {
     if (!originalResponse || !content.trim() || !currentPrompt || !submissionId || !user) return;
 
     setIsGrading(true);
     setError(null);
 
-    // Generate a unique ID for gap tracking (revision is separate occurrence)
     const gapTrackingId = crypto.randomUUID();
 
     try {
@@ -251,7 +234,6 @@ export default function RankedPage() {
         data.result as unknown as Record<string, unknown>
       );
 
-      // Track skill gaps client-side (has auth context)
       if (data.gaps.length > 0) {
         try {
           await updateSkillGaps(user.uid, data.gaps, 'ranked', gapTrackingId);
@@ -268,6 +250,22 @@ export default function RankedPage() {
       setIsGrading(false);
     }
   }, [content, originalResponse, originalContent, currentPrompt, submissionId, user]);
+
+  const handleTimerComplete = useCallback(() => {
+    if (!content.trim()) {
+      setError(`Time's up! You need to write something to submit. Click "Start Over" to try again.`);
+      return;
+    }
+    if (phase === 'write') {
+      submitWriting();
+    } else if (phase === 'revise') {
+      submitRevision();
+    }
+  }, [content, phase, submitWriting, submitRevision]);
+
+  const startRevision = useCallback(() => {
+    setPhase('revise');
+  }, []);
 
   const reset = useCallback(() => {
     setContent('');
@@ -414,8 +412,8 @@ export default function RankedPage() {
 
               <ScoreDisplay
                 percentage={existingSubmission.revisedScore ?? existingSubmission.originalScore}
-                total={Math.round((existingSubmission.revisedScore ?? existingSubmission.originalScore) / 10)}
-                max={10}
+                total={((existingSubmission.revisedFeedback ?? existingSubmission.originalFeedback) as { scores?: { total?: number } })?.scores?.total ?? Math.round((existingSubmission.revisedScore ?? existingSubmission.originalScore) / 10)}
+                max={((existingSubmission.revisedFeedback ?? existingSubmission.originalFeedback) as { scores?: { maxTotal?: number } })?.scores?.maxTotal ?? 10}
               />
 
               {existingSubmission.revisedScore !== undefined && existingSubmission.revisedScore !== existingSubmission.originalScore && (
