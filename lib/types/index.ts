@@ -52,7 +52,9 @@ export interface RankedPrompt {
   id: string;
   level: 'paragraph' | 'essay';
   sequenceNumber: number;
+  activeDate: string;
   promptText: string;
+  topic?: string;
   createdAt: Timestamp;
 }
 

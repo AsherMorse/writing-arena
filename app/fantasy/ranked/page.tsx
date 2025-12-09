@@ -13,8 +13,9 @@ import { FeedbackDisplay } from '../_components/FeedbackDisplay';
 import { FeedbackSidebar } from '../_components/FeedbackSidebar';
 import { ScoreDisplay } from '../_components/ScoreDisplay';
 import { LoadingOverlay } from '../_components/LoadingOverlay';
-import { getUserRankedProgress, advanceUserProgress } from '@/lib/services/ranked-progress';
-import { getPromptBySequence, getMaxSequenceNumber } from '@/lib/services/ranked-prompts';
+import { Leaderboard } from '../_components/Leaderboard';
+import { getTodaysPrompt, formatDateString } from '@/lib/services/ranked-prompts';
+import { getDebugDate } from '@/components/fantasy/FantasyDebugMenu';
 import {
   createRankedSubmission,
   updateRankedSubmission,
@@ -23,7 +24,7 @@ import {
 import type { GradeResponse } from '../_lib/grading';
 import type { RankedPrompt, RankedSubmission } from '@/lib/types';
 
-type Phase = 'loading' | 'prompt' | 'write' | 'feedback' | 'revise' | 'results' | 'completed' | 'already_submitted';
+type Phase = 'loading' | 'prompt' | 'write' | 'feedback' | 'revise' | 'results' | 'no_prompt' | 'already_submitted';
 
 const WRITE_TIME = 7 * 60;
 const REVISE_TIME = 2 * 60;
@@ -34,8 +35,7 @@ export default function RankedPage() {
 
   const [phase, setPhase] = useState<Phase>('loading');
   const [currentPrompt, setCurrentPrompt] = useState<RankedPrompt | null>(null);
-  const [promptSequence, setPromptSequence] = useState(1);
-  const [maxSequence, setMaxSequence] = useState(0);
+  const [todayString, setTodayString] = useState('');
   const [content, setContent] = useState('');
   const [originalContent, setOriginalContent] = useState('');
   const [originalResponse, setOriginalResponse] = useState<GradeResponse | null>(null);
@@ -44,52 +44,23 @@ export default function RankedPage() {
   const [error, setError] = useState<string | null>(null);
   const [submissionId, setSubmissionId] = useState<string | null>(null);
   const [existingSubmission, setExistingSubmission] = useState<RankedSubmission | null>(null);
-  const [isAllComplete, setIsAllComplete] = useState(false);
 
-  const fetchCurrentPrompt = useCallback(async () => {
+  const fetchTodaysPrompt = useCallback(async () => {
     if (!user) return;
 
     setPhase('loading');
     setExistingSubmission(null);
     setSubmissionId(null);
-    setIsAllComplete(false);
 
     try {
-      const progress = await getUserRankedProgress(user.uid);
-      const max = await getMaxSequenceNumber('paragraph');
+      const today = getDebugDate();
+      setTodayString(formatDateString(today));
 
-      setPromptSequence(progress.currentPromptSequence);
-      setMaxSequence(max);
-
-      if (max === 0) {
-        setCurrentPrompt(null);
-        setPhase('completed');
-        return;
-      }
-
-      if (progress.currentPromptSequence > max) {
-        const lastPrompt = await getPromptBySequence(max, 'paragraph');
-        if (lastPrompt) {
-          const lastSubmission = await getSubmissionByUserAndPrompt(user.uid, lastPrompt.id);
-          if (lastSubmission) {
-            setCurrentPrompt(lastPrompt);
-            setPromptSequence(max);
-            setExistingSubmission(lastSubmission);
-            setIsAllComplete(true);
-            setPhase('already_submitted');
-            return;
-          }
-        }
-        setCurrentPrompt(null);
-        setPhase('completed');
-        return;
-      }
-
-      const prompt = await getPromptBySequence(progress.currentPromptSequence, 'paragraph');
+      const prompt = await getTodaysPrompt('paragraph');
 
       if (!prompt) {
         setCurrentPrompt(null);
-        setPhase('completed');
+        setPhase('no_prompt');
         return;
       }
 
@@ -115,10 +86,19 @@ export default function RankedPage() {
   }, [user, authLoading, router]);
 
   useEffect(() => {
-    if (user && !authLoading) {
-      fetchCurrentPrompt();
+    if (currentPrompt) {
+      window.__debugPromptId = currentPrompt.id;
     }
-  }, [user, authLoading, fetchCurrentPrompt]);
+    return () => {
+      window.__debugPromptId = undefined;
+    };
+  }, [currentPrompt]);
+
+  useEffect(() => {
+    if (user && !authLoading) {
+      fetchTodaysPrompt();
+    }
+  }, [user, authLoading, fetchTodaysPrompt]);
 
   const handleBack = useCallback(() => {
     const hasUnsavedWork = phase === 'write' || phase === 'revise';
@@ -246,22 +226,6 @@ export default function RankedPage() {
     }
   }, [content, originalResponse, originalContent, currentPrompt, submissionId]);
 
-  const handleContinue = useCallback(async () => {
-    if (!user || !currentPrompt) return;
-
-    try {
-      await advanceUserProgress(user.uid, currentPrompt.id);
-      setContent('');
-      setOriginalContent('');
-      setOriginalResponse(null);
-      setResponse(null);
-      setError(null);
-      await fetchCurrentPrompt();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to continue');
-    }
-  }, [user, currentPrompt, fetchCurrentPrompt]);
-
   const reset = useCallback(() => {
     setContent('');
     setOriginalContent('');
@@ -351,7 +315,7 @@ export default function RankedPage() {
         </header>
 
         <main className="flex-1 flex items-center justify-center p-4 overflow-y-auto">
-          {phase === 'completed' && (
+          {phase === 'no_prompt' && (
             <div className="w-full max-w-2xl text-center space-y-8">
               <div>
                 <h1
@@ -361,16 +325,22 @@ export default function RankedPage() {
                     textShadow: '0 2px 4px rgba(0, 0, 0, 0.8)',
                   }}
                 >
-                  {maxSequence === 0 ? 'No Challenges Available' : 'All Challenges Complete!'}
+                  No Challenge Today
                 </h1>
                 <p
                   className="font-avenir text-lg"
                   style={{ color: 'rgba(245, 230, 184, 0.7)' }}
                 >
-                  {maxSequence === 0
-                    ? 'Check back soon for new ranked challenges.'
-                    : `You've completed all ${maxSequence} available challenges. More coming soon!`}
+                  Check back tomorrow for a new daily challenge!
                 </p>
+                {todayString && (
+                  <p
+                    className="font-avenir text-sm mt-2"
+                    style={{ color: 'rgba(245, 230, 184, 0.4)' }}
+                  >
+                    Date: {todayString}
+                  </p>
+                )}
               </div>
 
               <FantasyButton onClick={() => router.push('/fantasy/home')} size="large">
@@ -389,16 +359,14 @@ export default function RankedPage() {
                     textShadow: '0 2px 4px rgba(0, 0, 0, 0.8)',
                   }}
                 >
-                  {isAllComplete ? 'All Challenges Complete!' : `Challenge ${promptSequence} Complete!`}
+                  Today&apos;s Challenge Complete!
                 </h1>
-                {isAllComplete && (
-                  <p
-                    className="font-avenir text-lg"
-                    style={{ color: 'rgba(245, 230, 184, 0.7)' }}
-                  >
-                    You&apos;ve conquered all {maxSequence} challenge{maxSequence > 1 ? 's' : ''}
-                  </p>
-                )}
+                <p
+                  className="font-avenir text-lg"
+                  style={{ color: 'rgba(245, 230, 184, 0.7)' }}
+                >
+                  Come back tomorrow for a new challenge
+                </p>
               </div>
 
               <ScoreDisplay
@@ -421,22 +389,11 @@ export default function RankedPage() {
                 </div>
               )}
 
-              <div className="flex justify-center gap-4">
-                {!isAllComplete && promptSequence < maxSequence ? (
-                  <>
-                    <FantasyButton onClick={() => router.push('/fantasy/home')} variant="secondary">
-                      Return Home
-                    </FantasyButton>
-                    <FantasyButton onClick={handleContinue} size="large">
-                      Continue to Challenge {promptSequence + 1}
-                    </FantasyButton>
-                  </>
-                ) : (
-                  <FantasyButton onClick={() => router.push('/fantasy/home')} size="large">
-                    Return Home
-                  </FantasyButton>
-                )}
-              </div>
+              <Leaderboard promptId={currentPrompt.id} userId={user?.uid} />
+
+              <FantasyButton onClick={() => router.push('/fantasy/home')} size="large">
+                Return Home
+              </FantasyButton>
             </div>
           )}
 
@@ -454,7 +411,7 @@ export default function RankedPage() {
                 </h1>
                 <p className="text-red-400">{error}</p>
               </div>
-              <FantasyButton onClick={fetchCurrentPrompt} size="large">
+              <FantasyButton onClick={fetchTodaysPrompt} size="large">
                 Try Again
               </FantasyButton>
             </div>
@@ -470,7 +427,7 @@ export default function RankedPage() {
                     textShadow: '0 2px 4px rgba(0, 0, 0, 0.8)',
                   }}
                 >
-                  Challenge {promptSequence}
+                  Daily Challenge
                 </h1>
                 <p
                   className="font-avenir text-lg"
@@ -597,7 +554,7 @@ export default function RankedPage() {
                     textShadow: '0 2px 4px rgba(0, 0, 0, 0.8)',
                   }}
                 >
-                  Challenge {promptSequence} Complete!
+                  Daily Challenge Complete!
                 </h2>
                 <ScoreDisplay
                   percentage={response.result.scores.percentage}
@@ -622,21 +579,11 @@ export default function RankedPage() {
 
               <FeedbackDisplay result={response.result} content={content} />
 
-              <div className="flex justify-center gap-4">
-                <FantasyButton onClick={() => router.push('/fantasy/home')} variant="secondary">
-                  Return Home
-                </FantasyButton>
-                {promptSequence < maxSequence && (
-                  <FantasyButton onClick={handleContinue} size="large">
-                    Continue to Challenge {promptSequence + 1}
-                  </FantasyButton>
-                )}
-                {promptSequence >= maxSequence && (
-                  <FantasyButton onClick={handleContinue} size="large">
-                    Finish
-                  </FantasyButton>
-                )}
-              </div>
+              <Leaderboard promptId={currentPrompt.id} userId={user?.uid} />
+
+              <FantasyButton onClick={() => router.push('/fantasy/home')} size="large">
+                Return Home
+              </FantasyButton>
             </div>
           )}
         </main>
