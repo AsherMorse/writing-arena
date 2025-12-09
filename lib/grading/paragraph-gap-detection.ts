@@ -16,74 +16,80 @@ import type {
 const GAP_THRESHOLD = 4;
 
 /**
- * @description Mapping of rubric categories to practice lesson IDs.
+ * @description Mapping of rubric categories to practice lesson IDs by severity.
+ * Severity-aligned: more lessons for more severe gaps.
  * Maps to AlphaWrite activities - see _docs/.../paragraph-criterion-lesson-mapping.md
  */
-const CATEGORY_TO_LESSONS: Record<string, string[]> = {
+export const CATEGORY_TO_LESSONS: Record<string, {
+  high: string[];    // Scores 0-2: Full suite (3-4 lessons)
+  medium: string[];  // Score 3: Core skills (2 lessons)
+  low: string[];     // Score 4: Refinement (1 lesson)
+}> = {
   // Topic Sentence variations (all rubric types)
-  'Topic Sentence': [
-    'make-topic-sentences',
-    'identify-topic-sentence',
-    'basic-conjunctions',
-    'write-appositives',
-  ],
-  'Claim (Topic Sentence)': [
-    'make-topic-sentences',
-    'identify-topic-sentence',
-    'basic-conjunctions',
-  ],
-  'Topic Sentence (Opinion Statement)': [
-    'make-topic-sentences',
-    'identify-topic-sentence',
-    'basic-conjunctions',
-  ],
-  'Topic Sentence (Introduction)': [
-    'make-topic-sentences',
-    'identify-topic-sentence',
-    'basic-conjunctions',
-  ],
+  'Topic Sentence': {
+    high: ['make-topic-sentences', 'identify-topic-sentence'],
+    medium: ['make-topic-sentences', 'identify-topic-sentence'],
+    low: ['make-topic-sentences'],
+  },
+  'Claim (Topic Sentence)': {
+    high: ['make-topic-sentences', 'identify-topic-sentence'],
+    medium: ['make-topic-sentences', 'identify-topic-sentence'],
+    low: ['make-topic-sentences'],
+  },
+  'Topic Sentence (Opinion Statement)': {
+    high: ['make-topic-sentences', 'identify-topic-sentence'],
+    medium: ['make-topic-sentences', 'identify-topic-sentence'],
+    low: ['make-topic-sentences'],
+  },
+  'Topic Sentence (Introduction)': {
+    high: ['make-topic-sentences', 'identify-topic-sentence'],
+    medium: ['make-topic-sentences', 'identify-topic-sentence'],
+    low: ['make-topic-sentences'],
+  },
 
   // Detail Sentences variations
-  'Detail Sentences': [
-    'writing-spos',
-    'eliminate-irrelevant-sentences',
-    'elaborate-paragraphs',
-    'using-transition-words',
-  ],
-  'Evidence and Reasoning (Detail Sentences)': [
-    'writing-spos',
-    'eliminate-irrelevant-sentences',
-    'elaborate-paragraphs',
-    'subordinating-conjunctions',
-  ],
-  'Supporting Details (Facts and Evidence)': [
-    'writing-spos',
-    'eliminate-irrelevant-sentences',
-    'elaborate-paragraphs',
-  ],
-  'Supporting Details (Pro or Con)': [
-    'writing-spos',
-    'eliminate-irrelevant-sentences',
-    'using-transition-words',
-  ],
+  'Detail Sentences': {
+    high: ['writing-spos', 'eliminate-irrelevant-sentences', 'using-transition-words'],
+    medium: ['writing-spos'],
+    low: ['using-transition-words'],
+  },
+  'Evidence and Reasoning (Detail Sentences)': {
+    high: ['writing-spos', 'eliminate-irrelevant-sentences', 'using-transition-words'],
+    medium: ['writing-spos'],
+    low: ['using-transition-words'],
+  },
+  'Supporting Details (Facts and Evidence)': {
+    high: ['writing-spos', 'eliminate-irrelevant-sentences', 'using-transition-words'],
+    medium: ['writing-spos'],
+    low: ['using-transition-words'],
+  },
+  'Supporting Details (Pro or Con)': {
+    high: ['writing-spos', 'eliminate-irrelevant-sentences', 'using-transition-words'],
+    medium: ['writing-spos'],
+    low: ['using-transition-words'],
+  },
 
   // Concluding Sentence (all rubrics use same name)
-  'Concluding Sentence': [
-    'write-cs-from-details',
-    'make-topic-sentences',
-    'write-appositives',
-  ],
+  'Concluding Sentence': {
+    high: ['write-cs-from-details', 'write-appositives'],
+    medium: ['write-cs-from-details'],
+    low: ['write-cs-from-details'],
+  },
 
   // Conventions
-  'Conventions': ['fragment-or-sentence'],
+  'Conventions': {
+    high: ['fragment-or-sentence', 'combine-sentences'],
+    medium: ['fragment-or-sentence'],
+    low: ['fragment-or-sentence'],
+  },
 };
 
 /**
  * @description Get severity based on score.
  */
 function getSeverity(score: number): 'low' | 'medium' | 'high' {
-  if (score <= 1) return 'high';
-  if (score <= 2) return 'medium';
+  if (score <= 2) return 'high';
+  if (score <= 3) return 'medium';
   return 'low';
 }
 
@@ -97,8 +103,9 @@ export function detectGapsFromScorecard(scorecard: ParagraphScorecard): GapDetec
 
   for (const category of scorecard.categories) {
     if (category.score < GAP_THRESHOLD) {
-      const recommendedLessons = CATEGORY_TO_LESSONS[category.title] || [];
       const severity = getSeverity(category.score);
+      const lessonMap = CATEGORY_TO_LESSONS[category.title];
+      const recommendedLessons = lessonMap ? lessonMap[severity] : [];
 
       gaps.push({
         category: category.title,
@@ -206,8 +213,9 @@ export function analyzeGapPatterns(
   for (const [category, data] of categoryGapCounts) {
     if (data.count >= minOccurrences) {
       const avgScore = Math.round(data.totalScore / data.count);
-      const recommendedLessons = CATEGORY_TO_LESSONS[category] || [];
       const severity = getSeverity(avgScore);
+      const lessonMap = CATEGORY_TO_LESSONS[category];
+      const recommendedLessons = lessonMap ? lessonMap[severity] : [];
 
       gaps.push({
         category,

@@ -14,6 +14,7 @@ import { FeedbackSidebar } from '../_components/FeedbackSidebar';
 import { ScoreDisplay } from '../_components/ScoreDisplay';
 import { LoadingOverlay } from '../_components/LoadingOverlay';
 import { Leaderboard } from '../_components/Leaderboard';
+import { RecommendedLessons } from '../_components/RecommendedLessons';
 import { getTodaysPrompt, formatDateString } from '@/lib/services/ranked-prompts';
 import { getDebugDate } from '@/components/fantasy/FantasyDebugMenu';
 import {
@@ -21,10 +22,11 @@ import {
   updateRankedSubmission,
   getSubmissionByUserAndPrompt,
 } from '@/lib/services/ranked-submissions';
+import { checkBlockStatus } from '@/lib/services/skill-gap-tracker';
 import type { GradeResponse } from '../_lib/grading';
-import type { RankedPrompt, RankedSubmission } from '@/lib/types';
+import type { RankedPrompt, RankedSubmission, BlockCheckResult } from '@/lib/types';
 
-type Phase = 'loading' | 'prompt' | 'write' | 'feedback' | 'revise' | 'results' | 'no_prompt' | 'already_submitted';
+type Phase = 'loading' | 'prompt' | 'write' | 'feedback' | 'revise' | 'results' | 'no_prompt' | 'already_submitted' | 'blocked';
 
 const WRITE_TIME = 7 * 60;
 const REVISE_TIME = 2 * 60;
@@ -44,6 +46,7 @@ export default function RankedPage() {
   const [error, setError] = useState<string | null>(null);
   const [submissionId, setSubmissionId] = useState<string | null>(null);
   const [existingSubmission, setExistingSubmission] = useState<RankedSubmission | null>(null);
+  const [blockStatus, setBlockStatus] = useState<BlockCheckResult | null>(null);
 
   const fetchTodaysPrompt = useCallback(async () => {
     if (!user) return;
@@ -51,6 +54,7 @@ export default function RankedPage() {
     setPhase('loading');
     setExistingSubmission(null);
     setSubmissionId(null);
+    setBlockStatus(null);
 
     try {
       const today = getDebugDate();
@@ -70,9 +74,23 @@ export default function RankedPage() {
       if (existing) {
         setExistingSubmission(existing);
         setPhase('already_submitted');
-      } else {
-        setPhase('prompt');
+        return;
       }
+
+      // Check if user is blocked from ranked
+      const blockResult = await checkBlockStatus(user.uid);
+      if (blockResult.blocked) {
+        setBlockStatus(blockResult);
+        setPhase('blocked');
+        return;
+      }
+
+      // Store warnings for display (optional)
+      if (blockResult.warnings?.length) {
+        setBlockStatus(blockResult);
+      }
+
+      setPhase('prompt');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load prompt');
       setPhase('prompt');
@@ -130,6 +148,9 @@ export default function RankedPage() {
     setIsGrading(true);
     setError(null);
 
+    // Generate a unique ID for gap tracking (will be used as reference)
+    const gapTrackingId = crypto.randomUUID();
+
     try {
       const res = await fetch('/fantasy/api/grade', {
         method: 'POST',
@@ -138,6 +159,10 @@ export default function RankedPage() {
           content,
           prompt: getPromptText(),
           type: 'paragraph',
+          // Pass user context for gap tracking
+          userId: user.uid,
+          submissionId: gapTrackingId,
+          source: 'ranked',
         }),
       });
 
@@ -185,10 +210,13 @@ export default function RankedPage() {
   }, []);
 
   const submitRevision = useCallback(async () => {
-    if (!originalResponse || !content.trim() || !currentPrompt || !submissionId) return;
+    if (!originalResponse || !content.trim() || !currentPrompt || !submissionId || !user) return;
 
     setIsGrading(true);
     setError(null);
+
+    // Generate a unique ID for gap tracking (revision is separate occurrence)
+    const gapTrackingId = crypto.randomUUID();
 
     try {
       const res = await fetch('/fantasy/api/grade', {
@@ -200,6 +228,10 @@ export default function RankedPage() {
           type: 'paragraph',
           previousResult: originalResponse.result,
           previousContent: originalContent,
+          // Pass user context for gap tracking
+          userId: user.uid,
+          submissionId: gapTrackingId,
+          source: 'ranked',
         }),
       });
 
@@ -224,7 +256,7 @@ export default function RankedPage() {
     } finally {
       setIsGrading(false);
     }
-  }, [content, originalResponse, originalContent, currentPrompt, submissionId]);
+  }, [content, originalResponse, originalContent, currentPrompt, submissionId, user]);
 
   const reset = useCallback(() => {
     setContent('');
@@ -397,6 +429,101 @@ export default function RankedPage() {
             </div>
           )}
 
+          {phase === 'blocked' && blockStatus && (
+            <div className="w-full max-w-2xl text-center space-y-8">
+              <div>
+                <h1
+                  className="font-dutch809 text-4xl mb-2"
+                  style={{
+                    color: '#f6d493',
+                    textShadow: '0 2px 4px rgba(0, 0, 0, 0.8)',
+                  }}
+                >
+                  Practice Required
+                </h1>
+                <p
+                  className="font-avenir text-lg"
+                  style={{ color: 'rgba(245, 230, 184, 0.7)' }}
+                >
+                  {blockStatus.reason === 'high_severity'
+                    ? 'A critical skill gap needs attention before continuing ranked challenges.'
+                    : 'Persistent skill gaps have been detected. Complete the recommended lessons to unlock ranked mode.'}
+                </p>
+              </div>
+
+              <div
+                className="rounded-lg p-6"
+                style={{
+                  backgroundColor: 'rgba(0, 0, 0, 0.4)',
+                  border: '1px solid rgba(245, 230, 184, 0.2)',
+                }}
+              >
+                <h3
+                  className="font-memento text-sm uppercase tracking-wider mb-4"
+                  style={{ color: 'rgba(245, 230, 184, 0.6)' }}
+                >
+                  Skills to Improve
+                </h3>
+                <div className="space-y-2">
+                  {blockStatus.blockingGaps.map((gap) => (
+                    <div
+                      key={gap}
+                      className="font-avenir text-base"
+                      style={{ color: '#fbbf24' }}
+                    >
+                      • {gap}
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {blockStatus.requiredLessons.length > 0 && (
+                <div
+                  className="rounded-lg p-6"
+                  style={{
+                    backgroundColor: 'rgba(0, 0, 0, 0.4)',
+                    border: '1px solid rgba(245, 230, 184, 0.2)',
+                  }}
+                >
+                  <h3
+                    className="font-memento text-sm uppercase tracking-wider mb-4"
+                    style={{ color: 'rgba(245, 230, 184, 0.6)' }}
+                  >
+                    Required Lessons
+                  </h3>
+                  <div className="space-y-2">
+                    {blockStatus.requiredLessons.slice(0, 5).map((lesson) => (
+                      <div
+                        key={lesson}
+                        className="font-avenir text-base"
+                        style={{ color: 'rgba(245, 230, 184, 0.9)' }}
+                      >
+                        • {lesson.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')}
+                      </div>
+                    ))}
+                    {blockStatus.requiredLessons.length > 5 && (
+                      <div
+                        className="font-avenir text-sm"
+                        style={{ color: 'rgba(245, 230, 184, 0.5)' }}
+                      >
+                        +{blockStatus.requiredLessons.length - 5} more
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              <div className="flex justify-center gap-4">
+                <FantasyButton onClick={() => router.push('/fantasy/home')} variant="secondary">
+                  Return Home
+                </FantasyButton>
+                <FantasyButton onClick={() => router.push('/improve/activities')} size="large">
+                  Go to Practice
+                </FantasyButton>
+              </div>
+            </div>
+          )}
+
           {phase === 'prompt' && !currentPrompt && error && (
             <div className="w-full max-w-2xl text-center space-y-8">
               <div>
@@ -436,6 +563,25 @@ export default function RankedPage() {
                   You have 7 minutes to write, then 2 minutes to revise
                 </p>
               </div>
+
+              {/* Warning banner for approaching block threshold */}
+              {blockStatus?.warnings && blockStatus.warnings.length > 0 && (
+                <div
+                  className="rounded-lg p-4"
+                  style={{
+                    backgroundColor: 'rgba(251, 191, 36, 0.15)',
+                    border: '1px solid rgba(251, 191, 36, 0.4)',
+                  }}
+                >
+                  <p
+                    className="font-avenir text-sm"
+                    style={{ color: '#fbbf24' }}
+                  >
+                    ⚠️ You&apos;re approaching the limit for: {blockStatus.warnings.join(', ')}. 
+                    Consider practicing these skills to avoid being blocked.
+                  </p>
+                </div>
+              )}
 
               <PromptCard prompt={promptText} />
 
@@ -496,6 +642,15 @@ export default function RankedPage() {
               </div>
 
               <FeedbackDisplay result={response.result} content={originalContent} />
+
+              {/* Show recommended lessons if there are gaps */}
+              {response.prioritizedLessons.length > 0 && (
+                <RecommendedLessons
+                  lessons={response.prioritizedLessons}
+                  hasSevereGap={response.hasSevereGap}
+                  maxDisplay={3}
+                />
+              )}
 
               <div className="flex justify-center gap-4">
                 <FantasyButton onClick={reset} variant="secondary">

@@ -194,6 +194,39 @@ CATEGORY_NAME:
 
 ---
 
+## Lesson Prioritization Logic
+
+When displaying "Practice These Skills" recommendations, lessons are prioritized as follows:
+
+### Sort Order
+
+1. **Severity first** - Fix what's most broken
+   - High severity gaps (scores 0-2) come before medium severity (score 3)
+
+2. **TWR tier second (within same severity)** - Bottom-up skill building
+   - Sentence-level lessons (Tier 1): `basic-conjunctions`, `write-appositives`, `subordinating-conjunctions`, `kernel-expansion`, `fragment-or-sentence`
+   - Paragraph-level lessons (Tier 2): `make-topic-sentences`, `identify-topic-sentence`, `writing-spos`, `eliminate-irrelevant-sentences`, `elaborate-paragraphs`, `using-transition-words`, `finishing-transition-words`, `write-cs-from-details`
+
+### Rationale
+
+- **Severity first**: Urgent issues (scores 0-2) need attention before refinement (score 3)
+- **TWR tier second**: Within same severity, foundational skills (sentence-level) must be solid before building paragraph skills
+
+### Example
+
+| Category | Score | Severity | Tier | Priority |
+|----------|-------|----------|------|----------|
+| Topic Sentence | 1 | High | Paragraph (2) | 2nd |
+| Conventions | 1 | High | Sentence (1) | 1st |
+| Detail Sentences | 3 | Medium | Paragraph (2) | 4th |
+| Concluding Sentence | 3 | Medium | Sentence (1) | 3rd |
+
+**Top 3 lessons shown:** Conventions (High+S), Topic Sentence (High+P), Concluding Sentence (Med+S)
+
+> Implementation: See `lib/grading/paragraph-gap-detection.ts` → `detectGapsFromParagraphResult()`
+
+---
+
 ## Instructions
 
 1. Review each mapping above

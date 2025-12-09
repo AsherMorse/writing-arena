@@ -1,4 +1,8 @@
 import { Timestamp } from 'firebase/firestore';
+import type { SkillGapsMap } from './skill-gaps';
+
+// Re-export skill gap types
+export * from './skill-gaps';
 
 /**
  * @description Mastery status for a single lesson.
@@ -43,6 +47,9 @@ export interface UserProfile {
 
   // Ranked mode progress tracking
   rankedProgress?: RankedProgress;
+
+  // Skill gap tracking (denormalized for fast block checks)
+  skillGaps?: SkillGapsMap;
   
   createdAt: Timestamp;
   updatedAt: Timestamp;

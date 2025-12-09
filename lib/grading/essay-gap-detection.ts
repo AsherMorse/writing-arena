@@ -11,103 +11,118 @@ import type {
 } from './essay-rubrics';
 
 /**
- * @description Mapping of essay criteria to practice lesson IDs.
+ * @description Mapping of essay criteria to practice lesson IDs (full names).
  * Maps to AlphaWrite activities - see _docs/.../essay-criterion-lesson-mapping.md
  */
-const ESSAY_CRITERION_TO_LESSONS: Record<string, string[]> = {
+export const ESSAY_CRITERION_TO_LESSONS: Record<string, {
+  high: string[];
+  medium: string[];
+  low: string[];
+}> = {
   // Topic sentence criteria
-  'Each body paragraph has a topic sentence': [
-    'make-topic-sentences',
-    'identify-topic-sentence',
-    'basic-conjunctions',
-  ],
+  'Each body paragraph has a topic sentence': {
+    high: ['make-topic-sentences', 'identify-topic-sentence', 'basic-conjunctions'],
+    medium: ['make-topic-sentences', 'identify-topic-sentence'],
+    low: ['make-topic-sentences'],
+  },
 
   // Supporting details
-  'Supporting details support topic sentence': [
-    'writing-spos',
-    'eliminate-irrelevant-sentences',
-    'elaborate-paragraphs',
-  ],
+  'Supporting details support topic sentence': {
+    high: ['writing-spos', 'elaborate-paragraphs', 'eliminate-irrelevant-sentences'],
+    medium: ['writing-spos', 'elaborate-paragraphs'],
+    low: ['elaborate-paragraphs'],
+  },
 
   // Thesis
-  'Developed thesis statement': [
-    'write-t-from-topic',
-    'distinguish-g-s-t',
-    'make-topic-sentences',
-  ],
+  'Developed thesis statement': {
+    high: ['write-t-from-topic', 'distinguish-g-s-t', 'make-topic-sentences'],
+    medium: ['write-t-from-topic', 'distinguish-g-s-t'],
+    low: ['write-t-from-topic'],
+  },
 
   // Body paragraphs supporting thesis
-  'Each body paragraph supports thesis': [
-    'eliminate-irrelevant-sentences',
-    'writing-spos',
-    'using-transition-words',
-  ],
+  'Each body paragraph supports thesis': {
+    high: ['eliminate-irrelevant-sentences', 'writing-spos', 'using-transition-words'],
+    medium: ['eliminate-irrelevant-sentences', 'writing-spos'],
+    low: ['eliminate-irrelevant-sentences'],
+  },
 
   // Sentence strategies (TWR core skills)
-  'Used sentence strategies': [
-    'basic-conjunctions',
-    'write-appositives',
-    'subordinating-conjunctions',
-    'kernel-expansion',
-  ],
+  'Used sentence strategies': {
+    high: ['basic-conjunctions', 'write-appositives', 'subordinating-conjunctions', 'kernel-expansion'],
+    medium: ['basic-conjunctions', 'subordinating-conjunctions'],
+    low: ['basic-conjunctions'],
+  },
 
   // Transitions
-  'Used transitions correctly': [
-    'using-transition-words',
-    'finishing-transition-words',
-  ],
+  'Used transitions correctly': {
+    high: ['using-transition-words', 'finishing-transition-words'],
+    medium: ['using-transition-words', 'finishing-transition-words'],
+    low: ['using-transition-words'],
+  },
 
   // Introduction (GST structure)
-  'Composed effective introduction': [
-    'distinguish-g-s-t',
-    'write-g-s-from-t',
-    'write-introductory-sentences',
-  ],
+  'Composed effective introduction': {
+    high: ['distinguish-g-s-t', 'write-g-s-from-t', 'write-introductory-sentences'],
+    medium: ['distinguish-g-s-t', 'write-g-s-from-t'],
+    low: ['distinguish-g-s-t'],
+  },
 
   // Conclusion (TSG structure)
-  'Composed effective conclusion': [
-    'craft-conclusion-from-gst',
-    'distinguish-g-s-t',
-  ],
+  'Composed effective conclusion': {
+    high: ['craft-conclusion-from-gst', 'distinguish-g-s-t'],
+    medium: ['craft-conclusion-from-gst'],
+    low: ['craft-conclusion-from-gst'],
+  },
 
   // Editing/grammar
-  'Edited for grammar and mechanics': ['fragment-or-sentence'],
+  'Edited for grammar and mechanics': {
+    high: ['fragment-or-sentence', 'combine-sentences'],
+    medium: ['fragment-or-sentence'],
+    low: ['fragment-or-sentence'],
+  },
 
   // Counterclaim (advanced argumentative)
-  'Addressed opposing view/counterclaim': [
-    'match-details-pro-con',
-    'subordinating-conjunctions',
-  ],
+  'Addressed opposing view/counterclaim': {
+    high: ['match-details-pro-con', 'subordinating-conjunctions'],
+    medium: ['match-details-pro-con'],
+    low: ['match-details-pro-con'],
+  },
 
   // Concluding sentence (grade 6)
-  'Composed effective concluding sentence': [
-    'write-cs-from-details',
-    'make-topic-sentences',
-  ],
+  'Composed effective concluding sentence': {
+    high: ['write-cs-from-details', 'make-topic-sentences'],
+    medium: ['write-cs-from-details'],
+    low: ['write-cs-from-details'],
+  },
 
   // Evidence
-  'Used credible and relevant evidence': [
-    'writing-spos',
-    'eliminate-irrelevant-sentences',
-    'elaborate-paragraphs',
-  ],
+  'Used credible and relevant evidence': {
+    high: ['writing-spos', 'elaborate-paragraphs', 'eliminate-irrelevant-sentences'],
+    medium: ['writing-spos', 'elaborate-paragraphs'],
+    low: ['writing-spos'],
+  },
 
   // Pro/Con balance
-  'Presented both sides fairly': [
-    'match-details-pro-con',
-    'using-transition-words',
-    'writing-spos',
-  ],
+  'Presented both sides fairly': {
+    high: ['match-details-pro-con', 'using-transition-words', 'writing-spos'],
+    medium: ['match-details-pro-con', 'using-transition-words'],
+    low: ['match-details-pro-con'],
+  },
 
   // Minimum paragraph count (structural, no direct lesson)
-  'Minimum paragraph count': [],
+  'Minimum paragraph count': {
+    high: [],
+    medium: [],
+    low: [],
+  },
 
   // Clear reasoning (advanced argumentative)
-  'Clear reasoning from evidence to claim': [
-    'subordinating-conjunctions',
-    'elaborate-paragraphs',
-    'writing-spos',
-  ],
+  'Clear reasoning from evidence to claim': {
+    high: ['subordinating-conjunctions', 'elaborate-paragraphs', 'writing-spos'],
+    medium: ['subordinating-conjunctions', 'writing-spos'],
+    low: ['subordinating-conjunctions'],
+  },
 };
 
 /**
@@ -120,16 +135,75 @@ function getSeverity(score: CriterionScore): 'low' | 'medium' | 'high' {
 }
 
 /**
+ * @description Mapping of essay criteria to practice lesson IDs by severity (short IDs).
+ * Used by fantasy grader which uses criterionId like 'thesis', 'topicSentences', etc.
+ * Severity-aligned: more lessons for more severe gaps.
+ */
+export const ESSAY_CRITERION_ID_TO_LESSONS: Record<string, {
+  high: string[];    // Status "no": Full suite (2-4 lessons)
+  medium: string[];  // Status "developing": Core skills (2 lessons)
+  low: string[];     // Not used (essays don't track low severity)
+}> = {
+  thesis: {
+    high: ['write-t-from-topic', 'distinguish-g-s-t', 'make-topic-sentences'],
+    medium: ['write-t-from-topic', 'distinguish-g-s-t'],
+    low: ['write-t-from-topic'],
+  },
+  topicSentences: {
+    high: ['make-topic-sentences', 'identify-topic-sentence', 'basic-conjunctions'],
+    medium: ['make-topic-sentences', 'identify-topic-sentence'],
+    low: ['make-topic-sentences'],
+  },
+  supportingDetails: {
+    high: ['writing-spos', 'elaborate-paragraphs', 'eliminate-irrelevant-sentences'],
+    medium: ['writing-spos', 'elaborate-paragraphs'],
+    low: ['elaborate-paragraphs'],
+  },
+  unity: {
+    high: ['eliminate-irrelevant-sentences', 'writing-spos', 'using-transition-words'],
+    medium: ['eliminate-irrelevant-sentences', 'writing-spos'],
+    low: ['eliminate-irrelevant-sentences'],
+  },
+  transitions: {
+    high: ['using-transition-words', 'finishing-transition-words'],
+    medium: ['using-transition-words', 'finishing-transition-words'],
+    low: ['using-transition-words'],
+  },
+  conclusion: {
+    high: ['craft-conclusion-from-gst', 'distinguish-g-s-t'],
+    medium: ['craft-conclusion-from-gst'],
+    low: ['craft-conclusion-from-gst'],
+  },
+  sentenceStrategies: {
+    high: ['basic-conjunctions', 'write-appositives', 'subordinating-conjunctions', 'kernel-expansion'],
+    medium: ['basic-conjunctions', 'subordinating-conjunctions'],
+    low: ['basic-conjunctions'],
+  },
+  conventions: {
+    high: ['fragment-or-sentence', 'combine-sentences'],
+    medium: ['fragment-or-sentence'],
+    low: ['fragment-or-sentence'],
+  },
+  paragraphCount: {
+    high: [],
+    medium: [],
+    low: [],
+  },
+};
+
+/**
  * @description TWR tier definitions for lesson prioritization.
  * Lower tier = more foundational = higher priority within same severity.
  */
-const LESSON_TIERS: Record<string, number> = {
+export const LESSON_TIERS: Record<string, number> = {
   // Tier 1: Sentence-level lessons (foundational TWR skills)
   'basic-conjunctions': 1,
   'write-appositives': 1,
   'subordinating-conjunctions': 1,
   'kernel-expansion': 1,
   'fragment-or-sentence': 1,
+  'combine-sentences': 1,
+  'identify-appositives': 1,
   // Tier 2: Paragraph-level lessons
   'make-topic-sentences': 2,
   'identify-topic-sentence': 2,
@@ -172,8 +246,9 @@ export function detectGapsFromEssayScorecard(
   for (const criterion of scorecard.criteria) {
     if (criterion.score === 'Yes') continue;
 
-    const recommendedLessons = ESSAY_CRITERION_TO_LESSONS[criterion.criterion] || [];
     const severity = getSeverity(criterion.score);
+    const lessonMap = ESSAY_CRITERION_TO_LESSONS[criterion.criterion];
+    const recommendedLessons = lessonMap ? lessonMap[severity] : [];
 
     gaps.push({
       criterion: criterion.criterion,
@@ -266,7 +341,8 @@ export function analyzeEssayGapPatterns(
       noCount >= developingCount ? 'No' : 'Developing';
     const severity = getSeverity(mostCommonScore);
 
-    const recommendedLessons = ESSAY_CRITERION_TO_LESSONS[criterionName] || [];
+    const lessonMap = ESSAY_CRITERION_TO_LESSONS[criterionName];
+    const recommendedLessons = lessonMap ? lessonMap[severity] : [];
 
     gaps.push({
       criterion: criterionName,

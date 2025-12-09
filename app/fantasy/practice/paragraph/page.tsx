@@ -18,6 +18,7 @@ import {
   createPracticeSubmission,
   updatePracticeSubmission,
 } from '@/lib/services/practice-submissions';
+import { RecommendedLessons } from '../../_components/RecommendedLessons';
 import type { GradeResponse } from '../../_lib/grading';
 
 type Phase = 'prompt' | 'write' | 'feedback' | 'revise' | 'results';
@@ -130,6 +131,9 @@ export default function ParagraphPracticePage() {
     setIsGrading(true);
     setError(null);
 
+    // Generate a unique ID for gap tracking
+    const gapTrackingId = crypto.randomUUID();
+
     try {
       const promptText = getPromptText();
       const res = await fetch('/fantasy/api/grade', {
@@ -139,6 +143,10 @@ export default function ParagraphPracticePage() {
           content,
           prompt: promptText,
           type: 'paragraph',
+          // Pass user context for gap tracking
+          userId: user?.uid,
+          submissionId: gapTrackingId,
+          source: 'practice',
         }),
       });
 
@@ -198,6 +206,9 @@ export default function ParagraphPracticePage() {
     setIsGrading(true);
     setError(null);
 
+    // Generate a unique ID for gap tracking (revision is separate occurrence)
+    const gapTrackingId = crypto.randomUUID();
+
     try {
       const res = await fetch('/fantasy/api/grade', {
         method: 'POST',
@@ -208,6 +219,10 @@ export default function ParagraphPracticePage() {
           type: 'paragraph',
           previousResult: originalResponse.result,
           previousContent: originalContent,
+          // Pass user context for gap tracking
+          userId: user?.uid,
+          submissionId: gapTrackingId,
+          source: 'practice',
         }),
       });
 
@@ -234,7 +249,7 @@ export default function ParagraphPracticePage() {
     } finally {
       setIsGrading(false);
     }
-  }, [selectedTopic, customTopic, content, originalResponse, originalContent, submissionId]);
+  }, [selectedTopic, customTopic, content, originalResponse, originalContent, submissionId, user]);
 
   const reset = useCallback(() => {
     setPhase('prompt');
@@ -441,6 +456,15 @@ export default function ParagraphPracticePage() {
               </div>
 
               <FeedbackDisplay result={response.result} content={originalContent} />
+
+              {/* Show recommended lessons if there are gaps */}
+              {response.prioritizedLessons.length > 0 && (
+                <RecommendedLessons
+                  lessons={response.prioritizedLessons}
+                  hasSevereGap={response.hasSevereGap}
+                  maxDisplay={3}
+                />
+              )}
 
               <div className="flex justify-center gap-4">
                 <FantasyButton onClick={reset} variant="secondary">

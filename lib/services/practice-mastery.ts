@@ -1,16 +1,19 @@
 /**
  * @fileoverview Practice mode mastery service.
  * Handles tracking and updating lesson mastery status for users.
+ * Also handles skill gap resolution when lessons are mastered.
  */
 
 import { db } from '../config/firebase';
 import { doc, getDoc, updateDoc, serverTimestamp, Timestamp } from 'firebase/firestore';
 import { LessonMasteryStatus, UserProfile } from '@/lib/types';
 import { MASTERY_THRESHOLD, calculatePracticeLP } from '@/lib/constants/practice-lessons';
+import { getGapsResolvedByLesson, resolveGap } from './skill-gap-tracker';
 
 /**
  * @description Updates mastery status for a lesson after a practice attempt.
  * Updates on any attempt, tracks best score, and sets mastered flag when threshold reached.
+ * Also resolves any skill gaps when a lesson is mastered.
  */
 export async function updateMastery(
   uid: string,
@@ -28,6 +31,8 @@ export async function updateMastery(
   const currentMastery = userData.practiceMastery?.[lessonId];
   const now = Timestamp.now();
   const isMasteredNow = score >= MASTERY_THRESHOLD;
+  const wasAlreadyMastered = currentMastery?.mastered || false;
+  const isFirstMastery = isMasteredNow && !wasAlreadyMastered;
 
   // Build updated mastery status
   // Determine masteredAt: keep existing, set now if first mastery, or omit if not mastered
@@ -48,6 +53,25 @@ export async function updateMastery(
     [`practiceMastery.${lessonId}`]: updatedStatus,
     updatedAt: serverTimestamp(),
   });
+
+  // Check if this lesson resolves any skill gaps (only on first mastery)
+  if (isFirstMastery) {
+    try {
+      const gapsToResolve = await getGapsResolvedByLesson(uid, lessonId);
+      
+      // Resolve each gap where all required lessons are now mastered
+      for (const criterion of gapsToResolve) {
+        // Get the recommended lessons for this gap from user data
+        const gapData = userData.skillGaps?.[criterion];
+        if (gapData) {
+          await resolveGap(uid, criterion, gapData.recommendedLessons);
+        }
+      }
+    } catch (err) {
+      // Log but don't fail mastery update if gap resolution fails
+      console.error('Failed to check/resolve skill gaps:', err);
+    }
+  }
 
   return updatedStatus;
 }
