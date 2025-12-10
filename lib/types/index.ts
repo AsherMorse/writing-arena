@@ -50,6 +50,9 @@ export interface UserProfile {
 
   // Skill gap tracking (denormalized for fast block checks)
   skillGaps?: SkillGapsMap;
+
+  // Noble name system
+  hasNobleName?: boolean;
   
   createdAt: Timestamp;
   updatedAt: Timestamp;

@@ -332,14 +332,8 @@ function MarkdownRenderer({ content }: { content: string }) {
             {children}
           </p>
         ),
-        blockquote: ({ children }) => (
-          <blockquote 
-            className="my-4 rounded-lg p-4"
-            style={{ background: 'rgba(201, 168, 76, 0.15)', borderLeft: '3px solid #c9a84c' }}
-          >
-            {children}
-          </blockquote>
-        ),
+        // Hide blockquotes - they contain duplicate audio/TTS content
+        blockquote: () => null,
         ul: ({ children }) => (
           <ul className="list-disc pl-6 space-y-2 font-avenir text-sm mb-3" style={{ color: 'rgba(45, 45, 45, 0.8)' }}>
             {children}

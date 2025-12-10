@@ -16,6 +16,7 @@ import {
 import { FeedbackSidebar } from '../_components/FeedbackSidebar';
 import { LoadingOverlay } from '../_components/LoadingOverlay';
 import { Leaderboard } from '../_components/Leaderboard';
+import { WinningSubmissions } from '../_components/WinningSubmissions';
 import { RecommendedLessons } from '../_components/RecommendedLessons';
 import { ParchmentCard } from '../_components/ParchmentCard';
 import { ParchmentButton } from '../_components/ParchmentButton';
@@ -445,6 +446,8 @@ export default function RankedPage() {
                   Come back tomorrow for a new challenge
                 </p>
               </ParchmentCard>
+
+              <WinningSubmissions promptId={currentPrompt.id} />
 
               <Leaderboard promptId={currentPrompt.id} userId={user?.uid} />
 
@@ -886,6 +889,8 @@ export default function RankedPage() {
                   </div>
                 </div>
               </FeedbackProvider>
+
+              <WinningSubmissions promptId={currentPrompt.id} />
 
               <Leaderboard promptId={currentPrompt.id} userId={user?.uid} />
 

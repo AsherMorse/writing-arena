@@ -13,7 +13,6 @@ export default function AuthContent() {
   const [isSignUp, setIsSignUp] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [displayName, setDisplayName] = useState('');
   
   const { signIn, signUp, signInWithGoogle, user } = useAuth();
   const router = useRouter();
@@ -42,10 +41,7 @@ export default function AuthContent() {
     e.preventDefault();
     await executeAuth(async () => {
       if (isSignUp) {
-        if (!displayName.trim()) {
-          throw new Error('Please enter your name');
-        }
-        await signUp(email, password, displayName);
+        await signUp(email, password);
       } else {
         await signIn(email, password);
       }
@@ -65,9 +61,10 @@ export default function AuthContent() {
   const handleDemoAccount = async () => {
     await executeAuth(async () => {
       try {
-        await signUp('demo@writingarena.app', 'demo123456', 'Demo Student');
-      } catch (signUpError: any) {
-        if (signUpError.message.includes('already')) {
+        await signUp('demo@writingarena.app', 'demo123456');
+      } catch (signUpError: unknown) {
+        const errorMessage = signUpError instanceof Error ? signUpError.message : '';
+        if (errorMessage.includes('already')) {
           await signIn('demo@writingarena.app', 'demo123456');
         } else {
           throw signUpError;
@@ -108,7 +105,7 @@ export default function AuthContent() {
                   {isSignUp ? 'Create account' : 'Welcome back'}
                 </h1>
                 <p className="text-sm text-[rgba(255,255,255,0.4)]">
-                  {isSignUp ? 'Set up your profile' : 'Sign in to continue'}
+                  {isSignUp ? 'Join the arena' : 'Sign in to continue'}
                 </p>
               </div>
             </div>
@@ -142,8 +139,6 @@ export default function AuthContent() {
               setEmail={setEmail}
               password={password}
               setPassword={setPassword}
-              displayName={displayName}
-              setDisplayName={setDisplayName}
               error={error}
               loading={loading}
               onSubmit={handleSubmit}

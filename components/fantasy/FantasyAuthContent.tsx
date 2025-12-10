@@ -12,7 +12,6 @@ export function FantasyAuthContent() {
   const [isSignUp, setIsSignUp] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [displayName, setDisplayName] = useState('');
 
   const { signIn, signUp, signInWithGoogle, user } = useAuth();
   const router = useRouter();
@@ -41,10 +40,7 @@ export function FantasyAuthContent() {
     e.preventDefault();
     await executeAuth(async () => {
       if (isSignUp) {
-        if (!displayName.trim()) {
-          throw new Error('Please enter your name');
-        }
-        await signUp(email, password, displayName);
+        await signUp(email, password);
       } else {
         await signIn(email, password);
       }
@@ -149,20 +145,6 @@ export function FantasyAuthContent() {
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-4">
-              {isSignUp && (
-                <div>
-                  <label className={labelClassName}>Name</label>
-                  <input
-                    type="text"
-                    value={displayName}
-                    onChange={(e) => setDisplayName(e.target.value)}
-                    placeholder="Your name"
-                    className={inputClassName}
-                    required={isSignUp}
-                  />
-                </div>
-              )}
-
               <div>
                 <label className={labelClassName}>Email</label>
                 <input
@@ -239,4 +221,3 @@ export function FantasyAuthContent() {
     </div>
   );
 }
-

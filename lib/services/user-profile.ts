@@ -13,7 +13,7 @@ export async function createUserProfile(uid: string, data: Partial<UserProfile>)
   
   const profileData = {
     uid,
-    displayName: data.displayName || 'Student Writer',
+    displayName: data.displayName || 'New Adventurer',
     email: data.email || '',
     avatar: '🌿',
     characterLevel: 2,
@@ -21,6 +21,7 @@ export async function createUserProfile(uid: string, data: Partial<UserProfile>)
     totalPoints: 1250,
     currentRank: 'Silver III',
     rankLP: 120,
+    hasNobleName: data.hasNobleName ?? false,
     traits: {
       content: 2,
       organization: 3,
@@ -85,7 +86,7 @@ export async function getUserProfile(uid: string): Promise<UserProfile | null> {
     
     const cleanProfile: UserProfile = {
       uid: rawData.uid || rawData.id || uid,
-      displayName: rawData.displayName || 'Student Writer',
+      displayName: rawData.displayName || 'New Adventurer',
       email: rawData.email || '',
       avatar: avatarValue,
       characterLevel: rawData.characterLevel || 2,
@@ -93,6 +94,7 @@ export async function getUserProfile(uid: string): Promise<UserProfile | null> {
       totalPoints: rawData.totalPoints || 1250,
       currentRank: rawData.currentRank || 'Silver III',
       rankLP: rawData.rankLP || 120,
+      hasNobleName: rawData.hasNobleName ?? false,
       traits: rawData.traits || {
         content: 2,
         organization: 3,

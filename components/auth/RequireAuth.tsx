@@ -5,13 +5,15 @@ import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { LoadingState } from '@/components/shared/LoadingState';
 import { logger, LOG_CONTEXTS } from '@/lib/utils/logger';
+import NobleNamePickerModal from '@/components/shared/NobleNamePickerModal';
 
 export function RequireAuth({ children }: { children: React.ReactNode }) {
-  const { user, loading } = useAuth();
+  const { user, userProfile, loading, refreshProfile } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const [isAuthorized, setIsAuthorized] = useState(false);
+  const [showNamePicker, setShowNamePicker] = useState(false);
 
   useEffect(() => {
     if (!loading) {
@@ -50,6 +52,21 @@ export function RequireAuth({ children }: { children: React.ReactNode }) {
     }
   }, [user, loading, router, pathname, searchParams]);
 
+  // Show noble name picker modal if user doesn't have a noble name yet
+  useEffect(() => {
+    if (user && userProfile && !userProfile.hasNobleName) {
+      setShowNamePicker(true);
+    }
+  }, [user, userProfile]);
+
+  /**
+   * @description Handles completion of noble name selection.
+   */
+  const handleNamePickerComplete = async () => {
+    await refreshProfile();
+    setShowNamePicker(false);
+  };
+
   if (loading) {
     return <LoadingState message="Checking authentication..." />;
   }
@@ -59,5 +76,13 @@ export function RequireAuth({ children }: { children: React.ReactNode }) {
     return null;
   }
 
-  return <>{children}</>;
+  return (
+    <>
+      {children}
+      <NobleNamePickerModal
+        isOpen={showNamePicker}
+        onComplete={handleNamePickerComplete}
+      />
+    </>
+  );
 }

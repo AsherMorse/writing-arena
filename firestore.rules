@@ -91,5 +91,16 @@ service cloud.firestore {
       allow read: if isAuthenticated();
       allow write: if false; // Backend/API only
     }
+    
+    // Noble Name Claiming (unique medieval names)
+    match /takenNames/{nameHash} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated();
+      allow update: if isAuthenticated() 
+        && (resource.data.reservedBy == request.auth.uid 
+            || resource.data.expiresAt < request.time);
+      allow delete: if isAuthenticated() 
+        && resource.data.reservedBy == request.auth.uid;
+    }
   }
 }

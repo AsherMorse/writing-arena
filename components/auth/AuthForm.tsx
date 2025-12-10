@@ -8,8 +8,6 @@ interface AuthFormProps {
   setEmail: (email: string) => void;
   password: string;
   setPassword: (password: string) => void;
-  displayName: string;
-  setDisplayName: (name: string) => void;
   error: string;
   loading: boolean;
   onSubmit: (e: React.FormEvent) => void;
@@ -21,30 +19,12 @@ export function AuthForm({
   setEmail,
   password,
   setPassword,
-  displayName,
-  setDisplayName,
   error,
   loading,
   onSubmit,
 }: AuthFormProps) {
   return (
     <form onSubmit={onSubmit} className="space-y-4">
-      {isSignUp && (
-        <div>
-          <label className="mb-2 block text-[10px] font-semibold uppercase tracking-[0.08em] text-[rgba(255,255,255,0.22)]">
-            Name
-          </label>
-          <input
-            type="text"
-            value={displayName}
-            onChange={(e) => setDisplayName(e.target.value)}
-            placeholder="Your name"
-              className="w-full rounded-[10px] border border-[rgba(255,255,255,0.05)] bg-[#101012] px-4 py-3 font-mono text-sm text-[rgba(255,255,255,0.8)] outline-none transition-colors placeholder:text-[rgba(255,255,255,0.22)] focus:border-[#00e5e5]"
-            required={isSignUp}
-          />
-        </div>
-      )}
-
       <div>
         <label className="mb-2 block text-[10px] font-semibold uppercase tracking-[0.08em] text-[rgba(255,255,255,0.22)]">
           Email
@@ -94,4 +74,3 @@ export function AuthForm({
     </form>
   );
 }
-

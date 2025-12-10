@@ -7,7 +7,6 @@ import {
   signInWithEmailAndPassword,
   signOut as firebaseSignOut,
   onAuthStateChanged,
-  updateProfile,
   signInWithPopup,
   GoogleAuthProvider
 } from 'firebase/auth';
@@ -20,7 +19,7 @@ interface AuthContextType {
   userProfile: UserProfile | null;
   loading: boolean;
   signIn: (email: string, password: string) => Promise<void>;
-  signUp: (email: string, password: string, displayName: string) => Promise<void>;
+  signUp: (email: string, password: string) => Promise<void>;
   signInWithGoogle: () => Promise<void>;
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
@@ -63,9 +62,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           let profile = await getUserProfile(user.uid);
           
           if (!profile) {
+            // Create profile with placeholder name - user will pick noble name via modal
             await createUserProfile(user.uid, {
-              displayName: user.displayName || 'Student Writer',
+              displayName: 'New Adventurer',
               email: user.email || '',
+              hasNobleName: false,
             });
             
             const { retryUntilSuccess } = await import('@/lib/utils/retry');
@@ -103,9 +104,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       let profile = await getUserProfile(userCredential.user.uid);
       
       if (!profile) {
+        // Create profile with placeholder name - user will pick noble name via modal
         await createUserProfile(userCredential.user.uid, {
-          displayName: userCredential.user.displayName || userCredential.user.email?.split('@')[0] || 'Student Writer',
+          displayName: 'New Adventurer',
           email: userCredential.user.email || '',
+          hasNobleName: false,
         });
         
         await new Promise(resolve => setTimeout(resolve, 500));
@@ -115,20 +118,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (profile) {
         setUserProfile(profile);
       }
-    } catch (error: any) {
-      throw new Error(getAuthErrorMessage(error.code));
+    } catch (error: unknown) {
+      const errorCode = (error as { code?: string }).code || '';
+      throw new Error(getAuthErrorMessage(errorCode));
     }
   };
 
-  const signUp = async (email: string, password: string, displayName: string) => {
+  const signUp = async (email: string, password: string) => {
     try {
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-      
-      await updateProfile(userCredential.user, { displayName });
 
+      // Create profile with placeholder name - user will pick noble name via modal
       await createUserProfile(userCredential.user.uid, {
-        displayName,
+        displayName: 'New Adventurer',
         email,
+        hasNobleName: false,
       });
       
       await new Promise(resolve => setTimeout(resolve, 500));
@@ -137,8 +141,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (profile) {
         setUserProfile(profile);
       }
-    } catch (error: any) {
-      throw new Error(getAuthErrorMessage(error.code));
+    } catch (error: unknown) {
+      const errorCode = (error as { code?: string }).code || '';
+      throw new Error(getAuthErrorMessage(errorCode));
     }
   };
 
@@ -149,9 +154,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       
       let profile = await getUserProfile(result.user.uid);
       if (!profile) {
+        // Create profile with placeholder name - user will pick noble name via modal
         await createUserProfile(result.user.uid, {
-          displayName: result.user.displayName || 'Student Writer',
+          displayName: 'New Adventurer',
           email: result.user.email || '',
+          hasNobleName: false,
         });
         
         await new Promise(resolve => setTimeout(resolve, 500));
@@ -161,11 +168,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (profile) {
         setUserProfile(profile);
       }
-    } catch (error: any) {
-      if (error.code === 'auth/popup-closed-by-user') {
+    } catch (error: unknown) {
+      const errorCode = (error as { code?: string }).code || '';
+      if (errorCode === 'auth/popup-closed-by-user') {
         throw new Error('Sign-in cancelled');
       }
-      throw new Error(getAuthErrorMessage(error.code));
+      throw new Error(getAuthErrorMessage(errorCode));
     }
   };
 
