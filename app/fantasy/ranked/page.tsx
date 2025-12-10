@@ -4,17 +4,23 @@ import { useState, useCallback, useEffect } from 'react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
-import { FantasyButton } from '@/components/fantasy';
 import { LoadingState } from '@/components/shared/LoadingState';
 import { Timer } from '../_components/Timer';
 import { WritingEditor } from '../_components/WritingEditor';
 import { PromptCard } from '../_components/PromptCard';
-import { FeedbackDisplay } from '../_components/FeedbackDisplay';
+import { 
+  FeedbackProvider,
+  WritingCard,
+  ExpandableScoreBreakdown,
+} from '../_components/FeedbackDisplay';
 import { FeedbackSidebar } from '../_components/FeedbackSidebar';
-import { ScoreDisplay } from '../_components/ScoreDisplay';
 import { LoadingOverlay } from '../_components/LoadingOverlay';
 import { Leaderboard } from '../_components/Leaderboard';
 import { RecommendedLessons } from '../_components/RecommendedLessons';
+import { ParchmentCard } from '../_components/ParchmentCard';
+import { ParchmentButton } from '../_components/ParchmentButton';
+// import { HintsCard } from '../_components/HintsCard';
+import { getParchmentTextStyle } from '../_components/parchment-styles';
 import { getTodaysPrompt, formatDateString } from '@/lib/services/ranked-prompts';
 import { getDebugDate, setDebugPromptId } from '@/lib/utils/debug-date';
 import {
@@ -26,6 +32,13 @@ import { checkBlockStatus, updateSkillGaps } from '@/lib/services/skill-gap-trac
 import { getLessonDisplayName } from '@/lib/constants/lesson-display-names';
 import type { GradeResponse } from '../_lib/grading';
 import type { RankedPrompt, RankedSubmission, BlockCheckResult } from '@/lib/types';
+
+/** Default hints shown during writing */
+// const DEFAULT_HINTS = [
+//   'Think about cause and effect',
+//   'Expand on several benefits',
+//   'Use specific examples',
+// ];
 
 type Phase = 'loading' | 'prompt' | 'write' | 'feedback' | 'revise' | 'results' | 'no_prompt' | 'already_submitted' | 'blocked';
 
@@ -322,7 +335,7 @@ export default function RankedPage() {
       {isGrading && <LoadingOverlay />}
 
       <Image
-        src="/images/backgrounds/bg.webp"
+        src="/images/backgrounds/battle.webp"
         alt=""
         fill
         className="object-cover"
@@ -337,7 +350,7 @@ export default function RankedPage() {
       />
 
       <div className="relative z-10 min-h-screen flex flex-col">
-        <header className="flex items-center justify-between p-4">
+        <header className="p-4">
           <button
             onClick={handleBack}
             className="font-memento text-sm uppercase tracking-wider"
@@ -345,14 +358,6 @@ export default function RankedPage() {
           >
             ← Back
           </button>
-          {(phase === 'write' || phase === 'revise') && (
-            <Timer
-              key={phase}
-              seconds={phase === 'write' ? WRITE_TIME : REVISE_TIME}
-              onComplete={handleTimerComplete}
-            />
-          )}
-          <div className="w-16" />
         </header>
 
         <main className="flex-1 flex items-center justify-center p-4 overflow-y-auto">
@@ -384,57 +389,70 @@ export default function RankedPage() {
                 )}
               </div>
 
-              <FantasyButton onClick={() => router.push('/fantasy/home')} size="large">
+              <ParchmentButton onClick={() => router.push('/fantasy/home')}>
                 Return Home
-              </FantasyButton>
+              </ParchmentButton>
             </div>
           )}
 
           {phase === 'already_submitted' && existingSubmission && currentPrompt && (
-            <div className="w-full max-w-2xl text-center space-y-8">
-              <div>
-                <h1
-                  className="font-dutch809 text-4xl mb-2"
-                  style={{
-                    color: '#f6d493',
-                    textShadow: '0 2px 4px rgba(0, 0, 0, 0.8)',
-                  }}
-                >
-                  Today&apos;s Challenge Complete!
-                </h1>
-                <p
-                  className="font-avenir text-lg"
-                  style={{ color: 'rgba(245, 230, 184, 0.7)' }}
-                >
-                  Come back tomorrow for a new challenge
-                </p>
+            <div className="w-full max-w-3xl space-y-4">
+              {/* Header row: Title (left) + Score (right) */}
+              <div className="flex gap-4 items-stretch">
+                <div className="flex-1">
+                  <ParchmentCard className="h-full flex items-center">
+                    <h1 
+                      className="font-memento text-2xl tracking-wide" 
+                      style={getParchmentTextStyle()}
+                    >
+                      Today&apos;s Challenge Complete!
+                    </h1>
+                  </ParchmentCard>
+                </div>
+                <div className="w-80 shrink-0">
+                  <ParchmentCard className="h-full flex items-center justify-center">
+                    <div className="text-center">
+                      <div
+                        className="font-dutch809 text-4xl"
+                        style={getParchmentTextStyle()}
+                      >
+                        {existingSubmission.revisedScore ?? existingSubmission.originalScore}%
+                      </div>
+                      <div className="font-avenir text-xs" style={getParchmentTextStyle()}>
+                        {((existingSubmission.revisedFeedback ?? existingSubmission.originalFeedback) as { scores?: { total?: number } })?.scores?.total ?? Math.round((existingSubmission.revisedScore ?? existingSubmission.originalScore) / 10)}/
+                        {((existingSubmission.revisedFeedback ?? existingSubmission.originalFeedback) as { scores?: { maxTotal?: number } })?.scores?.maxTotal ?? 10} points
+                      </div>
+                      {existingSubmission.revisedScore !== undefined && existingSubmission.revisedScore !== existingSubmission.originalScore && (
+                        <div className="mt-1">
+                          {existingSubmission.revisedScore > existingSubmission.originalScore ? (
+                            <span className="font-avenir text-xs" style={{ color: '#16a34a' }}>
+                              +{existingSubmission.revisedScore - existingSubmission.originalScore}%
+                            </span>
+                          ) : (
+                            <span className="font-avenir text-xs" style={{ color: '#d97706' }}>
+                              {existingSubmission.originalScore}% → {existingSubmission.revisedScore}%
+                            </span>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  </ParchmentCard>
+                </div>
               </div>
 
-              <ScoreDisplay
-                percentage={existingSubmission.revisedScore ?? existingSubmission.originalScore}
-                total={((existingSubmission.revisedFeedback ?? existingSubmission.originalFeedback) as { scores?: { total?: number } })?.scores?.total ?? Math.round((existingSubmission.revisedScore ?? existingSubmission.originalScore) / 10)}
-                max={((existingSubmission.revisedFeedback ?? existingSubmission.originalFeedback) as { scores?: { maxTotal?: number } })?.scores?.maxTotal ?? 10}
-              />
-
-              {existingSubmission.revisedScore !== undefined && existingSubmission.revisedScore !== existingSubmission.originalScore && (
-                <div>
-                  {existingSubmission.revisedScore > existingSubmission.originalScore ? (
-                    <span className="font-avenir text-lg" style={{ color: '#4ade80' }}>
-                      +{existingSubmission.revisedScore - existingSubmission.originalScore}% from revision!
-                    </span>
-                  ) : (
-                    <span className="font-avenir text-sm" style={{ color: '#fbbf24' }}>
-                      Original: {existingSubmission.originalScore}% → Revised: {existingSubmission.revisedScore}%
-                    </span>
-                  )}
-                </div>
-              )}
+              <ParchmentCard className="text-center">
+                <p className="font-avenir" style={getParchmentTextStyle()}>
+                  Come back tomorrow for a new challenge
+                </p>
+              </ParchmentCard>
 
               <Leaderboard promptId={currentPrompt.id} userId={user?.uid} />
 
-              <FantasyButton onClick={() => router.push('/fantasy/home')} size="large">
-                Return Home
-              </FantasyButton>
+              <div className="flex justify-center">
+                <ParchmentButton onClick={() => router.push('/fantasy/home')}>
+                  Return Home
+                </ParchmentButton>
+              </div>
             </div>
           )}
 
@@ -523,12 +541,12 @@ export default function RankedPage() {
               )}
 
               <div className="flex justify-center gap-4">
-                <FantasyButton onClick={() => router.push('/fantasy/home')} variant="secondary">
+                <ParchmentButton onClick={() => router.push('/fantasy/home')}>
                   Return Home
-                </FantasyButton>
-                <FantasyButton onClick={() => router.push('/improve/activities')} size="large">
+                </ParchmentButton>
+                <ParchmentButton onClick={() => router.push('/improve/activities')} variant="golden">
                   Go to Practice
-                </FantasyButton>
+                </ParchmentButton>
               </div>
             </div>
           )}
@@ -547,9 +565,9 @@ export default function RankedPage() {
                 </h1>
                 <p className="text-red-400">{error}</p>
               </div>
-              <FantasyButton onClick={fetchTodaysPrompt} size="large">
+              <ParchmentButton onClick={fetchTodaysPrompt}>
                 Try Again
-              </FantasyButton>
+              </ParchmentButton>
             </div>
           )}
 
@@ -598,156 +616,284 @@ export default function RankedPage() {
                 <div className="text-red-400 text-sm">{error}</div>
               )}
 
-              <FantasyButton onClick={beginWriting} size="large">
+              <ParchmentButton onClick={beginWriting} variant="golden">
                 Begin Writing
-              </FantasyButton>
+              </ParchmentButton>
             </div>
           )}
 
           {phase === 'write' && currentPrompt && (
-            <div className="w-full max-w-2xl space-y-6">
-              <PromptCard prompt={promptText} />
-              <WritingEditor
-                value={content}
-                onChange={setContent}
-                placeholder="Begin your response..."
-                showRequirements={false}
-              />
-              {error && (
-                <div className="text-center space-y-4">
-                  <div className="text-red-400 text-sm">{error}</div>
-                  <FantasyButton onClick={reset} variant="secondary">
-                    Start Over
-                  </FantasyButton>
+            <div className="w-full max-w-4xl space-y-4">
+              {/* Header row: Title (left) + Timer (right) - same height */}
+              <div className="flex gap-4 items-stretch">
+                <div className="flex-1">
+                  <ParchmentCard className="h-full flex items-center">
+                    <h1 
+                      className="font-memento text-2xl tracking-wide" 
+                      style={getParchmentTextStyle()}
+                    >
+                      Daily Challenge
+                    </h1>
+                  </ParchmentCard>
                 </div>
-              )}
-              {!error && (
-                <div className="flex justify-end">
-                  <FantasyButton onClick={submitWriting} disabled={!canSubmit}>
-                    {isGrading ? 'Grading...' : 'Submit Early'}
-                  </FantasyButton>
+                <div className="w-48 shrink-0">
+                  <Timer
+                    key={phase}
+                    seconds={WRITE_TIME}
+                    onComplete={handleTimerComplete}
+                    parchmentStyle
+                    className="h-full"
+                  />
                 </div>
-              )}
+              </div>
+
+              {/* Two column layout */}
+              <div className="flex gap-4">
+                {/* Left column: Prompt, Editor */}
+                <div className="flex-1 space-y-4">
+                  <PromptCard prompt={promptText} />
+
+                  <WritingEditor
+                    value={content}
+                    onChange={setContent}
+                    placeholder="Begin your response..."
+                    showRequirements={false}
+                  />
+
+                  {error && (
+                    <div className="text-center space-y-4">
+                      <div className="text-red-400 text-sm">{error}</div>
+                      <ParchmentButton onClick={reset}>
+                        Start Over
+                      </ParchmentButton>
+                    </div>
+                  )}
+                </div>
+
+                {/* Right column: Hints (commented out), Submit */}
+                <div className="w-48 space-y-4 flex flex-col">
+                  {/* <HintsCard hints={DEFAULT_HINTS} /> */}
+
+                  <div className="mt-auto">
+                    {!error && (
+                      <ParchmentButton onClick={submitWriting} disabled={!canSubmit} variant="golden" className="w-full">
+                        {isGrading ? 'Grading...' : 'Submit'}
+                      </ParchmentButton>
+                    )}
+                  </div>
+                </div>
+              </div>
             </div>
           )}
 
           {phase === 'feedback' && response && currentPrompt && (
-            <div className="w-full max-w-5xl space-y-6">
-              <div className="text-center">
-                <h2
-                  className="font-dutch809 text-3xl mb-4"
-                  style={{
-                    color: '#f6d493',
-                    textShadow: '0 2px 4px rgba(0, 0, 0, 0.8)',
-                  }}
-                >
-                  Feedback
-                </h2>
-                <ScoreDisplay
-                  percentage={response.result.scores.percentage}
-                  total={response.result.scores.total}
-                  max={response.result.scores.maxTotal}
-                />
+            <div className="w-full max-w-5xl space-y-4">
+              {/* Header row: Title (left) + Score (right) - same height */}
+              <div className="flex gap-4 items-stretch">
+                <div className="flex-1">
+                  <ParchmentCard className="h-full flex items-center">
+                    <h1 
+                      className="font-memento text-2xl tracking-wide" 
+                      style={getParchmentTextStyle()}
+                    >
+                      Feedback
+                    </h1>
+                  </ParchmentCard>
+                </div>
+                <div className="w-80 shrink-0">
+                  <ParchmentCard className="h-full flex items-center justify-center">
+                    <div className="text-center">
+                      <div
+                        className="font-dutch809 text-4xl"
+                        style={getParchmentTextStyle()}
+                      >
+                        {response.result.scores.percentage}%
+                      </div>
+                      <div className="font-avenir text-xs" style={getParchmentTextStyle()}>
+                        {response.result.scores.total}/{response.result.scores.maxTotal} points
+                      </div>
+                    </div>
+                  </ParchmentCard>
+                </div>
               </div>
 
-              <FeedbackDisplay result={response.result} content={originalContent} />
+              {/* Two column layout - constrained height so buttons stay anchored */}
+              <FeedbackProvider>
+                <div className="flex gap-4 max-h-[calc(100vh-250px)]">
+                  {/* Left column: Your Writing + Practice Recommended */}
+                  <div className="flex-1 space-y-4 parchment-scrollbar">
+                    <WritingCard content={originalContent} />
+                    
+                    {response.prioritizedLessons.length > 0 && (
+                      <RecommendedLessons
+                        lessons={response.prioritizedLessons}
+                        hasSevereGap={response.hasSevereGap}
+                        maxDisplay={3}
+                        showPracticeButton={false}
+                      />
+                    )}
+                  </div>
 
-              {/* Show recommended lessons if there are gaps */}
-              {response.prioritizedLessons.length > 0 && (
-                <RecommendedLessons
-                  lessons={response.prioritizedLessons}
-                  hasSevereGap={response.hasSevereGap}
-                  maxDisplay={3}
-                />
-              )}
+                  {/* Right column: Expandable Score Breakdown (scrollable) */}
+                  <div className="w-80 shrink-0 parchment-scrollbar">
+                    <ExpandableScoreBreakdown 
+                      scores={response.result.scores} 
+                      remarks={response.result.remarks} 
+                    />
+                  </div>
+                </div>
+              </FeedbackProvider>
 
               <div className="flex justify-center gap-4">
-                <FantasyButton onClick={reset} variant="secondary">
+                <ParchmentButton onClick={reset}>
                   Start Over
-                </FantasyButton>
-                <FantasyButton onClick={startRevision} size="large">
+                </ParchmentButton>
+                {response.prioritizedLessons.length > 0 && (
+                  <ParchmentButton onClick={() => router.push('/improve/activities')}>
+                    Practice
+                  </ParchmentButton>
+                )}
+                <ParchmentButton onClick={startRevision} variant="golden">
                   Revise Your Work
-                </FantasyButton>
+                </ParchmentButton>
               </div>
             </div>
           )}
 
           {phase === 'revise' && originalResponse && currentPrompt && (
-            <div className="w-full max-w-5xl">
-              <div className="mb-4">
-                <PromptCard prompt={promptText} />
+            <div className="w-full max-w-4xl space-y-4">
+              {/* Header row: Title (left) + Timer (right) - same height */}
+              <div className="flex gap-4 items-stretch">
+                <div className="flex-1">
+                  <ParchmentCard className="h-full flex items-center">
+                    <h1 
+                      className="font-memento text-2xl tracking-wide" 
+                      style={getParchmentTextStyle()}
+                    >
+                      Revision
+                    </h1>
+                  </ParchmentCard>
+                </div>
+                <div className="w-64 shrink-0">
+                  <Timer
+                    key={phase}
+                    seconds={REVISE_TIME}
+                    onComplete={handleTimerComplete}
+                    parchmentStyle
+                    className="h-full"
+                  />
+                </div>
               </div>
-              <div className="flex gap-6">
+
+              {/* Two column layout */}
+              <div className="flex gap-4">
+                {/* Left column: Prompt, Editor */}
                 <div className="flex-1 space-y-4">
+                  <PromptCard prompt={promptText} />
+
                   <WritingEditor
                     value={content}
                     onChange={setContent}
                     placeholder="Revise your response..."
                     showRequirements={false}
+                    rows={12}
                   />
+
                   {error && (
                     <div className="text-center space-y-4">
                       <div className="text-red-400 text-sm">{error}</div>
-                      <FantasyButton onClick={reset} variant="secondary">
+                      <ParchmentButton onClick={reset}>
                         Start Over
-                      </FantasyButton>
-                    </div>
-                  )}
-                  {!error && (
-                    <div className="flex justify-end">
-                      <FantasyButton onClick={submitRevision} disabled={!canSubmit}>
-                        {isGrading ? 'Grading...' : 'Submit Revision'}
-                      </FantasyButton>
+                      </ParchmentButton>
                     </div>
                   )}
                 </div>
-                <div className="w-72 shrink-0">
-                  <FeedbackSidebar result={originalResponse.result} />
+
+                {/* Right column: Feedback, Submit */}
+                <div className="w-64 shrink-0 space-y-4">
+                  <FeedbackSidebar 
+                    result={originalResponse.result} 
+                    contentClassName="max-h-[385px] overflow-y-auto parchment-scrollbar"
+                  />
+                  {!error && (
+                    <ParchmentButton onClick={submitRevision} disabled={!canSubmit} variant="golden" className="w-full">
+                      {isGrading ? 'Grading...' : 'Submit Revision'}
+                    </ParchmentButton>
+                  )}
                 </div>
               </div>
             </div>
           )}
 
           {phase === 'results' && response && originalResponse && currentPrompt && (
-            <div className="w-full max-w-5xl space-y-6">
-              <div className="text-center">
-                <h2
-                  className="font-dutch809 text-3xl mb-4"
-                  style={{
-                    color: '#f6d493',
-                    textShadow: '0 2px 4px rgba(0, 0, 0, 0.8)',
-                  }}
-                >
-                  Daily Challenge Complete!
-                </h2>
-                <ScoreDisplay
-                  percentage={response.result.scores.percentage}
-                  total={response.result.scores.total}
-                  max={response.result.scores.maxTotal}
-                />
-
-                {originalResponse.result.scores.percentage !== response.result.scores.percentage && (
-                  <div className="mt-4">
-                    {response.result.scores.percentage > originalResponse.result.scores.percentage ? (
-                      <span className="font-avenir text-lg" style={{ color: '#4ade80' }}>
-                        +{response.result.scores.percentage - originalResponse.result.scores.percentage}% from revision!
-                      </span>
-                    ) : (
-                      <span className="font-avenir text-sm" style={{ color: '#fbbf24' }}>
-                        Original: {originalResponse.result.scores.percentage}% → Revised: {response.result.scores.percentage}%
-                      </span>
-                    )}
-                  </div>
-                )}
+            <div className="w-full max-w-5xl space-y-4">
+              {/* Header row: Title (left) + Score (right) - same height */}
+              <div className="flex gap-4 items-stretch">
+                <div className="flex-1">
+                  <ParchmentCard className="h-full flex items-center">
+                    <h1 
+                      className="font-memento text-2xl tracking-wide" 
+                      style={getParchmentTextStyle()}
+                    >
+                      Complete!
+                    </h1>
+                  </ParchmentCard>
+                </div>
+                <div className="w-80 shrink-0">
+                  <ParchmentCard className="h-full flex items-center justify-center">
+                    <div className="text-center">
+                      <div
+                        className="font-dutch809 text-4xl"
+                        style={getParchmentTextStyle()}
+                      >
+                        {response.result.scores.percentage}%
+                      </div>
+                      <div className="font-avenir text-xs" style={getParchmentTextStyle()}>
+                        {response.result.scores.total}/{response.result.scores.maxTotal} points
+                      </div>
+                      {originalResponse.result.scores.percentage !== response.result.scores.percentage && (
+                        <div className="mt-1">
+                          {response.result.scores.percentage > originalResponse.result.scores.percentage ? (
+                            <span className="font-avenir text-xs" style={{ color: '#16a34a' }}>
+                              +{response.result.scores.percentage - originalResponse.result.scores.percentage}%
+                            </span>
+                          ) : (
+                            <span className="font-avenir text-xs" style={{ color: '#d97706' }}>
+                              {originalResponse.result.scores.percentage}% → {response.result.scores.percentage}%
+                            </span>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  </ParchmentCard>
+                </div>
               </div>
 
-              <FeedbackDisplay result={response.result} content={content} />
+              {/* Two column layout - constrained height so buttons stay anchored */}
+              <FeedbackProvider>
+                <div className="flex gap-4 max-h-[calc(100vh-320px)]">
+                  {/* Left column: Your Writing */}
+                  <div className="flex-1 max-h-[400px] overflow-y-auto parchment-scrollbar">
+                    <WritingCard content={content} />
+                  </div>
+
+                  {/* Right column: Expandable Score Breakdown (scrollable) */}
+                  <div className="w-80 shrink-0 max-h-[400px] overflow-y-auto parchment-scrollbar">
+                    <ExpandableScoreBreakdown 
+                      scores={response.result.scores} 
+                      remarks={response.result.remarks} 
+                    />
+                  </div>
+                </div>
+              </FeedbackProvider>
 
               <Leaderboard promptId={currentPrompt.id} userId={user?.uid} />
 
-              <FantasyButton onClick={() => router.push('/fantasy/home')} size="large">
-                Return Home
-              </FantasyButton>
+              <div className="flex justify-center gap-4">
+                <ParchmentButton onClick={() => router.push('/fantasy/home')}>
+                  Return Home
+                </ParchmentButton>
+              </div>
             </div>
           )}
         </main>

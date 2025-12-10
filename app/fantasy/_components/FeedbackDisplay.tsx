@@ -5,7 +5,7 @@
 'use client';
 
 import { useState, createContext, useContext, ReactNode } from 'react';
-import { ParchmentCard } from './ParchmentCard';
+import { ParchmentCard, ParchmentCardWithLine } from './ParchmentCard';
 import { getParchmentTextStyle } from './parchment-styles';
 import type { GraderResult, GraderRemark } from '../_lib/grading';
 
@@ -77,7 +77,7 @@ function ExpandableScoreRow({ label, score, maxScore, remarks }: ExpandableScore
         disabled={!hasRemarks}
         className={`w-full flex items-center gap-2 py-2 px-2 ${hasRemarks ? 'cursor-pointer hover:bg-[rgba(139,99,52,0.1)] rounded-md' : 'cursor-default'}`}
       >
-        <span className="font-memento text-xs w-20 shrink-0 text-left" style={textStyle}>
+        <span className="font-memento text-sm w-24 shrink-0 text-left" style={textStyle}>
           {label}
         </span>
         <div
@@ -237,21 +237,15 @@ export function WritingCard({ content }: WritingCardProps) {
     : undefined;
 
   return (
-    <ParchmentCard variant="default" borderRadius="lg">
-      <div
-        className="text-sm uppercase tracking-widest mb-2 pb-2 font-memento border-b"
-        style={{ ...getParchmentTextStyle(), borderColor: 'rgba(139, 99, 52, 0.3)' }}
-      >
-        Your Writing
-      </div>
-      <p className="text-sm font-avenir whitespace-pre-wrap pt-2" style={getParchmentTextStyle()}>
+    <ParchmentCardWithLine title="Your Writing">
+      <p className="text-sm font-avenir whitespace-pre-wrap" style={getParchmentTextStyle()}>
         <HighlightedText 
           content={content} 
           highlightText={highlightText} 
           highlightColor={highlightColor} 
         />
       </p>
-    </ParchmentCard>
+    </ParchmentCardWithLine>
   );
 }
 
@@ -265,14 +259,8 @@ interface ExpandableScoreBreakdownProps {
  */
 export function ExpandableScoreBreakdown({ scores, remarks }: ExpandableScoreBreakdownProps) {
   return (
-    <ParchmentCard variant="default" borderRadius="lg">
-      <div
-        className="text-sm uppercase tracking-widest mb-3 pb-2 font-memento border-b"
-        style={{ ...getParchmentTextStyle(), borderColor: 'rgba(139, 99, 52, 0.3)' }}
-      >
-        Score Breakdown
-      </div>
-      <div className="space-y-1 pt-1 -mx-2">
+    <ParchmentCardWithLine title="Score Breakdown">
+      <div className="space-y-1 -mx-2">
         {SCORE_CATEGORIES.map(({ key, label }) => {
           const categoryRemarks = getRemarksForCategory(remarks, key);
           return (
@@ -286,7 +274,7 @@ export function ExpandableScoreBreakdown({ scores, remarks }: ExpandableScoreBre
           );
         })}
       </div>
-    </ParchmentCard>
+    </ParchmentCardWithLine>
   );
 }
 
@@ -308,7 +296,7 @@ export function ScoreBreakdownCard({ scores }: ScoreBreakdownCardProps) {
   return (
     <ParchmentCard variant="default" borderRadius="lg">
       <div
-        className="text-sm uppercase tracking-widest mb-3 pb-2 font-memento border-b"
+        className="text-base uppercase tracking-widest mb-3 pb-2 font-memento border-b"
         style={{ ...textStyle, borderColor: 'rgba(139, 99, 52, 0.3)' }}
       >
         Score Breakdown
@@ -321,7 +309,7 @@ export function ScoreBreakdownCard({ scores }: ScoreBreakdownCardProps) {
           
           return (
             <div key={key} className="flex items-center gap-3">
-              <span className="font-memento text-xs w-28 shrink-0" style={textStyle}>
+              <span className="font-memento text-sm w-28 shrink-0" style={textStyle}>
                 {label}
               </span>
               <div

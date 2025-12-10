@@ -469,7 +469,7 @@ export default function ParagraphPracticePage() {
 
                   <div className="mt-auto">
                     {!error && (
-                      <ParchmentButton onClick={submitWriting} disabled={!canSubmit} className="w-full">
+                      <ParchmentButton onClick={submitWriting} disabled={!canSubmit} variant="golden" className="w-full">
                         {isGrading ? 'Grading...' : 'Submit'}
                       </ParchmentButton>
                     )}
@@ -556,18 +556,44 @@ export default function ParagraphPracticePage() {
 
           {/* Revision Phase */}
           {phase === 'revise' && originalResponse && (
-            <div className="w-full max-w-5xl">
-              <div className="mb-4">
-                <PromptCard prompt={getPromptText()} />
+            <div className="w-full max-w-4xl space-y-4">
+              {/* Header row: Title (left) + Timer (right) - same height */}
+              <div className="flex gap-4 items-stretch">
+                <div className="flex-1">
+                  <ParchmentCard className="h-full flex items-center">
+                    <h1 
+                      className="font-memento text-2xl tracking-wide" 
+                      style={getParchmentTextStyle()}
+                    >
+                      Revision
+                    </h1>
+                  </ParchmentCard>
+                </div>
+                <div className="w-64 shrink-0">
+                  <Timer
+                    key={phase}
+                    seconds={REVISE_TIME}
+                    onComplete={handleTimerComplete}
+                    parchmentStyle
+                    className="h-full"
+                  />
+                </div>
               </div>
-              <div className="flex gap-6">
+
+              {/* Two column layout */}
+              <div className="flex gap-4">
+                {/* Left column: Prompt, Editor */}
                 <div className="flex-1 space-y-4">
+                  <PromptCard prompt={getPromptText()} />
+
                   <WritingEditor
                     value={content}
                     onChange={setContent}
                     placeholder="Revise your response..."
                     showRequirements={false}
+                    rows={12}
                   />
+
                   {error && (
                     <div className="text-center space-y-4">
                       <div className="text-red-400 text-sm">{error}</div>
@@ -576,22 +602,19 @@ export default function ParagraphPracticePage() {
                       </ParchmentButton>
                     </div>
                   )}
-                  {!error && (
-                    <div className="flex justify-end">
-                      <ParchmentButton onClick={submitRevision} disabled={!canSubmit}>
-                        {isGrading ? 'Grading...' : 'Submit Revision'}
-                      </ParchmentButton>
-                    </div>
-                  )}
                 </div>
-                <div className="w-72 shrink-0 space-y-4">
-                  <Timer
-                    key={phase}
-                    seconds={REVISE_TIME}
-                    onComplete={handleTimerComplete}
-                    parchmentStyle
+
+                {/* Right column: Feedback, Submit */}
+                <div className="w-64 shrink-0 space-y-4">
+                  <FeedbackSidebar 
+                    result={originalResponse.result} 
+                    contentClassName="max-h-[385px] overflow-y-auto parchment-scrollbar"
                   />
-                  <FeedbackSidebar result={originalResponse.result} />
+                  {!error && (
+                    <ParchmentButton onClick={submitRevision} disabled={!canSubmit} variant="golden" className="w-full">
+                      {isGrading ? 'Grading...' : 'Submit Revision'}
+                    </ParchmentButton>
+                  )}
                 </div>
               </div>
             </div>
@@ -646,12 +669,12 @@ export default function ParagraphPracticePage() {
               <FeedbackProvider>
                 <div className="flex gap-4 max-h-[calc(100vh-250px)]">
                   {/* Left column: Your Writing */}
-                  <div className="flex-1 overflow-y-auto parchment-scrollbar">
+                  <div className="flex-1 max-h-[473px] overflow-y-auto parchment-scrollbar">
                     <WritingCard content={content} />
                   </div>
 
                   {/* Right column: Expandable Score Breakdown (scrollable) */}
-                  <div className="w-80 shrink-0 overflow-y-auto parchment-scrollbar">
+                  <div className="w-80 shrink-0 max-h-[473px] overflow-y-auto parchment-scrollbar">
                     <ExpandableScoreBreakdown 
                       scores={response.result.scores} 
                       remarks={response.result.remarks} 

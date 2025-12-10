@@ -17,6 +17,8 @@ interface WritingEditorProps {
   showRequirements?: boolean;
   minWords?: number;
   maxWords?: number;
+  /** Number of visible text rows */
+  rows?: number;
   /** Color variant */
   variant?: ParchmentVariant;
 }
@@ -32,6 +34,7 @@ export function WritingEditor({
   showRequirements = true,
   minWords = MIN_WORDS,
   maxWords = DEFAULT_MAX_WORDS,
+  rows = 8,
   variant = 'default',
 }: WritingEditorProps) {
   const wordCount = value.trim() ? value.trim().split(/\s+/).length : 0;
@@ -69,7 +72,7 @@ export function WritingEditor({
         disabled={disabled}
         placeholder={placeholder}
             spellCheck={false}
-            rows={8}
+            rows={rows}
             className="block w-full p-4 text-lg leading-relaxed resize-none focus:outline-none font-avenir parchment-scrollbar"
         style={{
               background: 'rgba(255, 255, 255, 0.15)',
