@@ -44,10 +44,10 @@ export async function saveGradingResult(
   const historyRef = collection(db, 'users', userId, 'gradingHistory');
   const docRef = doc(historyRef);
 
-  const entry: Omit<GradingHistoryEntry, 'id'> & { timestamp: ReturnType<typeof serverTimestamp> } = {
+  const entry = {
     ...input,
     timestamp: serverTimestamp(),
-  };
+  } as Omit<GradingHistoryEntry, 'id'>;
 
   await setDoc(docRef, entry);
   return docRef.id;

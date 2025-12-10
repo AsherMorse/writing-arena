@@ -39,7 +39,9 @@
     "node_modules",
     "functions",
     "_alphawrite",
+    "_docs",
     "__tests__",
-    "e2e"
+    "e2e",
+    "**/*.OLD.tsx"
   ]
 }

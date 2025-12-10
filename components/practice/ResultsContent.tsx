@@ -1,3 +1,12 @@
+/**
+ * @fileoverview Placeholder - this component is deprecated and commented out.
+ * TODO: Remove this file and the page that imports it.
+ */
+
+export default function ResultsContent() {
+  return null;
+}
+
 // 'use client';
 
 // import React, { Suspense, useState } from 'react';
