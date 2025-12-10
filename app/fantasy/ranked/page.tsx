@@ -18,9 +18,10 @@ import { LoadingOverlay } from '../_components/LoadingOverlay';
 import { Leaderboard } from '../_components/Leaderboard';
 import { WinningSubmissions } from '../_components/WinningSubmissions';
 import { RecommendedLessons } from '../_components/RecommendedLessons';
+import { ScrollShadow } from '../_components/ScrollShadow';
 import { ParchmentCard } from '../_components/ParchmentCard';
 import { ParchmentButton } from '../_components/ParchmentButton';
-// import { HintsCard } from '../_components/HintsCard';
+import { ParchmentAccordion } from '../_components/ParchmentAccordion';
 import { getParchmentTextStyle } from '../_components/parchment-styles';
 import { getTodaysPrompt, formatDateString } from '@/lib/services/ranked-prompts';
 import { getDebugDate, setDebugPromptId } from '@/lib/utils/debug-date';
@@ -33,13 +34,6 @@ import { checkBlockStatus, updateSkillGaps } from '@/lib/services/skill-gap-trac
 import { getLessonDisplayName } from '@/lib/constants/lesson-display-names';
 import type { GradeResponse } from '../_lib/grading';
 import type { RankedPrompt, RankedSubmission, BlockCheckResult } from '@/lib/types';
-
-/** Default hints shown during writing */
-// const DEFAULT_HINTS = [
-//   'Think about cause and effect',
-//   'Expand on several benefits',
-//   'Use specific examples',
-// ];
 
 type Phase = 'loading' | 'prompt' | 'write' | 'feedback' | 'revise' | 'results' | 'no_prompt' | 'already_submitted' | 'blocked';
 
@@ -62,6 +56,12 @@ export default function RankedPage() {
   const [submissionId, setSubmissionId] = useState<string | null>(null);
   const [existingSubmission, setExistingSubmission] = useState<RankedSubmission | null>(null);
   const [blockStatus, setBlockStatus] = useState<BlockCheckResult | null>(null);
+  /** Which accordion panel is currently open (exclusive - only one at a time) */
+  const [openPanel, setOpenPanel] = useState<'hints' | 'fixes' | null>(null);
+  /** Generated background info for inspiration */
+  const [inspirationContent, setInspirationContent] = useState<string | null>(null);
+  /** Loading state for inspiration generation */
+  const [isLoadingInspiration, setIsLoadingInspiration] = useState(false);
 
   const fetchTodaysPrompt = useCallback(async () => {
     if (!user) return;
@@ -279,6 +279,7 @@ export default function RankedPage() {
 
   const startRevision = useCallback(() => {
     setPhase('revise');
+    setOpenPanel('fixes'); // Things to Fix expanded by default in revision
   }, []);
 
   const reset = useCallback(() => {
@@ -288,7 +289,42 @@ export default function RankedPage() {
     setResponse(null);
     setError(null);
     setPhase('prompt');
+    setOpenPanel(null);
+    setInspirationContent(null);
   }, []);
+
+  /** Fetch inspiration content when accordion is opened */
+  const fetchInspiration = useCallback(async (promptText: string) => {
+    if (inspirationContent || isLoadingInspiration) return;
+    if (!promptText) return;
+    
+    setIsLoadingInspiration(true);
+    try {
+      const res = await fetch('/fantasy/api/generate-inspiration', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ prompt: promptText }),
+      });
+      
+      if (res.ok) {
+        const data = await res.json();
+        setInspirationContent(data.backgroundInfo);
+      }
+    } catch (err) {
+      console.error('Failed to fetch inspiration:', err);
+    } finally {
+      setIsLoadingInspiration(false);
+    }
+  }, [inspirationContent, isLoadingInspiration]);
+
+  /** Handle opening the inspiration accordion */
+  const handleInspirationToggle = useCallback(() => {
+    const isOpening = openPanel !== 'hints';
+    setOpenPanel(prev => prev === 'hints' ? null : 'hints');
+    if (isOpening && currentPrompt?.promptText) {
+      fetchInspiration(currentPrompt.promptText);
+    }
+  }, [openPanel, fetchInspiration, currentPrompt]);
 
   useEffect(() => {
     const handleFillEditor = () => {
@@ -673,9 +709,29 @@ export default function RankedPage() {
                   )}
                 </div>
 
-                {/* Right column: Hints (commented out), Submit */}
-                <div className="w-48 space-y-4 flex flex-col">
-                  {/* <HintsCard hints={DEFAULT_HINTS} /> */}
+                {/* Right column: Inspiration accordion at top, Submit at bottom */}
+                <div className="w-48 flex flex-col">
+                  <ParchmentAccordion
+                    title="Get Inspiration"
+                    icon="lightbulb"
+                    isOpen={openPanel === 'hints'}
+                    onToggle={handleInspirationToggle}
+                    maxHeight="250px"
+                  >
+                    {isLoadingInspiration ? (
+                      <p className="font-avenir text-sm italic" style={{ ...getParchmentTextStyle(), opacity: 0.7 }}>
+                        Loading background info...
+                      </p>
+                    ) : inspirationContent ? (
+                      <p className="font-avenir text-sm leading-relaxed" style={getParchmentTextStyle()}>
+                        {inspirationContent}
+                      </p>
+                    ) : (
+                      <p className="font-avenir text-sm italic" style={{ ...getParchmentTextStyle(), opacity: 0.7 }}>
+                        Click to load topic information...
+                      </p>
+                    )}
+                  </ParchmentAccordion>
 
                   <div className="mt-auto">
                     {!error && (
@@ -722,9 +778,9 @@ export default function RankedPage() {
 
               {/* Two column layout - constrained height so buttons stay anchored */}
               <FeedbackProvider>
-                <div className="flex gap-4 max-h-[calc(100vh-250px)]">
+                <div className="flex gap-4 items-start">
                   {/* Left column: Your Writing + Practice Recommended */}
-                  <div className="flex-1 space-y-4 parchment-scrollbar">
+                  <ScrollShadow className="flex-1" contentClassName="space-y-4" maxHeight="calc(100vh - 250px)">
                     <WritingCard content={originalContent} />
                     
                     {response.prioritizedLessons.length > 0 && (
@@ -735,15 +791,15 @@ export default function RankedPage() {
                         showPracticeButton={false}
                       />
                     )}
-                  </div>
+                  </ScrollShadow>
 
                   {/* Right column: Expandable Score Breakdown (scrollable) */}
-                  <div className="w-80 shrink-0 parchment-scrollbar">
+                  <ScrollShadow className="w-80 shrink-0" maxHeight="calc(100vh - 274px)">
                     <ExpandableScoreBreakdown 
                       scores={response.result.scores} 
                       remarks={response.result.remarks} 
                     />
-                  </div>
+                  </ScrollShadow>
                 </div>
               </FeedbackProvider>
 
@@ -812,17 +868,74 @@ export default function RankedPage() {
                   )}
                 </div>
 
-                {/* Right column: Feedback, Submit */}
-                <div className="w-64 shrink-0 space-y-4">
-                  <FeedbackSidebar 
-                    result={originalResponse.result} 
-                    contentClassName="max-h-[385px] overflow-y-auto parchment-scrollbar"
-                  />
-                  {!error && (
-                    <ParchmentButton onClick={submitRevision} disabled={!canSubmit} variant="golden" className="w-full">
-                      {isGrading ? 'Grading...' : 'Submit Revision'}
-                    </ParchmentButton>
-                  )}
+                {/* Right column: Accordions at top, Submit at bottom */}
+                <div className="w-64 shrink-0 flex flex-col space-y-2">
+                  {/* Inspiration accordion */}
+                  <ParchmentAccordion
+                    title="Get Inspiration"
+                    icon="lightbulb"
+                    isOpen={openPanel === 'hints'}
+                    onToggle={handleInspirationToggle}
+                    maxHeight="250px"
+                  >
+                    {isLoadingInspiration ? (
+                      <p className="font-avenir text-sm italic" style={{ ...getParchmentTextStyle(), opacity: 0.7 }}>
+                        Loading background info...
+                      </p>
+                    ) : inspirationContent ? (
+                      <p className="font-avenir text-sm leading-relaxed" style={getParchmentTextStyle()}>
+                        {inspirationContent}
+                      </p>
+                    ) : (
+                      <p className="font-avenir text-sm italic" style={{ ...getParchmentTextStyle(), opacity: 0.7 }}>
+                        Click to load topic information...
+                      </p>
+                    )}
+                  </ParchmentAccordion>
+
+                  {/* Things to Fix accordion - expanded by default */}
+                  <ParchmentAccordion
+                    title="Things to Fix"
+                    icon="wrench"
+                    isOpen={openPanel === 'fixes'}
+                    onToggle={() => setOpenPanel(prev => prev === 'fixes' ? null : 'fixes')}
+                    maxHeight="300px"
+                  >
+                    {originalResponse.result.remarks.length === 0 ? (
+                      <div className="text-center">
+                        <span className="font-avenir text-sm" style={{ ...getParchmentTextStyle(), color: '#15803d' }}>
+                          Great job! No issues to fix.
+                        </span>
+                      </div>
+                    ) : (
+                      <div className="space-y-4">
+                        {originalResponse.result.remarks.map((remark, i) => (
+                          <div key={i} className="flex gap-2 items-start">
+                            <div
+                              className="w-2 h-2 rounded-full mt-1.5 shrink-0"
+                              style={{ background: remark.severity === 'error' ? '#b91c1c' : '#b45309' }}
+                            />
+                            <div>
+                              <p className="font-avenir text-sm" style={getParchmentTextStyle()}>
+                                {remark.concreteProblem}
+                              </p>
+                              <p className="font-avenir text-xs mt-1" style={{ ...getParchmentTextStyle(), opacity: 0.7 }}>
+                                {remark.callToAction}
+                              </p>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </ParchmentAccordion>
+
+                  <div className="mt-auto pt-2">
+                    {!error && (
+                      <ParchmentButton onClick={submitRevision} disabled={!canSubmit} variant="golden" className="w-full">
+                        {isGrading ? 'Grading...' : 'Submit Revision'}
+                      </ParchmentButton>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>
@@ -874,19 +987,19 @@ export default function RankedPage() {
 
               {/* Two column layout - constrained height so buttons stay anchored */}
               <FeedbackProvider>
-                <div className="flex gap-4 max-h-[calc(100vh-320px)]">
+                <div className="flex gap-4 items-start">
                   {/* Left column: Your Writing */}
-                  <div className="flex-1 max-h-[400px] overflow-y-auto parchment-scrollbar">
+                  <ScrollShadow className="flex-1" maxHeight="400px">
                     <WritingCard content={content} />
-                  </div>
+                  </ScrollShadow>
 
                   {/* Right column: Expandable Score Breakdown (scrollable) */}
-                  <div className="w-80 shrink-0 max-h-[400px] overflow-y-auto parchment-scrollbar">
+                  <ScrollShadow className="w-80 shrink-0" maxHeight="400px">
                     <ExpandableScoreBreakdown 
                       scores={response.result.scores} 
                       remarks={response.result.remarks} 
                     />
-                  </div>
+                  </ScrollShadow>
                 </div>
               </FeedbackProvider>
 

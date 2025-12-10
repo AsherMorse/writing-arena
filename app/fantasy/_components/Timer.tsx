@@ -28,6 +28,7 @@ export function Timer({
   variant = 'default',
 }: TimerProps) {
   const [remaining, setRemaining] = useState(seconds);
+  const isDev = process.env.NODE_ENV === 'development';
 
   useEffect(() => {
     if (remaining <= 0) {
@@ -35,12 +36,14 @@ export function Timer({
       return;
     }
 
+    if (isDev) return; // Timer frozen in dev mode
+
     const timer = setInterval(() => {
       setRemaining((r) => r - 1);
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [remaining, onComplete]);
+  }, [remaining, onComplete, isDev]);
 
   const minutes = Math.floor(remaining / 60);
   const secs = remaining % 60;

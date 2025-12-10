@@ -12,6 +12,7 @@ import { EssayFeedbackSidebar } from '../../_components/EssayFeedbackSidebar';
 import { ScoreDisplay } from '../../_components/ScoreDisplay';
 import { LoadingOverlay } from '../../_components/LoadingOverlay';
 import { TopicCloud } from '../../_components/TopicCloud';
+import { FantasyAccordion } from '../../_components/FantasyAccordion';
 import { getRandomEssayTopics, getRandomEssayTopic, type EssayTopic } from '../../_lib/essay-topics';
 import type { EssayGradeResponse } from '../../_lib/grading';
 
@@ -37,6 +38,12 @@ export default function EssayPracticePage() {
   const [isGrading, setIsGrading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [hasUnsavedWork, setHasUnsavedWork] = useState(false);
+  /** Which accordion panel is currently open */
+  const [openPanel, setOpenPanel] = useState<'hints' | 'fixes' | null>(null);
+  /** Generated background info for inspiration */
+  const [inspirationContent, setInspirationContent] = useState<string | null>(null);
+  /** Loading state for inspiration generation */
+  const [isLoadingInspiration, setIsLoadingInspiration] = useState(false);
 
   useEffect(() => {
     setHasUnsavedWork(phase === 'write' || phase === 'revise');
@@ -60,6 +67,8 @@ export default function EssayPracticePage() {
     setOriginalResponse(null);
     setResponse(null);
     setError(null);
+    setOpenPanel(null);
+    setInspirationContent(null);
     setPhase('write');
   }, []);
 
@@ -100,6 +109,8 @@ export default function EssayPracticePage() {
       setOriginalContent('');
       setOriginalResponse(null);
       setResponse(null);
+      setOpenPanel(null);
+      setInspirationContent(null);
       setPhase('write');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Something went wrong');
@@ -164,6 +175,7 @@ export default function EssayPracticePage() {
 
   const startRevision = useCallback(() => {
     setPhase('revise');
+    setOpenPanel('fixes'); // Things to Fix expanded by default
   }, []);
 
   const submitRevision = useCallback(async () => {
@@ -212,7 +224,42 @@ export default function EssayPracticePage() {
     setOriginalResponse(null);
     setResponse(null);
     setError(null);
+    setOpenPanel(null);
+    setInspirationContent(null);
   }, []);
+
+  /** Fetch inspiration content when accordion is opened */
+  const fetchInspiration = useCallback(async (promptText: string) => {
+    if (inspirationContent || isLoadingInspiration) return;
+    if (!promptText) return;
+    
+    setIsLoadingInspiration(true);
+    try {
+      const res = await fetch('/fantasy/api/generate-inspiration', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ prompt: promptText }),
+      });
+      
+      if (res.ok) {
+        const data = await res.json();
+        setInspirationContent(data.backgroundInfo);
+      }
+    } catch (err) {
+      console.error('Failed to fetch inspiration:', err);
+    } finally {
+      setIsLoadingInspiration(false);
+    }
+  }, [inspirationContent, isLoadingInspiration]);
+
+  /** Handle opening the inspiration accordion */
+  const handleInspirationToggle = useCallback(() => {
+    const isOpening = openPanel !== 'hints';
+    setOpenPanel(prev => prev === 'hints' ? null : 'hints');
+    if (isOpening) {
+      fetchInspiration(getPromptText());
+    }
+  }, [openPanel, fetchInspiration, selectedTopic, generatedPrompt, customTopic]);
 
   const canSubmit = content.trim().length > 0 && !isGrading;
 
@@ -361,6 +408,29 @@ export default function EssayPracticePage() {
           {phase === 'write' && (
             <div className="w-full max-w-3xl space-y-6">
               <PromptCard prompt={getPromptText()} />
+              
+              {/* Inspiration accordion */}
+              <FantasyAccordion
+                title="Get Inspiration"
+                isOpen={openPanel === 'hints'}
+                onToggle={handleInspirationToggle}
+                maxHeight="200px"
+              >
+                {isLoadingInspiration ? (
+                  <p className="font-avenir text-sm italic" style={{ opacity: 0.7 }}>
+                    Loading background info...
+                  </p>
+                ) : inspirationContent ? (
+                  <p className="font-avenir text-sm leading-relaxed">
+                    {inspirationContent}
+                  </p>
+                ) : (
+                  <p className="font-avenir text-sm italic" style={{ opacity: 0.7 }}>
+                    Click to load topic information...
+                  </p>
+                )}
+              </FantasyAccordion>
+
               <WritingEditor
                 value={content}
                 onChange={setContent}

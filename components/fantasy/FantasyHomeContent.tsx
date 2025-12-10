@@ -10,6 +10,7 @@ import Link from 'next/link';
 import { UserProfile } from '@/lib/types';
 import { useAuth } from '@/contexts/AuthContext';
 import { FantasyLogo } from './FantasyLogo';
+import { DailyChampions } from './DailyChampions';
 import { getGradingSummary } from '@/lib/services/grading-history';
 
 interface FantasyHomeContentProps {
@@ -133,6 +134,9 @@ export function FantasyHomeContent({ userProfile }: FantasyHomeContentProps) {
               />
             ))}
           </div>
+
+          {/* Daily Champions - top 3 students for today */}
+          <DailyChampions />
         </div>
       </div>
     </div>

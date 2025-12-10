@@ -6,6 +6,7 @@ import {
   where,
   orderBy,
   getDocs,
+  getDoc,
   limit,
   Timestamp,
   addDoc,
@@ -87,6 +88,10 @@ export async function getLeaderboard(
   };
 }
 
+/**
+ * @description Fetches top 3 submissions for a prompt with real display names.
+ * Looks up user profiles to get noble names instead of anonymous "Scribe #X".
+ */
 export async function getTopThree(promptId: string): Promise<LeaderboardEntry[]> {
   const submissionsRef = collection(db, 'rankedSubmissions');
   const q = query(
@@ -98,12 +103,31 @@ export async function getTopThree(promptId: string): Promise<LeaderboardEntry[]>
   );
 
   const snapshot = await getDocs(q);
+  if (snapshot.empty) return [];
+
+  // Extract user IDs and fetch profiles in parallel
+  const submissions = snapshot.docs.map((docSnap) => docSnap.data() as RankedSubmission);
+  const userIds = submissions.map((s) => s.userId);
+  
+  const profilePromises = userIds.map((uid) => 
+    getDoc(doc(db, 'users', uid)).catch(() => null)
+  );
+  const profileSnapshots = await Promise.all(profilePromises);
+
+  // Build display name map
+  const displayNames: Record<string, string> = {};
+  profileSnapshots.forEach((snap, index) => {
+    if (snap?.exists()) {
+      const data = snap.data();
+      displayNames[userIds[index]] = data.displayName || `Scribe #${index + 1}`;
+    }
+  });
 
   return snapshot.docs.map((docSnap, index) => {
     const data = docSnap.data() as RankedSubmission;
     const rank = index + 1;
     return {
-      displayName: `Scribe #${rank}`,
+      displayName: displayNames[data.userId] || `Scribe #${rank}`,
       originalScore: data.originalScore,
       revisedScore: data.revisedScore,
       rank,

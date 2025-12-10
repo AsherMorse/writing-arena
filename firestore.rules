@@ -63,11 +63,10 @@ service cloud.firestore {
       allow delete: if false;
     }
     
-    // Game Sessions (ranked, quick-match, practice)
+    // Game Sessions (ranked, quick-match, practice, writing results)
     match /sessions/{sessionId} {
       allow read: if isAuthenticated();
-      allow create: if isAuthenticated();
-      allow update: if isAuthenticated() && isPlayerInSession();
+      allow create, update: if isAuthenticated();
       allow delete: if false;
     }
     
@@ -89,7 +88,31 @@ service cloud.firestore {
     // AI Students (for ranked matches)
     match /aiStudents/{studentId} {
       allow read: if isAuthenticated();
-      allow write: if false; // Backend/API only
+      allow write: if isAuthenticated();
+    }
+    
+    // Ranked Prompts (daily challenges)
+    match /rankedPrompts/{promptId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated();
+      allow update, delete: if false;
+    }
+    
+    // Ranked Submissions (user submissions for daily challenges)
+    // Note: read is open to all authenticated users for leaderboard functionality
+    match /rankedSubmissions/{submissionId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated() && request.resource.data.userId == request.auth.uid;
+      allow update: if isAuthenticated() && resource.data.userId == request.auth.uid;
+      allow delete: if false;
+    }
+    
+    // Practice Submissions (paragraph/essay practice sessions)
+    match /practiceSubmissions/{submissionId} {
+      allow read: if isAuthenticated() && resource.data.userId == request.auth.uid;
+      allow create: if isAuthenticated() && request.resource.data.userId == request.auth.uid;
+      allow update: if isAuthenticated() && resource.data.userId == request.auth.uid;
+      allow delete: if false;
     }
     
     // Noble Name Claiming (unique medieval names)
