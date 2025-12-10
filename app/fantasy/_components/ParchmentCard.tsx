@@ -16,6 +16,8 @@ interface ParchmentCardProps {
   variant?: ParchmentVariant;
   /** Border radius size */
   borderRadius?: ParchmentRadius;
+  /** Removes inset shadows for nested cards */
+  flat?: boolean;
 }
 
 /**
@@ -28,14 +30,22 @@ export function ParchmentCard({
   title,
   variant = 'default',
   borderRadius = 'lg',
+  flat = false,
 }: ParchmentCardProps) {
+  // Check if height/flex classes are passed to enable proper inheritance
+  const needsHeightInherit = className.includes('h-full') || className.includes('flex');
+  
   return (
     <div
       className={`relative rounded-xl overflow-hidden ${className}`}
-      style={getParchmentContainerStyle({ variant })}
+      style={getParchmentContainerStyle({ 
+        variant,
+        insetTop: flat ? 0 : 3,
+        insetBottom: flat ? 0 : 3,
+      })}
     >
       <PaperTexture borderRadius={borderRadius} />
-      <div className="relative z-10">
+      <div className={`relative z-10 ${needsHeightInherit ? 'h-full flex flex-col' : ''}`}>
         {title && (
           <div
             className="font-memento text-xs uppercase tracking-widest px-5 pt-4 pb-2"
@@ -44,7 +54,7 @@ export function ParchmentCard({
             {title}
           </div>
         )}
-        <div className={title ? 'px-5 pb-4' : 'p-5'}>
+        <div className={`${title ? 'px-5 pb-4' : 'p-5'} ${needsHeightInherit ? 'flex-1 flex items-center' : ''}`}>
           {children}
         </div>
       </div>

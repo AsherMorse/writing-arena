@@ -243,8 +243,12 @@ img {
 }
 
 /* Parchment scrollbar styles */
+.parchment-scrollbar {
+  overflow-y: overlay;
+}
+
 .parchment-scrollbar::-webkit-scrollbar {
-  width: 14px;
+  width: 10px;
 }
 
 .parchment-scrollbar::-webkit-scrollbar-track {

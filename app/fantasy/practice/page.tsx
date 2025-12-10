@@ -56,7 +56,7 @@ export default function PracticePage() {
   return (
     <div className="relative min-h-screen">
       <Image
-        src="/images/backgrounds/bg.webp"
+        src="/images/backgrounds/practice.webp"
         alt=""
         fill
         className="object-cover"

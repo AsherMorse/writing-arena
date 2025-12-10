@@ -27,7 +27,7 @@ export function ParchmentButton({
   disabled = false, 
   className = '',
   type = 'button',
-  variant = 'golden',
+  variant = 'default',
 }: ParchmentButtonProps) {
   const [isPressed, setIsPressed] = useState(false);
 

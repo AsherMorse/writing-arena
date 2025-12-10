@@ -6,8 +6,11 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { FantasyButton } from '@/components/fantasy';
+import { ParchmentCard } from './ParchmentCard';
+import { ParchmentButton } from './ParchmentButton';
+import { getParchmentTextStyle } from './parchment-styles';
 import { getLessonDisplayName } from '@/lib/constants/lesson-display-names';
+import { FantasyButton } from '@/components/fantasy/FantasyButton';
 
 interface RecommendedLessonsProps {
   /** Array of lesson IDs to recommend */
@@ -36,31 +39,22 @@ export function RecommendedLessons({
   const displayedLessons = lessons.slice(0, maxDisplay);
   const remainingCount = lessons.length - maxDisplay;
 
+  const textStyle = getParchmentTextStyle();
+  const accentColor = hasSevereGap ? '#b91c1c' : '#b45309';
+
   return (
-    <div
-      className="rounded-lg p-4"
-      style={{
-        backgroundColor: hasSevereGap
-          ? 'rgba(239, 68, 68, 0.15)'
-          : 'rgba(251, 191, 36, 0.15)',
-        border: `1px solid ${hasSevereGap ? 'rgba(239, 68, 68, 0.4)' : 'rgba(251, 191, 36, 0.4)'}`,
-      }}
-    >
-      <div className="flex items-start gap-3">
+    <ParchmentCard variant="default" borderRadius="lg">
+      <h4
+        className="font-memento text-sm uppercase tracking-widest mb-3 pb-2 border-b"
+        style={{ color: accentColor, borderColor: 'rgba(139, 99, 52, 0.3)' }}
+      >
+        {hasSevereGap ? '⚠️ Practice Recommended' : '💡 Suggested Practice'}
+      </h4>
+      <div className="flex items-start gap-3 pt-1">
         <div className="flex-1">
-          <h4
-            className="font-memento text-xs uppercase tracking-wider mb-2"
-            style={{
-              color: hasSevereGap
-                ? 'rgba(239, 68, 68, 0.9)'
-                : 'rgba(251, 191, 36, 0.9)',
-            }}
-          >
-            {hasSevereGap ? '⚠️ Practice Recommended' : '💡 Suggested Practice'}
-          </h4>
           <p
             className="font-avenir text-sm mb-3"
-            style={{ color: 'rgba(245, 230, 184, 0.7)' }}
+            style={{ ...textStyle, opacity: 0.8 }}
           >
             {hasSevereGap
               ? 'Critical skills need work. Complete these lessons to improve:'
@@ -71,7 +65,7 @@ export function RecommendedLessons({
               <div
                 key={lessonId}
                 className="font-avenir text-sm"
-                style={{ color: 'rgba(245, 230, 184, 0.9)' }}
+                style={textStyle}
               >
                 • {getLessonDisplayName(lessonId)}
               </div>
@@ -79,7 +73,7 @@ export function RecommendedLessons({
             {remainingCount > 0 && (
               <div
                 className="font-avenir text-xs"
-                style={{ color: 'rgba(245, 230, 184, 0.5)' }}
+                style={{ ...textStyle, opacity: 0.6 }}
               >
                 +{remainingCount} more
               </div>
@@ -87,15 +81,12 @@ export function RecommendedLessons({
           </div>
         </div>
         {showPracticeButton && (
-          <FantasyButton
-            onClick={() => router.push('/fantasy/study')}
-            variant="secondary"
-            size="small"
-          >
-            Practice
-          </FantasyButton>
-        )}
-      </div>
-    </div>
-  );
+          <ParchmentButton
+          onClick={() => router.push('/fantasy/study')} variant="golden">
+              Practice
+            </ParchmentButton>
+          )}
+        </div>
+      </ParchmentCard>
+    );
 }

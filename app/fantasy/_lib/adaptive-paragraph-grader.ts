@@ -112,7 +112,7 @@ Return a valid JSON object with this structure:
     {
       "type": "issue",
       "severity": "error" | "nit",
-      "category": "CategoryName",
+      "category": "Topic Sentence" | "Details" | "Conclusion" | "Conventions",
       "concreteProblem": "Brief, friendly description of the issue (50-85 chars)",
       "callToAction": "1-2 encouraging sentences guiding HOW to improve, NOT what to write (70-150 chars)",
       "substringOfInterest": "exact text from student's writing that shows the issue (optional)"
@@ -137,7 +137,7 @@ Return a valid JSON object with this structure:
 - If there are no remarks (paragraph is perfect), set isCorrect to true and remarks to empty array
 - If there are only nits, set isCorrect to true (student gets credit but should note the nits)
 - If there are any errors, set isCorrect to false
-- Limit remarks to the 3 most important issues
+- REQUIRED: Include at least one remark for EACH category that scores below 5. Students need feedback on every weak area.
 - Be ENCOURAGING and FRIENDLY in all feedback
 - Copy text EXACTLY in substringOfInterest - no paraphrasing
 - Return ONLY valid JSON, no markdown or additional text
@@ -207,6 +207,9 @@ function parseGraderResponse(response: string): GraderResult {
 
   try {
     const parsed = JSON.parse(jsonStr);
+    
+    // Debug: log raw remarks from AI
+    console.log('[Grader] Raw remarks from AI:', JSON.stringify(parsed.remarks, null, 2));
     
     const remarks: GraderRemark[] = (parsed.remarks || []).map((r: any) => ({
       type: 'issue' as const,

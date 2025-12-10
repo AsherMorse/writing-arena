@@ -221,7 +221,7 @@ export default function EssayPracticePage() {
       {isGrading && <LoadingOverlay />}
 
       <Image
-        src="/images/backgrounds/bg.webp"
+        src="/images/backgrounds/practice.webp"
         alt=""
         fill
         className="object-cover"

@@ -12,9 +12,13 @@ import { FantasyButton } from '@/components/fantasy';
 import { Timer } from '../../_components/Timer';
 import { WritingEditor } from '../../_components/WritingEditor';
 import { PromptCard } from '../../_components/PromptCard';
-import { FeedbackDisplay } from '../../_components/FeedbackDisplay';
+import { 
+  FeedbackDisplay,
+  FeedbackProvider,
+  WritingCard,
+  ExpandableScoreBreakdown,
+} from '../../_components/FeedbackDisplay';
 import { FeedbackSidebar } from '../../_components/FeedbackSidebar';
-import { ScoreDisplay } from '../../_components/ScoreDisplay';
 import { LoadingOverlay } from '../../_components/LoadingOverlay';
 import { TopicCloud } from '../../_components/TopicCloud';
 import { ParchmentCard } from '../../_components/ParchmentCard';
@@ -279,7 +283,7 @@ export default function ParagraphPracticePage() {
       {isGrading && <LoadingOverlay />}
 
       <Image
-        src="/images/backgrounds/bg.webp"
+        src="/images/backgrounds/practice.webp"
         alt=""
         fill
         className="object-cover"
@@ -412,47 +416,55 @@ export default function ParagraphPracticePage() {
 
           {/* Writing Phase - Parchment Style */}
           {phase === 'write' && (
-            <div className="w-full max-w-4xl">
-              <div className="flex gap-6">
-                {/* Left column: Title, Prompt, Editor */}
-                <div className="flex-1 space-y-4">
-                  <ParchmentCard>
+            <div className="w-full max-w-4xl space-y-4">
+              {/* Header row: Title (left) + Timer (right) - same height */}
+              <div className="flex gap-4 items-stretch">
+                <div className="flex-1">
+                  <ParchmentCard className="h-full flex items-center">
                     <h1 
-                      className="font-memento text-3xl tracking-wide pl-2" 
+                      className="font-memento text-2xl tracking-wide" 
                       style={getParchmentTextStyle()}
                     >
                       Daily Challenge
                     </h1>
                   </ParchmentCard>
-
-              <PromptCard prompt={getPromptText()} />
-
-              <WritingEditor
-                value={content}
-                onChange={setContent}
-                placeholder="Begin your response..."
-                showRequirements={false}
-              />
-
-              {error && (
-                <div className="text-center space-y-4">
-                  <div className="text-red-400 text-sm">{error}</div>
-                      <ParchmentButton onClick={reset}>
-                    Start Over
-                      </ParchmentButton>
-                    </div>
-                  )}
                 </div>
-
-                {/* Right column: Timer, Hints, Submit */}
-                <div className="w-48 space-y-4 flex flex-col">
+                <div className="w-48 shrink-0">
                   <Timer
                     key={phase}
                     seconds={WRITE_TIME}
                     onComplete={handleTimerComplete}
                     parchmentStyle
+                    className="h-full"
+                  />
+                </div>
+              </div>
+
+              {/* Two column layout */}
+              <div className="flex gap-4">
+                {/* Left column: Prompt, Editor */}
+                <div className="flex-1 space-y-4">
+                  <PromptCard prompt={getPromptText()} />
+
+                  <WritingEditor
+                    value={content}
+                    onChange={setContent}
+                    placeholder="Begin your response..."
+                    showRequirements={false}
                   />
 
+                  {error && (
+                    <div className="text-center space-y-4">
+                      <div className="text-red-400 text-sm">{error}</div>
+                      <ParchmentButton onClick={reset}>
+                        Start Over
+                      </ParchmentButton>
+                    </div>
+                  )}
+                </div>
+
+                {/* Right column: Hints, Submit */}
+                <div className="w-48 space-y-4 flex flex-col">
                   <HintsCard hints={DEFAULT_HINTS} />
 
                   <div className="mt-auto">
@@ -469,41 +481,75 @@ export default function ParagraphPracticePage() {
 
           {/* Feedback Phase */}
           {phase === 'feedback' && response && (
-            <div className="w-full max-w-5xl space-y-6">
-              <div className="text-center">
-                <h2
-                  className="font-dutch809 text-3xl mb-4"
-                  style={{
-                    color: '#f6d493',
-                    textShadow: '0 2px 4px rgba(0, 0, 0, 0.8)',
-                  }}
-                >
-                  Feedback
-                </h2>
-                <ScoreDisplay
-                  percentage={response.result.scores.percentage}
-                  total={response.result.scores.total}
-                  max={response.result.scores.maxTotal}
-                />
+            <div className="w-full max-w-5xl space-y-4">
+              {/* Header row: Title (left) + Score (right) - same height */}
+              <div className="flex gap-4 items-stretch">
+                <div className="flex-1">
+                  <ParchmentCard className="h-full flex items-center">
+                    <h1 
+                      className="font-memento text-2xl tracking-wide" 
+                      style={getParchmentTextStyle()}
+                    >
+                      Feedback
+                    </h1>
+                  </ParchmentCard>
+                </div>
+                <div className="w-80 shrink-0">
+                  <ParchmentCard className="h-full flex items-center justify-center">
+                    <div className="text-center">
+                      <div
+                        className="font-dutch809 text-4xl"
+                        style={getParchmentTextStyle()}
+                      >
+                        {response.result.scores.percentage}%
+                      </div>
+                      <div className="font-avenir text-xs" style={getParchmentTextStyle()}>
+                        {response.result.scores.total}/{response.result.scores.maxTotal} points
+                      </div>
+                    </div>
+                  </ParchmentCard>
+                </div>
               </div>
 
-              <FeedbackDisplay result={response.result} content={originalContent} />
+              {/* Two column layout - constrained height so buttons stay anchored */}
+              <FeedbackProvider>
+                <div className="flex gap-4 max-h-[calc(100vh-250px)]">
+                  {/* Left column: Your Writing + Practice Recommended */}
+                  <div className="flex-1 space-y-4 parchment-scrollbar">
+                    <WritingCard content={originalContent} />
+                    
+                    {response.prioritizedLessons.length > 0 && (
+                      <RecommendedLessons
+                        lessons={response.prioritizedLessons}
+                        hasSevereGap={response.hasSevereGap}
+                        maxDisplay={3}
+                        showPracticeButton={false}
+                      />
+                    )}
+                  </div>
 
-              {response.prioritizedLessons.length > 0 && (
-                <RecommendedLessons
-                  lessons={response.prioritizedLessons}
-                  hasSevereGap={response.hasSevereGap}
-                  maxDisplay={3}
-                />
-              )}
+                  {/* Right column: Expandable Score Breakdown (scrollable) */}
+                  <div className="w-80 shrink-0 parchment-scrollbar">
+                    <ExpandableScoreBreakdown 
+                      scores={response.result.scores} 
+                      remarks={response.result.remarks} 
+                    />
+                  </div>
+                </div>
+              </FeedbackProvider>
 
               <div className="flex justify-center gap-4">
-                <FantasyButton onClick={reset} variant="secondary">
+                <ParchmentButton onClick={reset}>
                   Start Over
-                </FantasyButton>
-                <FantasyButton onClick={startRevision} size="large">
+                </ParchmentButton>
+                {response.prioritizedLessons.length > 0 && (
+                  <ParchmentButton onClick={() => router.push('/improve/activities')}>
+                    Practice
+                  </ParchmentButton>
+                )}
+                <ParchmentButton onClick={startRevision} variant="golden">
                   Revise Your Work
-                </FantasyButton>
+                </ParchmentButton>
               </div>
             </div>
           )}
@@ -525,9 +571,9 @@ export default function ParagraphPracticePage() {
                   {error && (
                     <div className="text-center space-y-4">
                       <div className="text-red-400 text-sm">{error}</div>
-                      <FantasyButton onClick={reset} variant="secondary">
+                      <ParchmentButton onClick={reset}>
                         Start Over
-                      </FantasyButton>
+                      </ParchmentButton>
                     </div>
                   )}
                   {!error && (
@@ -553,39 +599,66 @@ export default function ParagraphPracticePage() {
 
           {/* Results Phase */}
           {phase === 'results' && response && originalResponse && (
-            <div className="w-full max-w-5xl space-y-6">
-              <div className="text-center">
-                <h2
-                  className="font-dutch809 text-3xl mb-4"
-                  style={{
-                    color: '#f6d493',
-                    textShadow: '0 2px 4px rgba(0, 0, 0, 0.8)',
-                  }}
-                >
-                  Complete!
-                </h2>
-                <ScoreDisplay
-                  percentage={response.result.scores.percentage}
-                  total={response.result.scores.total}
-                  max={response.result.scores.maxTotal}
-                />
-
-                {originalResponse.result.scores.percentage !== response.result.scores.percentage && (
-                  <div className="mt-4">
-                    {response.result.scores.percentage > originalResponse.result.scores.percentage ? (
-                      <span className="font-avenir text-lg" style={{ color: '#4ade80' }}>
-                        +{response.result.scores.percentage - originalResponse.result.scores.percentage}% from revision!
-                      </span>
-                    ) : (
-                      <span className="font-avenir text-sm" style={{ color: '#fbbf24' }}>
-                        Original: {originalResponse.result.scores.percentage}% → Revised: {response.result.scores.percentage}%
-                      </span>
-                    )}
-                  </div>
-                )}
+            <div className="w-full max-w-5xl space-y-4">
+              {/* Header row: Title (left) + Score (right) - same height */}
+              <div className="flex gap-4 items-stretch">
+                <div className="flex-1">
+                  <ParchmentCard className="h-full flex items-center">
+                    <h1 
+                      className="font-memento text-2xl tracking-wide" 
+                      style={getParchmentTextStyle()}
+                    >
+                      Complete!
+                    </h1>
+                  </ParchmentCard>
+                </div>
+                <div className="w-80 shrink-0">
+                  <ParchmentCard className="h-full flex items-center justify-center">
+                    <div className="text-center">
+                      <div
+                        className="font-dutch809 text-4xl"
+                        style={getParchmentTextStyle()}
+                      >
+                        {response.result.scores.percentage}%
+                      </div>
+                      <div className="font-avenir text-xs" style={getParchmentTextStyle()}>
+                        {response.result.scores.total}/{response.result.scores.maxTotal} points
+                      </div>
+                      {originalResponse.result.scores.percentage !== response.result.scores.percentage && (
+                        <div className="mt-1">
+                          {response.result.scores.percentage > originalResponse.result.scores.percentage ? (
+                            <span className="font-avenir text-xs" style={{ color: '#16a34a' }}>
+                              +{response.result.scores.percentage - originalResponse.result.scores.percentage}%
+                            </span>
+                          ) : (
+                            <span className="font-avenir text-xs" style={{ color: '#d97706' }}>
+                              {originalResponse.result.scores.percentage}% → {response.result.scores.percentage}%
+                            </span>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  </ParchmentCard>
+                </div>
               </div>
 
-              <FeedbackDisplay result={response.result} content={content} />
+              {/* Two column layout - constrained height so buttons stay anchored */}
+              <FeedbackProvider>
+                <div className="flex gap-4 max-h-[calc(100vh-250px)]">
+                  {/* Left column: Your Writing */}
+                  <div className="flex-1 overflow-y-auto parchment-scrollbar">
+                    <WritingCard content={content} />
+                  </div>
+
+                  {/* Right column: Expandable Score Breakdown (scrollable) */}
+                  <div className="w-80 shrink-0 overflow-y-auto parchment-scrollbar">
+                    <ExpandableScoreBreakdown 
+                      scores={response.result.scores} 
+                      remarks={response.result.remarks} 
+                    />
+                  </div>
+                </div>
+              </FeedbackProvider>
 
               <div className="flex justify-center gap-4">
                 <ParchmentButton onClick={reset}>

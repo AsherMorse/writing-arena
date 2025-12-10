@@ -49,9 +49,10 @@ export function Timer({
   const timeDisplay = `${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
 
   if (parchmentStyle) {
+    const needsHeightFill = className.includes('h-full');
     return (
       <div
-        className={`relative rounded-xl overflow-hidden px-5 py-3 ${className}`}
+        className={`relative rounded-xl overflow-hidden p-5 ${needsHeightFill ? 'flex items-center justify-center' : ''} ${className}`}
         style={getParchmentContainerStyle({ variant })}
       >
         <PaperTexture />
