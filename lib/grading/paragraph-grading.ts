@@ -4,6 +4,7 @@
  */
 
 import { callAnthropicAPI, getAnthropicApiKey } from '@/lib/utils/api-helpers';
+import { logger, LOG_CONTEXTS } from '@/lib/utils/logger';
 import {
   getRubric,
   type ParagraphGradingInput,
@@ -177,7 +178,7 @@ function parseGradingResponse(
       overallFeedback: parsed.overallFeedback || '',
     };
   } catch (error) {
-    console.error('Failed to parse grading response:', error);
+    logger.error(LOG_CONTEXTS.PARAGRAPH_GRADING, 'Failed to parse grading response', error);
     throw new Error(`Failed to parse grading response: ${error instanceof Error ? error.message : 'Unknown error'}`);
   }
 }
@@ -205,14 +206,14 @@ export async function gradeParagraph(input: ParagraphGradingInput): Promise<Para
 
   const gradingPrompt = generateGradingPrompt(paragraph, prompt, rubricType, gradeLevel);
   
-  console.log(`🔍 PARAGRAPH GRADING - Grading with ${rubricType} rubric (grade ${gradeLevel})`);
+  logger.debug(LOG_CONTEXTS.PARAGRAPH_GRADING, `Grading with ${rubricType} rubric (grade ${gradeLevel})`);
   
   const response = await callAnthropicAPI(apiKey, gradingPrompt, 2500);
   const responseText = response.content[0].text;
 
   const result = parseGradingResponse(responseText, rubricType);
 
-  console.log(`✅ PARAGRAPH GRADING - Score: ${result.scorecard.totalScore}/${result.scorecard.maxScore} (${result.scorecard.percentageScore}%)`);
+  logger.info(LOG_CONTEXTS.PARAGRAPH_GRADING, `Score: ${result.scorecard.totalScore}/${result.scorecard.maxScore} (${result.scorecard.percentageScore}%)`);
 
   return result;
 }

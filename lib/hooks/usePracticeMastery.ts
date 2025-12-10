@@ -6,6 +6,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { LessonMasteryStatus } from '@/lib/types';
+import { logger, LOG_CONTEXTS } from '@/lib/utils/logger';
 import {
   getUserMasteryStatus,
   getLessonMasteryStatus,
@@ -58,7 +59,7 @@ export function usePracticeMastery(): UsePracticeMasteryReturn {
       const status = await getUserMasteryStatus(user.uid);
       setMasteryStatus(status);
     } catch (err) {
-      console.error('Failed to fetch mastery status:', err);
+      logger.error(LOG_CONTEXTS.PRACTICE, 'Failed to fetch mastery status', err);
       setError('Failed to load mastery data');
     } finally {
       setIsLoading(false);
@@ -166,7 +167,7 @@ export function useLessonMastery(lessonId: string): UseLessonMasteryReturn {
       const lessonStatus = await getLessonMasteryStatus(user.uid, lessonId);
       setStatus(lessonStatus);
     } catch (err) {
-      console.error('Failed to fetch lesson mastery:', err);
+      logger.error(LOG_CONTEXTS.PRACTICE, 'Failed to fetch lesson mastery', err);
       setError('Failed to load lesson data');
     } finally {
       setIsLoading(false);

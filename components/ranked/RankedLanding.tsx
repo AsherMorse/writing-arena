@@ -9,6 +9,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { checkBlockStatus } from '@/lib/services/grading-history';
 import { BlockModal } from './results-v2/BlockModal';
 import type { BlockStatus } from '@/lib/types/grading-history';
+import { logger } from '@/lib/utils/logger';
 
 interface RankedLandingProps {
   userProfile: UserProfile;
@@ -30,7 +31,7 @@ export default function RankedLanding({ userProfile }: RankedLandingProps) {
         const status = await checkBlockStatus(user.uid);
         setBlockStatus(status);
       } catch (error) {
-        console.error('Failed to check block status:', error);
+        logger.error('RANKED', 'Failed to check block status', error);
       }
     };
     fetchBlockStatus();
@@ -61,7 +62,7 @@ export default function RankedLanding({ userProfile }: RankedLandingProps) {
       
       router.push(`/ranked/matchmaking?trait=${selectedTrait}`);
     } catch (error) {
-      console.error('Failed to check block status:', error);
+      logger.error('RANKED', 'Failed to check block status', error);
       // Allow proceeding if check fails
     router.push(`/ranked/matchmaking?trait=${selectedTrait}`);
     } finally {

@@ -13,6 +13,7 @@ import {
 import { auth } from '@/lib/config/firebase';
 import { createUserProfile, getUserProfile } from '@/lib/services/firestore';
 import { UserProfile } from '@/lib/types';
+import { logger, LOG_CONTEXTS } from '@/lib/utils/logger';
 
 interface AuthContextType {
   user: User | null;
@@ -88,7 +89,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           setUserProfile(null);
         }
       } catch (error) {
-        console.error('Auth state change error:', error);
+        logger.error(LOG_CONTEXTS.AUTH, 'Auth state change error', error);
       } finally {
         setLoading(false);
       }

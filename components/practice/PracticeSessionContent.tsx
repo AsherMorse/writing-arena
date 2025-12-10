@@ -32,6 +32,7 @@ import { PTOEditor, PTOData, createEmptyPTO, ptoToText, countPTOWords } from './
 import { LoadingState } from '@/components/shared/LoadingState';
 import { ErrorState } from '@/components/shared/ErrorState';
 import { GradingResult, GradingRemark, SectionScores } from '@/lib/constants/grader-configs';
+import { logger, LOG_CONTEXTS } from '@/lib/utils/logger';
 
 /** Editor type for different lesson types */
 type EditorType = 'freeform' | 'spo' | 'pto';
@@ -254,8 +255,7 @@ export default function PracticeSessionContent({ lessonId }: PracticeSessionCont
         setBlockingRemarks([]);
         setBlockingSolution('');
       } catch (error) {
-        // TEMPORARY: Debug logging for grading failures
-        console.error('[DEBUG] Write phase grading failed:', error);
+        logger.error(LOG_CONTEXTS.PRACTICE, 'Write phase grading failed', error);
         setWriteScore(0);
         setWriteRemarks([]);
         // On grading failure, allow advancement to avoid blocking forever
@@ -304,8 +304,7 @@ export default function PracticeSessionContent({ lessonId }: PracticeSessionCont
     const emptyResult: GradingResult = { isCorrect: false, score: 0, remarks: [], solution: '' };
 
     if (!currentPrompt || !content.trim()) {
-      // TEMPORARY: Debug logging
-      console.log('[DEBUG] gradeSubmission early return - no prompt or empty content', {
+      logger.debug(LOG_CONTEXTS.PRACTICE, 'gradeSubmission early return - no prompt or empty content', {
         hasPrompt: !!currentPrompt,
         contentLength: content.trim().length,
       });
@@ -329,15 +328,13 @@ export default function PracticeSessionContent({ lessonId }: PracticeSessionCont
     });
 
     if (!response.ok) {
-      // TEMPORARY: Debug logging for failed response
-      console.error('[DEBUG] Grading API error:', response.status, response.statusText);
+      logger.error(LOG_CONTEXTS.PRACTICE, `Grading API error: ${response.status} ${response.statusText}`);
       throw new Error('Grading failed');
     }
 
     const data = await response.json() as GradingResult;
 
-    // TEMPORARY: Debug logging for grading response
-    console.log('[DEBUG] Grading response:', data);
+    logger.debug(LOG_CONTEXTS.PRACTICE, 'Grading response', data);
 
     return {
       isCorrect: data.isCorrect ?? false,
@@ -371,8 +368,7 @@ export default function PracticeSessionContent({ lessonId }: PracticeSessionCont
           setReviseSectionScores(result.sectionScores);
         }
       } catch (error) {
-        // TEMPORARY: Debug logging for grading failures
-        console.error('[DEBUG] Revise phase grading failed:', error);
+        logger.error(LOG_CONTEXTS.PRACTICE, 'Revise phase grading failed', error);
         reviseScore = 0; // Don't reward failed grading
         reviseRemarksLocal = [];
       }
@@ -414,7 +410,7 @@ export default function PracticeSessionContent({ lessonId }: PracticeSessionCont
       // Navigate to results (all data in session storage)
       router.push(`/improve/activities/${lessonId}/results`);
     } catch (err) {
-      console.error('Session submission failed:', err);
+      logger.error(LOG_CONTEXTS.PRACTICE, 'Session submission failed', err);
       // Store error state in session storage for consistent handling
       sessionStorage.setItem('practiceResults', JSON.stringify({
         lessonId,

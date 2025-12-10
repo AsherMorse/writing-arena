@@ -2,6 +2,7 @@ import { initializeApp, getApps } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
 import { getAnalytics } from 'firebase/analytics';
+import { logger, LOG_CONTEXTS } from '@/lib/utils/logger';
 
 const firebaseConfig = {
   apiKey: "AIzaSyAf4CsjSud_lH3oOUhBngvIAZNxIWDpS0Q",
@@ -18,7 +19,7 @@ const firebaseConfig = {
 const isConfigValid = firebaseConfig.apiKey && firebaseConfig.projectId;
 
 if (!isConfigValid) {
-  console.warn('Firebase config is missing. Please check your .env.local file.');
+  logger.warn(LOG_CONTEXTS.FIREBASE, 'Firebase config is missing. Please check your .env.local file.');
 }
 
 // Initialize Firebase only if it hasn't been initialized and config is valid

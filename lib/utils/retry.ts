@@ -2,6 +2,8 @@
  * Retry logic utilities for async operations
  */
 
+import { logger } from '@/lib/utils/logger';
+
 export interface RetryOptions {
   maxAttempts?: number;
   delayMs?: number;
@@ -28,7 +30,7 @@ export async function retryWithBackoff<T>(
       const result = await fn();
       if (result) return result;
     } catch (error) {
-      console.error(`Attempt ${attempt + 1}/${maxAttempts} failed:`, error);
+      logger.error('RETRY', `Attempt ${attempt + 1}/${maxAttempts} failed`, error);
     }
     
     if (attempt < maxAttempts - 1) {
@@ -60,7 +62,7 @@ export async function retryUntilSuccess<T>(
     try {
       return await fn();
     } catch (error) {
-      console.error(`Attempt ${attempt + 1}/${maxAttempts} failed:`, error);
+      logger.error('RETRY', `Attempt ${attempt + 1}/${maxAttempts} failed`, error);
       
       if (attempt < maxAttempts - 1) {
         onRetry?.(attempt + 1);

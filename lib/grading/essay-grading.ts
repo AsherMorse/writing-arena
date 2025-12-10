@@ -4,6 +4,7 @@
  */
 
 import { callAnthropicAPI, getAnthropicApiKey } from '@/lib/utils/api-helpers';
+import { logger } from '@/lib/utils/logger';
 import {
   getPreparedRubric,
   formatCriteriaForPrompt,
@@ -174,7 +175,7 @@ function parseGradingResponse(
     jsonStr = jsonMatch[1].trim();
   }
 
-  console.log('📄 RAW ESSAY GRADING RESPONSE:', jsonStr);
+  logger.debug('ESSAY GRADING', 'Raw response', jsonStr);
 
   try {
     const parsed = JSON.parse(jsonStr);
@@ -221,7 +222,7 @@ function parseGradingResponse(
       overallFeedback: String(parsed.overallFeedback || ''),
     };
   } catch (error) {
-    console.error('Failed to parse essay grading response:', error);
+    logger.error('ESSAY GRADING', 'Failed to parse essay grading response', error);
     throw new Error(
       `Failed to parse essay grading response: ${error instanceof Error ? error.message : 'Unknown error'}`
     );
@@ -246,7 +247,7 @@ function validateScore(score: unknown): CriterionScore {
   if (lower.includes('develop')) return 'Developing';
 
   // Default to No if unrecognized
-  console.warn(`Unrecognized score value: ${scoreStr}, defaulting to No`);
+  logger.warn('ESSAY GRADING', `Unrecognized score value: ${scoreStr}, defaulting to No`);
   return 'No';
 }
 
@@ -317,7 +318,7 @@ export async function gradeEssay(
 
   const gradingPrompt = generateGradingPrompt(essay, prompt, essayType, gradeLevel);
 
-  console.log(`📝 ESSAY GRADING - Type: ${essayType}, Grade: ${gradeLevel}`);
+  logger.debug('ESSAY GRADING', `Type: ${essayType}, Grade: ${gradeLevel}`);
 
   // Use higher token limit for essays (they have more criteria)
   const response = await callAnthropicAPI(apiKey, gradingPrompt, 4000);
@@ -325,9 +326,7 @@ export async function gradeEssay(
 
   const result = parseGradingResponse(responseText, essayType, gradeLevel);
 
-  console.log(
-    `✅ ESSAY GRADING - Score: ${result.scorecard.totalPoints}/${result.scorecard.maxPoints} (${result.scorecard.percentageScore}%)`
-  );
+  logger.info('ESSAY GRADING', `Score: ${result.scorecard.totalPoints}/${result.scorecard.maxPoints} (${result.scorecard.percentageScore}%)`);
 
   return result;
 }

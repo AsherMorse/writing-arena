@@ -13,6 +13,7 @@ import {
   limit,
   orderBy
 } from 'firebase/firestore';
+import { logger } from '@/lib/utils/logger';
 
 export interface QueueEntry {
   userId: string;
@@ -85,7 +86,7 @@ export function listenToQueue(
     const players = snapshot.docs.map(doc => doc.data() as QueueEntry);
     onPlayersUpdate(players);
   }, (error) => {
-    console.error('❌ QUEUE ERROR:', error);
+    logger.error('MATCHMAKING', 'Queue error', error);
   });
 
   return unsubscribe;
@@ -138,7 +139,7 @@ export async function findOrCreateParty(
   rank: string,
   trait: string
 ): Promise<string> {
-  console.log('🔍 MATCHMAKING - Finding party for:', { userId, rank, trait });
+  logger.debug('MATCHMAKING', 'Finding party', { userId, rank, trait });
   
   // For now, just create a new match every time
   // In future, could check for existing parties looking for players
@@ -159,7 +160,7 @@ export async function findOrCreateParty(
     status: 'forming',
   });
   
-  console.log('✅ MATCHMAKING - Party created:', matchId);
+  logger.info('MATCHMAKING', `Party created: ${matchId}`);
   return matchId;
 }
 
@@ -194,7 +195,7 @@ export function listenToMatchLobby(
       onLobbyReady(data);
     }
   }, (error) => {
-    console.error('❌ LOBBY ERROR:', error);
+    logger.error('MATCHMAKING', 'Lobby error', error);
   });
   
   return unsubscribe;

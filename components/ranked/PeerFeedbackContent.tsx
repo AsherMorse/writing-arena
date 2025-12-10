@@ -153,7 +153,7 @@ export default function PeerFeedbackContent() {
           // Handle both success response and error fallback
           const responses = feedbackData.responses ?? feedbackData.fallback?.responses;
           if (!responses) {
-            console.warn(`⚠️ PEER FEEDBACK - No responses for AI player ${aiPlayer.displayName}`);
+            logger.warn(LOG_CONTEXTS.PEER_FEEDBACK, `No responses for AI player ${aiPlayer.displayName}`);
             return null;
           }
           return {

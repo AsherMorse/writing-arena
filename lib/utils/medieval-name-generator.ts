@@ -1,6 +1,6 @@
 /**
  * @fileoverview Generates unique medieval/fantasy display names for users.
- * Pool size: 15 titles × 26 names × 15 epithets × 25 houses = 146,250 combinations
+ * Pool size: 15 titles × 26 names × 15 epithets = 5,850 combinations
  */
 
 const TITLES = [
@@ -68,46 +68,17 @@ const EPITHETS = [
   'the Dreamer',
 ] as const;
 
-const HOUSES = [
-  'Ashford',
-  'Blackwood',
-  'Crowley',
-  'Dunmore',
-  'Everhart',
-  'Fairfax',
-  'Greystone',
-  'Holloway',
-  'Ironwood',
-  'Jasper',
-  'Kingsley',
-  'Lockwood',
-  'Montclair',
-  'Northvale',
-  'Oakenshield',
-  'Pemberton',
-  'Queensbury',
-  'Ravencrest',
-  'Stonebridge',
-  'Thornwood',
-  'Underhill',
-  'Valorian',
-  'Westbrook',
-  'Yarrow',
-  'Zephyrine',
-] as const;
-
 /**
  * @description Generates a random medieval-style display name.
- * Format: "Title FirstName the Epithet, House HouseName"
- * Example: "Lord Cedric the Wise, House Greystone"
+ * Format: "Title FirstName the Epithet"
+ * Example: "Lord Cedric the Wise"
  */
 export function generateRandomName(): string {
   const title = TITLES[Math.floor(Math.random() * TITLES.length)];
   const firstName = FIRST_NAMES[Math.floor(Math.random() * FIRST_NAMES.length)];
   const epithet = EPITHETS[Math.floor(Math.random() * EPITHETS.length)];
-  const house = HOUSES[Math.floor(Math.random() * HOUSES.length)];
 
-  return `${title} ${firstName} ${epithet}, House ${house}`;
+  return `${title} ${firstName} ${epithet}`;
 }
 
 /**

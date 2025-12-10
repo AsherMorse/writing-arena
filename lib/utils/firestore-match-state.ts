@@ -3,6 +3,8 @@
  * Centralized functions for fetching and updating matchState documents
  */
 
+import { logger, LOG_CONTEXTS } from '@/lib/utils/logger';
+
 /**
  * Get matchState document from Firestore
  * Returns null if document doesn't exist
@@ -86,8 +88,7 @@ export async function updateMatchStateArray(
   const matchState = await getMatchState(matchId);
   
   if (!matchState) {
-    // Use console.warn for now - logger can be added later if needed
-    console.warn(`⚠️ FIRESTORE MATCH STATE - MatchState ${matchId} does not exist. Cannot update array.`);
+    logger.warn(LOG_CONTEXTS.FIRESTORE_MATCH_STATE, `MatchState ${matchId} does not exist. Cannot update array.`);
     return;
   }
 

@@ -6,6 +6,7 @@ if (typeof window !== 'undefined') {
 
 import { initializeApp, getApps, cert, App } from 'firebase-admin/app';
 import { getFirestore } from 'firebase-admin/firestore';
+import { logger, LOG_CONTEXTS } from '@/lib/utils/logger';
 
 // Initialize Firebase Admin
 // We need to use the service account key from environment variables
@@ -37,7 +38,7 @@ if (getApps().length === 0) {
     try {
       serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_KEY);
     } catch (error) {
-      console.error('Error parsing service account key from env:', error);
+      logger.error(LOG_CONTEXTS.FIREBASE, 'Error parsing service account key from env', error);
     }
   }
   
@@ -49,7 +50,7 @@ if (getApps().length === 0) {
         projectId: 'writing-arena',
       });
     } catch (error) {
-      console.error('Error initializing with service account:', error);
+      logger.error(LOG_CONTEXTS.FIREBASE, 'Error initializing with service account', error);
       // Fallback to default init
       app = initializeApp({
         projectId: 'writing-arena',

@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { SessionManager } from '../services/session-manager';
 import { GameSession, PlayerInfo, PhaseSubmissionData, Phase } from '../types/session';
 import { useAuth } from '@/contexts/AuthContext';
+import { logger, LOG_CONTEXTS } from '@/lib/utils/logger';
 
 /**
  * Custom React hook for session management
@@ -70,12 +71,12 @@ export function useSession(sessionId: string | null) {
         });
         
         sessionManager.on('onSessionError', (err) => {
-          console.error('❌ SESSION ERROR:', err);
+          logger.error(LOG_CONTEXTS.SESSION_MANAGER, 'Session error', err);
           setError(err);
         });
         
       } catch (err) {
-        console.error('❌ Failed to join session:', err);
+        logger.error(LOG_CONTEXTS.SESSION_MANAGER, 'Failed to join session', err);
         setError(err as Error);
         setIsReconnecting(false);
       }
@@ -112,7 +113,7 @@ export function useSession(sessionId: string | null) {
       // Check if session manager is initialized
       if (!sessionManager || !sessionId || !user?.uid) {
         const error = new Error('Session not initialized');
-        console.error('❌ Cannot submit phase: Session not initialized', {
+        logger.error(LOG_CONTEXTS.SESSION_MANAGER, 'Cannot submit phase: Session not initialized', undefined, {
           hasSessionManager: !!sessionManager,
           hasSessionId: !!sessionId,
           hasUserId: !!user?.uid,
@@ -124,7 +125,7 @@ export function useSession(sessionId: string | null) {
       // Double-check session manager has sessionId and userId set
       if (!sessionManager.sessionId || !sessionManager.userId) {
         const error = new Error('Session manager not properly initialized');
-        console.error('❌ Session manager missing sessionId/userId', {
+        logger.error(LOG_CONTEXTS.SESSION_MANAGER, 'Session manager missing sessionId/userId', undefined, {
           sessionManagerSessionId: sessionManager.sessionId,
           sessionManagerUserId: sessionManager.userId,
         });
@@ -135,7 +136,7 @@ export function useSession(sessionId: string | null) {
       try {
         return await sessionManager.submitPhase(phase, data);
       } catch (err) {
-        console.error('❌ Failed to submit phase:', err);
+        logger.error(LOG_CONTEXTS.SESSION_MANAGER, 'Failed to submit phase', err);
         setError(err as Error);
         throw err;
       }
@@ -193,7 +194,7 @@ export function useCreateSession() {
         setIsCreating(false);
         return session;
       } catch (err) {
-        console.error('❌ HOOK - Failed to find or join session:', err);
+        logger.error(LOG_CONTEXTS.SESSION_MANAGER, 'Failed to find or join session', err);
         setError(err as Error);
         setIsCreating(false);
         throw err;
@@ -212,7 +213,7 @@ export function useCreateSession() {
       try {
         await sessionManager.addPlayerToSession(sessionId, userId, playerInfo, isAI);
       } catch (err) {
-        console.error('❌ HOOK - Failed to add player to session:', err);
+        logger.error(LOG_CONTEXTS.SESSION_MANAGER, 'Failed to add player to session', err);
         throw err;
       }
     },
@@ -230,7 +231,7 @@ export function useCreateSession() {
       try {
         await sessionManager.startSession(sessionId, promptId, promptType, phaseDuration, userRank);
       } catch (err) {
-        console.error('❌ HOOK - Failed to start session:', err);
+        logger.error(LOG_CONTEXTS.SESSION_MANAGER, 'Failed to start session', err);
         throw err;
       }
     },
@@ -249,7 +250,7 @@ export function useCreateSession() {
         setIsCreating(false);
         return session;
       } catch (err) {
-        console.error('❌ HOOK - Failed to create session:', err);
+        logger.error(LOG_CONTEXTS.SESSION_MANAGER, 'Failed to create session', err);
         setError(err as Error);
         setIsCreating(false);
         throw err;

@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { TIMING } from '@/lib/constants/scoring';
+import { logger, LOG_CONTEXTS } from '@/lib/utils/logger';
 
 interface UseAutoSubmitOptions {
   timeRemaining: number;
@@ -53,10 +54,10 @@ export function useAutoSubmit({
 
     // All checks passed - submit ONCE
     hasAutoSubmittedRef.current = true;
-    console.log('⏰ AUTO-SUBMIT - Time expired, auto-submitting...');
+    logger.info(LOG_CONTEXTS.AUTO_SUBMIT, 'Time expired, auto-submitting...');
     
     Promise.resolve(onSubmit()).catch((err) => {
-      console.error('❌ AUTO-SUBMIT - Error during submission:', err);
+      logger.error(LOG_CONTEXTS.AUTO_SUBMIT, 'Error during submission', err);
       // On error, allow retry by resetting flag
       hasAutoSubmittedRef.current = false;
     });

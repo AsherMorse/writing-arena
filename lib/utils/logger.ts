@@ -15,45 +15,39 @@
  * ```
  */
 
-type LogLevel = 'info' | 'warn' | 'error' | 'debug';
-
-interface LogOptions {
-  context?: string;
-  data?: any;
-}
+const isDev = process.env.NODE_ENV === 'development';
 
 /**
  * Centralized logger with consistent formatting
+ * All logs are silenced in production builds
  */
 export const logger = {
   /**
-   * Log informational messages (✅ prefix)
+   * Log informational messages (✅ prefix) - dev only
    */
   info: (context: string, message: string, data?: any): void => {
-    console.log(`✅ ${context} - ${message}`, data || '');
+    if (isDev) console.log(`✅ ${context} - ${message}`, data || '');
   },
 
   /**
-   * Log warning messages (⚠️ prefix)
+   * Log warning messages (⚠️ prefix) - dev only
    */
   warn: (context: string, message: string, data?: any): void => {
-    console.warn(`⚠️ ${context} - ${message}`, data || '');
+    if (isDev) console.warn(`⚠️ ${context} - ${message}`, data || '');
   },
 
   /**
-   * Log error messages (❌ prefix)
+   * Log error messages (❌ prefix) - dev only
    */
   error: (context: string, message: string, error?: Error | unknown, data?: any): void => {
-    console.error(`❌ ${context} - ${message}`, error || '', data || '');
+    if (isDev) console.error(`❌ ${context} - ${message}`, error || '', data || '');
   },
 
   /**
-   * Log debug messages (🔍 prefix) - only in development
+   * Log debug messages (🔍 prefix) - dev only
    */
   debug: (context: string, message: string, data?: any): void => {
-    if (process.env.NODE_ENV === 'development') {
-      console.log(`🔍 ${context} - ${message}`, data || '');
-    }
+    if (isDev) console.log(`🔍 ${context} - ${message}`, data || '');
   },
 };
 
@@ -107,5 +101,8 @@ export const LOG_CONTEXTS = {
   PROFILE: 'PROFILE',
   DASHBOARD: 'DASHBOARD',
   AUTH: 'AUTH',
+  PARAGRAPH_GRADING: 'PARAGRAPH GRADING',
+  ESSAY_GRADING: 'ESSAY GRADING',
+  FIREBASE: 'FIREBASE',
 } as const;
 

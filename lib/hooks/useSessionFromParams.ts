@@ -3,6 +3,7 @@ import { useSearchParams } from 'next/navigation';
 import { GameSession } from '@/lib/types/session';
 import { useSession } from './useSession';
 import { getMatchState } from '@/lib/utils/firestore-match-state';
+import { logger, LOG_CONTEXTS } from '@/lib/utils/logger';
 
 /**
  * Hook to fetch session from multiple sources:
@@ -42,12 +43,12 @@ export function useSessionFromParams(sessionProp?: GameSession | null) {
           
           // Only update state if the matchId hasn't changed during the fetch
           if (currentFetchingMatchIdRef.current === fetchingMatchId && matchState?.sessionId) {
-            console.log('📋 SESSION FROM PARAMS - Found sessionId from matchState:', matchState.sessionId);
+            logger.debug(LOG_CONTEXTS.SESSION_FROM_PARAMS, 'Found sessionId from matchState', matchState.sessionId);
             setSessionIdFromMatch(matchState.sessionId);
             setMatchIdForSessionId(fetchingMatchId);
           }
         } catch (error) {
-          console.error('❌ SESSION FROM PARAMS - Failed to get sessionId from matchState:', error);
+          logger.error(LOG_CONTEXTS.SESSION_FROM_PARAMS, 'Failed to get sessionId from matchState', error);
         } finally {
           // Only reset loading if this is still the active fetch
           if (currentFetchingMatchIdRef.current === fetchingMatchId) {

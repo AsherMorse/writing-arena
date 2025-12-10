@@ -20,6 +20,7 @@ import {
   getParchmentTextStyle,
   PaperTexture,
 } from '@/app/fantasy/_components/parchment-styles';
+import { logger, LOG_CONTEXTS } from '@/lib/utils/logger';
 
 interface NobleNamePickerModalProps {
   isOpen: boolean;
@@ -52,7 +53,7 @@ export default function NobleNamePickerModal({
       setNameOptions(names);
     } catch (err) {
       setError('The royal scribes are busy. Please try again.');
-      console.error('Failed to reserve names:', err);
+      logger.error(LOG_CONTEXTS.PROFILE, 'Failed to reserve names', err);
     } finally {
       setIsLoading(false);
     }
@@ -89,7 +90,7 @@ export default function NobleNamePickerModal({
       setSelectedName(null);
     } catch (err) {
       setError('Failed to consult the scribes. Please try again.');
-      console.error('Failed to reroll names:', err);
+      logger.error(LOG_CONTEXTS.PROFILE, 'Failed to reroll names', err);
     } finally {
       setIsLoading(false);
     }
@@ -123,7 +124,7 @@ export default function NobleNamePickerModal({
       onComplete();
     } catch (err) {
       setError('Failed to inscribe your name. Please try again.');
-      console.error('Failed to confirm name:', err);
+      logger.error(LOG_CONTEXTS.PROFILE, 'Failed to confirm name', err);
     } finally {
       setIsConfirming(false);
     }
