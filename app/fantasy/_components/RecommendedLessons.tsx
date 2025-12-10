@@ -88,7 +88,7 @@ export function RecommendedLessons({
         </div>
         {showPracticeButton && (
           <FantasyButton
-            onClick={() => router.push('/improve/activities')}
+            onClick={() => router.push('/fantasy/study')}
             variant="secondary"
             size="small"
           >

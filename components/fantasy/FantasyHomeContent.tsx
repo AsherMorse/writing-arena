@@ -53,7 +53,7 @@ const ACTION_CARDS = [
     id: 'study',
     label: 'STUDY',
     icon: '/icons/candle-icon.png',
-    href: '/improve/activities',
+    href: '/fantasy/study',
     tooltip: 'Close the gaps in your writing armor',
   },
 ] as const;
