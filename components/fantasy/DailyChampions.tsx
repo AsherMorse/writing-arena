@@ -137,7 +137,7 @@ export function DailyChampions() {
             </span>
           </div>
         ) : (
-          <div className="flex justify-between">
+          <div className="flex flex-col gap-2">
             {displayChampions.map((champion, index) => (
               <ChampionEntry key={champion.rank} champion={champion} index={index} />
             ))}
@@ -195,16 +195,16 @@ function ChampionEntry({
   index: number;
 }) {
   return (
-    <div className="flex flex-col items-center min-w-[120px]">
-      <span className="text-2xl mb-1">{RANK_MEDALS[index]}</span>
+    <div className="flex items-center gap-3">
+      <span className="text-xl w-8 text-center">{RANK_MEDALS[index]}</span>
       <span
-        className="font-avenir text-sm font-medium text-center leading-tight"
+        className="font-avenir text-sm font-medium flex-1"
         style={{ color: RANK_COLORS[index] }}
       >
         {champion.displayName}
       </span>
       <span
-        className="font-memento text-xs mt-0.5"
+        className="font-memento text-xs"
         style={{ color: '#2a1a0f' }}
       >
         {champion.dailyLP} LP
@@ -218,10 +218,10 @@ function ChampionEntry({
  */
 function EmptySlot({ index }: { index: number }) {
   return (
-    <div className="flex flex-col items-center min-w-[120px] opacity-30">
-      <span className="text-2xl mb-1">{RANK_MEDALS[index]}</span>
+    <div className="flex items-center gap-3 opacity-30">
+      <span className="text-xl w-8 text-center">{RANK_MEDALS[index]}</span>
       <span
-        className="font-avenir text-sm text-center"
+        className="font-avenir text-sm flex-1"
         style={{ color: 'rgba(42, 26, 15, 0.5)' }}
       >
         —
