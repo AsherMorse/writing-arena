@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { usePathname } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { resetUserProgress } from '@/lib/services/ranked-progress';
@@ -10,12 +10,9 @@ import {
   createFakeSubmission,
   deleteAllSubmissionsForPrompt,
 } from '@/lib/services/ranked-leaderboard';
-import {
-  getDebugDate,
-  getDebugDayOffset,
-  setDebugDayOffset,
-  getDebugPromptId,
-} from '@/lib/utils/debug-date';
+import { getDebugPromptId } from '@/lib/utils/debug-date';
+import { doc, updateDoc, deleteField } from 'firebase/firestore';
+import { db } from '@/lib/config/firebase';
 
 export { getDebugDate, getDebugDayOffset, getDebugPromptId } from '@/lib/utils/debug-date';
 
@@ -24,11 +21,6 @@ export function FantasyDebugMenu() {
   const { user } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
   const [status, setStatus] = useState<string | null>(null);
-  const [dayOffset, setDayOffsetState] = useState(0);
-
-  useEffect(() => {
-    setDayOffsetState(getDebugDayOffset());
-  }, [isOpen]);
 
   if (process.env.NODE_ENV === 'production') {
     return null;
@@ -134,26 +126,18 @@ export function FantasyDebugMenu() {
     }
   };
 
-  const handleTimeForward = () => {
-    const newOffset = getDebugDayOffset() + 1;
-    setDebugDayOffset(newOffset);
-    setDayOffsetState(newOffset);
-    const date = getDebugDate();
-    showStatus(`Now: ${date.toLocaleDateString()}`);
-  };
-
-  const handleTimeBack = () => {
-    const newOffset = getDebugDayOffset() - 1;
-    setDebugDayOffset(newOffset);
-    setDayOffsetState(newOffset);
-    const date = getDebugDate();
-    showStatus(`Now: ${date.toLocaleDateString()}`);
-  };
-
-  const handleTimeReset = () => {
-    setDebugDayOffset(0);
-    setDayOffsetState(0);
-    showStatus('Time reset to today');
+  const handleClearSkillGaps = async () => {
+    if (!user) {
+      showStatus('Not logged in');
+      return;
+    }
+    try {
+      const userRef = doc(db, 'users', user.uid);
+      await updateDoc(userRef, { skillGaps: deleteField() });
+      showStatus('Skill gaps cleared! Refresh.');
+    } catch (err) {
+      showStatus('Failed to clear skill gaps');
+    }
   };
 
   const buttons = [
@@ -164,9 +148,7 @@ export function FantasyDebugMenu() {
     { label: 'Fill Editor', action: () => handleDispatchEvent('debug-fill-editor', 'Fill Editor') },
     { label: '+5 Fake Subs', action: handleAddFakeSubmissions },
     { label: 'Clear Prompt', action: handleClearPromptSubmissions },
-    { label: '⏪ -1 Day', action: handleTimeBack },
-    { label: '⏩ +1 Day', action: handleTimeForward },
-    { label: '🔄 Reset Time', action: handleTimeReset },
+    { label: 'Clear Skill Gaps', action: handleClearSkillGaps },
   ];
 
   return (
@@ -242,13 +224,8 @@ export function FantasyDebugMenu() {
               ))}
             </div>
 
-            <div className="mt-4 text-xs text-center space-y-1" style={{ color: 'rgba(245, 230, 184, 0.4)' }}>
+            <div className="mt-4 text-xs text-center" style={{ color: 'rgba(245, 230, 184, 0.4)' }}>
               <p>User: {user?.uid?.slice(0, 8) || 'none'}...</p>
-              {dayOffset !== 0 && (
-                <p style={{ color: '#fbbf24' }}>
-                  🕐 Simulated: {getDebugDate().toLocaleDateString()} ({dayOffset > 0 ? '+' : ''}{dayOffset}d)
-                </p>
-              )}
             </div>
           </div>
         </div>

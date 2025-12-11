@@ -28,13 +28,14 @@ import { getDebugDate, setDebugPromptId } from '@/lib/utils/debug-date';
 import {
   createRankedSubmission,
   updateRankedSubmission,
+  getUserSubmissionsForDate,
 } from '@/lib/services/ranked-submissions';
 import { checkBlockStatus, updateSkillGaps } from '@/lib/services/skill-gap-tracker';
 import { getLessonDisplayName } from '@/lib/constants/lesson-display-names';
 import type { GradeResponse } from '../_lib/grading';
-import type { RankedPrompt, BlockCheckResult } from '@/lib/types';
+import type { RankedPrompt, RankedSubmission, BlockCheckResult } from '@/lib/types';
 
-type Phase = 'loading' | 'prompt' | 'write' | 'feedback' | 'revise' | 'results' | 'no_prompt' | 'blocked';
+type Phase = 'loading' | 'prompt' | 'write' | 'feedback' | 'revise' | 'results' | 'no_prompt' | 'blocked' | 'history';
 
 const WRITE_TIME = 7 * 60;
 const REVISE_TIME = 2 * 60;
@@ -56,6 +57,7 @@ export default function RankedPage() {
   const [blockStatus, setBlockStatus] = useState<BlockCheckResult | null>(null);
   const [promptIndex, setPromptIndex] = useState(0);
   const [completedCount, setCompletedCount] = useState(0);
+  const [pastSubmissions, setPastSubmissions] = useState<RankedSubmission[]>([]);
   /** Which accordion panel is currently open (exclusive - only one at a time) */
   const [openPanel, setOpenPanel] = useState<'hints' | 'fixes' | null>(null);
   /** Generated background info for inspiration */
@@ -96,6 +98,12 @@ export default function RankedPage() {
       setCurrentPrompt(result.prompt);
       setPromptIndex(result.promptIndex);
       setCompletedCount(result.completedCount);
+      
+      if (result.completedCount > 0) {
+        const submissions = await getUserSubmissionsForDate(user.uid, formatDateString(today), 'paragraph');
+        setPastSubmissions(submissions);
+      }
+      
       setPhase('prompt');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load prompt');
@@ -294,6 +302,14 @@ export default function RankedPage() {
     setInspirationContent(null);
     fetchTodaysPrompt();
   }, [fetchTodaysPrompt]);
+
+  const viewHistory = useCallback(() => {
+    setPhase('history');
+  }, []);
+
+  const backToPrompt = useCallback(() => {
+    setPhase('prompt');
+  }, []);
 
   /** Fetch inspiration content when accordion is opened */
   const fetchInspiration = useCallback(async (promptText: string) => {
@@ -602,9 +618,95 @@ export default function RankedPage() {
                 <div className="text-red-400 text-sm">{error}</div>
               )}
 
-              <ParchmentButton onClick={beginWriting} variant="golden">
-                Begin Writing
-              </ParchmentButton>
+              <div className="flex justify-center gap-4">
+                {completedCount > 0 && (
+                  <ParchmentButton onClick={viewHistory}>
+                    View Past Challenges
+                  </ParchmentButton>
+                )}
+                <ParchmentButton onClick={beginWriting} variant="golden">
+                  Begin Writing
+                </ParchmentButton>
+              </div>
+            </div>
+          )}
+
+          {phase === 'history' && (
+            <div className="w-full max-w-3xl space-y-4">
+              <div className="flex gap-4 items-stretch">
+                <div className="flex-1">
+                  <ParchmentCard className="h-full flex items-center">
+                    <h1 
+                      className="font-memento text-2xl tracking-wide" 
+                      style={getParchmentTextStyle()}
+                    >
+                      Today&apos;s Challenges
+                    </h1>
+                  </ParchmentCard>
+                </div>
+                <div className="shrink-0">
+                  <ParchmentCard className="h-full flex items-center justify-center px-6">
+                    <div className="text-center">
+                      <div
+                        className="font-dutch809 text-2xl"
+                        style={getParchmentTextStyle()}
+                      >
+                        {completedCount}
+                      </div>
+                      <div className="font-avenir text-xs" style={getParchmentTextStyle()}>
+                        completed
+                      </div>
+                    </div>
+                  </ParchmentCard>
+                </div>
+              </div>
+
+              {pastSubmissions.map((submission, index) => {
+                const promptNumber = index + 1;
+                const score = submission.revisedScore ?? submission.originalScore;
+                return (
+                  <div key={submission.id} className="space-y-4">
+                    <ParchmentCard>
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <h2
+                            className="font-memento text-lg tracking-wide"
+                            style={getParchmentTextStyle()}
+                          >
+                            Challenge #{promptNumber}
+                          </h2>
+                          <p className="font-avenir text-sm mt-1" style={{ ...getParchmentTextStyle(), opacity: 0.7 }}>
+                            {submission.originalContent.slice(0, 100)}...
+                          </p>
+                        </div>
+                        <div className="text-center ml-4">
+                          <div
+                            className="font-dutch809 text-3xl"
+                            style={getParchmentTextStyle()}
+                          >
+                            {score}%
+                          </div>
+                          {submission.revisedScore !== undefined && submission.revisedScore !== submission.originalScore && (
+                            <div className="font-avenir text-xs" style={{ color: submission.revisedScore > submission.originalScore ? '#16a34a' : '#d97706' }}>
+                              {submission.originalScore}% → {submission.revisedScore}%
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </ParchmentCard>
+                    <Leaderboard promptId={submission.promptId} userId={user?.uid} />
+                  </div>
+                );
+              })}
+
+              <div className="flex justify-center gap-4 pt-4">
+                <ParchmentButton onClick={backToPrompt}>
+                  Back
+                </ParchmentButton>
+                <ParchmentButton onClick={beginWriting} variant="golden">
+                  Start Next Challenge
+                </ParchmentButton>
+              </div>
             </div>
           )}
 
