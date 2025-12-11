@@ -434,7 +434,7 @@ export default function EssayPracticePage() {
               <WritingEditor
                 value={content}
                 onChange={setContent}
-                placeholder="Begin your essay with an introduction that includes your thesis statement..."
+                placeholder="Write your essay here..."
                 showRequirements={false}
               />
               {error && (

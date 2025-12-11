@@ -13,6 +13,8 @@ import { getParchmentTextStyle, getParchmentContainerStyle, PaperTexture } from 
 interface LeaderboardProps {
   promptId: string;
   userId?: string;
+  /** When true, renders without ParchmentCard wrapper and header (for embedding in another card) */
+  embedded?: boolean;
 }
 
 const RANK_COLORS: Record<number, string> = {
@@ -217,7 +219,7 @@ function LeaderboardEntryRow({
 /**
  * @description Leaderboard component displaying ranked submissions with parchment styling.
  */
-export function Leaderboard({ promptId, userId }: LeaderboardProps) {
+export function Leaderboard({ promptId, userId, embedded = false }: LeaderboardProps) {
   const [data, setData] = useState<LeaderboardData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -241,56 +243,61 @@ export function Leaderboard({ promptId, userId }: LeaderboardProps) {
     fetchLeaderboard();
   }, [promptId, userId]);
 
+  // Wrapper component - ParchmentCard or fragment based on embedded mode
+  const Wrapper = embedded ? 'div' : ParchmentCard;
+
   if (loading) {
     return (
-      <ParchmentCard className="text-center py-4">
+      <Wrapper className="text-center py-4">
         <p className="font-avenir" style={getParchmentTextStyle()}>
           Loading leaderboard...
         </p>
-      </ParchmentCard>
+      </Wrapper>
     );
   }
 
   if (error) {
     return (
-      <ParchmentCard className="text-center py-4">
+      <Wrapper className="text-center py-4">
         <p className="font-avenir" style={{ ...getParchmentTextStyle(), color: '#b91c1c' }}>
           {error}
         </p>
-      </ParchmentCard>
+      </Wrapper>
     );
   }
 
   if (!data || data.totalSubmissions === 0) {
     return (
-      <ParchmentCard className="text-center py-4">
+      <Wrapper className="text-center py-4">
         <p className="font-avenir" style={getParchmentTextStyle()}>
           No submissions yet. Be the first!
         </p>
-      </ParchmentCard>
+      </Wrapper>
     );
   }
 
-  return (
-    <ParchmentCard>
-      <div className="flex items-center justify-between mb-4">
-        <h3
-          className="font-memento text-lg uppercase tracking-wider"
-          style={getParchmentTextStyle()}
-        >
-          Leaderboard
-        </h3>
-        <span
-          className="font-avenir text-sm"
-          style={{ ...getParchmentTextStyle(), opacity: 0.6 }}
-        >
-          {data.totalSubmissions} submission{data.totalSubmissions !== 1 ? 's' : ''}
-        </span>
-      </div>
+  const content = (
+    <>
+      {!embedded && (
+        <div className="flex items-center justify-between mb-4">
+          <h3
+            className="font-memento text-lg uppercase tracking-wider"
+            style={getParchmentTextStyle()}
+          >
+            Leaderboard
+          </h3>
+          <span
+            className="font-avenir text-sm"
+            style={{ ...getParchmentTextStyle(), opacity: 0.6 }}
+          >
+            {data.totalSubmissions} submission{data.totalSubmissions !== 1 ? 's' : ''}
+          </span>
+        </div>
+      )}
 
       {data.userRank !== null && (
         <div
-          className="mb-4 p-3 rounded-lg text-center"
+          className={embedded ? "p-3 rounded-lg text-center" : "mb-4 p-3 rounded-lg text-center"}
           style={{
             background: 'rgba(200, 148, 21, 0.2)',
             border: '1px solid rgba(42, 31, 20, 0.3)',
@@ -306,7 +313,7 @@ export function Leaderboard({ promptId, userId }: LeaderboardProps) {
         </div>
       )}
 
-      <div className="space-y-2 max-h-64 overflow-y-auto parchment-scrollbar">
+      <div className={`space-y-2 ${embedded ? 'mt-3' : ''} max-h-64 overflow-y-auto parchment-scrollbar`}>
         {data.rankings.map((entry) => (
           <LeaderboardEntryRow
             key={entry.rank}
@@ -319,7 +326,13 @@ export function Leaderboard({ promptId, userId }: LeaderboardProps) {
       {selectedEntry && (
         <SubmissionModal entry={selectedEntry} onClose={() => setSelectedEntry(null)} />
       )}
-    </ParchmentCard>
+    </>
   );
+
+  if (embedded) {
+    return content;
+  }
+
+  return <ParchmentCard>{content}</ParchmentCard>;
 }
 

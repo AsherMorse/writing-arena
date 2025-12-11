@@ -33,14 +33,16 @@ export const PRACTICE_PHASE_DURATIONS = {
 } as const;
 
 /**
- * @description LP rewards based on score (for non-mastered lessons only)
+ * @description LP rewards for lessons.
+ * Per rank-system.md: Lesson mastery = +5 flat, otherwise 0.
+ * Only mastery (90%+) awards LP.
  */
 export const PRACTICE_LP_REWARDS: Record<string, number> = {
-  'perfect': 15,    // 100%
-  'excellent': 12,  // 90-99%
-  'good': 8,        // 80-89%
-  'passing': 5,     // 70-79%
-  'needs-work': 2,  // 60-69%
+  'perfect': 5,     // 100% (mastery)
+  'excellent': 5,   // 90-99% (mastery)
+  'good': 0,        // 80-89%
+  'passing': 0,     // 70-79%
+  'needs-work': 0,  // 60-69%
   'incomplete': 0,  // <60%
 };
 

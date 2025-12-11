@@ -10,15 +10,12 @@ import { ParchmentCard } from './ParchmentCard';
 import { ParchmentButton } from './ParchmentButton';
 import { getParchmentTextStyle } from './parchment-styles';
 import { getLessonDisplayName } from '@/lib/constants/lesson-display-names';
-import { FantasyButton } from '@/components/fantasy/FantasyButton';
 
 interface RecommendedLessonsProps {
   /** Array of lesson IDs to recommend */
   lessons: string[];
   /** Whether there's a severe gap (changes styling/messaging) */
   hasSevereGap?: boolean;
-  /** Maximum number of lessons to display */
-  maxDisplay?: number;
   /** Whether to show the practice button */
   showPracticeButton?: boolean;
 }
@@ -29,15 +26,11 @@ interface RecommendedLessonsProps {
 export function RecommendedLessons({
   lessons,
   hasSevereGap = false,
-  maxDisplay = 3,
   showPracticeButton = true,
 }: RecommendedLessonsProps) {
   const router = useRouter();
 
   if (lessons.length === 0) return null;
-
-  const displayedLessons = lessons.slice(0, maxDisplay);
-  const remainingCount = lessons.length - maxDisplay;
 
   const textStyle = getParchmentTextStyle();
   const accentColor = hasSevereGap ? '#b91c1c' : '#b45309';
@@ -60,8 +53,8 @@ export function RecommendedLessons({
               ? 'Critical skills need work. Complete these lessons to improve:'
               : 'These lessons can help strengthen your writing:'}
           </p>
-          <div className="space-y-1">
-            {displayedLessons.map((lessonId) => (
+          <div className="grid grid-cols-2 gap-x-4 gap-y-1">
+            {lessons.map((lessonId) => (
               <div
                 key={lessonId}
                 className="font-avenir text-sm"
@@ -70,14 +63,6 @@ export function RecommendedLessons({
                 • {getLessonDisplayName(lessonId)}
               </div>
             ))}
-            {remainingCount > 0 && (
-              <div
-                className="font-avenir text-xs"
-                style={{ ...textStyle, opacity: 0.6 }}
-              >
-                +{remainingCount} more
-              </div>
-            )}
           </div>
         </div>
         {showPracticeButton && (

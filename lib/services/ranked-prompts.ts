@@ -136,6 +136,13 @@ export async function getPromptByDateAndIndex(
   level: 'paragraph' | 'essay' = 'paragraph'
 ): Promise<RankedPrompt | null> {
   const promptId = `${level}-${dateString}-${promptIndex}`;
+  return getPromptById(promptId);
+}
+
+/**
+ * @description Fetches a prompt by its document ID.
+ */
+export async function getPromptById(promptId: string): Promise<RankedPrompt | null> {
   const promptsRef = collection(db, 'rankedPrompts');
   const docRef = doc(promptsRef, promptId);
   const snapshot = await getDoc(docRef);

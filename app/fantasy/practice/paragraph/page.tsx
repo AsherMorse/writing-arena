@@ -598,7 +598,6 @@ export default function ParagraphPracticePage() {
                       <RecommendedLessons
                         lessons={response.prioritizedLessons}
                         hasSevereGap={response.hasSevereGap}
-                        maxDisplay={3}
                         showPracticeButton={false}
                       />
                     )}

@@ -23,7 +23,10 @@ import { ParchmentCard } from '../_components/ParchmentCard';
 import { ParchmentButton } from '../_components/ParchmentButton';
 import { ParchmentAccordion } from '../_components/ParchmentAccordion';
 import { getParchmentTextStyle } from '../_components/parchment-styles';
-import { getNextPromptForUser, formatDateString } from '@/lib/services/ranked-prompts';
+import { RankedResultsModal } from '../_components/RankedResultsModal';
+import { Top3CelebrationModal } from '../_components/Top3CelebrationModal';
+import { getLeaderboard } from '@/lib/services/ranked-leaderboard';
+import { getNextPromptForUser, formatDateString, getPromptById } from '@/lib/services/ranked-prompts';
 import { getDebugDate, setDebugPromptId } from '@/lib/utils/debug-date';
 import {
   createRankedSubmission,
@@ -62,6 +65,8 @@ export default function RankedPage() {
   const [promptIndex, setPromptIndex] = useState(0);
   const [completedCount, setCompletedCount] = useState(0);
   const [pastSubmissions, setPastSubmissions] = useState<RankedSubmission[]>([]);
+  /** Prompt texts keyed by promptId for displaying in history view */
+  const [promptTexts, setPromptTexts] = useState<Record<string, string>>({});
   /** Which accordion panel is currently open (exclusive - only one at a time) */
   const [openPanel, setOpenPanel] = useState<'hints' | 'fixes' | null>(null);
   /** Generated background info for inspiration */
@@ -75,6 +80,12 @@ export default function RankedPage() {
   const [userSkillTier, setUserSkillTier] = useState<SkillTier>(3);
   /** The submission level/mode for this ranked session (based on skill level) */
   const [submissionMode, setSubmissionMode] = useState<SubmissionLevel>('paragraph');
+  /** Modal visibility states */
+  const [showResultsModal, setShowResultsModal] = useState(false);
+  const [showCelebrationModal, setShowCelebrationModal] = useState(false);
+  /** User's placement in the leaderboard */
+  const [userPlacement, setUserPlacement] = useState<number | null>(null);
+  const [totalSubmissions, setTotalSubmissions] = useState(0);
 
   const fetchTodaysPrompt = useCallback(async () => {
     if (!user) return;
@@ -110,6 +121,23 @@ export default function RankedPage() {
       const blockResult = await checkBlockStatus(user.uid);
       if (blockResult.blocked) {
         setBlockStatus(blockResult);
+        
+        // Still fetch past submissions so user can view their history
+        const submissions = await getUserSubmissionsForDate(user.uid, formatDateString(today), 'paragraph');
+        if (submissions.length > 0) {
+          setPastSubmissions(submissions);
+          setCompletedCount(submissions.length);
+          
+          // Fetch prompt texts for past submissions
+          const promptPromises = submissions.map((s) => getPromptById(s.promptId));
+          const prompts = await Promise.all(promptPromises);
+          const texts: Record<string, string> = {};
+          prompts.forEach((p) => {
+            if (p) texts[p.id] = p.promptText;
+          });
+          setPromptTexts(texts);
+        }
+        
         setPhase('blocked');
         return;
       }
@@ -133,6 +161,15 @@ export default function RankedPage() {
       if (result.completedCount > 0) {
         const submissions = await getUserSubmissionsForDate(user.uid, formatDateString(today), 'paragraph');
         setPastSubmissions(submissions);
+        
+        // Fetch prompt texts for past submissions
+        const promptPromises = submissions.map((s) => getPromptById(s.promptId));
+        const prompts = await Promise.all(promptPromises);
+        const texts: Record<string, string> = {};
+        prompts.forEach((p) => {
+          if (p) texts[p.id] = p.promptText;
+        });
+        setPromptTexts(texts);
       }
       
       setPhase('prompt');
@@ -344,6 +381,20 @@ export default function RankedPage() {
       }
 
       setResponse(data);
+
+      // Fetch leaderboard to get user's placement
+      try {
+        const leaderboardData = await getLeaderboard(currentPrompt.id, user.uid);
+        setUserPlacement(leaderboardData.userRank);
+        setTotalSubmissions(leaderboardData.totalSubmissions);
+      } catch (leaderboardErr) {
+        console.error('Failed to fetch leaderboard:', leaderboardErr);
+        setUserPlacement(null);
+        setTotalSubmissions(0);
+      }
+
+      // Show results modal before transitioning to results phase
+      setShowResultsModal(true);
       setPhase('results');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Something went wrong');
@@ -377,6 +428,11 @@ export default function RankedPage() {
     setError(null);
     setPhase('prompt');
     setOpenPanel(null);
+    setRankUpdate(null);
+    setShowResultsModal(false);
+    setShowCelebrationModal(false);
+    setUserPlacement(null);
+    setTotalSubmissions(0);
   }, []);
 
   const continueToNextChallenge = useCallback(() => {
@@ -386,6 +442,11 @@ export default function RankedPage() {
     setResponse(null);
     setError(null);
     setOpenPanel(null);
+    setRankUpdate(null);
+    setShowResultsModal(false);
+    setShowCelebrationModal(false);
+    setUserPlacement(null);
+    setTotalSubmissions(0);
     fetchTodaysPrompt();
   }, [fetchTodaysPrompt]);
 
@@ -399,6 +460,20 @@ export default function RankedPage() {
 
   const handleInspirationToggle = useCallback(() => {
     setOpenPanel(prev => prev === 'hints' ? null : 'hints');
+  }, []);
+
+  /** Handle closing the results modal - show celebration if top 3 */
+  const handleResultsModalClose = useCallback(() => {
+    setShowResultsModal(false);
+    // Show celebration modal if user placed in top 3
+    if (userPlacement !== null && userPlacement <= 3) {
+      setShowCelebrationModal(true);
+    }
+  }, [userPlacement]);
+
+  /** Handle closing the celebration modal */
+  const handleCelebrationModalClose = useCallback(() => {
+    setShowCelebrationModal(false);
   }, []);
 
   useEffect(() => {
@@ -634,6 +709,11 @@ export default function RankedPage() {
                 <ParchmentButton onClick={() => router.push('/fantasy/home')}>
                   Return Home
                 </ParchmentButton>
+                {completedCount > 0 && (
+                  <ParchmentButton onClick={viewHistory}>
+                    View Past Challenges
+                  </ParchmentButton>
+                )}
                 <ParchmentButton onClick={() => router.push('/fantasy/study')} variant="golden">
                   Go to Practice
                 </ParchmentButton>
@@ -766,38 +846,37 @@ export default function RankedPage() {
               {pastSubmissions.map((submission, index) => {
                 const promptNumber = index + 1;
                 const score = submission.revisedScore ?? submission.originalScore;
+                const promptText = promptTexts[submission.promptId];
                 return (
-                  <div key={submission.id} className="space-y-4">
-                    <ParchmentCard>
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <h2
-                            className="font-memento text-lg tracking-wide"
-                            style={getParchmentTextStyle()}
-                          >
-                            Challenge #{promptNumber}
-                          </h2>
-                          <p className="font-avenir text-sm mt-1" style={{ ...getParchmentTextStyle(), opacity: 0.7 }}>
-                            {submission.originalContent.slice(0, 100)}...
-                          </p>
-                        </div>
-                        <div className="text-center ml-4">
-                          <div
-                            className="font-dutch809 text-3xl"
-                            style={getParchmentTextStyle()}
-                          >
-                            {score}%
-                          </div>
-                          {submission.revisedScore !== undefined && submission.revisedScore !== submission.originalScore && (
-                            <div className="font-avenir text-xs" style={{ color: submission.revisedScore > submission.originalScore ? '#16a34a' : '#d97706' }}>
-                              {submission.originalScore}% → {submission.revisedScore}%
-                            </div>
-                          )}
-                        </div>
+                  <ParchmentCard key={submission.id}>
+                    <div className="flex items-center justify-between mb-4 pb-4" style={{ borderBottom: '1px solid rgba(42, 31, 20, 0.2)' }}>
+                      <div className="flex-1 mr-4">
+                        <h2
+                          className="font-memento text-lg tracking-wide"
+                          style={getParchmentTextStyle()}
+                        >
+                          Challenge #{promptNumber}
+                        </h2>
+                        <p className="font-avenir text-sm mt-2 leading-relaxed" style={{ ...getParchmentTextStyle(), opacity: 0.85 }}>
+                          {promptText || 'Loading prompt...'}
+                        </p>
                       </div>
-                    </ParchmentCard>
-                    <Leaderboard promptId={submission.promptId} userId={user?.uid} />
-                  </div>
+                      <div className="text-center ml-4">
+                        <div
+                          className="font-dutch809 text-3xl"
+                          style={getParchmentTextStyle()}
+                        >
+                          {score}%
+                        </div>
+                        {submission.revisedScore !== undefined && submission.revisedScore !== submission.originalScore && (
+                          <div className="font-avenir text-xs" style={{ color: submission.revisedScore > submission.originalScore ? '#16a34a' : '#d97706' }}>
+                            {submission.originalScore}% → {submission.revisedScore}%
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                    <Leaderboard promptId={submission.promptId} userId={user?.uid} embedded />
+                  </ParchmentCard>
                 );
               })}
 
@@ -939,7 +1018,6 @@ export default function RankedPage() {
                       <RecommendedLessons
                         lessons={response.prioritizedLessons}
                         hasSevereGap={response.hasSevereGap}
-                        maxDisplay={3}
                         showPracticeButton={false}
                       />
                     )}
@@ -1172,6 +1250,26 @@ export default function RankedPage() {
           )}
         </main>
       </div>
+
+      {/* Results Modal - shown after revision submission */}
+      <RankedResultsModal
+        isOpen={showResultsModal}
+        onClose={handleResultsModalClose}
+        finalScore={response?.result.scores.percentage ?? 0}
+        originalScore={originalResponse?.result.scores.percentage ?? 0}
+        lpChange={rankUpdate?.lpChange ?? 0}
+        placement={userPlacement}
+        totalSubmissions={totalSubmissions}
+        rankUpdate={rankUpdate}
+      />
+
+      {/* Top 3 Celebration Modal - shown after results modal if placed top 3 */}
+      <Top3CelebrationModal
+        isOpen={showCelebrationModal}
+        onClose={handleCelebrationModalClose}
+        placement={userPlacement ?? 0}
+        score={response?.result.scores.percentage ?? 0}
+      />
     </div>
   );
 }

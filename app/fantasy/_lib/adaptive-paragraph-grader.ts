@@ -9,14 +9,12 @@ import {
   type GraderRemark,
 } from './grader-config';
 
+/** Category names that match the output format enum exactly */
 const REMARK_CATEGORIES = [
-  'TopicSentence',
-  'SupportingDetails',
-  'ConcludingSentence',
-  'SentenceVariety',
-  'Transitions',
+  'Topic Sentence',
+  'Details',
+  'Conclusion',
   'Conventions',
-  'PromptRelevance',
 ] as const;
 
 function getTWRLevel(gradeLevel: number): 1 | 2 {
@@ -131,13 +129,14 @@ Return a valid JSON object with this structure:
 
 12) **Severity Guidelines**:
 - "error": Major issues that significantly impact meaning, structure, or prompt relevance. The paragraph cannot be considered successful without addressing these.
-- "nit": Minor issues that should be noted but do not prevent the paragraph from being successful. Includes small grammar errors, word choice suggestions, minor improvements.
+- "nit": Minor issues OR positive feedback. Use for small improvements, suggestions, AND for celebrating what the student did well on 5/5 categories.
 
 13) **Important**:
-- If there are no remarks (paragraph is perfect), set isCorrect to true and remarks to empty array
-- If there are only nits, set isCorrect to true (student gets credit but should note the nits)
+- REQUIRED: Include exactly ONE remark for EACH of the 4 categories (Topic Sentence, Details, Conclusion, Conventions). Every category needs feedback.
+- For scores below 5: Explain what needs improvement
+- For scores of 5/5: Provide brief positive feedback about what they did well (e.g., "Your topic sentence clearly states the main idea and previews your reasons.")
+- If there are only nits (no errors), set isCorrect to true
 - If there are any errors, set isCorrect to false
-- REQUIRED: Include at least one remark for EACH category that scores below 5. Students need feedback on every weak area.
 - Be ENCOURAGING and FRIENDLY in all feedback
 - Copy text EXACTLY in substringOfInterest - no paraphrasing
 - Return ONLY valid JSON, no markdown or additional text

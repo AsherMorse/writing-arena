@@ -79,13 +79,35 @@ export async function getLeaderboard(
       if (b.data.originalScore !== a.data.originalScore) {
         return b.data.originalScore - a.data.originalScore;
       }
-      // Tiebreaker: earlier submission wins
+      // Tiebreaker: higher revisedScore wins
+      const aRevised = a.data.revisedScore ?? 0;
+      const bRevised = b.data.revisedScore ?? 0;
+      if (bRevised !== aRevised) {
+        return bRevised - aRevised;
+      }
+      // Final tiebreaker: earlier submission wins
       return a.data.submittedAt.toMillis() - b.data.submittedAt.toMillis();
     });
 
   let userRank: number | null = null;
   let userPercentile: number | null = null;
   const totalSubmissions = completedSubmissions.length;
+
+  // Fetch user profiles to get display names
+  const userIds = completedSubmissions.map(({ data }) => data.userId);
+  const profilePromises = userIds.map((uid) =>
+    getDoc(doc(db, 'users', uid)).catch(() => null)
+  );
+  const profileSnapshots = await Promise.all(profilePromises);
+
+  // Build display name map
+  const displayNames: Record<string, string> = {};
+  profileSnapshots.forEach((snap, index) => {
+    if (snap?.exists()) {
+      const profileData = snap.data();
+      displayNames[userIds[index]] = profileData.displayName || `Scribe #${index + 1}`;
+    }
+  });
 
   const rankings: LeaderboardEntry[] = completedSubmissions.map(({ data }, index) => {
     const rank = index + 1;
@@ -100,7 +122,7 @@ export async function getLeaderboard(
     }
 
     return {
-      displayName: `Scribe #${rank}`,
+      displayName: displayNames[data.userId] || `Scribe #${rank}`,
       originalScore: data.originalScore,
       revisedScore: data.revisedScore,
       rank,
@@ -160,6 +182,11 @@ export async function getTopThree(promptId: string): Promise<LeaderboardEntry[]>
   const topSubmissions = [...submissionsByUser.values()]
     .sort((a, b) => {
       if (b.originalScore !== a.originalScore) return b.originalScore - a.originalScore;
+      // Tiebreaker: higher revisedScore wins
+      const aRevised = a.revisedScore ?? 0;
+      const bRevised = b.revisedScore ?? 0;
+      if (bRevised !== aRevised) return bRevised - aRevised;
+      // Final tiebreaker: earlier submission wins
       return a.submittedAt.toMillis() - b.submittedAt.toMillis();
     })
     .slice(0, 3);

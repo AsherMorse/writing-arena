@@ -107,9 +107,22 @@ function ExpandableScoreRow({ label, score, maxScore, remarks }: ExpandableScore
       {isExpanded && hasRemarks && (
         <div className="mt-2 mb-3 space-y-2">
           {remarks.map((remark, i) => {
+            const isPerfectScore = score === maxScore;
             const isError = remark.severity === 'error';
-            const labelColor = isError ? '#b91c1c' : '#b45309';
-            const labelText = isError ? 'Issue' : 'Suggestion';
+            
+            // Determine label and color based on score and severity
+            let labelColor: string;
+            let labelText: string;
+            if (isPerfectScore) {
+              labelColor = '#15803d'; // green
+              labelText = 'Strength';
+            } else if (isError) {
+              labelColor = '#b91c1c'; // red
+              labelText = 'Issue';
+            } else {
+              labelColor = '#b45309'; // amber
+              labelText = 'Suggestion';
+            }
 
             return (
               <div
