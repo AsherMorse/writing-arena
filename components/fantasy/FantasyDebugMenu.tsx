@@ -140,12 +140,23 @@ export function FantasyDebugMenu() {
     }
   };
 
+  const handlePasteClipboard = async () => {
+    try {
+      const text = await navigator.clipboard.readText();
+      window.dispatchEvent(new CustomEvent('debug-paste-clipboard', { detail: text }));
+      showStatus('Pasted from clipboard');
+    } catch (err) {
+      showStatus('Failed to read clipboard');
+    }
+  };
+
   const buttons = [
     { label: 'Full Reset', action: handleFullReset },
     { label: 'Reset Progress', action: handleResetProgress },
     { label: 'Del Ranked', action: handleDeleteRankedSubmissions },
     { label: 'Del Practice', action: handleDeletePracticeSubmissions },
     { label: 'Fill Editor', action: () => handleDispatchEvent('debug-fill-editor', 'Fill Editor') },
+    { label: 'Paste Clipboard', action: handlePasteClipboard },
     { label: '+5 Fake Subs', action: handleAddFakeSubmissions },
     { label: 'Clear Prompt', action: handleClearPromptSubmissions },
     { label: 'Clear Skill Gaps', action: handleClearSkillGaps },

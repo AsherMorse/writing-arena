@@ -172,11 +172,25 @@ async function generatePromptAtIndex(
 
     const { promptText } = await response.json();
 
+    let inspirationText: string | undefined;
+    try {
+      const inspResponse = await fetch('/fantasy/api/generate-inspiration', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ prompt: promptText }),
+      });
+      if (inspResponse.ok) {
+        const inspData = await inspResponse.json();
+        inspirationText = inspData.backgroundInfo;
+      }
+    } catch {
+    }
+
     const promptsRef = collection(db, 'rankedPrompts');
     const existingSnapshot = await getDocs(query(promptsRef, where('level', '==', level)));
     const sequenceNumber = existingSnapshot.size + 1;
 
-    const newPrompt = {
+    const newPrompt: Record<string, unknown> = {
       level,
       sequenceNumber,
       activeDate: dateString,
@@ -185,6 +199,10 @@ async function generatePromptAtIndex(
       topic,
       createdAt: serverTimestamp(),
     };
+    
+    if (inspirationText) {
+      newPrompt.inspirationText = inspirationText;
+    }
 
     const docRef = doc(promptsRef, promptId);
     

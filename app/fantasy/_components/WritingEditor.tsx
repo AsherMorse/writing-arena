@@ -21,6 +21,8 @@ interface WritingEditorProps {
   rows?: number;
   /** Color variant */
   variant?: ParchmentVariant;
+  /** Prevent pasting */
+  preventPaste?: boolean;
 }
 
 /**
@@ -36,6 +38,7 @@ export function WritingEditor({
   maxWords = DEFAULT_MAX_WORDS,
   rows = 8,
   variant = 'default',
+  preventPaste = false,
 }: WritingEditorProps) {
   const wordCount = value.trim() ? value.trim().split(/\s+/).length : 0;
   const charCount = value.length;
@@ -69,6 +72,7 @@ export function WritingEditor({
       <textarea
         value={value}
         onChange={(e) => handleChange(e.target.value)}
+        onPaste={preventPaste ? (e) => e.preventDefault() : undefined}
         disabled={disabled}
         placeholder={placeholder}
             spellCheck={false}

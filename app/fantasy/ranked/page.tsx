@@ -60,10 +60,6 @@ export default function RankedPage() {
   const [pastSubmissions, setPastSubmissions] = useState<RankedSubmission[]>([]);
   /** Which accordion panel is currently open (exclusive - only one at a time) */
   const [openPanel, setOpenPanel] = useState<'hints' | 'fixes' | null>(null);
-  /** Generated background info for inspiration */
-  const [inspirationContent, setInspirationContent] = useState<string | null>(null);
-  /** Loading state for inspiration generation */
-  const [isLoadingInspiration, setIsLoadingInspiration] = useState(false);
 
   const fetchTodaysPrompt = useCallback(async () => {
     if (!user) return;
@@ -289,7 +285,6 @@ export default function RankedPage() {
     setError(null);
     setPhase('prompt');
     setOpenPanel(null);
-    setInspirationContent(null);
   }, []);
 
   const continueToNextChallenge = useCallback(() => {
@@ -299,7 +294,6 @@ export default function RankedPage() {
     setResponse(null);
     setError(null);
     setOpenPanel(null);
-    setInspirationContent(null);
     fetchTodaysPrompt();
   }, [fetchTodaysPrompt]);
 
@@ -311,42 +305,20 @@ export default function RankedPage() {
     setPhase('prompt');
   }, []);
 
-  /** Fetch inspiration content when accordion is opened */
-  const fetchInspiration = useCallback(async (promptText: string) => {
-    if (inspirationContent || isLoadingInspiration) return;
-    if (!promptText) return;
-    
-    setIsLoadingInspiration(true);
-    try {
-      const res = await fetch('/fantasy/api/generate-inspiration', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ prompt: promptText }),
-      });
-      
-      if (res.ok) {
-        const data = await res.json();
-        setInspirationContent(data.backgroundInfo);
-      }
-    } catch (err) {
-      console.error('Failed to fetch inspiration:', err);
-    } finally {
-      setIsLoadingInspiration(false);
-    }
-  }, [inspirationContent, isLoadingInspiration]);
-
-  /** Handle opening the inspiration accordion */
   const handleInspirationToggle = useCallback(() => {
-    const isOpening = openPanel !== 'hints';
     setOpenPanel(prev => prev === 'hints' ? null : 'hints');
-    if (isOpening && currentPrompt?.promptText) {
-      fetchInspiration(currentPrompt.promptText);
-    }
-  }, [openPanel, fetchInspiration, currentPrompt]);
+  }, []);
 
   useEffect(() => {
     const handleFillEditor = () => {
       setContent('This is sample text filled by the debug menu for testing purposes. It contains enough content to submit and test the grading flow without having to type manually.');
+    };
+
+    const handlePasteClipboard = (event: Event) => {
+      const customEvent = event as CustomEvent<string>;
+      if (customEvent.detail) {
+        setContent(customEvent.detail);
+      }
     };
 
     const handleForceSubmit = () => {
@@ -364,11 +336,13 @@ export default function RankedPage() {
     };
 
     window.addEventListener('debug-fill-editor', handleFillEditor);
+    window.addEventListener('debug-paste-clipboard', handlePasteClipboard);
     window.addEventListener('debug-force-submit', handleForceSubmit);
     window.addEventListener('debug-skip-to-results', handleSkipToResults);
 
     return () => {
       window.removeEventListener('debug-fill-editor', handleFillEditor);
+      window.removeEventListener('debug-paste-clipboard', handlePasteClipboard);
       window.removeEventListener('debug-force-submit', handleForceSubmit);
       window.removeEventListener('debug-skip-to-results', handleSkipToResults);
     };
@@ -612,8 +586,6 @@ export default function RankedPage() {
                 </div>
               )}
 
-              <PromptCard prompt={promptText} />
-
               {error && (
                 <div className="text-red-400 text-sm">{error}</div>
               )}
@@ -746,6 +718,7 @@ export default function RankedPage() {
                     onChange={setContent}
                     placeholder="Begin your response..."
                     showRequirements={false}
+                    preventPaste
                   />
 
                   {error && (
@@ -767,17 +740,13 @@ export default function RankedPage() {
                     onToggle={handleInspirationToggle}
                     maxHeight="250px"
                   >
-                    {isLoadingInspiration ? (
-                      <p className="font-avenir text-sm italic" style={{ ...getParchmentTextStyle(), opacity: 0.7 }}>
-                        Loading background info...
-                      </p>
-                    ) : inspirationContent ? (
+                    {currentPrompt?.inspirationText ? (
                       <p className="font-avenir text-sm leading-relaxed" style={getParchmentTextStyle()}>
-                        {inspirationContent}
+                        {currentPrompt.inspirationText}
                       </p>
                     ) : (
                       <p className="font-avenir text-sm italic" style={{ ...getParchmentTextStyle(), opacity: 0.7 }}>
-                        Click to load topic information...
+                        No background info available
                       </p>
                     )}
                   </ParchmentAccordion>
@@ -905,6 +874,7 @@ export default function RankedPage() {
                     placeholder="Revise your response..."
                     showRequirements={false}
                     rows={12}
+                    preventPaste
                   />
 
                   {error && (
@@ -927,17 +897,13 @@ export default function RankedPage() {
                     onToggle={handleInspirationToggle}
                     maxHeight="250px"
                   >
-                    {isLoadingInspiration ? (
-                      <p className="font-avenir text-sm italic" style={{ ...getParchmentTextStyle(), opacity: 0.7 }}>
-                        Loading background info...
-                      </p>
-                    ) : inspirationContent ? (
+                    {currentPrompt?.inspirationText ? (
                       <p className="font-avenir text-sm leading-relaxed" style={getParchmentTextStyle()}>
-                        {inspirationContent}
+                        {currentPrompt.inspirationText}
                       </p>
                     ) : (
                       <p className="font-avenir text-sm italic" style={{ ...getParchmentTextStyle(), opacity: 0.7 }}>
-                        Click to load topic information...
+                        No background info available
                       </p>
                     )}
                   </ParchmentAccordion>
