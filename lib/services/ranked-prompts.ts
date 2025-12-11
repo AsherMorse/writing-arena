@@ -1,6 +1,7 @@
 import { db } from '../config/firebase';
 import { collection, doc, query, where, getDocs, getDoc, orderBy, setDoc, serverTimestamp } from 'firebase/firestore';
 import { RankedPrompt } from '@/lib/types';
+import { getUserSubmissionsForDate } from './ranked-submissions';
 
 const RANKED_TOPICS = [
   'Summer', 'Friendship', 'Video Games', 'Superheroes', 'Space',
@@ -11,6 +12,17 @@ const RANKED_TOPICS = [
   'Learning', 'Sleep', 'Magic', 'Kindness', 'Colors',
 ];
 
+const ANGLES = [
+  'Focus on what makes this topic unique or special.',
+  'Focus on how this topic affects or connects to people.',
+  'Focus on comparing this topic to something similar.',
+  'Focus on why people find this topic interesting or enjoyable.',
+  'Focus on how this topic works or functions.',
+  'Focus on the benefits or positive aspects of this topic.',
+  'Focus on different types or varieties of this topic.',
+  'Focus on what someone new to this topic should know.',
+];
+
 function seededRandom(seed: number): () => number {
   return () => {
     seed = (seed * 1103515245 + 12345) & 0x7fffffff;
@@ -18,12 +30,25 @@ function seededRandom(seed: number): () => number {
   };
 }
 
-function getTopicForDate(dateString: string): string {
+function getDateSeed(dateString: string): number {
   const dateParts = dateString.split('-').map(Number);
-  const seed = dateParts[0] * 10000 + dateParts[1] * 100 + dateParts[2];
+  return dateParts[0] * 10000 + dateParts[1] * 100 + dateParts[2];
+}
+
+function getTopicForPrompt(dateString: string, promptIndex: number): string {
+  const baseSeed = getDateSeed(dateString);
+  const seed = baseSeed + promptIndex * 7919;
   const random = seededRandom(seed);
   const index = Math.floor(random() * RANKED_TOPICS.length);
   return RANKED_TOPICS[index];
+}
+
+function getAngleForPrompt(dateString: string, promptIndex: number): string {
+  const baseSeed = getDateSeed(dateString);
+  const seed = baseSeed + promptIndex * 7919 + 1;
+  const random = seededRandom(seed);
+  const index = Math.floor(random() * ANGLES.length);
+  return ANGLES[index];
 }
 
 export async function getPromptBySequence(
@@ -105,24 +130,40 @@ export async function getPromptByDate(
   } as RankedPrompt;
 }
 
-export async function getTodaysPrompt(
+export async function getPromptByDateAndIndex(
+  dateString: string,
+  promptIndex: number,
   level: 'paragraph' | 'essay' = 'paragraph'
 ): Promise<RankedPrompt | null> {
-  const { getDebugDate } = await import('@/lib/utils/debug-date');
-  const today = getDebugDate();
-  const dateString = formatDateString(today);
+  const promptId = `${level}-${dateString}-${promptIndex}`;
+  const promptsRef = collection(db, 'rankedPrompts');
+  const docRef = doc(promptsRef, promptId);
+  const snapshot = await getDoc(docRef);
 
-  const existing = await getPromptByDate(today, level);
-  if (existing) return existing;
+  if (!snapshot.exists()) {
+    return null;
+  }
 
-  const topic = getTopicForDate(dateString);
-  const deterministicId = `${level}-${dateString}`;
+  return {
+    id: snapshot.id,
+    ...snapshot.data(),
+  } as RankedPrompt;
+}
+
+async function generatePromptAtIndex(
+  dateString: string,
+  promptIndex: number,
+  level: 'paragraph' | 'essay' = 'paragraph'
+): Promise<RankedPrompt | null> {
+  const topic = getTopicForPrompt(dateString, promptIndex);
+  const angle = getAngleForPrompt(dateString, promptIndex);
+  const promptId = `${level}-${dateString}-${promptIndex}`;
 
   try {
     const response = await fetch('/fantasy/api/daily-prompt', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ topic }),
+      body: JSON.stringify({ topic, angle }),
     });
 
     if (!response.ok) {
@@ -139,13 +180,26 @@ export async function getTodaysPrompt(
       level,
       sequenceNumber,
       activeDate: dateString,
+      dailyIndex: promptIndex,
       promptText,
       topic,
       createdAt: serverTimestamp(),
     };
 
-    const docRef = doc(promptsRef, deterministicId);
-    await setDoc(docRef, newPrompt, { merge: false });
+    const docRef = doc(promptsRef, promptId);
+    
+    try {
+      await setDoc(docRef, newPrompt, { merge: false });
+    } catch {
+      const existing = await getDoc(docRef);
+      if (existing.exists()) {
+        return {
+          id: existing.id,
+          ...existing.data(),
+        } as RankedPrompt;
+      }
+      throw new Error('Failed to create prompt');
+    }
 
     const created = await getDoc(docRef);
     if (!created.exists()) {
@@ -157,8 +211,52 @@ export async function getTodaysPrompt(
       ...created.data(),
     } as RankedPrompt;
   } catch (error) {
-    console.error('getTodaysPrompt error:', error);
+    console.error('generatePromptAtIndex error:', error);
     return null;
   }
+}
+
+export interface NextPromptResult {
+  prompt: RankedPrompt | null;
+  promptIndex: number;
+  completedCount: number;
+}
+
+export async function getNextPromptForUser(
+  userId: string,
+  level: 'paragraph' | 'essay' = 'paragraph'
+): Promise<NextPromptResult> {
+  const { getDebugDate } = await import('@/lib/utils/debug-date');
+  const today = getDebugDate();
+  const dateString = formatDateString(today);
+
+  const submissions = await getUserSubmissionsForDate(userId, dateString, level);
+  const completedCount = submissions.length;
+  const nextIndex = completedCount;
+
+  let prompt = await getPromptByDateAndIndex(dateString, nextIndex, level);
+  
+  if (!prompt) {
+    prompt = await generatePromptAtIndex(dateString, nextIndex, level);
+  }
+
+  return {
+    prompt,
+    promptIndex: nextIndex,
+    completedCount,
+  };
+}
+
+export async function getTodaysPrompt(
+  level: 'paragraph' | 'essay' = 'paragraph'
+): Promise<RankedPrompt | null> {
+  const { getDebugDate } = await import('@/lib/utils/debug-date');
+  const today = getDebugDate();
+  const dateString = formatDateString(today);
+
+  const existing = await getPromptByDateAndIndex(dateString, 0, level);
+  if (existing) return existing;
+
+  return generatePromptAtIndex(dateString, 0, level);
 }
 

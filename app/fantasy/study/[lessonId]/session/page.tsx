@@ -526,7 +526,7 @@ export default function SessionPage({ params }: SessionPageProps) {
                 {currentWordCount} words
               </span>
               <ParchmentButton onClick={handleManualSubmit} variant="golden">
-                Submit
+                {isRevisionPhase ? 'Finish Lesson' : 'Submit'}
               </ParchmentButton>
             </div>
           </div>

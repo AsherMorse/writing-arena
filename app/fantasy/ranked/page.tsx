@@ -23,19 +23,18 @@ import { ParchmentCard } from '../_components/ParchmentCard';
 import { ParchmentButton } from '../_components/ParchmentButton';
 import { ParchmentAccordion } from '../_components/ParchmentAccordion';
 import { getParchmentTextStyle } from '../_components/parchment-styles';
-import { getTodaysPrompt, formatDateString } from '@/lib/services/ranked-prompts';
+import { getNextPromptForUser, formatDateString } from '@/lib/services/ranked-prompts';
 import { getDebugDate, setDebugPromptId } from '@/lib/utils/debug-date';
 import {
   createRankedSubmission,
   updateRankedSubmission,
-  getSubmissionByUserAndPrompt,
 } from '@/lib/services/ranked-submissions';
 import { checkBlockStatus, updateSkillGaps } from '@/lib/services/skill-gap-tracker';
 import { getLessonDisplayName } from '@/lib/constants/lesson-display-names';
 import type { GradeResponse } from '../_lib/grading';
-import type { RankedPrompt, RankedSubmission, BlockCheckResult } from '@/lib/types';
+import type { RankedPrompt, BlockCheckResult } from '@/lib/types';
 
-type Phase = 'loading' | 'prompt' | 'write' | 'feedback' | 'revise' | 'results' | 'no_prompt' | 'already_submitted' | 'blocked';
+type Phase = 'loading' | 'prompt' | 'write' | 'feedback' | 'revise' | 'results' | 'no_prompt' | 'blocked';
 
 const WRITE_TIME = 7 * 60;
 const REVISE_TIME = 2 * 60;
@@ -54,8 +53,9 @@ export default function RankedPage() {
   const [isGrading, setIsGrading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [submissionId, setSubmissionId] = useState<string | null>(null);
-  const [existingSubmission, setExistingSubmission] = useState<RankedSubmission | null>(null);
   const [blockStatus, setBlockStatus] = useState<BlockCheckResult | null>(null);
+  const [promptIndex, setPromptIndex] = useState(0);
+  const [completedCount, setCompletedCount] = useState(0);
   /** Which accordion panel is currently open (exclusive - only one at a time) */
   const [openPanel, setOpenPanel] = useState<'hints' | 'fixes' | null>(null);
   /** Generated background info for inspiration */
@@ -67,7 +67,6 @@ export default function RankedPage() {
     if (!user) return;
 
     setPhase('loading');
-    setExistingSubmission(null);
     setSubmissionId(null);
     setBlockStatus(null);
 
@@ -75,24 +74,6 @@ export default function RankedPage() {
       const today = getDebugDate();
       setTodayString(formatDateString(today));
 
-      const prompt = await getTodaysPrompt('paragraph');
-
-      if (!prompt) {
-        setCurrentPrompt(null);
-        setPhase('no_prompt');
-        return;
-      }
-
-      setCurrentPrompt(prompt);
-
-      const existing = await getSubmissionByUserAndPrompt(user.uid, prompt.id);
-      if (existing) {
-        setExistingSubmission(existing);
-        setPhase('already_submitted');
-        return;
-      }
-
-      // Check if user is blocked from ranked
       const blockResult = await checkBlockStatus(user.uid);
       if (blockResult.blocked) {
         setBlockStatus(blockResult);
@@ -100,11 +81,21 @@ export default function RankedPage() {
         return;
       }
 
-      // Store warnings for display (optional)
       if (blockResult.warnings?.length) {
         setBlockStatus(blockResult);
       }
 
+      const result = await getNextPromptForUser(user.uid, 'paragraph');
+
+      if (!result.prompt) {
+        setCurrentPrompt(null);
+        setPhase('no_prompt');
+        return;
+      }
+
+      setCurrentPrompt(result.prompt);
+      setPromptIndex(result.promptIndex);
+      setCompletedCount(result.completedCount);
       setPhase('prompt');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load prompt');
@@ -293,6 +284,17 @@ export default function RankedPage() {
     setInspirationContent(null);
   }, []);
 
+  const continueToNextChallenge = useCallback(() => {
+    setContent('');
+    setOriginalContent('');
+    setOriginalResponse(null);
+    setResponse(null);
+    setError(null);
+    setOpenPanel(null);
+    setInspirationContent(null);
+    fetchTodaysPrompt();
+  }, [fetchTodaysPrompt]);
+
   /** Fetch inspiration content when accordion is opened */
   const fetchInspiration = useCallback(async (promptText: string) => {
     if (inspirationContent || isLoadingInspiration) return;
@@ -432,69 +434,6 @@ export default function RankedPage() {
             </div>
           )}
 
-          {phase === 'already_submitted' && existingSubmission && currentPrompt && (
-            <div className="w-full max-w-3xl space-y-4">
-              {/* Header row: Title (left) + Score (right) */}
-              <div className="flex gap-4 items-stretch">
-                <div className="flex-1">
-                  <ParchmentCard className="h-full flex items-center">
-                    <h1 
-                      className="font-memento text-2xl tracking-wide" 
-                      style={getParchmentTextStyle()}
-                    >
-                      Today&apos;s Challenge Complete!
-                    </h1>
-                  </ParchmentCard>
-                </div>
-                <div className="w-80 shrink-0">
-                  <ParchmentCard className="h-full flex items-center justify-center">
-                    <div className="text-center">
-                      <div
-                        className="font-dutch809 text-4xl"
-                        style={getParchmentTextStyle()}
-                      >
-                        {existingSubmission.revisedScore ?? existingSubmission.originalScore}%
-                      </div>
-                      <div className="font-avenir text-xs" style={getParchmentTextStyle()}>
-                        {((existingSubmission.revisedFeedback ?? existingSubmission.originalFeedback) as { scores?: { total?: number } })?.scores?.total ?? Math.round((existingSubmission.revisedScore ?? existingSubmission.originalScore) / 10)}/
-                        {((existingSubmission.revisedFeedback ?? existingSubmission.originalFeedback) as { scores?: { maxTotal?: number } })?.scores?.maxTotal ?? 10} points
-                      </div>
-                      {existingSubmission.revisedScore !== undefined && existingSubmission.revisedScore !== existingSubmission.originalScore && (
-                        <div className="mt-1">
-                          {existingSubmission.revisedScore > existingSubmission.originalScore ? (
-                            <span className="font-avenir text-xs" style={{ color: '#16a34a' }}>
-                              +{existingSubmission.revisedScore - existingSubmission.originalScore}%
-                            </span>
-                          ) : (
-                            <span className="font-avenir text-xs" style={{ color: '#d97706' }}>
-                              {existingSubmission.originalScore}% → {existingSubmission.revisedScore}%
-                            </span>
-                          )}
-                        </div>
-                      )}
-                    </div>
-                  </ParchmentCard>
-                </div>
-              </div>
-
-              <ParchmentCard className="text-center">
-                <p className="font-avenir" style={getParchmentTextStyle()}>
-                  Come back tomorrow for a new challenge
-                </p>
-              </ParchmentCard>
-
-              <WinningSubmissions promptId={currentPrompt.id} />
-
-              <Leaderboard promptId={currentPrompt.id} userId={user?.uid} />
-
-              <div className="flex justify-center">
-                <ParchmentButton onClick={() => router.push('/fantasy/home')}>
-                  Return Home
-                </ParchmentButton>
-              </div>
-            </div>
-          )}
-
           {phase === 'blocked' && blockStatus && (
             <div className="w-full max-w-2xl text-center space-y-8">
               <div>
@@ -583,7 +522,7 @@ export default function RankedPage() {
                 <ParchmentButton onClick={() => router.push('/fantasy/home')}>
                   Return Home
                 </ParchmentButton>
-                <ParchmentButton onClick={() => router.push('/improve/activities')} variant="golden">
+                <ParchmentButton onClick={() => router.push('/fantasy/study')} variant="golden">
                   Go to Practice
                 </ParchmentButton>
               </div>
@@ -620,7 +559,7 @@ export default function RankedPage() {
                     textShadow: '0 2px 4px rgba(0, 0, 0, 0.8)',
                   }}
                 >
-                  Daily Challenge
+                  Daily Challenge #{promptIndex + 1}
                 </h1>
                 <p
                   className="font-avenir text-lg"
@@ -628,6 +567,14 @@ export default function RankedPage() {
                 >
                   You have 7 minutes to write, then 2 minutes to revise
                 </p>
+                {completedCount > 0 && (
+                  <p
+                    className="font-avenir text-sm mt-1"
+                    style={{ color: 'rgba(245, 230, 184, 0.5)' }}
+                  >
+                    {completedCount} challenge{completedCount !== 1 ? 's' : ''} completed today
+                  </p>
+                )}
               </div>
 
               {/* Warning banner for approaching block threshold */}
@@ -671,7 +618,7 @@ export default function RankedPage() {
                       className="font-memento text-2xl tracking-wide" 
                       style={getParchmentTextStyle()}
                     >
-                      Daily Challenge
+                      Daily Challenge #{promptIndex + 1}
                     </h1>
                   </ParchmentCard>
                 </div>
@@ -951,7 +898,7 @@ export default function RankedPage() {
                       className="font-memento text-2xl tracking-wide" 
                       style={getParchmentTextStyle()}
                     >
-                      Complete!
+                      Challenge #{promptIndex + 1} Complete!
                     </h1>
                   </ParchmentCard>
                 </div>
@@ -1009,7 +956,10 @@ export default function RankedPage() {
 
               <div className="flex justify-center gap-4">
                 <ParchmentButton onClick={() => router.push('/fantasy/home')}>
-                  Return Home
+                  Done for Today
+                </ParchmentButton>
+                <ParchmentButton onClick={continueToNextChallenge} variant="golden">
+                  Next Challenge
                 </ParchmentButton>
               </div>
             </div>

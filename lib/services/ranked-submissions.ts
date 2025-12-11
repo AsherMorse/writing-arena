@@ -86,3 +86,25 @@ export async function deleteAllUserSubmissions(userId: string): Promise<number> 
   await Promise.all(deletePromises);
   return snapshot.size;
 }
+
+export async function getUserSubmissionsForDate(
+  userId: string,
+  dateString: string,
+  level: 'paragraph' | 'essay' = 'paragraph'
+): Promise<RankedSubmission[]> {
+  const submissionsRef = collection(db, 'rankedSubmissions');
+  const q = query(submissionsRef, where('userId', '==', userId));
+  const snapshot = await getDocs(q);
+
+  const prefix = `${level}-${dateString}-`;
+  
+  return snapshot.docs
+    .filter((docSnap) => {
+      const data = docSnap.data();
+      return data.promptId && data.promptId.startsWith(prefix);
+    })
+    .map((docSnap) => ({
+      id: docSnap.id,
+      ...docSnap.data(),
+    })) as RankedSubmission[];
+}

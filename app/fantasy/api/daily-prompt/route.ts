@@ -34,7 +34,7 @@ Return ONLY the two-sentence prompt, nothing else.`;
 
 export async function POST(request: NextRequest) {
   try {
-    const { topic } = await request.json();
+    const { topic, angle: providedAngle } = await request.json();
 
     if (!topic || typeof topic !== 'string') {
       return NextResponse.json({ error: 'topic is required' }, { status: 400 });
@@ -45,7 +45,9 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'API not configured' }, { status: 500 });
     }
 
-    const angle = ANGLES[Math.floor(Math.random() * ANGLES.length)];
+    const angle = providedAngle && typeof providedAngle === 'string' 
+      ? providedAngle 
+      : ANGLES[Math.floor(Math.random() * ANGLES.length)];
 
     const response = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',

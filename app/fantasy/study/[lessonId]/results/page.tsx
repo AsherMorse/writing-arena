@@ -477,7 +477,7 @@ function ResultsContentInner({ lessonId }: { lessonId: string }) {
 
           <div className="flex flex-wrap justify-center gap-4">
             <Link href={`/fantasy/study/${lessonId}`}>
-              <ParchmentButton variant="golden">
+              <ParchmentButton variant="default">
                 Practice Again
               </ParchmentButton>
             </Link>
@@ -486,9 +486,9 @@ function ResultsContentInner({ lessonId }: { lessonId: string }) {
                 All Lessons
               </ParchmentButton>
             </Link>
-            <Link href="/fantasy/home">
-              <ParchmentButton variant="default">
-                Home
+            <Link href="/fantasy/ranked">
+              <ParchmentButton variant="golden">
+                Daily Challenges
               </ParchmentButton>
             </Link>
           </div>
