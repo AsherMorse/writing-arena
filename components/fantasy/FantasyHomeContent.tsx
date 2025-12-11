@@ -154,6 +154,17 @@ export function FantasyHomeContent({ userProfile }: FantasyHomeContentProps) {
 
         {/* Main content - centered but shifted up */}
         <div className="flex-1 flex flex-col items-center justify-center w-full -mt-16">
+          {/* Welcome message */}
+          <p 
+            className="font-memento text-2xl mb-4"
+            style={{ 
+              color: '#f5e6b8',
+              textShadow: '0 2px 8px rgba(0, 0, 0, 0.8)',
+            }}
+          >
+            Welcome back, {userProfile.displayName}
+          </p>
+
           {/* Player panel with rank and stats */}
           <PlayerPanel 
             rankDisplay={rankDisplay}
@@ -203,7 +214,7 @@ function PlayerPanel({ rankDisplay, tierLP, progress, totalLP, dailyLP, currentS
   // Width matches 3 buttons (150px each) + 2 gaps (32px each) = 514px
   return (
     <div 
-      className="relative rounded-lg overflow-hidden"
+      className="relative rounded-lg"
       style={{
         width: '514px',
         background: 'linear-gradient(to bottom, #f5e6c8, #e8d4a8)',
@@ -264,7 +275,11 @@ function PlayerPanel({ rankDisplay, tierLP, progress, totalLP, dailyLP, currentS
         <StatItem label="Total LP" value={totalLP.toLocaleString()} />
         <StatItem label="Daily LP" value={dailyLP.toString()} />
         <StatItem label="Streak" value={`${currentStreak} day${currentStreak !== 1 ? 's' : ''}`} />
-        <StatItem label="Avg Score" value={averageScore !== null ? `${averageScore}%` : '—'} />
+        <StatItem 
+          label="Avg Score" 
+          value={averageScore !== null ? `${averageScore}%` : '—'} 
+          tooltip="Average of your original scores from battles and practice"
+        />
       </div>
     </div>
   );
@@ -272,10 +287,17 @@ function PlayerPanel({ rankDisplay, tierLP, progress, totalLP, dailyLP, currentS
 
 /**
  * @description Renders a single stat item with label and value.
+ * Optionally displays a tooltip on hover.
  */
-function StatItem({ label, value }: { label: string; value: string }) {
+function StatItem({ label, value, tooltip }: { label: string; value: string; tooltip?: string }) {
+  const [isHovered, setIsHovered] = useState(false);
+
   return (
-    <div className="flex flex-col items-center">
+    <div 
+      className="relative flex flex-col items-center"
+      onMouseEnter={() => tooltip && setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+    >
       <span 
         className="text-xs uppercase tracking-wide"
         style={{ color: 'rgba(42, 26, 15, 0.5)' }}
@@ -288,6 +310,34 @@ function StatItem({ label, value }: { label: string; value: string }) {
       >
         {value}
       </span>
+
+      {/* Tooltip */}
+      {tooltip && isHovered && (
+        <div 
+          className="absolute top-full left-1/2 -translate-x-1/2 mt-2 px-3 py-2 rounded-lg text-xs text-center z-50 pointer-events-none"
+          style={{
+            background: '#000',
+            color: '#fff',
+            boxShadow: '0 4px 12px rgba(0, 0, 0, 0.4)',
+            width: '180px',
+            whiteSpace: 'normal',
+            outline: '1px solid rgba(255, 255, 255, 0.3)',
+          }}
+        >
+          {/* Arrow pointing up */}
+          <div 
+            className="absolute bottom-full left-1/2 -translate-x-1/2"
+            style={{
+              width: 0,
+              height: 0,
+              borderLeft: '6px solid transparent',
+              borderRight: '6px solid transparent',
+              borderBottom: '6px solid #000',
+            }}
+          />
+          {tooltip}
+        </div>
+      )}
     </div>
   );
 }

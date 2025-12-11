@@ -6,9 +6,8 @@ import Image from 'next/image';
 import { useAuth } from '@/contexts/AuthContext';
 import { usePracticeMastery, getCategoryMasterySummary } from '@/lib/hooks/usePracticeMastery';
 import { getAvailableLessons, getLessonsByCategory, PracticeLesson } from '@/lib/constants/practice-lessons';
-import { getUserSkillGaps } from '@/lib/services/skill-gap-tracker';
+import { getStudyRecommendations, type StudyRecommendations } from '@/lib/services/skill-gap-tracker';
 import { ParchmentCard } from '../_components/ParchmentCard';
-import { ParchmentButton } from '../_components/ParchmentButton';
 import { getParchmentTextStyle } from '../_components/parchment-styles';
 import { LoadingOverlay } from '../_components/LoadingOverlay';
 
@@ -18,14 +17,14 @@ function FantasyLessonCard({
   bestScore,
   attempts,
   canEarnLP,
-  isRecommended = false,
+  recommendationType,
 }: {
   lesson: PracticeLesson;
   isMastered: boolean;
   bestScore: number;
   attempts: number;
   canEarnLP: boolean;
-  isRecommended?: boolean;
+  recommendationType?: 'required' | 'suggested';
 }) {
   const isComingSoon = lesson.status === 'coming-soon';
   const totalMinutes = lesson.phaseDurations.reviewPhase + lesson.phaseDurations.writePhase + lesson.phaseDurations.revisePhase;
@@ -36,17 +35,25 @@ function FantasyLessonCard({
     essay: '📄',
   };
 
+  const badgeStyles = {
+    required: { background: '#ef4444', color: '#fff', label: 'Required' },
+    suggested: { background: '#fbbf24', color: '#1a1208', label: 'Suggested' },
+  };
+
   return (
     <div className="relative">
-      {isRecommended && (
+      {recommendationType && (
         <span
           className="absolute -right-2 -top-2 z-20 rounded-full px-2 py-0.5 text-xs font-bold shadow-md"
-          style={{ background: '#fbbf24', color: '#1a1208' }}
+          style={{ 
+            background: badgeStyles[recommendationType].background, 
+            color: badgeStyles[recommendationType].color 
+          }}
         >
-          Required
+          {badgeStyles[recommendationType].label}
         </span>
       )}
-      <ParchmentCard variant={isComingSoon ? 'light' : isRecommended ? 'golden' : 'default'}>
+      <ParchmentCard variant={isComingSoon ? 'light' : recommendationType ? 'golden' : 'default'}>
         <div className="flex items-start justify-between gap-3">
           <div className="flex items-start gap-3">
             <span className="text-2xl">{categoryIcons[lesson.category]}</span>
@@ -145,32 +152,32 @@ export default function StudyPage() {
     getAttemptCount,
   } = usePracticeMastery();
 
-  const [recommendedLessons, setRecommendedLessons] = useState<Set<string>>(new Set());
+  const [studyRecs, setStudyRecs] = useState<StudyRecommendations | null>(null);
   const [showAllLessons, setShowAllLessons] = useState(false);
 
   useEffect(() => {
-    async function fetchRecommendedLessons() {
+    async function fetchStudyRecommendations() {
       if (!user?.uid) return;
-
-      const skillGaps = await getUserSkillGaps(user.uid);
-
-      const lessons = new Set<string>();
-      for (const gapData of Object.values(skillGaps)) {
-        if (gapData.status !== 'resolved') {
-          gapData.recommendedLessons.forEach((l) => lessons.add(l));
-        }
-      }
-      setRecommendedLessons(lessons);
+      const recs = await getStudyRecommendations(user.uid);
+      setStudyRecs(recs);
     }
 
-    fetchRecommendedLessons();
+    fetchStudyRecommendations();
   }, [user?.uid]);
 
   const availableLessons = getAvailableLessons();
+  
+  // Only truly blocking lessons are "required"
   const requiredLessonsList = availableLessons.filter((lesson) =>
-    recommendedLessons.has(lesson.id)
+    studyRecs?.requiredLessons.includes(lesson.id)
   );
-  const hasRequiredLessons = requiredLessonsList.length > 0;
+  const hasRequiredLessons = requiredLessonsList.length > 0 && studyRecs?.isBlocked;
+  
+  // Suggested lessons (meet practiceRecommend threshold but not blocking)
+  const suggestedLessonsList = availableLessons.filter((lesson) =>
+    studyRecs?.suggestedLessons.includes(lesson.id)
+  );
+  const hasSuggestedLessons = suggestedLessonsList.length > 0;
   const sentenceLessons = getLessonsByCategory('sentence');
   const paragraphLessons = getLessonsByCategory('paragraph');
   const essayLessons = getLessonsByCategory('essay');
@@ -180,7 +187,7 @@ export default function StudyPage() {
   if (isLoading) {
     return (
       <div className="relative min-h-screen">
-        <Image src="/images/backgrounds/bg.webp" alt="" fill className="object-cover" priority />
+        <Image src="/images/backgrounds/study-2.webp" alt="" fill className="object-cover" priority />
         <div
           className="absolute inset-0"
           style={{ background: 'radial-gradient(ellipse at center, rgba(0,0,0,0.3) 0%, rgba(0,0,0,0.6) 100%)' }}
@@ -192,7 +199,7 @@ export default function StudyPage() {
 
   return (
     <div className="relative min-h-screen">
-      <Image src="/images/backgrounds/bg.webp" alt="" fill className="object-cover" priority />
+      <Image src="/images/backgrounds/study-2.webp" alt="" fill className="object-cover" priority />
       <div
         className="absolute inset-0"
         style={{ background: 'radial-gradient(ellipse at center, rgba(0,0,0,0.3) 0%, rgba(0,0,0,0.6) 100%)' }}
@@ -255,26 +262,27 @@ export default function StudyPage() {
             </div>
           </section>
 
+          {/* Required Lessons - Only shown when user is BLOCKED from ranked */}
           {hasRequiredLessons && (
             <section>
               <div
                 className="rounded-xl p-6"
                 style={{
-                  background: 'rgba(251, 191, 36, 0.15)',
-                  border: '2px solid rgba(251, 191, 36, 0.4)',
+                  background: 'rgba(239, 68, 68, 0.15)',
+                  border: '2px solid rgba(239, 68, 68, 0.4)',
                 }}
               >
                 <div className="mb-4 flex items-center gap-3">
-                  <span className="text-2xl">🎯</span>
+                  <span className="text-2xl">🚫</span>
                   <div>
                     <h2
                       className="font-memento text-xl uppercase tracking-wider"
-                      style={{ color: '#fbbf24' }}
+                      style={{ color: '#ef4444' }}
                     >
                       Required Lessons
                     </h2>
                     <p className="font-avenir text-sm" style={{ color: 'rgba(245, 230, 184, 0.6)' }}>
-                      Complete these to address skill gaps and unlock ranked challenges
+                      Complete these to unlock ranked challenges
                     </p>
                   </div>
                 </div>
@@ -288,25 +296,70 @@ export default function StudyPage() {
                       bestScore={getBestScore(lesson.id)}
                       attempts={getAttemptCount(lesson.id)}
                       canEarnLP={checkCanEarnLP(lesson.id)}
-                      isRecommended={true}
+                      recommendationType="required"
                     />
                   ))}
-                </div>
-
-                <div className="mt-6 text-center">
-                  <button
-                    onClick={() => setShowAllLessons(!showAllLessons)}
-                    className="font-avenir text-sm transition hover:underline"
-                    style={{ color: 'rgba(245, 230, 184, 0.6)' }}
-                  >
-                    {showAllLessons ? '↑ Hide All Lessons' : '↓ Browse All Lessons'}
-                  </button>
                 </div>
               </div>
             </section>
           )}
 
-          {(!hasRequiredLessons || showAllLessons) && (
+          {/* Suggested Lessons - Shown when practiceRecommend threshold met but not blocking */}
+          {hasSuggestedLessons && (
+            <section>
+              <div
+                className="rounded-xl p-6"
+                style={{
+                  background: 'rgba(251, 191, 36, 0.1)',
+                  border: '2px solid rgba(251, 191, 36, 0.3)',
+                }}
+              >
+                <div className="mb-4 flex items-center gap-3">
+                  <span className="text-2xl">💡</span>
+                  <div>
+                    <h2
+                      className="font-memento text-xl uppercase tracking-wider"
+                      style={{ color: '#fbbf24' }}
+                    >
+                      Recommended Lessons
+                    </h2>
+                    <p className="font-avenir text-sm" style={{ color: 'rgba(245, 230, 184, 0.6)' }}>
+                      Address skill gaps before they affect your ranked progress
+                    </p>
+                  </div>
+                </div>
+
+                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                  {suggestedLessonsList.map((lesson) => (
+                    <FantasyLessonCard
+                      key={lesson.id}
+                      lesson={lesson}
+                      isMastered={checkLessonMastery(lesson.id)}
+                      bestScore={getBestScore(lesson.id)}
+                      attempts={getAttemptCount(lesson.id)}
+                      canEarnLP={checkCanEarnLP(lesson.id)}
+                      recommendationType="suggested"
+                    />
+                  ))}
+                </div>
+              </div>
+            </section>
+          )}
+
+          {/* Browse All toggle - shown when there are recommendations */}
+          {(hasRequiredLessons || hasSuggestedLessons) && (
+            <div className="text-center">
+              <button
+                onClick={() => setShowAllLessons(!showAllLessons)}
+                className="font-avenir text-sm transition hover:underline"
+                style={{ color: 'rgba(245, 230, 184, 0.6)' }}
+              >
+                {showAllLessons ? '↑ Hide All Lessons' : '↓ Browse All Lessons'}
+              </button>
+            </div>
+          )}
+
+          {((!hasRequiredLessons && !hasSuggestedLessons) || showAllLessons) && (
             <>
               <section>
                 <div className="mb-4 flex items-center justify-between">
@@ -338,7 +391,11 @@ export default function StudyPage() {
                       bestScore={getBestScore(lesson.id)}
                       attempts={getAttemptCount(lesson.id)}
                       canEarnLP={checkCanEarnLP(lesson.id)}
-                      isRecommended={recommendedLessons.has(lesson.id)}
+                      recommendationType={
+                        studyRecs?.requiredLessons.includes(lesson.id) ? 'required' :
+                        studyRecs?.suggestedLessons.includes(lesson.id) ? 'suggested' :
+                        undefined
+                      }
                     />
                   ))}
                 </div>
@@ -376,7 +433,11 @@ export default function StudyPage() {
                         bestScore={getBestScore(lesson.id)}
                         attempts={getAttemptCount(lesson.id)}
                         canEarnLP={checkCanEarnLP(lesson.id)}
-                        isRecommended={recommendedLessons.has(lesson.id)}
+                        recommendationType={
+                          studyRecs?.requiredLessons.includes(lesson.id) ? 'required' :
+                          studyRecs?.suggestedLessons.includes(lesson.id) ? 'suggested' :
+                          undefined
+                        }
                       />
                     ))}
                   </div>
@@ -415,7 +476,11 @@ export default function StudyPage() {
                         bestScore={getBestScore(lesson.id)}
                         attempts={getAttemptCount(lesson.id)}
                         canEarnLP={checkCanEarnLP(lesson.id)}
-                        isRecommended={recommendedLessons.has(lesson.id)}
+                        recommendationType={
+                          studyRecs?.requiredLessons.includes(lesson.id) ? 'required' :
+                          studyRecs?.suggestedLessons.includes(lesson.id) ? 'suggested' :
+                          undefined
+                        }
                       />
                     ))}
                   </div>

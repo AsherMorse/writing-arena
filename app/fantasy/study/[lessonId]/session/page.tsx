@@ -339,7 +339,7 @@ export default function SessionPage({ params }: SessionPageProps) {
   if (isLoading) {
     return (
       <div className="relative min-h-screen">
-        <Image src="/images/backgrounds/bg.webp" alt="" fill className="object-cover" priority />
+        <Image src="/images/backgrounds/study-2.webp" alt="" fill className="object-cover" priority />
         <div
           className="absolute inset-0"
           style={{ background: 'radial-gradient(ellipse at center, rgba(0,0,0,0.3) 0%, rgba(0,0,0,0.6) 100%)' }}
@@ -352,7 +352,7 @@ export default function SessionPage({ params }: SessionPageProps) {
   if (error || !lesson) {
     return (
       <div className="relative min-h-screen">
-        <Image src="/images/backgrounds/bg.webp" alt="" fill className="object-cover" priority />
+        <Image src="/images/backgrounds/study-2.webp" alt="" fill className="object-cover" priority />
         <div
           className="absolute inset-0"
           style={{ background: 'radial-gradient(ellipse at center, rgba(0,0,0,0.3) 0%, rgba(0,0,0,0.6) 100%)' }}
@@ -373,7 +373,7 @@ export default function SessionPage({ params }: SessionPageProps) {
   if (sessionPhase === 'ready') {
     return (
       <div className="relative min-h-screen">
-        <Image src="/images/backgrounds/bg.webp" alt="" fill className="object-cover" priority />
+        <Image src="/images/backgrounds/study-2.webp" alt="" fill className="object-cover" priority />
         <div
           className="absolute inset-0"
           style={{ background: 'radial-gradient(ellipse at center, rgba(0,0,0,0.3) 0%, rgba(0,0,0,0.6) 100%)' }}
@@ -436,7 +436,7 @@ export default function SessionPage({ params }: SessionPageProps) {
   if (sessionPhase === 'submitting' || isGrading) {
     return (
       <div className="relative min-h-screen">
-        <Image src="/images/backgrounds/bg.webp" alt="" fill className="object-cover" priority />
+        <Image src="/images/backgrounds/study-2.webp" alt="" fill className="object-cover" priority />
         <div
           className="absolute inset-0"
           style={{ background: 'radial-gradient(ellipse at center, rgba(0,0,0,0.3) 0%, rgba(0,0,0,0.6) 100%)' }}
@@ -451,7 +451,7 @@ export default function SessionPage({ params }: SessionPageProps) {
   if (sessionPhase === 'reviewPhase') {
     return (
       <div className="relative min-h-screen">
-        <Image src="/images/backgrounds/bg.webp" alt="" fill className="object-cover" priority />
+        <Image src="/images/backgrounds/study-2.webp" alt="" fill className="object-cover" priority />
         <div
           className="absolute inset-0"
           style={{ background: 'radial-gradient(ellipse at center, rgba(0,0,0,0.3) 0%, rgba(0,0,0,0.6) 100%)' }}
@@ -498,7 +498,7 @@ export default function SessionPage({ params }: SessionPageProps) {
 
   return (
     <div className="relative min-h-screen">
-      <Image src="/images/backgrounds/bg.webp" alt="" fill className="object-cover" priority />
+      <Image src="/images/backgrounds/study-2.webp" alt="" fill className="object-cover" priority />
       <div
         className="absolute inset-0"
         style={{ background: 'radial-gradient(ellipse at center, rgba(0,0,0,0.3) 0%, rgba(0,0,0,0.6) 100%)' }}

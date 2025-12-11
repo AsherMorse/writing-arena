@@ -5,6 +5,7 @@
 
 import { useEffect, useState } from 'react';
 import { getParchmentContainerStyle, getParchmentTextStyle, PaperTexture, ParchmentVariant } from './parchment-styles';
+import { isDebugTimerPaused } from '@/lib/utils/debug-date';
 
 interface TimerProps {
   seconds: number;
@@ -19,6 +20,7 @@ interface TimerProps {
 /**
  * @description A countdown timer that displays MM:SS format.
  * Can be styled as a parchment card or plain text.
+ * In dev mode, respects debug timer pause/skip controls.
  */
 export function Timer({ 
   seconds, 
@@ -28,7 +30,32 @@ export function Timer({
   variant = 'default',
 }: TimerProps) {
   const [remaining, setRemaining] = useState(seconds);
+  const [isPaused, setIsPaused] = useState(() => {
+    const isDev = process.env.NODE_ENV === 'development';
+    return isDev ? isDebugTimerPaused() : false;
+  });
   const isDev = process.env.NODE_ENV === 'development';
+
+  // Listen for debug timer toggle/skip events
+  useEffect(() => {
+    if (!isDev) return;
+
+    const handleToggle = (e: Event) => {
+      const paused = (e as CustomEvent<boolean>).detail;
+      setIsPaused(paused);
+    };
+
+    const handleSkip = () => {
+      setRemaining(0);
+    };
+
+    window.addEventListener('debug-timer-toggle', handleToggle);
+    window.addEventListener('debug-timer-skip', handleSkip);
+    return () => {
+      window.removeEventListener('debug-timer-toggle', handleToggle);
+      window.removeEventListener('debug-timer-skip', handleSkip);
+    };
+  }, [isDev]);
 
   useEffect(() => {
     if (remaining <= 0) {
@@ -36,14 +63,14 @@ export function Timer({
       return;
     }
 
-    if (isDev) return; // Timer frozen in dev mode
+    if (isPaused) return;
 
     const timer = setInterval(() => {
       setRemaining((r) => r - 1);
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [remaining, onComplete, isDev]);
+  }, [remaining, onComplete, isPaused]);
 
   const minutes = Math.floor(remaining / 60);
   const secs = remaining % 60;

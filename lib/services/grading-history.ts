@@ -11,6 +11,7 @@ import {
   getDoc,
   getDocs,
   query,
+  where,
   orderBy,
   limit,
   serverTimestamp,
@@ -229,37 +230,65 @@ export async function resolveGaps(
 
 /**
  * @description Get a summary of the user's grading performance.
+ * Aggregates originalScore from completed rankedSubmissions and practiceSubmissions.
+ * Only counts submissions with completedAt set (user finished the full flow).
  * @param userId - The user's ID
  * @returns Summary statistics
  */
 export async function getGradingSummary(userId: string): Promise<{
   totalSessions: number;
-  averageScore: number;
+  averageScore: number | null;
   severeGapCount: number;
   mostCommonGap: string | null;
 }> {
-  const history = await getGradingHistory(userId);
+  // Query rankedSubmissions for this user
+  const rankedRef = collection(db, 'rankedSubmissions');
+  const rankedQuery = query(rankedRef, where('userId', '==', userId));
+  const rankedSnapshot = await getDocs(rankedQuery);
 
-  if (history.length === 0) {
+  // Query practiceSubmissions for this user
+  const practiceRef = collection(db, 'practiceSubmissions');
+  const practiceQuery = query(practiceRef, where('userId', '==', userId));
+  const practiceSnapshot = await getDocs(practiceQuery);
+
+  // Collect original scores from COMPLETED submissions only
+  const scores: number[] = [];
+
+  rankedSnapshot.docs.forEach((docSnap) => {
+    const data = docSnap.data();
+    // Only count completed submissions (user finished revision)
+    if (data.completedAt && typeof data.originalScore === 'number') {
+      scores.push(data.originalScore);
+    }
+  });
+
+  practiceSnapshot.docs.forEach((docSnap) => {
+    const data = docSnap.data();
+    // Only count completed submissions (user finished revision)
+    if (data.completedAt && typeof data.originalScore === 'number') {
+      scores.push(data.originalScore);
+    }
+  });
+
+  const totalSessions = scores.length;
+
+  if (totalSessions === 0) {
     return {
       totalSessions: 0,
-      averageScore: 0,
+      averageScore: null,
       severeGapCount: 0,
       mostCommonGap: null,
     };
   }
 
-  // Calculate average percentage score
-  const totalScore = history.reduce((sum, entry) => {
-    const scorecard = entry.scorecard;
-    return sum + scorecard.percentageScore;
-  }, 0);
-  const averageScore = Math.round(totalScore / history.length);
+  // Calculate average score
+  const totalScore = scores.reduce((sum, score) => sum + score, 0);
+  const averageScore = Math.round(totalScore / totalSessions);
 
-  // Count sessions with severe gaps
+  // For legacy compatibility, still check gradingHistory for gap tracking
+  const history = await getGradingHistory(userId);
   const severeGapCount = history.filter((e) => e.hasSevereGap).length;
 
-  // Find most common gap criterion
   const accumulated = await getAccumulatedGaps(userId);
   const mostCommonGap =
     accumulated.length > 0
@@ -267,7 +296,7 @@ export async function getGradingSummary(userId: string): Promise<{
       : null;
 
   return {
-    totalSessions: history.length,
+    totalSessions,
     averageScore,
     severeGapCount,
     mostCommonGap,

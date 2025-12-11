@@ -10,7 +10,12 @@ import {
   createFakeSubmission,
   deleteAllSubmissionsForPrompt,
 } from '@/lib/services/ranked-leaderboard';
-import { getDebugPromptId } from '@/lib/utils/debug-date';
+import {
+  getDebugPromptId,
+  isDebugTimerPaused,
+  setDebugTimerPaused,
+  skipDebugTimers,
+} from '@/lib/utils/debug-date';
 import { doc, updateDoc, deleteField } from 'firebase/firestore';
 import { db } from '@/lib/config/firebase';
 
@@ -21,6 +26,7 @@ export function FantasyDebugMenu() {
   const { user } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
   const [status, setStatus] = useState<string | null>(null);
+  const [isTimerPaused, setIsTimerPaused] = useState(() => isDebugTimerPaused());
 
   if (process.env.NODE_ENV === 'production') {
     return null;
@@ -33,6 +39,18 @@ export function FantasyDebugMenu() {
   const showStatus = (message: string) => {
     setStatus(message);
     setTimeout(() => setStatus(null), 2000);
+  };
+
+  const handleToggleTimer = () => {
+    const newState = !isTimerPaused;
+    setIsTimerPaused(newState);
+    setDebugTimerPaused(newState);
+    showStatus(newState ? 'Timer paused' : 'Timer running');
+  };
+
+  const handleSkipTimer = () => {
+    skipDebugTimers();
+    showStatus('Timer skipped to end');
   };
 
   const handleResetProgress = async () => {
@@ -216,6 +234,34 @@ export function FantasyDebugMenu() {
                 {status}
               </div>
             )}
+
+            {/* Timer Controls */}
+            <div className="mb-4 flex gap-2">
+              <button
+                type="button"
+                onClick={handleToggleTimer}
+                className="flex-1 rounded-md px-4 py-2 text-sm font-semibold transition hover:scale-[1.02]"
+                style={{
+                  background: isTimerPaused ? 'rgba(76, 175, 80, 0.2)' : 'rgba(201, 168, 76, 0.1)',
+                  border: `1px solid ${isTimerPaused ? 'rgba(76, 175, 80, 0.4)' : 'rgba(201, 168, 76, 0.25)'}`,
+                  color: isTimerPaused ? 'rgba(144, 238, 144, 0.9)' : 'rgba(245, 230, 184, 0.8)',
+                }}
+              >
+                {isTimerPaused ? '▶ Play' : '⏸ Pause'}
+              </button>
+              <button
+                type="button"
+                onClick={handleSkipTimer}
+                className="flex-1 rounded-md px-4 py-2 text-sm font-semibold transition hover:scale-[1.02]"
+                style={{
+                  background: 'rgba(201, 168, 76, 0.1)',
+                  border: '1px solid rgba(201, 168, 76, 0.25)',
+                  color: 'rgba(245, 230, 184, 0.8)',
+                }}
+              >
+                ⏭ Skip
+              </button>
+            </div>
 
             <div className="grid grid-cols-2 gap-3">
               {buttons.map((button) => (

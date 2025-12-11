@@ -76,7 +76,7 @@ function ResultsContentInner({ lessonId }: { lessonId: string }) {
   if (!isLoaded) {
     return (
       <div className="relative min-h-screen">
-        <Image src="/images/backgrounds/bg.webp" alt="" fill className="object-cover" priority />
+        <Image src="/images/backgrounds/study-2.webp" alt="" fill className="object-cover" priority />
         <div
           className="absolute inset-0"
           style={{ background: 'radial-gradient(ellipse at center, rgba(0,0,0,0.3) 0%, rgba(0,0,0,0.6) 100%)' }}
@@ -98,7 +98,7 @@ function ResultsContentInner({ lessonId }: { lessonId: string }) {
 
   return (
     <div className="relative min-h-screen">
-      <Image src="/images/backgrounds/bg.webp" alt="" fill className="object-cover" priority />
+      <Image src="/images/backgrounds/study-2.webp" alt="" fill className="object-cover" priority />
       <div
         className="absolute inset-0"
         style={{ background: 'radial-gradient(ellipse at center, rgba(0,0,0,0.3) 0%, rgba(0,0,0,0.6) 100%)' }}
@@ -505,7 +505,7 @@ export default function ResultsPage({ params }: ResultsPageProps) {
     <Suspense
       fallback={
         <div className="relative min-h-screen">
-          <Image src="/images/backgrounds/bg.webp" alt="" fill className="object-cover" priority />
+          <Image src="/images/backgrounds/study-2.webp" alt="" fill className="object-cover" priority />
           <div
             className="absolute inset-0"
             style={{ background: 'radial-gradient(ellipse at center, rgba(0,0,0,0.3) 0%, rgba(0,0,0,0.6) 100%)' }}

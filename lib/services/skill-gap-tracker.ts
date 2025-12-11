@@ -246,6 +246,109 @@ export function areAllLessonsMastered(
 }
 
 /**
+ * @description Study recommendations result with required vs suggested lessons.
+ */
+export interface StudyRecommendations {
+  /** Lessons required to unblock ranked (user is blocked) */
+  requiredLessons: string[];
+  /** Lessons suggested based on practiceRecommend threshold (not blocking) */
+  suggestedLessons: string[];
+  /** Whether user is blocked from ranked */
+  isBlocked: boolean;
+  /** Gaps causing the block */
+  blockingGaps: string[];
+  /** Gaps approaching block threshold */
+  warningGaps: string[];
+}
+
+/**
+ * @description Get study recommendations based on intervention rules.
+ * Returns required lessons (blocking) and suggested lessons (practiceRecommend threshold).
+ */
+export async function getStudyRecommendations(
+  userId: string
+): Promise<StudyRecommendations> {
+  const userRef = doc(db, 'users', userId);
+  const userSnap = await getDoc(userRef);
+
+  if (!userSnap.exists()) {
+    return {
+      requiredLessons: [],
+      suggestedLessons: [],
+      isBlocked: false,
+      blockingGaps: [],
+      warningGaps: [],
+    };
+  }
+
+  const userData = userSnap.data() as UserProfile;
+  const skillGaps = userData.skillGaps || {};
+
+  const requiredLessons = new Set<string>();
+  const suggestedLessons = new Set<string>();
+  const blockingGaps: string[] = [];
+  const warningGaps: string[] = [];
+
+  for (const [criterion, gapData] of Object.entries(skillGaps)) {
+    if (gapData.status === 'resolved') continue;
+
+    // Find highest severity among recent occurrences (using longest window)
+    const maxTimeWindow = Math.max(
+      INTERVENTION_RULES.high.timeWindow,
+      INTERVENTION_RULES.medium.timeWindow,
+      INTERVENTION_RULES.low.timeWindow
+    );
+
+    const highestSeverity = getHighestRecentSeverity(
+      gapData.occurrences,
+      maxTimeWindow
+    );
+
+    if (!highestSeverity) continue;
+
+    const rules = INTERVENTION_RULES[highestSeverity];
+    const rankedCount = getRecentGapCount(
+      gapData.occurrences,
+      rules.timeWindow,
+      'ranked'
+    );
+    const totalCount = getRecentGapCount(
+      gapData.occurrences,
+      rules.timeWindow
+    );
+
+    // Check if blocked (required lessons)
+    if (rankedCount >= rules.rankedBlock) {
+      blockingGaps.push(criterion);
+      gapData.recommendedLessons.forEach((l) => requiredLessons.add(l));
+    }
+    // Check if warning (approaching block)
+    else if (rankedCount >= rules.rankedWarn) {
+      warningGaps.push(criterion);
+      // Suggested if meets practiceRecommend threshold
+      if (totalCount >= rules.practiceRecommend) {
+        gapData.recommendedLessons.forEach((l) => suggestedLessons.add(l));
+      }
+    }
+    // Check if meets practiceRecommend threshold (suggested)
+    else if (totalCount >= rules.practiceRecommend) {
+      gapData.recommendedLessons.forEach((l) => suggestedLessons.add(l));
+    }
+  }
+
+  // Remove any suggested lessons that are already required
+  requiredLessons.forEach((l) => suggestedLessons.delete(l));
+
+  return {
+    requiredLessons: Array.from(requiredLessons),
+    suggestedLessons: Array.from(suggestedLessons),
+    isBlocked: blockingGaps.length > 0,
+    blockingGaps,
+    warningGaps,
+  };
+}
+
+/**
  * @description Get gaps that would be resolved by mastering a specific lesson.
  * Returns criterion names where all recommended lessons are now mastered.
  */

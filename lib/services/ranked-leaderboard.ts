@@ -55,12 +55,39 @@ export async function getLeaderboard(
 
   const snapshot = await getDocs(q);
 
+  // Filter to only completed submissions (those with completedAt set)
+  // and deduplicate by userId (keep best submission per user by originalScore)
+  const submissionsByUser = new Map<string, { docSnap: typeof snapshot.docs[0]; data: RankedSubmission }>();
+  
+  snapshot.docs.forEach((docSnap) => {
+    const data = docSnap.data() as RankedSubmission;
+    
+    // Skip submissions without completedAt (not yet revised)
+    if (!data.completedAt) return;
+    
+    const existing = submissionsByUser.get(data.userId);
+    
+    // Keep the submission with the higher originalScore
+    if (!existing || data.originalScore > existing.data.originalScore) {
+      submissionsByUser.set(data.userId, { docSnap, data });
+    }
+  });
+
+  // Convert to array and sort by originalScore (leaderboard ranks by original, not revised)
+  const completedSubmissions = [...submissionsByUser.values()]
+    .sort((a, b) => {
+      if (b.data.originalScore !== a.data.originalScore) {
+        return b.data.originalScore - a.data.originalScore;
+      }
+      // Tiebreaker: earlier submission wins
+      return a.data.submittedAt.toMillis() - b.data.submittedAt.toMillis();
+    });
+
   let userRank: number | null = null;
   let userPercentile: number | null = null;
-  const totalSubmissions = snapshot.docs.length;
+  const totalSubmissions = completedSubmissions.length;
 
-  const rankings: LeaderboardEntry[] = snapshot.docs.map((docSnap, index) => {
-    const data = docSnap.data() as RankedSubmission;
+  const rankings: LeaderboardEntry[] = completedSubmissions.map(({ data }, index) => {
     const rank = index + 1;
     const isCurrentUser = currentUserId === data.userId;
     const isTopThree = rank <= 3;
@@ -98,6 +125,7 @@ export async function getLeaderboard(
 /**
  * @description Fetches top 3 submissions for a prompt with real display names.
  * Looks up user profiles to get noble names instead of anonymous "Scribe #X".
+ * Only includes completed submissions (those with revision).
  */
 export async function getTopThree(promptId: string): Promise<LeaderboardEntry[]> {
   const submissionsRef = collection(db, 'rankedSubmissions');
@@ -105,16 +133,41 @@ export async function getTopThree(promptId: string): Promise<LeaderboardEntry[]>
     submissionsRef,
     where('promptId', '==', promptId),
     orderBy('originalScore', 'desc'),
-    orderBy('submittedAt', 'asc'),
-    limit(3)
+    orderBy('submittedAt', 'asc')
   );
 
   const snapshot = await getDocs(q);
   if (snapshot.empty) return [];
 
+  // Filter to only completed submissions and deduplicate by userId
+  const submissionsByUser = new Map<string, RankedSubmission>();
+  
+  snapshot.docs.forEach((docSnap) => {
+    const data = docSnap.data() as RankedSubmission;
+    
+    // Skip submissions without completedAt (not yet revised)
+    if (!data.completedAt) return;
+    
+    const existing = submissionsByUser.get(data.userId);
+    
+    // Keep the submission with the higher originalScore
+    if (!existing || data.originalScore > existing.originalScore) {
+      submissionsByUser.set(data.userId, data);
+    }
+  });
+
+  // Sort by originalScore and take top 3
+  const topSubmissions = [...submissionsByUser.values()]
+    .sort((a, b) => {
+      if (b.originalScore !== a.originalScore) return b.originalScore - a.originalScore;
+      return a.submittedAt.toMillis() - b.submittedAt.toMillis();
+    })
+    .slice(0, 3);
+
+  if (topSubmissions.length === 0) return [];
+
   // Extract user IDs and fetch profiles in parallel
-  const submissions = snapshot.docs.map((docSnap) => docSnap.data() as RankedSubmission);
-  const userIds = submissions.map((s) => s.userId);
+  const userIds = topSubmissions.map((s) => s.userId);
   
   const profilePromises = userIds.map((uid) => 
     getDoc(doc(db, 'users', uid)).catch(() => null)
@@ -130,8 +183,7 @@ export async function getTopThree(promptId: string): Promise<LeaderboardEntry[]>
     }
   });
 
-  return snapshot.docs.map((docSnap, index) => {
-    const data = docSnap.data() as RankedSubmission;
+  return topSubmissions.map((data, index) => {
     const rank = index + 1;
     return {
       displayName: displayNames[data.userId] || `Scribe #${rank}`,

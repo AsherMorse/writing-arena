@@ -2,6 +2,7 @@ declare global {
   interface Window {
     __debugDayOffset?: number;
     __debugPromptId?: string;
+    __debugTimerPaused?: boolean;
   }
 }
 
@@ -37,6 +38,33 @@ export function getDebugPromptId(): string | undefined {
 export function setDebugPromptId(id: string | undefined): void {
   if (typeof window !== 'undefined') {
     window.__debugPromptId = id;
+  }
+}
+
+/**
+ * @description Check if debug timer is paused. Defaults to true in dev mode.
+ */
+export function isDebugTimerPaused(): boolean {
+  if (typeof window === 'undefined') return false;
+  return window.__debugTimerPaused ?? true;
+}
+
+/**
+ * @description Set debug timer paused state and dispatch event for components to react.
+ */
+export function setDebugTimerPaused(paused: boolean): void {
+  if (typeof window !== 'undefined') {
+    window.__debugTimerPaused = paused;
+    window.dispatchEvent(new CustomEvent('debug-timer-toggle', { detail: paused }));
+  }
+}
+
+/**
+ * @description Dispatch event to skip all timers to completion.
+ */
+export function skipDebugTimers(): void {
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent('debug-timer-skip'));
   }
 }
 

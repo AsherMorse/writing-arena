@@ -94,8 +94,8 @@ service cloud.firestore {
     // Ranked Prompts (daily challenges)
     match /rankedPrompts/{promptId} {
       allow read: if isAuthenticated();
-      allow create: if isAuthenticated();
-      allow update, delete: if false;
+      allow create, update: if isAuthenticated();
+      allow delete: if false;
     }
     
     // Ranked Submissions (user submissions for daily challenges)

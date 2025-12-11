@@ -48,7 +48,7 @@ export function RecommendedLessons({
         className="font-memento text-sm uppercase tracking-widest mb-3 pb-2 border-b"
         style={{ color: accentColor, borderColor: 'rgba(139, 99, 52, 0.3)' }}
       >
-        {hasSevereGap ? '⚠️ Practice Recommended' : '💡 Suggested Practice'}
+        {hasSevereGap ? '⚠️ Practice Recommended' : 'Suggested Practice'}
       </h4>
       <div className="flex items-start gap-3 pt-1">
         <div className="flex-1">

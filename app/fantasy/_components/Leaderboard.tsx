@@ -167,28 +167,35 @@ function LeaderboardEntryRow({
 
       <div className="flex items-center gap-4 text-right">
         <div style={getParchmentTextStyle()}>
-          <span className="font-avenir text-sm" style={{ opacity: 0.6 }}>
-            Score:{' '}
-          </span>
-          <span className="font-avenir font-semibold">
-            {entry.originalScore}%
-          </span>
-        </div>
-        {entry.revisedScore !== undefined && entry.revisedScore !== entry.originalScore && (
-          <div style={getParchmentTextStyle()}>
-            <span className="font-avenir text-sm" style={{ opacity: 0.6 }}>
-              →{' '}
+          <div className="flex items-center gap-1">
+            <span className="font-avenir text-xs" style={{ opacity: 0.6 }}>
+              Original:
             </span>
-            <span
-              className="font-avenir font-semibold"
-              style={{
-                color: entry.revisedScore > entry.originalScore ? '#16a34a' : '#d97706',
-              }}
-            >
-              {entry.revisedScore}%
+            <span className="font-avenir font-semibold">
+              {entry.originalScore}%
             </span>
           </div>
-        )}
+          {entry.revisedScore !== undefined && (
+            <div className="flex items-center gap-1">
+              <span className="font-avenir text-xs" style={{ opacity: 0.5 }}>
+                Revised:
+              </span>
+              <span
+                className="font-avenir text-xs"
+                style={{
+                  opacity: 0.8,
+                  color: entry.revisedScore > entry.originalScore
+                    ? '#16a34a'
+                    : entry.revisedScore < entry.originalScore
+                      ? '#d97706'
+                      : undefined,
+                }}
+              >
+                {entry.revisedScore}%
+              </span>
+            </div>
+          )}
+        </div>
         {hasContent && onViewSubmission && (
           <button
             onClick={() => onViewSubmission(entry)}

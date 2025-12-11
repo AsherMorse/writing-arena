@@ -157,6 +157,42 @@ export default function RankedPage() {
     };
   }, [currentPrompt]);
 
+  // Generate and persist inspiration if missing from prompt
+  useEffect(() => {
+    async function generateMissingInspiration() {
+      if (!currentPrompt || currentPrompt.inspirationText) return;
+
+      setIsLoadingInspiration(true);
+      try {
+        const response = await fetch('/fantasy/api/generate-inspiration', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ prompt: currentPrompt.promptText }),
+        });
+
+        if (!response.ok) return;
+        const { backgroundInfo } = await response.json();
+        if (!backgroundInfo) return;
+
+        // Save to Firestore for future users
+        const { doc, updateDoc } = await import('firebase/firestore');
+        const { db } = await import('@/lib/config/firebase');
+        await updateDoc(doc(db, 'rankedPrompts', currentPrompt.id), {
+          inspirationText: backgroundInfo,
+        });
+
+        // Update local state
+        setCurrentPrompt(prev => prev ? { ...prev, inspirationText: backgroundInfo } : null);
+      } catch (error) {
+        console.error('Failed to generate inspiration:', error);
+      } finally {
+        setIsLoadingInspiration(false);
+      }
+    }
+
+    generateMissingInspiration();
+  }, [currentPrompt?.id, currentPrompt?.inspirationText, currentPrompt?.promptText]);
+
   useEffect(() => {
     if (user && !authLoading) {
       fetchTodaysPrompt();
@@ -838,6 +874,10 @@ export default function RankedPage() {
                       <p className="font-avenir text-sm leading-relaxed" style={getParchmentTextStyle()}>
                         {currentPrompt.inspirationText}
                       </p>
+                    ) : isLoadingInspiration ? (
+                      <p className="font-avenir text-sm italic" style={{ ...getParchmentTextStyle(), opacity: 0.7 }}>
+                        Generating inspiration...
+                      </p>
                     ) : (
                       <p className="font-avenir text-sm italic" style={{ ...getParchmentTextStyle(), opacity: 0.7 }}>
                         No background info available
@@ -994,6 +1034,10 @@ export default function RankedPage() {
                     {currentPrompt?.inspirationText ? (
                       <p className="font-avenir text-sm leading-relaxed" style={getParchmentTextStyle()}>
                         {currentPrompt.inspirationText}
+                      </p>
+                    ) : isLoadingInspiration ? (
+                      <p className="font-avenir text-sm italic" style={{ ...getParchmentTextStyle(), opacity: 0.7 }}>
+                        Generating inspiration...
                       </p>
                     ) : (
                       <p className="font-avenir text-sm italic" style={{ ...getParchmentTextStyle(), opacity: 0.7 }}>
