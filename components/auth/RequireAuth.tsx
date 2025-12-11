@@ -5,7 +5,7 @@ import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { LoadingState } from '@/components/shared/LoadingState';
 import { logger, LOG_CONTEXTS } from '@/lib/utils/logger';
-import NobleNamePickerModal from '@/components/shared/NobleNamePickerModal';
+import TitlePickerModal from '@/components/shared/TitlePickerModal';
 
 export function RequireAuth({ children }: { children: React.ReactNode }) {
   const { user, userProfile, loading, refreshProfile } = useAuth();
@@ -13,7 +13,7 @@ export function RequireAuth({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const [isAuthorized, setIsAuthorized] = useState(false);
-  const [showNamePicker, setShowNamePicker] = useState(false);
+  const [showTitlePicker, setShowTitlePicker] = useState(false);
 
   useEffect(() => {
     if (!loading) {
@@ -52,19 +52,19 @@ export function RequireAuth({ children }: { children: React.ReactNode }) {
     }
   }, [user, loading, router, pathname, searchParams]);
 
-  // Show noble name picker modal if user doesn't have a noble name yet
+  // Show title picker modal if user hasn't selected their title yet
   useEffect(() => {
-    if (user && userProfile && !userProfile.hasNobleName) {
-      setShowNamePicker(true);
+    if (user && userProfile && !userProfile.hasSelectedTitle) {
+      setShowTitlePicker(true);
     }
   }, [user, userProfile]);
 
   /**
-   * @description Handles completion of noble name selection.
+   * @description Handles completion of title selection.
    */
-  const handleNamePickerComplete = async () => {
+  const handleTitlePickerComplete = async () => {
     await refreshProfile();
-    setShowNamePicker(false);
+    setShowTitlePicker(false);
   };
 
   if (loading) {
@@ -79,9 +79,9 @@ export function RequireAuth({ children }: { children: React.ReactNode }) {
   return (
     <>
       {children}
-      <NobleNamePickerModal
-        isOpen={showNamePicker}
-        onComplete={handleNamePickerComplete}
+      <TitlePickerModal
+        isOpen={showTitlePicker}
+        onComplete={handleTitlePickerComplete}
       />
     </>
   );

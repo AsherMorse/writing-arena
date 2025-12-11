@@ -3,13 +3,31 @@ import { collection, doc, query, where, getDocs, getDoc, orderBy, setDoc, server
 import { RankedPrompt } from '@/lib/types';
 import { getUserSubmissionsForDate } from './ranked-submissions';
 
+// Old topics (too young for grades 6-8)
+// const RANKED_TOPICS = [
+//   'Summer', 'Friendship', 'Video Games', 'Superheroes', 'Space',
+//   'Pets', 'Sports', 'Music', 'Bravery', 'Flying', 'Dinosaurs',
+//   'The Ocean', 'Robots', 'Dreams', 'Holidays', 'Wild Animals',
+//   'Books', 'Inventions', 'Weather', 'Movies', 'Nature', 'Travel',
+//   'Art', 'Winter', 'Teamwork', 'Technology', 'Forests', 'Mountains',
+//   'Learning', 'Sleep', 'Magic', 'Kindness', 'Colors',
+// ];
+
 const RANKED_TOPICS = [
-  'Summer', 'Friendship', 'Video Games', 'Superheroes', 'Space',
-  'Pets', 'Sports', 'Music', 'Bravery', 'Flying', 'Dinosaurs',
-  'The Ocean', 'Robots', 'Dreams', 'Holidays', 'Wild Animals',
-  'Books', 'Inventions', 'Weather', 'Movies', 'Nature', 'Travel',
-  'Art', 'Winter', 'Teamwork', 'Technology', 'Forests', 'Mountains',
-  'Learning', 'Sleep', 'Magic', 'Kindness', 'Colors',
+  // Entertainment
+  'Video Games', 'YouTube', 'Music', 'Movies', 'Anime', 'Sports',
+  'TikTok', 'Streaming Shows', 'Social Media', 'Memes',
+  
+  // Food
+  'Pizza', 'Fast Food', 'Snacks', 'School Lunch', 'Ice Cream',
+  
+  // Things Kids Care About
+  'Cars', 'Shoes', 'Phones', 'Bikes', 'Pets', 'Books',
+  'Skateboards', 'Hobbies', 'Collections',
+  
+  // School Life
+  'Field Trips', 'Summer Break', 'Recess', 'Group Projects',
+  'After-School Clubs', 'Lunch Tables'
 ];
 
 const ANGLES = [
@@ -21,6 +39,30 @@ const ANGLES = [
   'Focus on the benefits or positive aspects of this topic.',
   'Focus on different types or varieties of this topic.',
   'Focus on what someone new to this topic should know.',
+];
+
+const ESSAY_TOPICS = [
+  // Debates students care about
+  'Screen Time', 'Homework', 'School Start Times', 'Dress Codes',
+  'Social Media Age Limits', 'Video Game Violence', 'Phone Rules',
+  'Standardized Tests', 'Group Projects', 'Online Learning',
+  // Multi-dimensional topics
+  'Friendship', 'Competition vs Cooperation', 'Taking Risks',
+  'Learning from Failure', 'Following Rules vs Questioning Them',
+  'Privacy Online', 'Fame and Influence', 'Fitting In vs Standing Out',
+  // Compare/contrast friendly
+  'Online vs In-Person Friendships', 'Books vs Movies',
+  'Solo vs Team Activities', 'City vs Small Town Life',
+];
+
+const ESSAY_ANGLES = [
+  'Argue for or against, considering multiple perspectives.',
+  'Compare and contrast two approaches.',
+  'Explore causes and effects.',
+  'Discuss benefits and drawbacks.',
+  'Explain why this matters and what should change.',
+  'Analyze how this affects different groups differently.',
+  'Present both sides and take a position.',
 ];
 
 function seededRandom(seed: number): () => number {
@@ -35,20 +77,30 @@ function getDateSeed(dateString: string): number {
   return dateParts[0] * 10000 + dateParts[1] * 100 + dateParts[2];
 }
 
-function getTopicForPrompt(dateString: string, promptIndex: number): string {
+function getTopicForPrompt(
+  dateString: string,
+  promptIndex: number,
+  level: 'paragraph' | 'essay' = 'paragraph'
+): string {
+  const topics = level === 'essay' ? ESSAY_TOPICS : RANKED_TOPICS;
   const baseSeed = getDateSeed(dateString);
   const seed = baseSeed + promptIndex * 7919;
   const random = seededRandom(seed);
-  const index = Math.floor(random() * RANKED_TOPICS.length);
-  return RANKED_TOPICS[index];
+  const index = Math.floor(random() * topics.length);
+  return topics[index];
 }
 
-function getAngleForPrompt(dateString: string, promptIndex: number): string {
+function getAngleForPrompt(
+  dateString: string,
+  promptIndex: number,
+  level: 'paragraph' | 'essay' = 'paragraph'
+): string {
+  const angles = level === 'essay' ? ESSAY_ANGLES : ANGLES;
   const baseSeed = getDateSeed(dateString);
   const seed = baseSeed + promptIndex * 7919 + 1;
   const random = seededRandom(seed);
-  const index = Math.floor(random() * ANGLES.length);
-  return ANGLES[index];
+  const index = Math.floor(random() * angles.length);
+  return angles[index];
 }
 
 export async function getPromptBySequence(
@@ -162,15 +214,15 @@ async function generatePromptAtIndex(
   promptIndex: number,
   level: 'paragraph' | 'essay' = 'paragraph'
 ): Promise<RankedPrompt | null> {
-  const topic = getTopicForPrompt(dateString, promptIndex);
-  const angle = getAngleForPrompt(dateString, promptIndex);
+  const topic = getTopicForPrompt(dateString, promptIndex, level);
+  const angle = getAngleForPrompt(dateString, promptIndex, level);
   const promptId = `${level}-${dateString}-${promptIndex}`;
 
   try {
     const response = await fetch('/fantasy/api/daily-prompt', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ topic, angle }),
+      body: JSON.stringify({ topic, angle, level }),
     });
 
     if (!response.ok) {

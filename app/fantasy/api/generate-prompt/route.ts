@@ -31,7 +31,7 @@ Rules:
 3. AVOID commands like "Write about", "Describe", "Explain" - be non-imperative
 4. AVOID requiring adult-level knowledge
 5. AVOID pushing toward narrative or first-person writing
-6. Keep it appropriate for grades 4-8
+6. Keep it appropriate for grades 6-8
 7. Use the provided angle to shape your prompt's direction
 
 Examples:

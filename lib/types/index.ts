@@ -22,6 +22,12 @@ export type SkillTier = 1 | 2 | 3;
 export type SubmissionLevel = 'paragraph' | 'essay' | 'essay_passage';
 
 /**
+ * @description User title for display on leaderboards.
+ * Lord = masculine, Lady = feminine, Wordsmith = neutral (default).
+ */
+export type UserTitle = 'Lord' | 'Lady' | 'Wordsmith';
+
+/**
  * @description Mastery status for a single lesson.
  */
 export interface LessonMasteryStatus {
@@ -38,6 +44,10 @@ export interface UserProfile {
   displayName: string;
   email: string;
   avatar: string;
+  
+  // User title for leaderboard display
+  title?: UserTitle;         // 'Lord' | 'Lady' | 'Wordsmith' (default: 'Wordsmith')
+  hasSelectedTitle?: boolean; // True after user explicitly picks their title
   
   // Legacy rank fields (kept for backward compatibility)
   currentRank: string;
@@ -75,9 +85,6 @@ export interface UserProfile {
 
   // Skill gap tracking (denormalized for fast block checks)
   skillGaps?: SkillGapsMap;
-
-  // Noble name system
-  hasNobleName?: boolean;
   
   // Streak tracking
   lastActivityDate?: string; // Format: 'YYYY-MM-DD'
@@ -162,5 +169,25 @@ export interface AIStudent {
   writingStyle: string;
   createdAt: Timestamp;
   updatedAt: Timestamp;
+}
+
+/**
+ * @description Options returned from the prompt options endpoint for student selection.
+ */
+export interface PromptOptions {
+  topic: string;
+  angle: string;
+  question: string;
+  options: string[];
+}
+
+/**
+ * @description Response from prompt generation with selection validation.
+ */
+export interface PromptGenerationResponse {
+  valid: boolean;
+  promptText?: string;
+  reason?: string;
+  selection?: string;
 }
 

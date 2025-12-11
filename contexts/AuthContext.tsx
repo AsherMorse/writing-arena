@@ -15,12 +15,14 @@ import { createUserProfile, getUserProfile } from '@/lib/services/firestore';
 import { UserProfile } from '@/lib/types';
 import { logger, LOG_CONTEXTS } from '@/lib/utils/logger';
 
+type UserTitle = 'Lord' | 'Lady' | 'Wordsmith';
+
 interface AuthContextType {
   user: User | null;
   userProfile: UserProfile | null;
   loading: boolean;
   signIn: (email: string, password: string) => Promise<void>;
-  signUp: (email: string, password: string) => Promise<void>;
+  signUp: (email: string, password: string, fullName: string, title: UserTitle) => Promise<void>;
   signInWithGoogle: () => Promise<void>;
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
@@ -31,7 +33,7 @@ const AuthContext = createContext<AuthContextType>({
   userProfile: null,
   loading: true,
   signIn: async () => {},
-  signUp: async () => {},
+  signUp: async (_email, _password, _fullName, _title) => {},
   signInWithGoogle: async () => {},
   signOut: async () => {},
   refreshProfile: async () => {},
@@ -63,11 +65,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           let profile = await getUserProfile(user.uid);
           
           if (!profile) {
-            // Create profile with placeholder name - user will pick noble name via modal
+            // Create profile with real name from auth provider or fallback
             await createUserProfile(user.uid, {
-              displayName: 'New Adventurer',
+              displayName: user.displayName || 'New Adventurer',
               email: user.email || '',
-              hasNobleName: false,
+              title: 'Wordsmith',
             });
             
             const { retryUntilSuccess } = await import('@/lib/utils/retry');
@@ -105,11 +107,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       let profile = await getUserProfile(userCredential.user.uid);
       
       if (!profile) {
-        // Create profile with placeholder name - user will pick noble name via modal
+        // Create profile with default values for existing users without profile
         await createUserProfile(userCredential.user.uid, {
-          displayName: 'New Adventurer',
+          displayName: userCredential.user.displayName || 'New Adventurer',
           email: userCredential.user.email || '',
-          hasNobleName: false,
+          title: 'Wordsmith',
         });
         
         await new Promise(resolve => setTimeout(resolve, 500));
@@ -125,15 +127,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const signUp = async (email: string, password: string) => {
+  const signUp = async (email: string, password: string, fullName: string, title: UserTitle) => {
     try {
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
 
-      // Create profile with placeholder name - user will pick noble name via modal
+      // Create profile with provided name and title (hasSelectedTitle true since they chose)
       await createUserProfile(userCredential.user.uid, {
-        displayName: 'New Adventurer',
+        displayName: fullName,
         email,
-        hasNobleName: false,
+        title,
+        hasSelectedTitle: true,
       });
       
       await new Promise(resolve => setTimeout(resolve, 500));
@@ -155,11 +158,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       
       let profile = await getUserProfile(result.user.uid);
       if (!profile) {
-        // Create profile with placeholder name - user will pick noble name via modal
+        // Create profile with Google display name
         await createUserProfile(result.user.uid, {
-          displayName: 'New Adventurer',
+          displayName: result.user.displayName || 'New Adventurer',
           email: result.user.email || '',
-          hasNobleName: false,
+          title: 'Wordsmith',
         });
         
         await new Promise(resolve => setTimeout(resolve, 500));

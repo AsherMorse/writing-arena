@@ -13,7 +13,22 @@ import {
   deleteDoc,
   serverTimestamp,
 } from 'firebase/firestore';
-import { RankedSubmission } from '@/lib/types';
+import { RankedSubmission, SkillLevel, SkillTier, UserTitle } from '@/lib/types';
+import { getRankDisplayName } from '@/lib/utils/score-calculator';
+
+/**
+ * @description Formats a user's display name with title and rank.
+ * Example: "Wordsmith Tom Smith, Scribe III"
+ */
+function formatLeaderboardName(
+  name: string,
+  title: UserTitle = 'Wordsmith',
+  skillLevel: SkillLevel = 'scribe',
+  skillTier: SkillTier = 3
+): string {
+  const rankDisplay = getRankDisplayName(skillLevel, skillTier);
+  return `${title} ${name}, ${rankDisplay}`;
+}
 
 export interface LeaderboardEntry {
   displayName: string;
@@ -100,12 +115,16 @@ export async function getLeaderboard(
   );
   const profileSnapshots = await Promise.all(profilePromises);
 
-  // Build display name map
+  // Build formatted display name map with title and rank
   const displayNames: Record<string, string> = {};
   profileSnapshots.forEach((snap, index) => {
     if (snap?.exists()) {
       const profileData = snap.data();
-      displayNames[userIds[index]] = profileData.displayName || `Scribe #${index + 1}`;
+      const name = profileData.displayName || `Scribe #${index + 1}`;
+      const title = profileData.title || 'Wordsmith';
+      const skillLevel = profileData.skillLevel || 'scribe';
+      const skillTier = profileData.skillTier || 3;
+      displayNames[userIds[index]] = formatLeaderboardName(name, title, skillLevel, skillTier);
     }
   });
 
@@ -122,7 +141,7 @@ export async function getLeaderboard(
     }
 
     return {
-      displayName: displayNames[data.userId] || `Scribe #${rank}`,
+      displayName: displayNames[data.userId] || formatLeaderboardName(`Scribe #${rank}`, 'Wordsmith', 'scribe', 3),
       originalScore: data.originalScore,
       revisedScore: data.revisedScore,
       rank,
@@ -145,8 +164,8 @@ export async function getLeaderboard(
 }
 
 /**
- * @description Fetches top 3 submissions for a prompt with real display names.
- * Looks up user profiles to get noble names instead of anonymous "Scribe #X".
+ * @description Fetches top 3 submissions for a prompt with formatted display names.
+ * Format: "Title Name, Rank Tier" (e.g., "Wordsmith Tom Smith, Scribe III")
  * Only includes completed submissions (those with revision).
  */
 export async function getTopThree(promptId: string): Promise<LeaderboardEntry[]> {
@@ -201,19 +220,23 @@ export async function getTopThree(promptId: string): Promise<LeaderboardEntry[]>
   );
   const profileSnapshots = await Promise.all(profilePromises);
 
-  // Build display name map
+  // Build formatted display name map with title and rank
   const displayNames: Record<string, string> = {};
   profileSnapshots.forEach((snap, index) => {
     if (snap?.exists()) {
-      const data = snap.data();
-      displayNames[userIds[index]] = data.displayName || `Scribe #${index + 1}`;
+      const profileData = snap.data();
+      const name = profileData.displayName || `Scribe #${index + 1}`;
+      const title = profileData.title || 'Wordsmith';
+      const skillLevel = profileData.skillLevel || 'scribe';
+      const skillTier = profileData.skillTier || 3;
+      displayNames[userIds[index]] = formatLeaderboardName(name, title, skillLevel, skillTier);
     }
   });
 
   return topSubmissions.map((data, index) => {
     const rank = index + 1;
     return {
-      displayName: displayNames[data.userId] || `Scribe #${rank}`,
+      displayName: displayNames[data.userId] || formatLeaderboardName(`Scribe #${rank}`, 'Wordsmith', 'scribe', 3),
       originalScore: data.originalScore,
       revisedScore: data.revisedScore,
       rank,
@@ -283,25 +306,29 @@ export async function getDailyTopThree(level: 'paragraph' | 'essay'): Promise<Da
 
   if (sortedUsers.length === 0) return [];
 
-  // Fetch display names
+  // Fetch display names and profile data
   const userIds = sortedUsers.map(([uid]) => uid);
   const profilePromises = userIds.map((uid) => 
     getDoc(doc(db, 'users', uid)).catch(() => null)
   );
   const profileSnapshots = await Promise.all(profilePromises);
 
-  // Build display name map
+  // Build formatted display name map with title and rank
   const displayNames: Record<string, string> = {};
   profileSnapshots.forEach((snap, index) => {
     if (snap?.exists()) {
-      const data = snap.data();
-      displayNames[userIds[index]] = data.displayName || `Champion #${index + 1}`;
+      const profileData = snap.data();
+      const name = profileData.displayName || `Champion #${index + 1}`;
+      const title = profileData.title || 'Wordsmith';
+      const skillLevel = profileData.skillLevel || 'scribe';
+      const skillTier = profileData.skillTier || 3;
+      displayNames[userIds[index]] = formatLeaderboardName(name, title, skillLevel, skillTier);
     }
   });
 
   return sortedUsers.map(([userId, dailyLP], index) => ({
     userId,
-    displayName: displayNames[userId] || `Champion #${index + 1}`,
+    displayName: displayNames[userId] || formatLeaderboardName(`Champion #${index + 1}`, 'Wordsmith', 'scribe', 3),
     dailyLP,
     rank: index + 1,
   }));

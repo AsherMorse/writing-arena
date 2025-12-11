@@ -38,9 +38,9 @@ import { getLessonDisplayName } from '@/lib/constants/lesson-display-names';
 import { updateRankAfterRankedSubmission, getUserProfile, RankUpdateResult } from '@/lib/services/user-profile';
 import { calculateRankedLP, getRequiredMode, getRankDisplayName } from '@/lib/utils/score-calculator';
 import type { GradeResponse } from '../_lib/grading';
-import type { RankedPrompt, RankedSubmission, BlockCheckResult, SkillLevel, SkillTier, SubmissionLevel } from '@/lib/types';
+import type { RankedPrompt, RankedSubmission, BlockCheckResult, SkillLevel, SkillTier, SubmissionLevel, PromptOptions } from '@/lib/types';
 
-type Phase = 'loading' | 'prompt' | 'write' | 'feedback' | 'revise' | 'results' | 'no_prompt' | 'blocked' | 'history';
+type Phase = 'loading' | 'prompt' | 'selection' | 'write' | 'feedback' | 'revise' | 'results' | 'no_prompt' | 'blocked' | 'history';
 
 const PARAGRAPH_WRITE_TIME = 7 * 60;
 const PARAGRAPH_REVISE_TIME = 2 * 60;
@@ -86,6 +86,11 @@ export default function RankedPage() {
   /** User's placement in the leaderboard */
   const [userPlacement, setUserPlacement] = useState<number | null>(null);
   const [totalSubmissions, setTotalSubmissions] = useState(0);
+  /** Selection phase state */
+  const [promptOptions, setPromptOptions] = useState<PromptOptions | null>(null);
+  const [customInput, setCustomInput] = useState('');
+  const [selectionError, setSelectionError] = useState<string | null>(null);
+  const [isLoadingSelection, setIsLoadingSelection] = useState(false);
 
   const fetchTodaysPrompt = useCallback(async () => {
     if (!user) return;
@@ -246,6 +251,116 @@ export default function RankedPage() {
       router.push('/fantasy/home');
     }
   }, [phase, router]);
+
+  /** Start selection phase - fetch options from API */
+  const beginSelection = useCallback(async () => {
+    if (!currentPrompt) return;
+    
+    setIsLoadingSelection(true);
+    setSelectionError(null);
+    setCustomInput('');
+    
+    try {
+      // Get topic and angle from the current prompt
+      const topic = currentPrompt.topic || 'Writing';
+      // Use a default angle or extract from prompt context
+      const angle = 'Focus on why people find this topic interesting or enjoyable';
+      
+      const response = await fetch('/fantasy/api/daily-prompt/options', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ topic, angle }),
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to load options');
+      }
+      
+      const options: PromptOptions = await response.json();
+      setPromptOptions(options);
+      setPhase('selection');
+    } catch (err) {
+      // Fallback: skip selection and go directly to writing
+      console.error('Failed to fetch options:', err);
+      setPhase('write');
+    } finally {
+      setIsLoadingSelection(false);
+    }
+  }, [currentPrompt]);
+
+  /** Handle selection of a topic option */
+  const handleSelection = useCallback(async (selection: string) => {
+    if (!promptOptions || !currentPrompt) return;
+    
+    // Client-side quick filter for obviously inappropriate input
+    const blockedPatterns = [
+      /\b(fuck|shit|ass|damn|bitch|sex|porn|kill|murder|gun|drug)\b/i,
+    ];
+    if (blockedPatterns.some(pattern => pattern.test(selection))) {
+      setSelectionError("Let's pick something else!");
+      return;
+    }
+    
+    setIsLoadingSelection(true);
+    setSelectionError(null);
+    
+    try {
+      const response = await fetch('/fantasy/api/daily-prompt', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          topic: promptOptions.topic,
+          angle: promptOptions.angle,
+          question: promptOptions.question,
+          selection,
+        }),
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to generate prompt');
+      }
+      
+      const data = await response.json();
+      
+      if (data.valid === false) {
+        setSelectionError(data.reason || 'Please try a different selection.');
+        setIsLoadingSelection(false);
+        return;
+      }
+      
+      // Update prompt with personalized text (clear old inspiration)
+      setCurrentPrompt(prev => prev ? { 
+        ...prev, 
+        promptText: data.promptText,
+        inspirationText: undefined, // Clear so it regenerates for personalized prompt
+      } : null);
+      
+      // Generate inspiration for the personalized prompt (non-blocking)
+      setIsLoadingInspiration(true);
+      fetch('/fantasy/api/generate-inspiration', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ prompt: data.promptText }),
+      })
+        .then(res => res.ok ? res.json() : null)
+        .then(inspData => {
+          if (inspData?.backgroundInfo) {
+            setCurrentPrompt(prev => prev ? { 
+              ...prev, 
+              inspirationText: inspData.backgroundInfo 
+            } : null);
+          }
+        })
+        .catch(() => {}) // Silently fail - inspiration is optional
+        .finally(() => setIsLoadingInspiration(false));
+      
+      setPhase('write');
+    } catch (err) {
+      setSelectionError(err instanceof Error ? err.message : 'Something went wrong');
+    } finally {
+      setIsLoadingSelection(false);
+    }
+  }, [promptOptions, currentPrompt]);
 
   const beginWriting = useCallback(() => {
     setContent('');
@@ -433,6 +548,9 @@ export default function RankedPage() {
     setShowCelebrationModal(false);
     setUserPlacement(null);
     setTotalSubmissions(0);
+    setPromptOptions(null);
+    setCustomInput('');
+    setSelectionError(null);
   }, []);
 
   const continueToNextChallenge = useCallback(() => {
@@ -447,6 +565,9 @@ export default function RankedPage() {
     setShowCelebrationModal(false);
     setUserPlacement(null);
     setTotalSubmissions(0);
+    setPromptOptions(null);
+    setCustomInput('');
+    setSelectionError(null);
     fetchTodaysPrompt();
   }, [fetchTodaysPrompt]);
 
@@ -806,9 +927,112 @@ export default function RankedPage() {
                     View Past Challenges
                   </ParchmentButton>
                 )}
-                <ParchmentButton onClick={beginWriting} variant="golden">
-                  Begin Writing
+                <ParchmentButton onClick={beginSelection} disabled={isLoadingSelection} variant="golden">
+                  {isLoadingSelection ? 'Loading...' : 'Begin Writing'}
                 </ParchmentButton>
+              </div>
+            </div>
+          )}
+
+          {phase === 'selection' && promptOptions && (
+            <div className="w-full max-w-2xl text-center space-y-8">
+              <div>
+                <p
+                  className="font-memento text-sm uppercase tracking-wider mb-2"
+                  style={{ color: 'rgba(245, 230, 184, 0.5)' }}
+                >
+                  Today&apos;s Topic: {promptOptions.topic}
+                </p>
+                <h1
+                  className="font-dutch809 text-3xl mb-4"
+                  style={{
+                    color: '#f6d493',
+                    textShadow: '0 2px 4px rgba(0, 0, 0, 0.8)',
+                  }}
+                >
+                  {promptOptions.question}
+                </h1>
+              </div>
+
+              {/* Options Grid */}
+              <div className="grid grid-cols-2 gap-3">
+                {promptOptions.options.map((option) => (
+                  <button
+                    key={option}
+                    onClick={() => handleSelection(option)}
+                    disabled={isLoadingSelection}
+                    className="font-avenir text-base py-3 px-4 rounded-lg transition-all"
+                    style={{
+                      backgroundColor: 'rgba(245, 230, 184, 0.1)',
+                      border: '1px solid rgba(245, 230, 184, 0.3)',
+                      color: 'rgba(245, 230, 184, 0.9)',
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.backgroundColor = 'rgba(245, 230, 184, 0.2)';
+                      e.currentTarget.style.borderColor = 'rgba(245, 230, 184, 0.5)';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.backgroundColor = 'rgba(245, 230, 184, 0.1)';
+                      e.currentTarget.style.borderColor = 'rgba(245, 230, 184, 0.3)';
+                    }}
+                  >
+                    {option}
+                  </button>
+                ))}
+              </div>
+
+              {/* Custom Input */}
+              <div className="flex gap-3">
+                <input
+                  type="text"
+                  value={customInput}
+                  onChange={(e) => setCustomInput(e.target.value)}
+                  placeholder="Or type your own..."
+                  disabled={isLoadingSelection}
+                  className="flex-1 font-avenir text-base py-3 px-4 rounded-lg"
+                  style={{
+                    backgroundColor: 'rgba(0, 0, 0, 0.3)',
+                    border: '1px solid rgba(245, 230, 184, 0.3)',
+                    color: 'rgba(245, 230, 184, 0.9)',
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && customInput.trim()) {
+                      handleSelection(customInput.trim());
+                    }
+                  }}
+                />
+                <ParchmentButton
+                  onClick={() => handleSelection(customInput.trim())}
+                  disabled={!customInput.trim() || isLoadingSelection}
+                  variant="golden"
+                >
+                  {isLoadingSelection ? '...' : 'Go'}
+                </ParchmentButton>
+              </div>
+
+              {/* Error Message */}
+              {selectionError && (
+                <div
+                  className="font-avenir text-sm py-2 px-4 rounded-lg"
+                  style={{
+                    backgroundColor: 'rgba(251, 191, 36, 0.15)',
+                    border: '1px solid rgba(251, 191, 36, 0.4)',
+                    color: '#fbbf24',
+                  }}
+                >
+                  ⚠️ {selectionError}
+                </div>
+              )}
+
+              {/* Back button */}
+              <div>
+                <button
+                  onClick={backToPrompt}
+                  className="font-memento text-sm uppercase tracking-wider"
+                  style={{ color: 'rgba(245, 230, 184, 0.5)' }}
+                >
+                  ← Back
+                </button>
               </div>
             </div>
           )}
@@ -884,8 +1108,8 @@ export default function RankedPage() {
                 <ParchmentButton onClick={backToPrompt}>
                   Back
                 </ParchmentButton>
-                <ParchmentButton onClick={beginWriting} variant="golden">
-                  Start Next Challenge
+                <ParchmentButton onClick={beginSelection} disabled={isLoadingSelection} variant="golden">
+                  {isLoadingSelection ? 'Loading...' : 'Start Next Challenge'}
                 </ParchmentButton>
               </div>
             </div>
