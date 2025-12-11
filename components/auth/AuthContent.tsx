@@ -9,10 +9,14 @@ import { AuthForm } from './AuthForm';
 import { AuthSocialButtons } from './AuthSocialButtons';
 import { AuthSidebar } from './AuthSidebar';
 
+type UserTitle = 'Lord' | 'Lady' | 'Wordsmith';
+
 export default function AuthContent() {
   const [isSignUp, setIsSignUp] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [fullName, setFullName] = useState('');
+  const [title, setTitle] = useState<UserTitle>('Wordsmith');
   
   const { signIn, signUp, signInWithGoogle, user } = useAuth();
   const router = useRouter();
@@ -41,7 +45,7 @@ export default function AuthContent() {
     e.preventDefault();
     await executeAuth(async () => {
       if (isSignUp) {
-        await signUp(email, password);
+        await signUp(email, password, fullName, title);
       } else {
         await signIn(email, password);
       }
@@ -61,7 +65,7 @@ export default function AuthContent() {
   const handleDemoAccount = async () => {
     await executeAuth(async () => {
       try {
-        await signUp('demo@writingarena.app', 'demo123456');
+        await signUp('demo@writingarena.app', 'demo123456', 'Demo User', 'Wordsmith');
       } catch (signUpError: unknown) {
         const errorMessage = signUpError instanceof Error ? signUpError.message : '';
         if (errorMessage.includes('already')) {
@@ -139,6 +143,10 @@ export default function AuthContent() {
               setEmail={setEmail}
               password={password}
               setPassword={setPassword}
+              fullName={fullName}
+              setFullName={setFullName}
+              title={title}
+              setTitle={setTitle}
               error={error}
               loading={loading}
               onSubmit={handleSubmit}
