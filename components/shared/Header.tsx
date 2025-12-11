@@ -5,6 +5,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useModal } from '@/lib/hooks/useModal';
 import ProfileSettingsModal from '@/components/shared/ProfileSettingsModal';
 import { COLOR_CLASSES } from '@/lib/constants/colors';
+import { getRankDisplayName } from '@/lib/utils/score-calculator';
 
 interface HeaderProps {
   showPoints?: boolean;
@@ -48,7 +49,7 @@ export default function Header({ showPoints = true, backLink }: HeaderProps) {
                 <div className="hidden text-right lg:block">
                   <div className="text-sm font-medium text-[rgba(255,255,255,0.8)]">{userProfile.displayName}</div>
                   <div className="text-xs text-[rgba(255,255,255,0.4)]">
-                    Lvl {userProfile.characterLevel}
+                    {getRankDisplayName(userProfile.skillLevel ?? 'scribe', userProfile.skillTier ?? 3)}
                   </div>
                 </div>
                 <button

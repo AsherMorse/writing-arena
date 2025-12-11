@@ -106,23 +106,6 @@ export default function RankedPage() {
         return;
       }
 
-      const prompt = await getTodaysPrompt(requiredMode as 'paragraph' | 'essay');
-
-      if (!prompt) {
-        setCurrentPrompt(null);
-        setPhase('no_prompt');
-        return;
-      }
-
-      setCurrentPrompt(prompt);
-
-      const existing = await getSubmissionByUserAndPrompt(user.uid, prompt.id);
-      if (existing) {
-        setExistingSubmission(existing);
-        setPhase('already_submitted');
-        return;
-      }
-
       // Check if user is blocked from ranked
       const blockResult = await checkBlockStatus(user.uid);
       if (blockResult.blocked) {
