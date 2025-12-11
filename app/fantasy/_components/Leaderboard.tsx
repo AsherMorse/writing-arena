@@ -77,6 +77,24 @@ function SubmissionModal({
             )}
           </div>
 
+          {entry.promptText && (
+            <div className="mb-4">
+              <h4 className="font-avenir text-sm mb-2" style={{ ...getParchmentTextStyle(), opacity: 0.7 }}>
+                Their Prompt
+              </h4>
+              <div
+                className="p-3 rounded-lg font-avenir text-sm leading-relaxed italic"
+                style={{
+                  background: 'rgba(200, 148, 21, 0.15)',
+                  border: '1px solid rgba(200, 148, 21, 0.3)',
+                  ...getParchmentTextStyle(),
+                }}
+              >
+                &ldquo;{entry.promptText}&rdquo;
+              </div>
+            </div>
+          )}
+
           {entry.originalContent && (
             <div className="mb-4">
               <h4 className="font-avenir text-sm mb-2" style={{ ...getParchmentTextStyle(), opacity: 0.7 }}>
@@ -119,6 +137,14 @@ function SubmissionModal({
 }
 
 /**
+ * @description Truncates text to a max length with ellipsis.
+ */
+function truncateText(text: string, maxLength: number): string {
+  if (text.length <= maxLength) return text;
+  return text.slice(0, maxLength).trim() + '...';
+}
+
+/**
  * @description Single leaderboard entry row with parchment styling.
  */
 function LeaderboardEntryRow({
@@ -134,7 +160,7 @@ function LeaderboardEntryRow({
 
   return (
     <div
-      className="flex items-center justify-between px-4 py-3 rounded-lg transition-all"
+      className="px-4 py-3 rounded-lg transition-all"
       style={{
         background: entry.isCurrentUser
           ? 'rgba(200, 148, 21, 0.25)'
@@ -144,74 +170,85 @@ function LeaderboardEntryRow({
           : '1px solid rgba(42, 31, 20, 0.15)',
       }}
     >
-      <div className="flex items-center gap-3">
-        <span
-          className="font-dutch809 text-lg w-8 text-center"
-          style={{ color: rankColor }}
-        >
-          {isTopThree ? RANK_LABELS[entry.rank] : `#${entry.rank}`}
-        </span>
-        <span
-          className="font-avenir"
-          style={{ 
-            ...getParchmentTextStyle(),
-            fontWeight: entry.isCurrentUser ? 600 : 400,
-          }}
-        >
-          {entry.displayName}
-          {entry.isCurrentUser && (
-            <span className="ml-2 text-xs" style={{ opacity: 0.7 }}>
-              (You)
-            </span>
-          )}
-        </span>
-      </div>
-
-      <div className="flex items-center gap-4 text-right">
-        <div style={getParchmentTextStyle()}>
-          <div className="flex items-center gap-1">
-            <span className="font-avenir text-xs" style={{ opacity: 0.6 }}>
-              Original:
-            </span>
-            <span className="font-avenir font-semibold">
-              {entry.originalScore}%
-            </span>
-          </div>
-          {entry.revisedScore !== undefined && (
-            <div className="flex items-center gap-1">
-              <span className="font-avenir text-xs" style={{ opacity: 0.5 }}>
-                Revised:
-              </span>
-              <span
-                className="font-avenir text-xs"
-                style={{
-                  opacity: 0.8,
-                  color: entry.revisedScore > entry.originalScore
-                    ? '#16a34a'
-                    : entry.revisedScore < entry.originalScore
-                      ? '#d97706'
-                      : undefined,
-                }}
-              >
-                {entry.revisedScore}%
-              </span>
-            </div>
-          )}
-        </div>
-        {hasContent && onViewSubmission && (
-          <button
-            onClick={() => onViewSubmission(entry)}
-            className="px-2 py-1 rounded text-xs font-semibold transition hover:scale-105"
-            style={{
-              background: 'rgba(0, 0, 0, 0.08)',
-              border: '1px solid rgba(42, 31, 20, 0.3)',
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <span
+            className="font-dutch809 text-lg w-8 text-center"
+            style={{ color: rankColor }}
+          >
+            {isTopThree ? RANK_LABELS[entry.rank] : `#${entry.rank}`}
+          </span>
+          <span
+            className="font-avenir"
+            style={{ 
               ...getParchmentTextStyle(),
+              fontWeight: entry.isCurrentUser ? 600 : 400,
             }}
           >
-            View
-          </button>
-        )}
+            {entry.displayName}
+            {entry.isCurrentUser && (
+              <span className="ml-2 text-xs" style={{ opacity: 0.7 }}>
+                (You)
+              </span>
+            )}
+          </span>
+        </div>
+
+        <div className="flex items-center gap-4 text-right">
+          <div style={getParchmentTextStyle()}>
+            <div className="flex items-center gap-1">
+              <span className="font-avenir text-xs" style={{ opacity: 0.6 }}>
+                Original:
+              </span>
+              <span className="font-avenir font-semibold">
+                {entry.originalScore}%
+              </span>
+            </div>
+            {entry.revisedScore !== undefined && (
+              <div className="flex items-center gap-1">
+                <span className="font-avenir text-xs" style={{ opacity: 0.5 }}>
+                  Revised:
+                </span>
+                <span
+                  className="font-avenir text-xs"
+                  style={{
+                    opacity: 0.8,
+                    color: entry.revisedScore > entry.originalScore
+                      ? '#16a34a'
+                      : entry.revisedScore < entry.originalScore
+                        ? '#d97706'
+                        : undefined,
+                  }}
+                >
+                  {entry.revisedScore}%
+                </span>
+              </div>
+            )}
+          </div>
+          {hasContent && onViewSubmission && (
+            <button
+              onClick={() => onViewSubmission(entry)}
+              className="px-2 py-1 rounded text-xs font-semibold transition hover:scale-105"
+              style={{
+                background: 'rgba(0, 0, 0, 0.08)',
+                border: '1px solid rgba(42, 31, 20, 0.3)',
+                ...getParchmentTextStyle(),
+              }}
+            >
+              View
+            </button>
+          )}
+        </div>
       </div>
+      
+      {entry.promptText && (
+        <div
+          className="mt-2 ml-11 font-avenir text-xs italic"
+          style={{ ...getParchmentTextStyle(), opacity: 0.65 }}
+        >
+          &ldquo;{truncateText(entry.promptText, 80)}&rdquo;
+        </div>
+      )}
     </div>
   );
 }

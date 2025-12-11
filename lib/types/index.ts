@@ -113,16 +113,16 @@ export interface RankedSubmission {
   id: string;
   userId: string;
   promptId: string;
-  // `level`, a new field, temporarily optional
-  level?: SubmissionLevel;
+  /** The actual prompt text used (may be personalized per user) */
+  promptText?: string;
+  level: SubmissionLevel;
   originalContent: string;
   originalScore: number;
   originalFeedback: Record<string, unknown>;
   revisedContent?: string;
   revisedScore?: number;
   revisedFeedback?: Record<string, unknown>;
-  // `lpEarned`, a new field, temporarily optional
-  lpEarned?: number;
+  lpEarned: number;
   submittedAt: Timestamp;
   completedAt?: Timestamp;
 }

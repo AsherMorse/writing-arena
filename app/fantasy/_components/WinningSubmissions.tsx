@@ -184,6 +184,24 @@ export function WinningSubmissions({ promptId }: WinningSubmissionsProps) {
           )}
         </div>
         
+        {/* Prompt text */}
+        {currentWinner.promptText && (
+          <div
+            className="p-3 rounded-lg mb-3"
+            style={{
+              background: 'rgba(200, 148, 21, 0.12)',
+              border: '1px solid rgba(200, 148, 21, 0.25)',
+            }}
+          >
+            <p
+              className="font-avenir text-xs italic leading-relaxed"
+              style={{ ...getParchmentTextStyle(), opacity: 0.8 }}
+            >
+              &ldquo;{currentWinner.promptText}&rdquo;
+            </p>
+          </div>
+        )}
+        
         {/* Content area */}
         <div
           className="p-4 rounded-lg max-h-48 overflow-y-auto parchment-scrollbar"

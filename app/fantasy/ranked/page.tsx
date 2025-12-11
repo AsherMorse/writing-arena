@@ -412,7 +412,8 @@ export default function RankedPage() {
         content,
         data.result.scores.percentage,
         data.result as unknown as Record<string, unknown>,
-        0 // LP awarded after revision
+        0, // LP awarded after revision
+        currentPrompt.promptText // Store the user's personalized prompt
       );
       setSubmissionId(newSubmissionId);
 

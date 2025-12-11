@@ -21,13 +21,15 @@ export async function createRankedSubmission(
   originalContent: string,
   originalScore: number,
   originalFeedback: Record<string, unknown>,
-  lpEarned: number
+  lpEarned: number,
+  promptText?: string
 ): Promise<string> {
   const submissionsRef = collection(db, 'rankedSubmissions');
 
   const docRef = await addDoc(submissionsRef, {
     userId,
     promptId,
+    promptText,
     level,
     originalContent,
     originalScore,

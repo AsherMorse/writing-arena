@@ -39,6 +39,8 @@ export interface LeaderboardEntry {
   isCurrentUser?: boolean;
   originalContent?: string;
   revisedContent?: string;
+  /** The prompt text this user responded to (may be personalized) */
+  promptText?: string;
 }
 
 export interface DailyChampion {
@@ -149,6 +151,7 @@ export async function getLeaderboard(
       isCurrentUser,
       originalContent: isTopThree ? data.originalContent : undefined,
       revisedContent: isTopThree ? data.revisedContent : undefined,
+      promptText: data.promptText,
     };
   });
 
@@ -241,6 +244,7 @@ export async function getTopThree(promptId: string): Promise<LeaderboardEntry[]>
       revisedScore: data.revisedScore,
       rank,
       submittedAt: data.submittedAt,
+      promptText: data.promptText,
     };
   });
 }
