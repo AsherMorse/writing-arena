@@ -10,6 +10,8 @@ import { logger, LOG_CONTEXTS } from '@/lib/utils/logger';
 import { updateUserProfile } from '@/lib/services/firestore';
 import { COLOR_CLASSES } from '@/lib/constants/colors';
 import NobleNamePickerModal from './NobleNamePickerModal';
+import { getRankDisplayName } from '@/lib/utils/score-calculator';
+import { TIER_LP_CAP } from '@/lib/utils/rank-constants';
 import { releaseName } from '@/lib/services/name-claiming';
 
 interface ProfileSettingsModalProps {
@@ -182,19 +184,19 @@ export default function ProfileSettingsModal({ isOpen, onClose }: ProfileSetting
               <div className="divide-y divide-[rgba(255,255,255,0.05)]">
                 <div className="flex items-center justify-between px-4 py-3">
                   <span className="text-sm text-[rgba(255,255,255,0.4)]">Rank</span>
-                  <span className="font-mono text-sm text-[#00e5e5]">{userProfile?.currentRank}</span>
+                  <span className="font-mono text-sm text-[#00e5e5]">
+                    {getRankDisplayName(userProfile?.skillLevel ?? 'scribe', userProfile?.skillTier ?? 3)}
+                  </span>
                 </div>
                 <div className="flex items-center justify-between px-4 py-3">
-                  <span className="text-sm text-[rgba(255,255,255,0.4)]">LP</span>
-                  <span className="font-mono text-sm text-[#ff5f8f]">{userProfile?.rankLP}</span>
+                  <span className="text-sm text-[rgba(255,255,255,0.4)]">Tier LP</span>
+                  <span className="font-mono text-sm text-[#ff5f8f]">
+                    {userProfile?.tierLP ?? 65}/{TIER_LP_CAP}
+                  </span>
                 </div>
                 <div className="flex items-center justify-between px-4 py-3">
-                  <span className="text-sm text-[rgba(255,255,255,0.4)]">Level</span>
-                  <span className="font-mono text-sm text-[#ff9030]">{userProfile?.characterLevel}</span>
-                </div>
-                <div className="flex items-center justify-between px-4 py-3">
-                  <span className="text-sm text-[rgba(255,255,255,0.4)]">Total XP</span>
-                  <span className={`font-mono text-sm ${COLOR_CLASSES.phase3.text}`}>{userProfile?.totalXP?.toLocaleString()}</span>
+                  <span className="text-sm text-[rgba(255,255,255,0.4)]">Total LP</span>
+                  <span className={`font-mono text-sm ${COLOR_CLASSES.phase3.text}`}>{userProfile?.totalLP?.toLocaleString()}</span>
                 </div>
               </div>
             </div>

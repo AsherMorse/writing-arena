@@ -6,14 +6,13 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { getTodaysPrompt } from '@/lib/services/ranked-prompts';
-import { getTopThree, type LeaderboardEntry } from '@/lib/services/ranked-leaderboard';
+import { getDailyTopThree, type DailyChampion } from '@/lib/services/ranked-leaderboard';
 
 type Mode = 'paragraph' | 'essay';
 
 interface ChampionData {
-  paragraph: LeaderboardEntry[];
-  essay: LeaderboardEntry[];
+  paragraph: DailyChampion[];
+  essay: DailyChampion[];
 }
 
 const RANK_MEDALS = ['🥇', '🥈', '🥉'] as const;
@@ -48,16 +47,10 @@ export function DailyChampions() {
   useEffect(() => {
     async function fetchChampions() {
       try {
-        // Fetch both prompts in parallel
-        const [paragraphPrompt, essayPrompt] = await Promise.all([
-          getTodaysPrompt('paragraph'),
-          getTodaysPrompt('essay'),
-        ]);
-
-        // Fetch top 3 for each prompt that exists
+        // Fetch top 3 by daily LP earned for both modes
         const [paragraphTop3, essayTop3] = await Promise.all([
-          paragraphPrompt ? getTopThree(paragraphPrompt.id) : [],
-          essayPrompt ? getTopThree(essayPrompt.id) : [],
+          getDailyTopThree('paragraph'),
+          getDailyTopThree('essay'),
         ]);
 
         setChampions({
@@ -192,13 +185,13 @@ function TabButton({
 }
 
 /**
- * @description Displays a single champion entry with medal, name, and score.
+ * @description Displays a single champion entry with medal, name, and daily LP earned.
  */
 function ChampionEntry({
   champion,
   index,
 }: {
-  champion: LeaderboardEntry;
+  champion: DailyChampion;
   index: number;
 }) {
   return (
@@ -214,7 +207,7 @@ function ChampionEntry({
         className="font-memento text-xs mt-0.5"
         style={{ color: '#2a1a0f' }}
       >
-        {champion.originalScore}%
+        {champion.dailyLP} LP
       </span>
     </div>
   );

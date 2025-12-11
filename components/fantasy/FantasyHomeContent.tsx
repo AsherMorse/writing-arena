@@ -7,11 +7,13 @@
 import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { UserProfile } from '@/lib/types';
+import { UserProfile, SkillLevel, SkillTier } from '@/lib/types';
 import { useAuth } from '@/contexts/AuthContext';
 import { FantasyLogo } from './FantasyLogo';
 import { DailyChampions } from './DailyChampions';
 import { getGradingSummary } from '@/lib/services/grading-history';
+import { getRankDisplayName } from '@/lib/utils/score-calculator';
+import { TIER_LP_CAP } from '@/lib/utils/rank-constants';
 
 interface FantasyHomeContentProps {
   userProfile: UserProfile;
@@ -63,19 +65,58 @@ const ACTION_CARDS = [
  * @description Renders the fantasy home page content with tavern aesthetic.
  */
 export function FantasyHomeContent({ userProfile }: FantasyHomeContentProps) {
-  const { currentRank, rankLP, totalPoints, stats, uid } = userProfile;
+  const { totalLP = 0, stats, uid } = userProfile;
   const { signOut } = useAuth();
   const [averageScore, setAverageScore] = useState<number | null>(null);
+  const [dailyLP, setDailyLP] = useState<number>(0);
   
-  // Calculate progress percentage (0-100 LP per rank tier)
-  // Safety: if LP somehow exceeds 100, show the remainder
-  const progressPercent = Math.min(100, Math.max(0, rankLP > 100 ? rankLP % 100 : rankLP));
+  // New skill-based rank system (defaults to Scribe III, 65 LP)
+  const skillLevel = userProfile.skillLevel ?? 'scribe';
+  const skillTier = userProfile.skillTier ?? 3;
+  const tierLP = userProfile.tierLP ?? 65;
+  const rankDisplay = getRankDisplayName(skillLevel, skillTier);
+  
+  // Calculate progress percentage (0-100 LP per tier)
+  const progressPercent = Math.min(100, Math.max(0, tierLP));
 
   // Fetch average score from grading history
   useEffect(() => {
     getGradingSummary(uid).then((summary) => {
       setAverageScore(summary.averageScore);
     });
+  }, [uid]);
+
+  // Fetch daily LP earned
+  useEffect(() => {
+    async function fetchDailyLP() {
+      try {
+        const { collection, query, where, getDocs, Timestamp } = await import('firebase/firestore');
+        const { db } = await import('@/lib/config/firebase');
+        
+        const now = new Date();
+        const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        const startTimestamp = Timestamp.fromDate(startOfToday);
+        
+        const submissionsRef = collection(db, 'rankedSubmissions');
+        const q = query(
+          submissionsRef,
+          where('userId', '==', uid),
+          where('submittedAt', '>=', startTimestamp)
+        );
+        
+        const snapshot = await getDocs(q);
+        const total = snapshot.docs.reduce((sum, doc) => {
+          const data = doc.data();
+          return sum + (data.lpEarned || 0);
+        }, 0);
+        
+        setDailyLP(total);
+      } catch (error) {
+        console.error('Failed to fetch daily LP:', error);
+      }
+    }
+    
+    fetchDailyLP();
   }, [uid]);
 
   return (
@@ -115,9 +156,11 @@ export function FantasyHomeContent({ userProfile }: FantasyHomeContentProps) {
         <div className="flex-1 flex flex-col items-center justify-center w-full -mt-16">
           {/* Player panel with rank and stats */}
           <PlayerPanel 
-            rank={currentRank} 
+            rankDisplay={rankDisplay}
+            tierLP={tierLP}
             progress={progressPercent}
-            totalPoints={totalPoints}
+            totalLP={totalLP}
+            dailyLP={dailyLP}
             currentStreak={stats.currentStreak}
             averageScore={averageScore}
           />
@@ -144,9 +187,11 @@ export function FantasyHomeContent({ userProfile }: FantasyHomeContentProps) {
 }
 
 interface PlayerPanelProps {
-  rank: string;
+  rankDisplay: string;
+  tierLP: number;
   progress: number;
-  totalPoints: number;
+  totalLP: number;
+  dailyLP: number;
   currentStreak: number;
   averageScore: number | null;
 }
@@ -154,7 +199,7 @@ interface PlayerPanelProps {
 /**
  * @description Renders the player panel with rank progress and stats.
  */
-function PlayerPanel({ rank, progress, totalPoints, currentStreak, averageScore }: PlayerPanelProps) {
+function PlayerPanel({ rankDisplay, tierLP, progress, totalLP, dailyLP, currentStreak, averageScore }: PlayerPanelProps) {
   // Width matches 3 buttons (150px each) + 2 gaps (32px each) = 514px
   return (
     <div 
@@ -175,7 +220,7 @@ function PlayerPanel({ rank, progress, totalPoints, currentStreak, averageScore 
           className="relative font-memento font-semibold text-lg whitespace-nowrap"
           style={{ color: '#2a1a0f' }}
         >
-          Rank: {rank}
+          {rankDisplay}
         </span>
         
         {/* Progress bar container */}
@@ -195,6 +240,13 @@ function PlayerPanel({ rank, progress, totalPoints, currentStreak, averageScore 
               boxShadow: 'inset 0 1px 0 rgba(255, 255, 255, 0.3)',
             }}
           />
+          {/* LP label inside bar */}
+          <span 
+            className="absolute inset-0 flex items-center justify-center text-xs font-semibold"
+            style={{ color: '#2a1a0f', textShadow: '0 1px 0 rgba(255, 255, 255, 0.4)' }}
+          >
+            {tierLP}/{TIER_LP_CAP} LP
+          </span>
         </div>
       </div>
 
@@ -208,8 +260,9 @@ function PlayerPanel({ rank, progress, totalPoints, currentStreak, averageScore 
       />
 
       {/* Stats row */}
-      <div className="relative px-6 py-3 flex items-center justify-between">
-        <StatItem label="Points" value={totalPoints.toLocaleString()} />
+      <div className="relative px-6 py-3 flex items-center justify-around">
+        <StatItem label="Total LP" value={totalLP.toLocaleString()} />
+        <StatItem label="Daily LP" value={dailyLP.toString()} />
         <StatItem label="Streak" value={`${currentStreak} day${currentStreak !== 1 ? 's' : ''}`} />
         <StatItem label="Avg Score" value={averageScore !== null ? `${averageScore}%` : '—'} />
       </div>

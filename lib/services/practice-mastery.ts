@@ -9,6 +9,7 @@ import { doc, getDoc, updateDoc, serverTimestamp, Timestamp } from 'firebase/fir
 import { LessonMasteryStatus, UserProfile } from '@/lib/types';
 import { MASTERY_THRESHOLD, calculatePracticeLP } from '@/lib/constants/practice-lessons';
 import { getGapsResolvedByLesson, resolveGap } from './skill-gap-tracker';
+import { updateRankAfterLessonMastery } from './user-profile';
 
 /**
  * @description Updates mastery status for a lesson after a practice attempt.
@@ -51,11 +52,20 @@ export async function updateMastery(
   // Update Firestore
   await updateDoc(userRef, {
     [`practiceMastery.${lessonId}`]: updatedStatus,
+    'stats.lessonsCompleted': (userData.stats.lessonsCompleted || 0) + 1,
     updatedAt: serverTimestamp(),
   });
 
-  // Check if this lesson resolves any skill gaps (only on first mastery)
+  // On first mastery: award LP bonus and check skill gaps
   if (isFirstMastery) {
+    // Award +5 LP for mastering a lesson
+    try {
+      await updateRankAfterLessonMastery(uid);
+    } catch (err) {
+      console.error('Failed to update rank after lesson mastery:', err);
+    }
+
+    // Check if this lesson resolves any skill gaps
     try {
       const gapsToResolve = await getGapsResolvedByLesson(uid, lessonId);
       

@@ -295,11 +295,6 @@ export function Leaderboard({ promptId, userId }: LeaderboardProps) {
               #{data.userRank}
             </span>{' '}
             out of {data.totalSubmissions}
-            {data.userPercentile !== null && data.totalSubmissions > 1 && (
-              <span style={{ opacity: 0.7 }}>
-                {' '}— Top {100 - data.userPercentile}%
-              </span>
-            )}
           </p>
         </div>
       )}

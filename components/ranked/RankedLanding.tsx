@@ -10,6 +10,8 @@ import { checkBlockStatus } from '@/lib/services/grading-history';
 import { BlockModal } from './results-v2/BlockModal';
 import type { BlockStatus } from '@/lib/types/grading-history';
 import { logger } from '@/lib/utils/logger';
+import { getRankDisplayName } from '@/lib/utils/score-calculator';
+import { TIER_LP_CAP } from '@/lib/utils/rank-constants';
 
 interface RankedLandingProps {
   userProfile: UserProfile;
@@ -98,43 +100,43 @@ export default function RankedLanding({ userProfile }: RankedLandingProps) {
               Current Rank
             </div>
             <div className="font-mono text-xl font-medium leading-tight text-[#00e5e5]">
-              {userProfile.currentRank}
+              {getRankDisplayName(userProfile.skillLevel ?? 'scribe', userProfile.skillTier ?? 3)}
             </div>
             <div className="mt-2 text-xs text-[rgba(255,255,255,0.4)]">
-              {100 - (userProfile.rankLP % 100)} LP to promo
+              {TIER_LP_CAP - (userProfile.tierLP ?? 65)} LP to promo
             </div>
           </div>
           <div className="rounded-[14px] border border-[rgba(255,255,255,0.05)] bg-[rgba(255,255,255,0.025)] p-5 transition-colors hover:bg-[rgba(255,255,255,0.04)]">
             <div className="mb-2 text-[10px] font-semibold uppercase tracking-[0.08em] text-[rgba(255,255,255,0.22)]">
-              LP Progress
+              Tier LP
             </div>
             <div className="font-mono text-3xl font-medium leading-none text-[#ff5f8f]">
-              {userProfile.rankLP % 100}
+              {userProfile.tierLP ?? 65}
             </div>
             <div className="mt-2 h-[6px] overflow-hidden rounded-[3px] bg-[rgba(255,255,255,0.05)]">
               <div
                 className="h-full rounded-[3px] bg-[#ff5f8f]"
-                style={{ width: `${userProfile.rankLP % 100}%` }}
+                style={{ width: `${userProfile.tierLP ?? 65}%` }}
               />
             </div>
           </div>
           <div className="rounded-[14px] border border-[rgba(255,255,255,0.05)] bg-[rgba(255,255,255,0.025)] p-5 transition-colors hover:bg-[rgba(255,255,255,0.04)]">
             <div className="mb-2 text-[10px] font-semibold uppercase tracking-[0.08em] text-[rgba(255,255,255,0.22)]">
-              Win Reward
+              LP Range
             </div>
             <div className="font-mono text-3xl font-medium leading-none text-[#00d492]">
-              +15
+              +20
             </div>
-            <div className="mt-2 text-xs text-[rgba(255,255,255,0.4)]">to +30 LP</div>
+            <div className="mt-2 text-xs text-[rgba(255,255,255,0.4)]">to -15 LP</div>
           </div>
           <div className="rounded-[14px] border border-[rgba(255,255,255,0.05)] bg-[rgba(255,255,255,0.025)] p-5 transition-colors hover:bg-[rgba(255,255,255,0.04)]">
             <div className="mb-2 text-[10px] font-semibold uppercase tracking-[0.08em] text-[rgba(255,255,255,0.22)]">
-              Loss Risk
+              Threshold
             </div>
             <div className="font-mono text-3xl font-medium leading-none text-[#ff9030]">
-              -10
+              {userProfile.skillTier === 1 ? '90%' : userProfile.skillTier === 2 ? '80%' : '70%'}
             </div>
-            <div className="mt-2 text-xs text-[rgba(255,255,255,0.4)]">to -20 LP</div>
+            <div className="mt-2 text-xs text-[rgba(255,255,255,0.4)]">score target</div>
           </div>
         </section>
 
@@ -218,26 +220,31 @@ export default function RankedLanding({ userProfile }: RankedLandingProps) {
 
             <div className="rounded-[14px] border border-[rgba(255,255,255,0.05)] bg-[rgba(255,255,255,0.025)] p-6">
               <div className="mb-4 text-[10px] font-semibold uppercase tracking-[0.08em] text-[rgba(255,255,255,0.22)]">
-                Rank Ladder
+                Skill Ladder
               </div>
-              <div className="grid grid-cols-7 gap-2">
+              <div className="grid grid-cols-3 gap-2">
                 {[
-                  { name: 'Bronze', emoji: '🥉', color: '#cd7f32' },
-                  { name: 'Silver', emoji: '🥈', color: '#c0c0c0' },
-                  { name: 'Gold', emoji: '🥇', color: '#ffd700' },
-                  { name: 'Plat', emoji: '💎', color: '#00e5e5' },
-                  { name: 'Diamond', emoji: '💠', color: '#b9f2ff' },
-                  { name: 'Master', emoji: '⭐', color: '#ff5f8f' },
-                  { name: 'GM', emoji: '👑', color: '#ff9030' },
-                ].map((tier) => (
-                  <div
-                    key={tier.name}
-                    className="flex flex-col items-center rounded-[10px] border border-[rgba(255,255,255,0.05)] bg-[#101012] p-3 text-center"
-                  >
-                    <span className="text-xl">{tier.emoji}</span>
-                    <span className="mt-1 text-[10px] text-[rgba(255,255,255,0.4)]">{tier.name}</span>
-                  </div>
-                ))}
+                  { name: 'Scribe', emoji: '📜', color: '#cd7f32', desc: 'Paragraph', tiers: 'III → I' },
+                  { name: 'Scholar', emoji: '📚', color: '#c0c0c0', desc: 'Essay', tiers: 'III → I' },
+                  { name: 'Loremaster', emoji: '👑', color: '#ffd700', desc: 'Essay + Passage', tiers: 'III → I' },
+                ].map((level) => {
+                  const isCurrentLevel = userProfile.skillLevel === level.name.toLowerCase();
+                  return (
+                    <div
+                      key={level.name}
+                      className={`flex flex-col items-center rounded-[10px] border p-4 text-center transition-all ${
+                        isCurrentLevel 
+                          ? 'border-[#00e5e5] bg-[rgba(0,229,229,0.1)]' 
+                          : 'border-[rgba(255,255,255,0.05)] bg-[#101012]'
+                      }`}
+                    >
+                      <span className="text-2xl">{level.emoji}</span>
+                      <span className="mt-1 text-sm font-medium" style={{ color: level.color }}>{level.name}</span>
+                      <span className="text-[10px] text-[rgba(255,255,255,0.4)]">{level.desc}</span>
+                      <span className="mt-1 text-[9px] text-[rgba(255,255,255,0.3)]">{level.tiers}</span>
+                    </div>
+                  );
+                })}
               </div>
             </div>
           </div>

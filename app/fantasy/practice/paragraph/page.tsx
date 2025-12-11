@@ -30,6 +30,7 @@ import {
   createPracticeSubmission,
   updatePracticeSubmission,
 } from '@/lib/services/practice-submissions';
+import { updateRankAfterPracticeSubmission } from '@/lib/services/user-profile';
 import { RecommendedLessons } from '../../_components/RecommendedLessons';
 import { ScrollShadow } from '../../_components/ScrollShadow';
 import type { GradeResponse } from '../../_lib/grading';
@@ -177,6 +178,8 @@ export default function ParagraphPracticePage() {
 
       if (user) {
         const topic = selectedTopic?.label || customTopic.trim();
+        
+        // Note: LP is NOT awarded yet - user must complete revision to earn LP
         const newSubmissionId = await createPracticeSubmission(
           user.uid,
           'paragraph',
@@ -249,7 +252,19 @@ export default function ParagraphPracticePage() {
 
       const data: GradeResponse = await res.json();
 
-      if (submissionId) {
+      if (submissionId && user) {
+        const wordCount = originalContent.split(/\s+/).length;
+
+        // Award tier LP using effective score (90% original + 10% revised)
+        // Practice mode: quarter LP, no negative
+        await updateRankAfterPracticeSubmission(
+          user.uid,
+          originalResponse.result.scores.percentage,
+          data.result.scores.percentage,
+          wordCount
+        );
+
+        // Update submission with revised score
         await updatePracticeSubmission(
           submissionId,
           content,

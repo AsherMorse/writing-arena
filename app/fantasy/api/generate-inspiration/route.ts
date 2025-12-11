@@ -13,7 +13,7 @@ Given a writing prompt, provide factual background information about the topic t
 Rules:
 1. Provide 3-4 sentences of factual, interesting information about the topic
 2. Include specific details, examples, or facts the student could use
-3. Keep language appropriate for grades 4-8
+3. Keep language appropriate for grades 6-8
 4. Be informative but not overwhelming
 5. Focus on the specific angle mentioned in the prompt
 

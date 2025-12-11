@@ -26,6 +26,13 @@ export interface LeaderboardEntry {
   revisedContent?: string;
 }
 
+export interface DailyChampion {
+  userId: string;
+  displayName: string;
+  dailyLP: number;
+  rank: number;
+}
+
 export interface LeaderboardData {
   userRank: number | null;
   userPercentile: number | null;
@@ -159,6 +166,66 @@ export async function createFakeSubmission(
   });
 
   return docRef.id;
+}
+
+/**
+ * @description Gets top 3 students by daily LP earned for a specific level (paragraph/essay).
+ * Queries all submissions from today, sums lpEarned per user, and returns top 3.
+ */
+export async function getDailyTopThree(level: 'paragraph' | 'essay'): Promise<DailyChampion[]> {
+  const submissionsRef = collection(db, 'rankedSubmissions');
+  
+  // Get start of today
+  const now = new Date();
+  const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const startTimestamp = Timestamp.fromDate(startOfToday);
+  
+  const q = query(
+    submissionsRef,
+    where('level', '==', level),
+    where('submittedAt', '>=', startTimestamp)
+  );
+
+  const snapshot = await getDocs(q);
+  if (snapshot.empty) return [];
+
+  // Sum LP by user
+  const lpByUser = new Map<string, number>();
+  snapshot.docs.forEach((docSnap) => {
+    const data = docSnap.data() as RankedSubmission;
+    const current = lpByUser.get(data.userId) || 0;
+    lpByUser.set(data.userId, current + (data.lpEarned || 0));
+  });
+
+  // Sort by LP descending and take top 3
+  const sortedUsers = [...lpByUser.entries()]
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 3);
+
+  if (sortedUsers.length === 0) return [];
+
+  // Fetch display names
+  const userIds = sortedUsers.map(([uid]) => uid);
+  const profilePromises = userIds.map((uid) => 
+    getDoc(doc(db, 'users', uid)).catch(() => null)
+  );
+  const profileSnapshots = await Promise.all(profilePromises);
+
+  // Build display name map
+  const displayNames: Record<string, string> = {};
+  profileSnapshots.forEach((snap, index) => {
+    if (snap?.exists()) {
+      const data = snap.data();
+      displayNames[userIds[index]] = data.displayName || `Champion #${index + 1}`;
+    }
+  });
+
+  return sortedUsers.map(([userId, dailyLP], index) => ({
+    userId,
+    displayName: displayNames[userId] || `Champion #${index + 1}`,
+    dailyLP,
+    rank: index + 1,
+  }));
 }
 
 export async function deleteAllSubmissionsForPrompt(promptId: string): Promise<number> {

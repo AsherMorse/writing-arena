@@ -37,9 +37,9 @@ export default function Header({ showPoints = true, backLink }: HeaderProps) {
             {showPoints && userProfile && (
               <div className={`flex items-center gap-2 rounded-[20px] ${COLOR_CLASSES.phase1.bgOpacity(0.12)} px-3 py-1.5`}>
                 <span className={`font-mono text-sm font-medium ${COLOR_CLASSES.phase1.text}`}>
-                  {userProfile.totalPoints.toLocaleString()}
+                  {userProfile.totalLP?.toLocaleString() || '0'}
                 </span>
-                <span className={`text-[10px] uppercase tracking-[0.04em] ${COLOR_CLASSES.phase1.text}/60`}>pts</span>
+                <span className={`text-[10px] uppercase tracking-[0.04em] ${COLOR_CLASSES.phase1.text}/60`}>LP</span>
               </div>
             )}
             

@@ -32,13 +32,17 @@ import {
 } from '@/lib/services/ranked-submissions';
 import { checkBlockStatus, updateSkillGaps } from '@/lib/services/skill-gap-tracker';
 import { getLessonDisplayName } from '@/lib/constants/lesson-display-names';
+import { updateRankAfterRankedSubmission, getUserProfile, RankUpdateResult } from '@/lib/services/user-profile';
+import { calculateRankedLP, getRequiredMode, getRankDisplayName } from '@/lib/utils/score-calculator';
 import type { GradeResponse } from '../_lib/grading';
-import type { RankedPrompt, RankedSubmission, BlockCheckResult } from '@/lib/types';
+import type { RankedPrompt, RankedSubmission, BlockCheckResult, SkillLevel, SkillTier, SubmissionLevel } from '@/lib/types';
 
 type Phase = 'loading' | 'prompt' | 'write' | 'feedback' | 'revise' | 'results' | 'no_prompt' | 'blocked' | 'history';
 
-const WRITE_TIME = 7 * 60;
-const REVISE_TIME = 2 * 60;
+const PARAGRAPH_WRITE_TIME = 7 * 60;
+const PARAGRAPH_REVISE_TIME = 2 * 60;
+const ESSAY_WRITE_TIME = 10 * 60;
+const ESSAY_REVISE_TIME = 3 * 60;
 
 export default function RankedPage() {
   const router = useRouter();
@@ -60,6 +64,17 @@ export default function RankedPage() {
   const [pastSubmissions, setPastSubmissions] = useState<RankedSubmission[]>([]);
   /** Which accordion panel is currently open (exclusive - only one at a time) */
   const [openPanel, setOpenPanel] = useState<'hints' | 'fixes' | null>(null);
+  /** Generated background info for inspiration */
+  const [inspirationContent, setInspirationContent] = useState<string | null>(null);
+  /** Loading state for inspiration generation */
+  const [isLoadingInspiration, setIsLoadingInspiration] = useState(false);
+  /** Track rank changes for UI feedback */
+  const [rankUpdate, setRankUpdate] = useState<RankUpdateResult | null>(null);
+  /** User's current skill level for mode locking */
+  const [userSkillLevel, setUserSkillLevel] = useState<SkillLevel>('scribe');
+  const [userSkillTier, setUserSkillTier] = useState<SkillTier>(3);
+  /** The submission level/mode for this ranked session (based on skill level) */
+  const [submissionMode, setSubmissionMode] = useState<SubmissionLevel>('paragraph');
 
   const fetchTodaysPrompt = useCallback(async () => {
     if (!user) return;
@@ -72,6 +87,43 @@ export default function RankedPage() {
       const today = getDebugDate();
       setTodayString(formatDateString(today));
 
+      // Get user's skill level to determine which mode they're locked to
+      const profile = await getUserProfile(user.uid);
+      const skillLevel = profile?.skillLevel ?? 'scribe';
+      const skillTier = profile?.skillTier ?? 3;
+      setUserSkillLevel(skillLevel);
+      setUserSkillTier(skillTier);
+      
+      // Determine the required mode based on skill level
+      const requiredMode = getRequiredMode(skillLevel);
+      setSubmissionMode(requiredMode);
+      
+      // For now, only paragraph prompts are supported
+      // essay_passage mode shows a coming soon message
+      if (requiredMode === 'essay_passage') {
+        setCurrentPrompt(null);
+        setPhase('no_prompt');
+        return;
+      }
+
+      const prompt = await getTodaysPrompt(requiredMode as 'paragraph' | 'essay');
+
+      if (!prompt) {
+        setCurrentPrompt(null);
+        setPhase('no_prompt');
+        return;
+      }
+
+      setCurrentPrompt(prompt);
+
+      const existing = await getSubmissionByUserAndPrompt(user.uid, prompt.id);
+      if (existing) {
+        setExistingSubmission(existing);
+        setPhase('already_submitted');
+        return;
+      }
+
+      // Check if user is blocked from ranked
       const blockResult = await checkBlockStatus(user.uid);
       if (blockResult.blocked) {
         setBlockStatus(blockResult);
@@ -157,6 +209,7 @@ export default function RankedPage() {
 
     setIsGrading(true);
     setError(null);
+    setRankUpdate(null);
 
     // Generate a unique ID for gap tracking (will be used as reference)
     const gapTrackingId = crypto.randomUUID();
@@ -168,7 +221,7 @@ export default function RankedPage() {
         body: JSON.stringify({
           content,
           prompt: getPromptText(),
-          type: 'paragraph',
+          type: submissionMode,
         }),
       });
 
@@ -179,12 +232,16 @@ export default function RankedPage() {
 
       const data: GradeResponse = await res.json();
 
+      // Note: LP is NOT awarded yet - user must complete revision to earn LP
+      // Submission record created with lpEarned = 0 (will be updated after revision)
       const newSubmissionId = await createRankedSubmission(
         user.uid,
         currentPrompt.id,
+        submissionMode,
         content,
         data.result.scores.percentage,
-        data.result as unknown as Record<string, unknown>
+        data.result as unknown as Record<string, unknown>,
+        0 // LP awarded after revision
       );
       setSubmissionId(newSubmissionId);
 
@@ -206,7 +263,7 @@ export default function RankedPage() {
     } finally {
       setIsGrading(false);
     }
-  }, [content, currentPrompt, user]);
+  }, [content, currentPrompt, user, submissionMode]);
 
   const submitRevision = useCallback(async () => {
     if (!originalResponse || !content.trim() || !currentPrompt || !submissionId || !user) return;
@@ -223,7 +280,7 @@ export default function RankedPage() {
         body: JSON.stringify({
           content,
           prompt: getPromptText(),
-          type: 'paragraph',
+          type: submissionMode,
           previousResult: originalResponse.result,
           previousContent: originalContent,
         }),
@@ -235,12 +292,28 @@ export default function RankedPage() {
       }
 
       const data: GradeResponse = await res.json();
+      const wordCount = originalContent.split(/\s+/).length;
 
+      // Award tier LP using effective score (90% original + 10% revised)
+      // This is the only time LP is awarded for this submission
+      const rankResult = await updateRankAfterRankedSubmission(
+        user.uid,
+        originalResponse.result.scores.percentage,
+        data.result.scores.percentage,
+        wordCount
+      );
+      setRankUpdate(rankResult);
+
+      // Use LP earned for submission record (for leaderboard tracking)
+      const lpEarned = rankResult?.lpChange ?? calculateRankedLP(data.result.scores.percentage);
+
+      // Update submission with revised score and LP
       await updateRankedSubmission(
         submissionId,
         content,
         data.result.scores.percentage,
-        data.result as unknown as Record<string, unknown>
+        data.result as unknown as Record<string, unknown>,
+        Math.max(0, lpEarned) // Store positive LP for leaderboard
       );
 
       if (data.gaps.length > 0) {
@@ -258,7 +331,7 @@ export default function RankedPage() {
     } finally {
       setIsGrading(false);
     }
-  }, [content, originalResponse, originalContent, currentPrompt, submissionId, user]);
+  }, [content, originalResponse, originalContent, currentPrompt, submissionId, user, submissionMode]);
 
   const handleTimerComplete = useCallback(() => {
     if (!content.trim()) {
@@ -393,21 +466,51 @@ export default function RankedPage() {
           {phase === 'no_prompt' && (
             <div className="w-full max-w-2xl text-center space-y-8">
               <div>
-                <h1
-                  className="font-dutch809 text-4xl mb-2"
-                  style={{
-                    color: '#f6d493',
-                    textShadow: '0 2px 4px rgba(0, 0, 0, 0.8)',
-                  }}
-                >
-                  No Challenge Today
-                </h1>
-                <p
-                  className="font-avenir text-lg"
-                  style={{ color: 'rgba(245, 230, 184, 0.7)' }}
-                >
-                  Check back tomorrow for a new daily challenge!
-                </p>
+                {submissionMode === 'essay_passage' ? (
+                  <>
+                    <h1
+                      className="font-dutch809 text-4xl mb-2"
+                      style={{
+                        color: '#f6d493',
+                        textShadow: '0 2px 4px rgba(0, 0, 0, 0.8)',
+                      }}
+                    >
+                      Coming Soon
+                    </h1>
+                    <p
+                      className="font-avenir text-lg"
+                      style={{ color: 'rgba(245, 230, 184, 0.7)' }}
+                    >
+                      Essay + Passage challenges are not yet available.
+                    </p>
+                    <p
+                      className="font-avenir text-base mt-4"
+                      style={{ color: 'rgba(245, 230, 184, 0.5)' }}
+                    >
+                      As a {getRankDisplayName(userSkillLevel, userSkillTier)}, you&apos;ve unlocked the highest tier!
+                      <br />
+                      Check back soon for new challenges.
+                    </p>
+                  </>
+                ) : (
+                  <>
+                    <h1
+                      className="font-dutch809 text-4xl mb-2"
+                      style={{
+                        color: '#f6d493',
+                        textShadow: '0 2px 4px rgba(0, 0, 0, 0.8)',
+                      }}
+                    >
+                      No Challenge Today
+                    </h1>
+                    <p
+                      className="font-avenir text-lg"
+                      style={{ color: 'rgba(245, 230, 184, 0.7)' }}
+                    >
+                      Check back tomorrow for a new daily challenge!
+                    </p>
+                  </>
+                )}
                 {todayString && (
                   <p
                     className="font-avenir text-sm mt-2"
@@ -542,6 +645,12 @@ export default function RankedPage() {
           {phase === 'prompt' && currentPrompt && (
             <div className="w-full max-w-2xl text-center space-y-8">
               <div>
+                <p
+                  className="font-memento text-sm uppercase tracking-wider mb-2"
+                  style={{ color: 'rgba(245, 230, 184, 0.5)' }}
+                >
+                  {getRankDisplayName(userSkillLevel, userSkillTier)} • {submissionMode === 'paragraph' ? 'Paragraph' : 'Essay'} Mode
+                </p>
                 <h1
                   className="font-dutch809 text-4xl mb-2"
                   style={{
@@ -555,7 +664,9 @@ export default function RankedPage() {
                   className="font-avenir text-lg"
                   style={{ color: 'rgba(245, 230, 184, 0.7)' }}
                 >
-                  You have 7 minutes to write, then 2 minutes to revise
+                  {submissionMode === 'paragraph' 
+                    ? 'You have 7 minutes to write, then 2 minutes to revise'
+                    : 'You have 10 minutes to write, then 3 minutes to revise'}
                 </p>
                 {completedCount > 0 && (
                   <p
@@ -699,7 +810,7 @@ export default function RankedPage() {
                 <div className="w-48 shrink-0">
                   <Timer
                     key={phase}
-                    seconds={WRITE_TIME}
+                    seconds={submissionMode === 'essay' ? ESSAY_WRITE_TIME : PARAGRAPH_WRITE_TIME}
                     onComplete={handleTimerComplete}
                     parchmentStyle
                     className="h-full"
@@ -854,7 +965,7 @@ export default function RankedPage() {
                 <div className="w-64 shrink-0">
                   <Timer
                     key={phase}
-                    seconds={REVISE_TIME}
+                    seconds={submissionMode === 'essay' ? ESSAY_REVISE_TIME : PARAGRAPH_REVISE_TIME}
                     onComplete={handleTimerComplete}
                     parchmentStyle
                     className="h-full"

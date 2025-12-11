@@ -5,6 +5,23 @@ import type { SkillGapsMap } from './skill-gaps';
 export * from './skill-gaps';
 
 /**
+ * @description Skill-based rank levels that gate writing modes.
+ * Scribe = Paragraph, Scholar = Essay, Loremaster = Essay + Passage
+ */
+export type SkillLevel = 'scribe' | 'scholar' | 'loremaster';
+
+/**
+ * @description Tier within a skill level (3 = lowest, 1 = highest).
+ * T3 requires 70%+, T2 requires 80%+, T1 requires 90%+ to promote.
+ */
+export type SkillTier = 1 | 2 | 3;
+
+/**
+ * @description Writing submission types that map to skill levels.
+ */
+export type SubmissionLevel = 'paragraph' | 'essay' | 'essay_passage';
+
+/**
  * @description Mastery status for a single lesson.
  */
 export interface LessonMasteryStatus {
@@ -21,11 +38,17 @@ export interface UserProfile {
   displayName: string;
   email: string;
   avatar: string;
-  characterLevel: number;
-  totalXP: number;
-  totalPoints: number;
+  
+  // Legacy rank fields (kept for backward compatibility)
   currentRank: string;
   rankLP: number;
+  totalLP: number;
+  
+  // New skill-based rank system (optional during migration)
+  skillLevel?: SkillLevel;   // 'scribe' | 'scholar' | 'loremaster'
+  skillTier?: SkillTier;     // 1 | 2 | 3 (3 = lowest, 1 = highest)
+  tierLP?: number;           // 0-100, progress within current tier
+  
   traits: {
     content: number;
     organization: number;
@@ -34,7 +57,9 @@ export interface UserProfile {
     mechanics: number;
   };
   stats: {
-    totalMatches: number;
+    rankedMatches: number;
+    practiceMatches: number;
+    lessonsCompleted: number;
     wins: number;
     totalWords: number;
     currentStreak: number;
@@ -54,13 +79,16 @@ export interface UserProfile {
   // Noble name system
   hasNobleName?: boolean;
   
+  // Streak tracking
+  lastActivityDate?: string; // Format: 'YYYY-MM-DD'
+  
   createdAt: Timestamp;
   updatedAt: Timestamp;
 }
 
 export interface RankedPrompt {
   id: string;
-  level: 'paragraph' | 'essay';
+  level: SubmissionLevel;
   sequenceNumber: number;
   activeDate: string;
   promptText: string;
@@ -78,12 +106,16 @@ export interface RankedSubmission {
   id: string;
   userId: string;
   promptId: string;
+  // `level`, a new field, temporarily optional
+  level?: SubmissionLevel;
   originalContent: string;
   originalScore: number;
   originalFeedback: Record<string, unknown>;
   revisedContent?: string;
   revisedScore?: number;
   revisedFeedback?: Record<string, unknown>;
+  // `lpEarned`, a new field, temporarily optional
+  lpEarned?: number;
   submittedAt: Timestamp;
   completedAt?: Timestamp;
 }
@@ -91,7 +123,7 @@ export interface RankedSubmission {
 export interface PracticeSubmission {
   id: string;
   userId: string;
-  type: 'paragraph' | 'essay';
+  type: SubmissionLevel;
   topic: string;
   prompt: string;
   originalContent: string;
