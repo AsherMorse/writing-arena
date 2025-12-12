@@ -1,5 +1,9 @@
 'use client';
 
+/**
+ * @fileoverview Ranked match page with phase-based UI and dev debug controls.
+ */
+
 import { useState, useCallback, useEffect } from 'react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
@@ -39,19 +43,22 @@ import { updateRankAfterRankedSubmission, getUserProfile, RankUpdateResult } fro
 import { calculateRankedLP, getRequiredMode, getRankDisplayName } from '@/lib/utils/score-calculator';
 import type { GradeResponse } from '../_lib/grading';
 import type { RankedPrompt, RankedSubmission, BlockCheckResult, SkillLevel, SkillTier, SubmissionLevel, PromptOptions } from '@/lib/types';
-
-type Phase = 'loading' | 'prompt' | 'selection' | 'write' | 'feedback' | 'revise' | 'results' | 'no_prompt' | 'blocked' | 'history';
+import type { RankedPhase } from './_lib/ranked-phases';
+import { useRankedDebugEvents } from './_hooks/useRankedDebugEvents';
 
 const PARAGRAPH_WRITE_TIME = 7 * 60;
 const PARAGRAPH_REVISE_TIME = 2 * 60;
 const ESSAY_WRITE_TIME = 10 * 60;
 const ESSAY_REVISE_TIME = 3 * 60;
 
+/** Feature flag: Enable v2 selection flow (student picks specific topic) vs v1 (system generates prompt directly) */
+const ENABLE_SELECTION_FLOW = false;
+
 export default function RankedPage() {
   const router = useRouter();
   const { user, loading: authLoading } = useAuth();
 
-  const [phase, setPhase] = useState<Phase>('loading');
+  const [phase, setPhase] = useState<RankedPhase>('loading');
   const [currentPrompt, setCurrentPrompt] = useState<RankedPrompt | null>(null);
   const [todayString, setTodayString] = useState('');
   const [content, setContent] = useState('');
@@ -91,6 +98,9 @@ export default function RankedPage() {
   const [customInput, setCustomInput] = useState('');
   const [selectionError, setSelectionError] = useState<string | null>(null);
   const [isLoadingSelection, setIsLoadingSelection] = useState(false);
+  /** Split prompt format for hint dropdown */
+  const [promptQuestion, setPromptQuestion] = useState<string | null>(null);
+  const [promptHint, setPromptHint] = useState<string | null>(null);
 
   const fetchTodaysPrompt = useCallback(async () => {
     if (!user) return;
@@ -252,7 +262,7 @@ export default function RankedPage() {
     }
   }, [phase, router]);
 
-  /** Start selection phase - fetch options from API */
+  /** Start writing - either v1 (direct prompt) or v2 (selection phase) based on feature flag */
   const beginSelection = useCallback(async () => {
     if (!currentPrompt) return;
     
@@ -260,12 +270,39 @@ export default function RankedPage() {
     setSelectionError(null);
     setCustomInput('');
     
+    const topic = currentPrompt.topic || 'Writing';
+    const angle = 'Focus on why people find this topic interesting or enjoyable';
+    
+    // v1: Generate prompt directly, skip selection phase
+    if (!ENABLE_SELECTION_FLOW) {
+      try {
+        const response = await fetch('/fantasy/api/daily-prompt', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ topic, angle, level: submissionMode }),
+        });
+        
+        if (!response.ok) throw new Error('Failed to generate prompt');
+        
+        const data = await response.json();
+        
+        // Store split prompt format for hint dropdown
+        setPromptQuestion(data.promptQuestion || null);
+        setPromptHint(data.promptHint || null);
+        
+        setCurrentPrompt(prev => prev ? { ...prev, promptText: data.promptText } : null);
+        setPhase('write');
+      } catch (err) {
+        console.error('Failed to generate prompt:', err);
+        setPhase('write'); // Fallback with existing prompt
+      } finally {
+        setIsLoadingSelection(false);
+      }
+      return;
+    }
+    
+    // v2: Fetch options and show selection phase
     try {
-      // Get topic and angle from the current prompt
-      const topic = currentPrompt.topic || 'Writing';
-      // Use a default angle or extract from prompt context
-      const angle = 'Focus on why people find this topic interesting or enjoyable';
-      
       const response = await fetch('/fantasy/api/daily-prompt/options', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -286,7 +323,7 @@ export default function RankedPage() {
     } finally {
       setIsLoadingSelection(false);
     }
-  }, [currentPrompt]);
+  }, [currentPrompt, submissionMode]);
 
   /** Handle selection of a topic option */
   const handleSelection = useCallback(async (selection: string) => {
@@ -327,6 +364,10 @@ export default function RankedPage() {
         setIsLoadingSelection(false);
         return;
       }
+      
+      // Store split prompt format for hint dropdown
+      setPromptQuestion(data.promptQuestion || null);
+      setPromptHint(data.promptHint || null);
       
       // Update prompt with personalized text (clear old inspiration)
       setCurrentPrompt(prev => prev ? { 
@@ -552,6 +593,8 @@ export default function RankedPage() {
     setPromptOptions(null);
     setCustomInput('');
     setSelectionError(null);
+    setPromptQuestion(null);
+    setPromptHint(null);
   }, []);
 
   const continueToNextChallenge = useCallback(() => {
@@ -569,6 +612,8 @@ export default function RankedPage() {
     setPromptOptions(null);
     setCustomInput('');
     setSelectionError(null);
+    setPromptQuestion(null);
+    setPromptHint(null);
     fetchTodaysPrompt();
   }, [fetchTodaysPrompt]);
 
@@ -598,44 +643,31 @@ export default function RankedPage() {
     setShowCelebrationModal(false);
   }, []);
 
-  useEffect(() => {
-    const handleFillEditor = () => {
-      setContent('This is sample text filled by the debug menu for testing purposes. It contains enough content to submit and test the grading flow without having to type manually.');
-    };
-
-    const handlePasteClipboard = (event: Event) => {
-      const customEvent = event as CustomEvent<string>;
-      if (customEvent.detail) {
-        setContent(customEvent.detail);
-      }
-    };
-
-    const handleForceSubmit = () => {
-      if (phase === 'write') {
-        submitWriting();
-      } else if (phase === 'revise') {
-        submitRevision();
-      }
-    };
-
-    const handleSkipToResults = () => {
-      if (originalResponse && response) {
-        setPhase('results');
-      }
-    };
-
-    window.addEventListener('debug-fill-editor', handleFillEditor);
-    window.addEventListener('debug-paste-clipboard', handlePasteClipboard);
-    window.addEventListener('debug-force-submit', handleForceSubmit);
-    window.addEventListener('debug-skip-to-results', handleSkipToResults);
-
-    return () => {
-      window.removeEventListener('debug-fill-editor', handleFillEditor);
-      window.removeEventListener('debug-paste-clipboard', handlePasteClipboard);
-      window.removeEventListener('debug-force-submit', handleForceSubmit);
-      window.removeEventListener('debug-skip-to-results', handleSkipToResults);
-    };
-  }, [phase, originalResponse, response, submitWriting, submitRevision]);
+  useRankedDebugEvents({
+    phase,
+    submissionMode,
+    currentPrompt,
+    originalResponse,
+    response,
+    submitWriting,
+    submitRevision,
+    setPhase,
+    setCurrentPrompt,
+    setPromptOptions,
+    setPromptQuestion,
+    setPromptHint,
+    setContent,
+    setOriginalContent,
+    setOriginalResponse,
+    setResponse,
+    setOpenPanel,
+    setError,
+    setSelectionError,
+    setCustomInput,
+    setIsLoadingSelection,
+    setShowResultsModal,
+    setShowCelebrationModal,
+  });
 
   if (authLoading || phase === 'loading') {
     return <LoadingState message="Preparing your challenge..." />;
@@ -1145,7 +1177,11 @@ export default function RankedPage() {
               <div className="flex gap-4">
                 {/* Left column: Prompt, Editor */}
                 <div className="flex-1 space-y-4">
-                  <PromptCard prompt={promptText} />
+                  <PromptCard 
+                    prompt={promptText}
+                    promptQuestion={promptQuestion || undefined}
+                    promptHint={promptHint || undefined}
+                  />
 
                   <WritingEditor
                     value={content}
@@ -1172,7 +1208,7 @@ export default function RankedPage() {
                     icon="lightbulb"
                     isOpen={openPanel === 'hints'}
                     onToggle={handleInspirationToggle}
-                    maxHeight="250px"
+                    maxHeight="320px"
                   >
                     {currentPrompt?.inspirationText ? (
                       <p className="font-avenir text-sm leading-relaxed" style={getParchmentTextStyle()}>
@@ -1234,9 +1270,9 @@ export default function RankedPage() {
 
               {/* Two column layout - constrained height so buttons stay anchored */}
               <FeedbackProvider>
-                <div className="flex gap-4 items-start">
+                <div className="flex gap-4 items-start min-h-[400px]">
                   {/* Left column: Your Writing + Practice Recommended */}
-                  <ScrollShadow className="flex-1" contentClassName="space-y-4" maxHeight="calc(100vh - 250px)">
+                  <ScrollShadow className="flex-1" contentClassName="space-y-4" maxHeight="400px">
                     <WritingCard content={originalContent} />
                     
                     {response.prioritizedLessons.length > 0 && (
@@ -1248,11 +1284,12 @@ export default function RankedPage() {
                     )}
                   </ScrollShadow>
 
-                  {/* Right column: Expandable Score Breakdown (scrollable) */}
-                  <ScrollShadow className="w-80 shrink-0" maxHeight="calc(100vh - 274px)">
-                    <ExpandableScoreBreakdown 
-                      scores={response.result.scores} 
-                      remarks={response.result.remarks} 
+{/* Right column: Expandable Score Breakdown (scrollable) */}
+                  <ScrollShadow className="w-80 shrink-0" maxHeight="400px">
+                    <ExpandableScoreBreakdown
+                      scores={response.result.scores}
+                      remarks={response.result.remarks}
+                      overallAssessment={response.overallAssessment}
                     />
                   </ScrollShadow>
                 </div>
@@ -1303,7 +1340,11 @@ export default function RankedPage() {
               <div className="flex gap-4">
                 {/* Left column: Prompt, Editor */}
                 <div className="flex-1 space-y-4">
-                  <PromptCard prompt={promptText} />
+                  <PromptCard 
+                    prompt={promptText}
+                    promptQuestion={promptQuestion || undefined}
+                    promptHint={promptHint || undefined}
+                  />
 
                   <WritingEditor
                     value={content}
@@ -1324,68 +1365,70 @@ export default function RankedPage() {
                   )}
                 </div>
 
-                {/* Right column: Accordions at top, Submit at bottom */}
-                <div className="w-64 shrink-0 flex flex-col space-y-2">
-                  {/* Inspiration accordion */}
-                  <ParchmentAccordion
-                    title="Get Inspiration"
-                    icon="lightbulb"
-                    isOpen={openPanel === 'hints'}
-                    onToggle={handleInspirationToggle}
-                    maxHeight="250px"
-                  >
-                    {currentPrompt?.inspirationText ? (
-                      <p className="font-avenir text-sm leading-relaxed" style={getParchmentTextStyle()}>
-                        {currentPrompt.inspirationText}
-                      </p>
-                    ) : isLoadingInspiration ? (
-                      <p className="font-avenir text-sm italic" style={{ ...getParchmentTextStyle(), opacity: 0.7 }}>
-                        Generating inspiration...
-                      </p>
-                    ) : (
-                      <p className="font-avenir text-sm italic" style={{ ...getParchmentTextStyle(), opacity: 0.7 }}>
-                        No background info available
-                      </p>
-                    )}
-                  </ParchmentAccordion>
+                {/* Right column: Scrollable panels + anchored submit */}
+                <div className="w-64 shrink-0 flex flex-col gap-2 h-[calc(100vh-250px)] min-h-[400px]">
+                  <ScrollShadow className="flex-1 min-h-0" contentClassName="space-y-2" maxHeight="100%">
+                    {/* Inspiration accordion */}
+                    <ParchmentAccordion
+                      title="Get Inspiration"
+                      icon="lightbulb"
+                      isOpen={openPanel === 'hints'}
+                      onToggle={handleInspirationToggle}
+                      maxHeight="380px"
+                    >
+                      {currentPrompt?.inspirationText ? (
+                        <p className="font-avenir text-sm leading-relaxed" style={getParchmentTextStyle()}>
+                          {currentPrompt.inspirationText}
+                        </p>
+                      ) : isLoadingInspiration ? (
+                        <p className="font-avenir text-sm italic" style={{ ...getParchmentTextStyle(), opacity: 0.7 }}>
+                          Generating inspiration...
+                        </p>
+                      ) : (
+                        <p className="font-avenir text-sm italic" style={{ ...getParchmentTextStyle(), opacity: 0.7 }}>
+                          No background info available
+                        </p>
+                      )}
+                    </ParchmentAccordion>
 
-                  {/* Things to Fix accordion - expanded by default */}
-                  <ParchmentAccordion
-                    title="Things to Fix"
-                    icon="wrench"
-                    isOpen={openPanel === 'fixes'}
-                    onToggle={() => setOpenPanel(prev => prev === 'fixes' ? null : 'fixes')}
-                    maxHeight="300px"
-                  >
-                    {originalResponse.result.remarks.length === 0 ? (
-                      <div className="text-center">
-                        <span className="font-avenir text-sm" style={{ ...getParchmentTextStyle(), color: '#15803d' }}>
-                          Great job! No issues to fix.
-                        </span>
-                      </div>
-                    ) : (
-                      <div className="space-y-4">
-                        {originalResponse.result.remarks.map((remark, i) => (
-                          <div key={i} className="flex gap-2 items-start">
-                            <div
-                              className="w-2 h-2 rounded-full mt-1.5 shrink-0"
-                              style={{ background: remark.severity === 'error' ? '#b91c1c' : '#b45309' }}
-                            />
-                            <div>
-                              <p className="font-avenir text-sm" style={getParchmentTextStyle()}>
-                                {remark.concreteProblem}
-                              </p>
-                              <p className="font-avenir text-xs mt-1" style={{ ...getParchmentTextStyle(), opacity: 0.7 }}>
-                                {remark.callToAction}
-                              </p>
+                    {/* Things to Fix accordion - expanded by default */}
+                    <ParchmentAccordion
+                      title="Things to Fix"
+                      icon="wrench"
+                      isOpen={openPanel === 'fixes'}
+                      onToggle={() => setOpenPanel(prev => prev === 'fixes' ? null : 'fixes')}
+                      maxHeight="380px"
+                    >
+                      {originalResponse.result.remarks.length === 0 ? (
+                        <div className="text-center">
+                          <span className="font-avenir text-sm" style={{ ...getParchmentTextStyle(), color: '#15803d' }}>
+                            Great job! No issues to fix.
+                          </span>
+                        </div>
+                      ) : (
+                        <div className="space-y-4">
+                          {originalResponse.result.remarks.map((remark, i) => (
+                            <div key={i} className="flex gap-2 items-start">
+                              <div
+                                className="w-2 h-2 rounded-full mt-1.5 shrink-0"
+                                style={{ background: remark.severity === 'error' ? '#b91c1c' : '#b45309' }}
+                              />
+                              <div>
+                                <p className="font-avenir text-sm" style={getParchmentTextStyle()}>
+                                  {remark.concreteProblem}
+                                </p>
+                                <p className="font-avenir text-xs mt-1" style={{ ...getParchmentTextStyle(), opacity: 0.7 }}>
+                                  {remark.callToAction}
+                                </p>
+                              </div>
                             </div>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </ParchmentAccordion>
+                          ))}
+                        </div>
+                      )}
+                    </ParchmentAccordion>
+                  </ScrollShadow>
 
-                  <div className="mt-auto pt-2">
+                  <div className="shrink-0 pt-2">
                     {!error && (
                       <ParchmentButton onClick={submitRevision} disabled={!canSubmit} variant="golden" className="w-full">
                         {isGrading ? 'Grading...' : 'Submit Revision'}
@@ -1441,9 +1484,9 @@ export default function RankedPage() {
                 </div>
               </div>
 
-              {/* Two column layout - constrained height so buttons stay anchored */}
+              {/* Two column layout - fixed height so Score Breakdown doesn't push content down */}
               <FeedbackProvider>
-                <div className="flex gap-4 items-start">
+                <div className="flex gap-4 items-start h-[400px]">
                   {/* Left column: Your Writing */}
                   <ScrollShadow className="flex-1" maxHeight="400px">
                     <WritingCard content={content} />
@@ -1453,7 +1496,8 @@ export default function RankedPage() {
                   <ScrollShadow className="w-80 shrink-0" maxHeight="400px">
                     <ExpandableScoreBreakdown 
                       scores={response.result.scores} 
-                      remarks={response.result.remarks} 
+                      remarks={response.result.remarks}
+                      overallAssessment={response.overallAssessment}
                     />
                   </ScrollShadow>
                 </div>

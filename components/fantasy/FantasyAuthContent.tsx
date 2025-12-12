@@ -8,14 +8,11 @@ import Link from 'next/link';
 import { useAsyncStateWithStringError } from '@/lib/hooks/useAsyncState';
 import { FantasyLogo } from './FantasyLogo';
 
-type UserTitle = 'Lord' | 'Lady' | 'Wordsmith';
-
 export function FantasyAuthContent() {
   const [isSignUp, setIsSignUp] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [fullName, setFullName] = useState('');
-  const [title, setTitle] = useState<UserTitle>('Wordsmith');
 
   const { signIn, signUp, signInWithGoogle, user } = useAuth();
   const router = useRouter();
@@ -44,7 +41,7 @@ export function FantasyAuthContent() {
     e.preventDefault();
     await executeAuth(async () => {
       if (isSignUp) {
-        await signUp(email, password, fullName, title);
+        await signUp(email, password, fullName);
       } else {
         await signIn(email, password);
       }
@@ -163,28 +160,6 @@ export function FantasyAuthContent() {
                     />
                   </div>
 
-                  <div>
-                    <label className={labelClassName}>Title</label>
-                    <div className="flex gap-2">
-                      {(['Lord', 'Lady', 'Wordsmith'] as const).map((t) => (
-                        <button
-                          key={t}
-                          type="button"
-                          onClick={() => setTitle(t)}
-                          className={`flex-1 py-2 px-3 rounded-md text-xs font-semibold uppercase tracking-[0.08em] transition-all ${
-                            title === t
-                              ? 'bg-[rgba(201,168,76,0.25)] text-[#f5e6b8] border border-[rgba(201,168,76,0.5)]'
-                              : 'bg-[#1a0f08] text-[rgba(245,230,184,0.4)] border border-[rgba(201,168,76,0.2)] hover:border-[rgba(201,168,76,0.4)]'
-                          }`}
-                        >
-                          {t}
-                        </button>
-                      ))}
-                    </div>
-                    <p className="mt-1 text-xs text-[rgba(245,230,184,0.3)]">
-                      How you&apos;ll appear on leaderboards
-                    </p>
-                  </div>
                 </>
               )}
 

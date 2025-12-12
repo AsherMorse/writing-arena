@@ -11,7 +11,6 @@ import { updateUserProfile } from '@/lib/services/firestore';
 import { COLOR_CLASSES } from '@/lib/constants/colors';
 import { getRankDisplayName } from '@/lib/utils/score-calculator';
 import { TIER_LP_CAP } from '@/lib/utils/rank-constants';
-import { UserTitle } from '@/lib/types';
 
 interface ProfileSettingsModalProps {
   isOpen: boolean;
@@ -28,30 +27,22 @@ const AVATAR_OPTIONS = [
   '🔥', '💧', '⚡', '🌊', '🌈', '☀️', '🌙', '✨', '💫', '🚀',
 ];
 
-const TITLE_OPTIONS: { value: UserTitle; label: string; description: string }[] = [
-  { value: 'Lord', label: 'Lord', description: 'Masculine title' },
-  { value: 'Lady', label: 'Lady', description: 'Feminine title' },
-  { value: 'Wordsmith', label: 'Wordsmith', description: 'Neutral title (default)' },
-];
-
 export default function ProfileSettingsModal({ isOpen, onClose }: ProfileSettingsModalProps) {
   const { user, userProfile, refreshProfile, signOut } = useAuth();
   const [selectedAvatar, setSelectedAvatar] = useState('');
-  const [selectedTitle, setSelectedTitle] = useState<UserTitle>('Wordsmith');
   const [saving, setSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
 
   useEffect(() => {
     if (userProfile) {
       setSelectedAvatar(typeof userProfile.avatar === 'string' ? userProfile.avatar : '🌿');
-      setSelectedTitle(userProfile.title || 'Wordsmith');
     }
   }, [userProfile]);
 
   if (!isOpen) return null;
 
   /**
-   * @description Saves avatar and title changes to user profile.
+   * @description Saves avatar changes to user profile.
    */
   const handleSave = async () => {
     if (!user || !userProfile) return;
@@ -62,7 +53,6 @@ export default function ProfileSettingsModal({ isOpen, onClose }: ProfileSetting
     try {
       await updateUserProfile(user.uid, {
         avatar: selectedAvatar,
-        title: selectedTitle,
       });
       
       await refreshProfile();
@@ -83,7 +73,7 @@ export default function ProfileSettingsModal({ isOpen, onClose }: ProfileSetting
   };
 
   // Format the full display name preview
-  const displayNamePreview = `${selectedTitle} ${userProfile?.displayName || 'New Adventurer'}, ${getRankDisplayName(userProfile?.skillLevel ?? 'scribe', userProfile?.skillTier ?? 3)}`;
+  const displayNamePreview = `${userProfile?.displayName || 'New Adventurer'}, ${getRankDisplayName(userProfile?.skillLevel ?? 'scribe', userProfile?.skillTier ?? 3)}`;
 
   return (
     <div 
@@ -126,28 +116,6 @@ export default function ProfileSettingsModal({ isOpen, onClose }: ProfileSetting
             <p className="mt-2 text-xs text-[rgba(255,255,255,0.22)]">
               How you appear on leaderboards
             </p>
-          </div>
-
-          {/* Title Selection */}
-          <div>
-            <label className="mb-3 block text-[10px] font-semibold uppercase tracking-[0.08em] text-[rgba(255,255,255,0.22)]">
-              Title
-            </label>
-            <div className="flex gap-2">
-              {TITLE_OPTIONS.map((option) => (
-                <button
-                  key={option.value}
-                  onClick={() => setSelectedTitle(option.value)}
-                  className={`flex-1 rounded-[10px] px-4 py-3 text-sm font-medium transition-all ${
-                    selectedTitle === option.value
-                      ? 'border border-[#00e5e5] bg-[rgba(0,229,229,0.15)] text-[#00e5e5]'
-                      : 'border border-[rgba(255,255,255,0.1)] bg-[rgba(255,255,255,0.02)] text-[rgba(255,255,255,0.4)] hover:border-[rgba(255,255,255,0.2)] hover:text-[rgba(255,255,255,0.6)]'
-                  }`}
-                >
-                  {option.label}
-                </button>
-              ))}
-            </div>
           </div>
 
           {/* Avatar Selection */}

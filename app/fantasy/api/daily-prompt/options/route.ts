@@ -22,14 +22,14 @@ Other Rules:
 - For "comparing" angle, options should be pairs like "Pizza vs Tacos"
 
 Angle → Question style:
-- "unique or special" → "What [X] stands out from the rest?"
-- "affects or connects to people" → "What [X] means something to you?"
+- "unique or special" → "Which [X] stands out from the rest?"
+- "affects or connects to people" → "Which [X] means something to you?"
 - "comparing this topic to something similar" → "Pick two [X]s to compare"
-- "why people find this topic interesting" → "What [X] is underrated?" or "What [X] do you love?"
-- "how this topic works" → "What [X] would you explain to someone?"
-- "benefits or positive aspects" → "What [X] should everyone try?"
-- "different types or varieties" → "What type of [X] is your style?"
-- "what someone new to this topic should know" → "What [X] would you recommend to a beginner?"
+- "why people find this topic interesting" → "Which [X] is underrated?" or "Which [X] do you love?"
+- "how this topic works" → "Which [X] would you explain to someone?"
+- "benefits or positive aspects" → "Which [X] should everyone try?"
+- "different types or varieties" → "Which type of [X] is your style?"
+- "what someone new to this topic should know" → "Which [X] would you recommend to a beginner?"
 
 Return ONLY valid JSON in this exact format:
 {

@@ -265,12 +265,16 @@ export function WritingCard({ content }: WritingCardProps) {
 interface ExpandableScoreBreakdownProps {
   scores: GraderResult['scores'];
   remarks: GraderRemark[];
+  /** Optional AI-generated overall assessment summary */
+  overallAssessment?: string;
 }
 
 /**
  * @description Expandable score breakdown with feedback remarks nested under each category.
  */
-export function ExpandableScoreBreakdown({ scores, remarks }: ExpandableScoreBreakdownProps) {
+export function ExpandableScoreBreakdown({ scores, remarks, overallAssessment }: ExpandableScoreBreakdownProps) {
+  const textStyle = getParchmentTextStyle();
+  
   return (
     <ParchmentCardWithLine title="Score Breakdown">
       <div className="space-y-1 -mx-2">
@@ -287,6 +291,23 @@ export function ExpandableScoreBreakdown({ scores, remarks }: ExpandableScoreBre
           );
         })}
       </div>
+      
+      {overallAssessment && (
+        <details
+          className="mt-4 pt-3 border-t"
+          style={{ borderColor: 'rgba(139, 99, 52, 0.3)' }}
+        >
+          <summary
+            className="cursor-pointer select-none text-xs uppercase tracking-widest font-memento"
+            style={{ ...textStyle, opacity: 0.7 }}
+          >
+            Summary
+          </summary>
+          <p className="mt-2 font-avenir text-sm leading-relaxed" style={textStyle}>
+            {overallAssessment}
+          </p>
+        </details>
+      )}
     </ParchmentCardWithLine>
   );
 }

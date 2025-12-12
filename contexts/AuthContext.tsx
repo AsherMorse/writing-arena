@@ -15,14 +15,12 @@ import { createUserProfile, getUserProfile } from '@/lib/services/firestore';
 import { UserProfile } from '@/lib/types';
 import { logger, LOG_CONTEXTS } from '@/lib/utils/logger';
 
-type UserTitle = 'Lord' | 'Lady' | 'Wordsmith';
-
 interface AuthContextType {
   user: User | null;
   userProfile: UserProfile | null;
   loading: boolean;
   signIn: (email: string, password: string) => Promise<void>;
-  signUp: (email: string, password: string, fullName: string, title: UserTitle) => Promise<void>;
+  signUp: (email: string, password: string, fullName: string) => Promise<void>;
   signInWithGoogle: () => Promise<void>;
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
@@ -33,7 +31,7 @@ const AuthContext = createContext<AuthContextType>({
   userProfile: null,
   loading: true,
   signIn: async () => {},
-  signUp: async (_email, _password, _fullName, _title) => {},
+  signUp: async () => {},
   signInWithGoogle: async () => {},
   signOut: async () => {},
   refreshProfile: async () => {},
@@ -69,7 +67,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             await createUserProfile(user.uid, {
               displayName: user.displayName || 'New Adventurer',
               email: user.email || '',
-              title: 'Wordsmith',
             });
             
             const { retryUntilSuccess } = await import('@/lib/utils/retry');
@@ -111,7 +108,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         await createUserProfile(userCredential.user.uid, {
           displayName: userCredential.user.displayName || 'New Adventurer',
           email: userCredential.user.email || '',
-          title: 'Wordsmith',
         });
         
         await new Promise(resolve => setTimeout(resolve, 500));
@@ -127,16 +123,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const signUp = async (email: string, password: string, fullName: string, title: UserTitle) => {
+  const signUp = async (email: string, password: string, fullName: string) => {
     try {
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
 
-      // Create profile with provided name and title (hasSelectedTitle true since they chose)
+      // Create profile with provided name
       await createUserProfile(userCredential.user.uid, {
         displayName: fullName,
         email,
-        title,
-        hasSelectedTitle: true,
       });
       
       await new Promise(resolve => setTimeout(resolve, 500));
@@ -162,7 +156,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         await createUserProfile(result.user.uid, {
           displayName: result.user.displayName || 'New Adventurer',
           email: result.user.email || '',
-          title: 'Wordsmith',
         });
         
         await new Promise(resolve => setTimeout(resolve, 500));

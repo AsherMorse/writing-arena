@@ -17,11 +17,11 @@ const ANGLES = [
   'Focus on what someone new to this topic should know.',
 ];
 
-const LEGACY_SYSTEM_PROMPT = `You are a writing prompt generator for a daily writing challenge. Given a topic and an angle, create a two-sentence writing prompt.
+const LEGACY_SYSTEM_PROMPT = `You are a writing prompt generator for a daily writing challenge. Given a topic and an angle, create a two-part writing prompt.
 
 Rules:
-1. First sentence: A statement or question that sets up expository writing (explaining or informing)
-2. Second sentence: Gentle suggestions about what the student might include (use "You might..." phrasing)
+1. promptQuestion: A statement or question that sets up expository writing (explaining or informing)
+2. promptHint: Gentle suggestions about what the student might include (use "You might..." phrasing)
 3. AVOID commands like "Write about", "Describe", "Explain" - be non-imperative
 4. AVOID requiring adult-level knowledge
 5. AVOID pushing toward narrative or first-person writing
@@ -30,18 +30,18 @@ Rules:
 
 Examples:
 Topic: Dragons | Angle: what makes it unique
-Output: What do dragons look like in stories from around the world? You might talk about their size, color, wings, and whether they breathe fire.
+Output: { "promptQuestion": "What do dragons look like in stories from around the world?", "promptHint": "You might talk about their size, color, wings, and whether they breathe fire." }
 
 Topic: Baseball | Angle: comparing to something similar
-Output: How is baseball different from other sports? You might discuss the rules, equipment, and how teams score points.
+Output: { "promptQuestion": "How is baseball different from other sports?", "promptHint": "You might discuss the rules, equipment, and how teams score points." }
 
-Return ONLY the two-sentence prompt, nothing else.`;
+Return ONLY valid JSON with promptQuestion and promptHint, no markdown or extra text.`;
 
 const SELECTION_SYSTEM_PROMPT = `You are a writing prompt generator for a middle school writing app.
 
 A student was asked a question and made a selection. Your job is to:
 1. FIRST, validate if their input is appropriate
-2. If valid, generate a personalized two-sentence prompt
+2. If valid, generate a personalized prompt with SEPARATE question and hint
 
 VALIDATION RULES:
 - Is it appropriate for grades 6-8? (no violence, profanity, adult content)
@@ -52,7 +52,7 @@ If INVALID, respond with JSON:
 { "valid": false, "reason": "friendly explanation" }
 
 If VALID, respond with JSON:
-{ "valid": true, "promptText": "two-sentence prompt here" }
+{ "valid": true, "promptQuestion": "the main question", "promptHint": "suggestions starting with You might..." }
 
 INVALID INPUT EXAMPLES:
 - "your mom" → { "valid": false, "reason": "Let's pick something real! What's a specific one you actually like?" }
@@ -66,10 +66,13 @@ VALID INPUT EXAMPLES (be lenient):
 - "water" (for Food topic) → valid, it's consumable
 
 PROMPT RULES (if valid):
-- First sentence: Question that sets up expository writing, referencing their specific selection
-- Second sentence: Gentle suggestions using "You might..." phrasing
+- promptQuestion: A question that sets up expository writing, referencing their specific selection (1 sentence)
+- promptHint: Gentle suggestions starting with "You might..." (1 sentence)
 - Keep it appropriate for grades 6-8
 - AVOID commands like "Write about", "Describe", "Explain"
+
+EXAMPLE OUTPUT:
+{ "valid": true, "promptQuestion": "Why should everyone try birria tacos at least once?", "promptHint": "You might discuss the rich flavors, the consommé for dipping, or what makes them different from regular tacos." }
 
 Be lenient - if borderline, accept it. Only reject if clearly inappropriate or nonsensical.
 
@@ -77,36 +80,36 @@ Return ONLY valid JSON, no markdown or extra text.`;
 
 const ESSAY_LEGACY_SYSTEM_PROMPT = `You are a writing prompt generator for middle school essays (grades 6-8).
 
-Create a prompt that guides students to write a 4-5 paragraph essay with:
+Create a two-part prompt that guides students to write a 4-5 paragraph essay with:
 - A clear thesis statement
 - 2-3 body paragraphs with distinct points
 - Introduction and conclusion
 
 PROMPT FORMAT:
-1. Opening question that invites analysis or argument (1 sentence)
-2. Guiding prompts using "Consider..." and "Think about..." to hint at body paragraph angles (2 sentences)
+1. promptQuestion: Opening question that invites analysis or argument (1 sentence)
+2. promptHint: Guiding prompts using "Consider..." and "Think about..." to hint at body paragraph angles (2 sentences)
 
 RULES:
 - Make it DEBATABLE or MULTI-FACETED (not just "explain X")
-- Each guiding sentence should suggest a DISTINCT angle for a body paragraph
+- Each guiding sentence in the hint should suggest a DISTINCT angle for a body paragraph
 - Topics should feel relevant to middle schoolers' lives
 - Avoid requiring specialized knowledge
 - Don't use imperative commands ("Write about...", "Explain...")
 
 Examples:
 Topic: Screen Time | Angle: benefits and drawbacks
-Output: Is screen time actually harmful, or does it depend on how you use it? Consider the difference between mindless scrolling and using screens to create or learn. Think about how screens might affect sleep, focus, and real-world friendships differently.
+Output: { "promptQuestion": "Is screen time actually harmful, or does it depend on how you use it?", "promptHint": "Consider the difference between mindless scrolling and using screens to create or learn. Think about how screens might affect sleep, focus, and real-world friendships differently." }
 
 Topic: Homework | Angle: argue for or against
-Output: Should schools give less homework, or is practice outside class essential? Consider what homework actually helps you learn versus what feels like busywork. Think about how homework affects students differently based on their activities and home life.
+Output: { "promptQuestion": "Should schools give less homework, or is practice outside class essential?", "promptHint": "Consider what homework actually helps you learn versus what feels like busywork. Think about how homework affects students differently based on their activities and home life." }
 
-Return ONLY the prompt (3 sentences), nothing else.`;
+Return ONLY valid JSON with promptQuestion and promptHint, no markdown or extra text.`;
 
 const ESSAY_SELECTION_SYSTEM_PROMPT = `You are a writing prompt generator for middle school essays (grades 6-8).
 
 A student was asked a question and made a selection. Your job is to:
 1. FIRST, validate if their input is appropriate
-2. If valid, generate a personalized three-sentence essay prompt
+2. If valid, generate a personalized essay prompt with SEPARATE question and hints
 
 VALIDATION RULES:
 - Is it appropriate for grades 6-8? (no violence, profanity, adult content)
@@ -117,15 +120,17 @@ If INVALID, respond with JSON:
 { "valid": false, "reason": "friendly explanation" }
 
 If VALID, respond with JSON:
-{ "valid": true, "promptText": "three-sentence essay prompt here" }
+{ "valid": true, "promptQuestion": "opening question that invites analysis", "promptHint": "Consider... Think about..." }
 
 PROMPT RULES (if valid):
-- First sentence: Opening question that invites analysis or argument, referencing their selection
-- Second sentence: "Consider..." guidance for body paragraph 1
-- Third sentence: "Think about..." guidance for body paragraph 2
+- promptQuestion: Opening question that invites analysis or argument, referencing their selection (1 sentence)
+- promptHint: Two guiding sentences - "Consider..." for body paragraph 1, "Think about..." for body paragraph 2
 - Make it DEBATABLE or MULTI-FACETED
 - Keep it appropriate for grades 6-8
 - AVOID commands like "Write about", "Describe", "Explain"
+
+EXAMPLE OUTPUT:
+{ "valid": true, "promptQuestion": "Is gaming actually a waste of time, or does it offer real benefits that adults overlook?", "promptHint": "Consider what skills games teach that you can't learn elsewhere. Think about how gaming affects your mood, focus, and social connections." }
 
 Be lenient - if borderline, accept it. Only reject if clearly inappropriate or nonsensical.
 
@@ -170,7 +175,7 @@ export async function POST(request: NextRequest) {
 }
 
 /**
- * @description Handles the legacy prompt generation flow (backwards compatible).
+ * @description Handles the legacy prompt generation flow with split question/hint format.
  */
 async function handleLegacyFlow(
   apiKey: string,
@@ -207,9 +212,38 @@ async function handleLegacyFlow(
   }
 
   const data = await response.json();
-  const promptText = data.content[0].text.trim();
+  let text = data.content[0].text.trim();
 
-  return NextResponse.json({ promptText });
+  // Strip markdown code blocks if present
+  if (text.startsWith('```')) {
+    text = text.replace(/^```(?:json)?\n?/, '').replace(/\n?```$/, '');
+  }
+
+  // Parse JSON response
+  try {
+    const parsed = JSON.parse(text);
+    const promptQuestion = parsed.promptQuestion || '';
+    const promptHint = parsed.promptHint || '';
+    const promptText = `${promptQuestion} ${promptHint}`.trim();
+
+    return NextResponse.json({ promptText, promptQuestion, promptHint });
+  } catch {
+    // Fallback: try to split on common hint markers
+    const hintMarkers = ['You might', 'You could', 'Consider'];
+    let promptQuestion = text;
+    let promptHint = '';
+    
+    for (const marker of hintMarkers) {
+      const idx = text.indexOf(marker);
+      if (idx > 0) {
+        promptQuestion = text.slice(0, idx).trim();
+        promptHint = text.slice(idx).trim();
+        break;
+      }
+    }
+
+    return NextResponse.json({ promptText: text, promptQuestion, promptHint });
+  }
 }
 
 /**
@@ -272,16 +306,40 @@ Angle: ${angle}`;
       });
     }
 
+    // Handle both new split format and legacy format
+    const promptQuestion = parsed.promptQuestion || '';
+    const promptHint = parsed.promptHint || '';
+    // Combine for backwards compatibility and storage
+    const promptText = parsed.promptText || `${promptQuestion} ${promptHint}`.trim();
+
     return NextResponse.json({
       valid: true,
-      promptText: parsed.promptText,
+      promptText,
+      promptQuestion,
+      promptHint,
       selection,
     });
   } catch {
     // If JSON parsing fails, treat response as the prompt text (fallback)
+    // Try to split on common hint markers
+    const hintMarkers = ['You might', 'You could', 'Consider'];
+    let promptQuestion = text;
+    let promptHint = '';
+    
+    for (const marker of hintMarkers) {
+      const idx = text.indexOf(marker);
+      if (idx > 0) {
+        promptQuestion = text.slice(0, idx).trim();
+        promptHint = text.slice(idx).trim();
+        break;
+      }
+    }
+
     return NextResponse.json({
       valid: true,
       promptText: text,
+      promptQuestion,
+      promptHint,
       selection,
     });
   }

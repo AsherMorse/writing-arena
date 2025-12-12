@@ -128,9 +128,13 @@ The angle determines how we ask the student to pick:
 ```json
 {
   "valid": true,
-  "promptText": "Why do you think Hollow Knight deserves more attention than it gets? You might discuss its art style, difficulty, world design, or what makes it special compared to more popular games."
+  "promptText": "Why do you think Hollow Knight deserves more attention than it gets? You might discuss its art style, difficulty, world design, or what makes it special compared to more popular games.",
+  "promptQuestion": "Why do you think Hollow Knight deserves more attention than it gets?",
+  "promptHint": "You might discuss its art style, difficulty, world design, or what makes it special compared to more popular games."
 }
 ```
+
+> **Note:** The `promptHint` is displayed in a collapsible "Need a hint?" dropdown in the UI, allowing students to optionally view writing suggestions.
 
 **Response (invalid input):**
 ```json
@@ -227,11 +231,11 @@ FIRST, evaluate if their input is valid:
 - Is it specific enough to write about?
 
 If INVALID: { "valid": false, "reason": "friendly explanation" }
-If VALID: { "valid": true, "promptText": "two-sentence prompt" }
+If VALID: { "valid": true, "promptQuestion": "...", "promptHint": "..." }
 
 Prompt rules (if valid):
-- First sentence: Question that sets up expository writing, referencing their selection
-- Second sentence: Gentle suggestions using "You might..." phrasing
+- promptQuestion: Question that sets up expository writing, referencing their selection
+- promptHint: Gentle suggestions using "You might..." phrasing (shown in collapsible dropdown)
 - Keep it appropriate for grades 6-8
 - AVOID commands like "Write about", "Describe", "Explain"
 
@@ -394,21 +398,26 @@ const ESSAY_ANGLES = [
 
 ## Essay Prompt Format
 
-Essays use a 3-sentence format with explicit structure hints:
+Essays use a split format with the question shown prominently and structure hints in a collapsible dropdown:
 
-```
-[Opening question that invites analysis/argument]
-Consider [angle for body paragraph 1].
-Think about [angle for body paragraph 2].
+```json
+{
+  "promptQuestion": "[Opening question that invites analysis/argument]",
+  "promptHint": "Consider [angle for body paragraph 1]. Think about [angle for body paragraph 2]."
+}
 ```
 
 **Example:**
-> Is screen time actually harmful, or does it depend on how you use it? Consider the difference between mindless scrolling and using screens to create or learn. Think about how screens might affect sleep, focus, and real-world friendships differently.
+```json
+{
+  "promptQuestion": "Is screen time actually harmful, or does it depend on how you use it?",
+  "promptHint": "Consider the difference between mindless scrolling and using screens to create or learn. Think about how screens might affect sleep, focus, and real-world friendships differently."
+}
+```
 
 This format:
-- Opens with a debatable question (thesis invitation)
-- First "Consider..." → Body paragraph 1 angle
-- Second "Think about..." → Body paragraph 2 angle
+- `promptQuestion`: Opens with a debatable question (thesis invitation) - shown prominently
+- `promptHint`: "Consider..." + "Think about..." guidance for body paragraphs - shown in collapsible "Need a hint?" dropdown
 
 ---
 

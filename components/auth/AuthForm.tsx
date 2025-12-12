@@ -2,8 +2,6 @@
 
 import { COLOR_CLASSES } from '@/lib/constants/colors';
 
-type UserTitle = 'Lord' | 'Lady' | 'Wordsmith';
-
 interface AuthFormProps {
   isSignUp: boolean;
   email: string;
@@ -12,8 +10,6 @@ interface AuthFormProps {
   setPassword: (password: string) => void;
   fullName: string;
   setFullName: (name: string) => void;
-  title: UserTitle;
-  setTitle: (title: UserTitle) => void;
   error: string;
   loading: boolean;
   onSubmit: (e: React.FormEvent) => void;
@@ -27,8 +23,6 @@ export function AuthForm({
   setPassword,
   fullName,
   setFullName,
-  title,
-  setTitle,
   error,
   loading,
   onSubmit,
@@ -49,31 +43,6 @@ export function AuthForm({
               className="w-full rounded-[10px] border border-[rgba(255,255,255,0.05)] bg-[#101012] px-4 py-3 font-mono text-sm text-[rgba(255,255,255,0.8)] outline-none transition-colors placeholder:text-[rgba(255,255,255,0.22)] focus:border-[#00e5e5]"
               required
             />
-          </div>
-
-          <div>
-            <label className="mb-2 block text-[10px] font-semibold uppercase tracking-[0.08em] text-[rgba(255,255,255,0.22)]">
-              Title
-            </label>
-            <div className="flex gap-2">
-              {(['Lord', 'Lady', 'Wordsmith'] as const).map((t) => (
-                <button
-                  key={t}
-                  type="button"
-                  onClick={() => setTitle(t)}
-                  className={`flex-1 rounded-[8px] py-2 px-3 text-[10px] font-semibold uppercase tracking-[0.08em] transition-all ${
-                    title === t
-                      ? 'bg-[rgba(0,229,229,0.15)] text-[#00e5e5] border border-[rgba(0,229,229,0.5)]'
-                      : 'bg-[#101012] text-[rgba(255,255,255,0.4)] border border-[rgba(255,255,255,0.05)] hover:border-[rgba(255,255,255,0.15)]'
-                  }`}
-                >
-                  {t}
-                </button>
-              ))}
-            </div>
-            <p className="mt-1 text-xs text-[rgba(255,255,255,0.22)]">
-              How you&apos;ll appear on leaderboards
-            </p>
           </div>
         </>
       )}

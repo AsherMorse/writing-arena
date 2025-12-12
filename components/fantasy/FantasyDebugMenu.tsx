@@ -1,5 +1,9 @@
 'use client';
 
+/**
+ * @fileoverview Developer debug menu for Fantasy routes (timers, data resets, and ranked UI skipping).
+ */
+
 import { useState } from 'react';
 import { usePathname } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
@@ -21,12 +25,34 @@ import { db } from '@/lib/config/firebase';
 
 export { getDebugDate, getDebugDayOffset, getDebugPromptId } from '@/lib/utils/debug-date';
 
+type RankedDebugPhase =
+  | 'prompt'
+  | 'selection'
+  | 'write'
+  | 'feedback'
+  | 'revise'
+  | 'results';
+
+type RankedDebugPreset = 'minimal' | 'short' | 'long' | 'stress';
+
+/**
+ * @description Dispatch a debug CustomEvent and show a status toast.
+ */
+function dispatchDebugEvent(args: {
+  eventName: string;
+  detail?: unknown;
+}): void {
+  window.dispatchEvent(new CustomEvent(args.eventName, { detail: args.detail }));
+}
+
 export function FantasyDebugMenu() {
   const pathname = usePathname();
   const { user } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
   const [status, setStatus] = useState<string | null>(null);
   const [isTimerPaused, setIsTimerPaused] = useState(() => isDebugTimerPaused());
+  const [rankedDebugPhase, setRankedDebugPhase] = useState<RankedDebugPhase>('prompt');
+  const [rankedDebugPreset, setRankedDebugPreset] = useState<RankedDebugPreset>('short');
 
   if (process.env.NODE_ENV === 'production') {
     return null;
@@ -107,9 +133,20 @@ export function FantasyDebugMenu() {
     }
   };
 
-  const handleDispatchEvent = (eventName: string, label: string) => {
-    window.dispatchEvent(new CustomEvent(eventName));
+  const handleDispatchEvent = (eventName: string, label: string, detail?: unknown) => {
+    dispatchDebugEvent({ eventName, detail });
     showStatus(`${label} triggered`);
+  };
+
+  const isRankedPage = pathname?.startsWith('/fantasy/ranked');
+
+  const handleJumpRankedPhase = () => {
+    if (!isRankedPage) return;
+    dispatchDebugEvent({
+      eventName: 'debug-ranked-jump',
+      detail: { phase: rankedDebugPhase, preset: rankedDebugPreset },
+    });
+    showStatus(`Jumped to ${rankedDebugPhase} (${rankedDebugPreset})`);
   };
 
   const handleAddFakeSubmissions = async () => {
@@ -262,6 +299,89 @@ export function FantasyDebugMenu() {
                 ⏭ Skip
               </button>
             </div>
+
+            {isRankedPage && (
+              <div className="mb-4 rounded-md p-3" style={{ border: '1px solid rgba(201, 168, 76, 0.25)' }}>
+                <div className="mb-2 text-xs font-semibold" style={{ color: 'rgba(245, 230, 184, 0.8)' }}>
+                  Ranked phase skipper
+                </div>
+
+                <div className="mb-2 flex gap-2">
+                  <select
+                    value={rankedDebugPhase}
+                    onChange={(e) => setRankedDebugPhase(e.target.value as RankedDebugPhase)}
+                    className="flex-1 rounded-md px-3 py-2 text-xs"
+                    style={{
+                      background: 'rgba(0, 0, 0, 0.25)',
+                      border: '1px solid rgba(201, 168, 76, 0.25)',
+                      color: 'rgba(245, 230, 184, 0.85)',
+                    }}
+                  >
+                    <option value="prompt">prompt</option>
+                    <option value="selection">selection</option>
+                    <option value="write">write</option>
+                    <option value="feedback">feedback</option>
+                    <option value="revise">revise</option>
+                    <option value="results">results</option>
+                  </select>
+
+                  <select
+                    value={rankedDebugPreset}
+                    onChange={(e) => setRankedDebugPreset(e.target.value as RankedDebugPreset)}
+                    className="flex-1 rounded-md px-3 py-2 text-xs"
+                    style={{
+                      background: 'rgba(0, 0, 0, 0.25)',
+                      border: '1px solid rgba(201, 168, 76, 0.25)',
+                      color: 'rgba(245, 230, 184, 0.85)',
+                    }}
+                  >
+                    <option value="minimal">minimal</option>
+                    <option value="short">short</option>
+                    <option value="long">long</option>
+                    <option value="stress">stress</option>
+                  </select>
+                </div>
+
+                <div className="grid grid-cols-3 gap-2">
+                  <button
+                    type="button"
+                    onClick={handleJumpRankedPhase}
+                    className="rounded-md px-3 py-2 text-xs font-semibold transition hover:scale-[1.02]"
+                    style={{
+                      background: 'rgba(201, 168, 76, 0.15)',
+                      border: '1px solid rgba(201, 168, 76, 0.3)',
+                      color: 'rgba(245, 230, 184, 0.9)',
+                    }}
+                  >
+                    Jump
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleDispatchEvent('debug-force-submit', 'Force Submit')}
+                    className="rounded-md px-3 py-2 text-xs font-semibold transition hover:scale-[1.02]"
+                    style={{
+                      background: 'rgba(201, 168, 76, 0.1)',
+                      border: '1px solid rgba(201, 168, 76, 0.25)',
+                      color: 'rgba(245, 230, 184, 0.8)',
+                    }}
+                  >
+                    Force submit
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleDispatchEvent('debug-skip-to-results', 'Skip to Results')}
+                    className="rounded-md px-3 py-2 text-xs font-semibold transition hover:scale-[1.02]"
+                    style={{
+                      background: 'rgba(201, 168, 76, 0.1)',
+                      border: '1px solid rgba(201, 168, 76, 0.25)',
+                      color: 'rgba(245, 230, 184, 0.8)',
+                    }}
+                  >
+                    Results
+                  </button>
+                </div>
+              </div>
+            )}
 
             <div className="grid grid-cols-2 gap-3">
               {buttons.map((button) => (

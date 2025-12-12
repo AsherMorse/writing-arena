@@ -28,57 +28,57 @@ export const CATEGORY_TO_LESSONS: Record<string, {
   // Topic Sentence variations (all rubric types)
   'Topic Sentence': {
     high: ['make-topic-sentences', 'identify-topic-sentence'],
-    medium: ['make-topic-sentences', 'identify-topic-sentence'],
+    medium: ['make-topic-sentences'],
     low: ['make-topic-sentences'],
   },
   'Claim (Topic Sentence)': {
     high: ['make-topic-sentences', 'identify-topic-sentence'],
-    medium: ['make-topic-sentences', 'identify-topic-sentence'],
+    medium: ['make-topic-sentences'],
     low: ['make-topic-sentences'],
   },
   'Topic Sentence (Opinion Statement)': {
     high: ['make-topic-sentences', 'identify-topic-sentence'],
-    medium: ['make-topic-sentences', 'identify-topic-sentence'],
+    medium: ['make-topic-sentences'],
     low: ['make-topic-sentences'],
   },
   'Topic Sentence (Introduction)': {
     high: ['make-topic-sentences', 'identify-topic-sentence'],
-    medium: ['make-topic-sentences', 'identify-topic-sentence'],
+    medium: ['make-topic-sentences'],
     low: ['make-topic-sentences'],
   },
 
   // Detail Sentences variations
   'Detail Sentences': {
-    high: ['writing-spos', 'eliminate-irrelevant-sentences', 'using-transition-words'],
+    high: ['writing-spos', 'eliminate-irrelevant-sentences'],
     medium: ['writing-spos'],
-    low: ['using-transition-words'],
+    low: ['writing-spos'],
   },
   'Evidence and Reasoning (Detail Sentences)': {
-    high: ['writing-spos', 'eliminate-irrelevant-sentences', 'using-transition-words'],
+    high: ['writing-spos', 'eliminate-irrelevant-sentences'],
     medium: ['writing-spos'],
-    low: ['using-transition-words'],
+    low: ['writing-spos'],
   },
   'Supporting Details (Facts and Evidence)': {
-    high: ['writing-spos', 'eliminate-irrelevant-sentences', 'using-transition-words'],
+    high: ['writing-spos', 'eliminate-irrelevant-sentences'],
     medium: ['writing-spos'],
-    low: ['using-transition-words'],
+    low: ['writing-spos'],
   },
   'Supporting Details (Pro or Con)': {
-    high: ['writing-spos', 'eliminate-irrelevant-sentences', 'using-transition-words'],
+    high: ['writing-spos', 'eliminate-irrelevant-sentences'],
     medium: ['writing-spos'],
-    low: ['using-transition-words'],
+    low: ['writing-spos'],
   },
 
   // Concluding Sentence (all rubrics use same name)
   'Concluding Sentence': {
-    high: ['write-cs-from-details', 'write-appositives'],
+    high: ['write-cs-from-details'],
     medium: ['write-cs-from-details'],
     low: ['write-cs-from-details'],
   },
 
   // Conventions
   'Conventions': {
-    high: ['fragment-or-sentence', 'combine-sentences'],
+    high: ['fragment-or-sentence', 'basic-conjunctions'],
     medium: ['fragment-or-sentence'],
     low: ['fragment-or-sentence'],
   },

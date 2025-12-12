@@ -2,6 +2,7 @@ import { gradeWithAdaptiveGrader, type AdaptiveGraderInput } from './adaptive-pa
 import { gradeWithAdaptiveEssayGrader, type AdaptiveEssayGraderInput } from './adaptive-essay-grader';
 import type { GraderResult, GraderRemark } from './grader-config';
 import type { EssayGraderResult, EssayCriterionResult, CriterionStatus, EssayScores } from './essay-grader-config';
+import { generateSynopsis } from './synopsis';
 export { HIGHLIGHTABLE_CRITERIA } from './essay-grader-config';
 
 import { CATEGORY_TO_LESSONS } from '@/lib/grading/paragraph-gap-detection';
@@ -41,6 +42,8 @@ export interface GradeResponse {
   gaps: SkillGap[];
   hasSevereGap: boolean;
   prioritizedLessons: string[];
+  /** AI-generated 1-2 sentence overall assessment */
+  overallAssessment?: string;
 }
 
 export interface EssayGradeResponse {
@@ -48,6 +51,8 @@ export interface EssayGradeResponse {
   gaps: SkillGap[];
   hasSevereGap: boolean;
   prioritizedLessons: string[];
+  /** AI-generated 1-2 sentence overall assessment */
+  overallAssessment?: string;
 }
 
 /**
@@ -182,11 +187,21 @@ export async function gradeWriting(request: GradeRequest): Promise<GradeResponse
   const gaps = detectGapsFromResult(result);
   const prioritizedLessons = prioritizeLessons(gaps);
 
+  // Generate synopsis in parallel (don't block on failure)
+  const overallAssessment = await generateSynopsis({
+    content: request.content,
+    prompt: request.prompt,
+    type: 'paragraph',
+    gradeLevel: request.gradeLevel,
+    result,
+  }).catch(() => undefined);
+
   return {
     result,
     gaps,
     hasSevereGap: gaps.some((g) => g.severity === 'high'),
     prioritizedLessons,
+    overallAssessment,
   };
 }
 
@@ -203,11 +218,21 @@ export async function gradeEssay(request: EssayGradeRequest): Promise<EssayGrade
   const gaps = detectEssayGaps(result);
   const prioritizedLessons = prioritizeLessons(gaps);
 
+  // Generate synopsis in parallel (don't block on failure)
+  const overallAssessment = await generateSynopsis({
+    content: request.content,
+    prompt: request.prompt,
+    type: 'essay',
+    gradeLevel: request.gradeLevel,
+    result,
+  }).catch(() => undefined);
+
   return {
     result,
     gaps,
     hasSevereGap: gaps.some((g) => g.severity === 'high'),
     prioritizedLessons,
+    overallAssessment,
   };
 }
 

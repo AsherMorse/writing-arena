@@ -22,12 +22,6 @@ export type SkillTier = 1 | 2 | 3;
 export type SubmissionLevel = 'paragraph' | 'essay' | 'essay_passage';
 
 /**
- * @description User title for display on leaderboards.
- * Lord = masculine, Lady = feminine, Wordsmith = neutral (default).
- */
-export type UserTitle = 'Lord' | 'Lady' | 'Wordsmith';
-
-/**
  * @description Mastery status for a single lesson.
  */
 export interface LessonMasteryStatus {
@@ -44,10 +38,6 @@ export interface UserProfile {
   displayName: string;
   email: string;
   avatar: string;
-  
-  // User title for leaderboard display
-  title?: UserTitle;         // 'Lord' | 'Lady' | 'Wordsmith' (default: 'Wordsmith')
-  hasSelectedTitle?: boolean; // True after user explicitly picks their title
   
   // Legacy rank fields (kept for backward compatibility)
   currentRank: string;
@@ -183,10 +173,16 @@ export interface PromptOptions {
 
 /**
  * @description Response from prompt generation with selection validation.
+ * Includes split prompt format for UI flexibility (question vs hint).
  */
 export interface PromptGenerationResponse {
   valid: boolean;
+  /** Full prompt text (question + hint combined) - for storage/backwards compat */
   promptText?: string;
+  /** Main question portion of the prompt */
+  promptQuestion?: string;
+  /** Optional hint/suggestions (e.g., "You might discuss...") */
+  promptHint?: string;
   reason?: string;
   selection?: string;
 }

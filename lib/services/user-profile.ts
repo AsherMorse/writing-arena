@@ -69,8 +69,6 @@ export async function createUserProfile(uid: string, data: Partial<UserProfile>)
     displayName: data.displayName || 'New Adventurer',
     email: data.email || '',
     avatar: '🌿',
-    title: data.title || 'Wordsmith',
-    hasSelectedTitle: data.hasSelectedTitle ?? false,
     // Legacy fields (kept for backward compatibility)
     currentRank: 'Bronze III',
     rankLP: 0,
@@ -151,8 +149,6 @@ export async function getUserProfile(uid: string): Promise<UserProfile | null> {
       displayName: rawData.displayName || 'New Adventurer',
       email: rawData.email || '',
       avatar: avatarValue,
-      title: rawData.title || 'Wordsmith',
-      hasSelectedTitle: rawData.hasSelectedTitle ?? false,
       // Legacy fields (kept for backward compatibility)
       currentRank: rawData.currentRank || 'Bronze III',
       rankLP: rawData.rankLP || 0,

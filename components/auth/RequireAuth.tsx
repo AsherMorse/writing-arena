@@ -5,15 +5,13 @@ import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { LoadingState } from '@/components/shared/LoadingState';
 import { logger, LOG_CONTEXTS } from '@/lib/utils/logger';
-import TitlePickerModal from '@/components/shared/TitlePickerModal';
 
 export function RequireAuth({ children }: { children: React.ReactNode }) {
-  const { user, userProfile, loading, refreshProfile } = useAuth();
+  const { user, loading } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const [isAuthorized, setIsAuthorized] = useState(false);
-  const [showTitlePicker, setShowTitlePicker] = useState(false);
 
   useEffect(() => {
     if (!loading) {
@@ -52,21 +50,6 @@ export function RequireAuth({ children }: { children: React.ReactNode }) {
     }
   }, [user, loading, router, pathname, searchParams]);
 
-  // Show title picker modal if user hasn't selected their title yet
-  useEffect(() => {
-    if (user && userProfile && !userProfile.hasSelectedTitle) {
-      setShowTitlePicker(true);
-    }
-  }, [user, userProfile]);
-
-  /**
-   * @description Handles completion of title selection.
-   */
-  const handleTitlePickerComplete = async () => {
-    await refreshProfile();
-    setShowTitlePicker(false);
-  };
-
   if (loading) {
     return <LoadingState message="Checking authentication..." />;
   }
@@ -76,13 +59,5 @@ export function RequireAuth({ children }: { children: React.ReactNode }) {
     return null;
   }
 
-  return (
-    <>
-      {children}
-      <TitlePickerModal
-        isOpen={showTitlePicker}
-        onComplete={handleTitlePickerComplete}
-      />
-    </>
-  );
+  return <>{children}</>;
 }

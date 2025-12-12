@@ -86,7 +86,7 @@ export function WritingEditor({
         </div>
         <div className="flex justify-end mt-2 text-sm font-avenir px-1">
           <span style={getParchmentTextStyle(variant)}>
-            Word Count: {wordCount}/{maxWords}
+            Word Count: {wordCount}
           </span>
         </div>
       </div>

@@ -122,3 +122,33 @@ export async function getUserSubmissionsForDate(
       ...docSnap.data(),
     })) as RankedSubmission[];
 }
+
+/**
+ * @description Fetches all ranked submissions for a user, sorted by most recent.
+ * Only returns completed submissions (with revisedScore).
+ */
+export async function getAllUserSubmissions(
+  userId: string,
+  limitCount: number = 50
+): Promise<RankedSubmission[]> {
+  const submissionsRef = collection(db, 'rankedSubmissions');
+  const q = query(submissionsRef, where('userId', '==', userId));
+  const snapshot = await getDocs(q);
+
+  const submissions = snapshot.docs
+    .map((docSnap) => ({
+      id: docSnap.id,
+      ...docSnap.data(),
+    })) as RankedSubmission[];
+
+  // Sort by submittedAt descending (most recent first)
+  // Filter to only completed submissions
+  return submissions
+    .filter((s) => s.revisedScore !== undefined)
+    .sort((a, b) => {
+      const aTime = a.submittedAt?.toMillis?.() ?? 0;
+      const bTime = b.submittedAt?.toMillis?.() ?? 0;
+      return bTime - aTime;
+    })
+    .slice(0, limitCount);
+}

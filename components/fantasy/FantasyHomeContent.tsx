@@ -11,6 +11,7 @@ import { UserProfile, SkillLevel, SkillTier } from '@/lib/types';
 import { useAuth } from '@/contexts/AuthContext';
 import { FantasyLogo } from './FantasyLogo';
 import { DailyChampions } from './DailyChampions';
+import { ProfileDropdown } from './ProfileDropdown';
 import { getGradingSummary } from '@/lib/services/grading-history';
 import { getRankDisplayName } from '@/lib/utils/score-calculator';
 import { TIER_LP_CAP } from '@/lib/utils/rank-constants';
@@ -140,14 +141,15 @@ export function FantasyHomeContent({ userProfile }: FantasyHomeContentProps) {
 
       {/* Content */}
       <div className="relative z-10 flex flex-col items-center min-h-screen px-4 py-6">
-        {/* Logout button - absolute positioned to not affect layout */}
-        <button
-          onClick={() => signOut()}
-          className="absolute top-6 right-6 text-xs font-semibold uppercase tracking-[0.1em] text-[#f5e6b8] opacity-50 hover:opacity-100 transition-opacity z-20"
-          style={{ textShadow: '0 2px 4px rgba(0,0,0,0.8)' }}
-        >
-          Log out
-        </button>
+        {/* Profile dropdown - absolute positioned to not affect layout */}
+        <div className="absolute top-4 right-4">
+          <ProfileDropdown
+            displayName={userProfile.displayName}
+            rankDisplay={rankDisplay}
+            totalLP={totalLP}
+            onSignOut={signOut}
+          />
+        </div>
 
         {/* Logo at top */}
         <FantasyLogo width={320} className="mt-2 md:mt-4" />

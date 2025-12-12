@@ -15,7 +15,7 @@ Rules:
 2. Include specific details, examples, or facts the student could use
 3. Keep language appropriate for grades 6-8
 4. Be informative but not overwhelming
-5. Focus on the specific angle mentioned in the prompt
+5. DO NOT answer the prompt question or argue the angle - just provide neutral background facts
 
 Return your response as JSON with this structure:
 {

@@ -1,6 +1,6 @@
 /**
  * @fileoverview Scroll shadow indicator component.
- * Shows shadow at bottom when there's more to scroll.
+ * Shows shadows at top/bottom when content is cut off.
  */
 'use client';
 
@@ -17,12 +17,13 @@ interface ScrollShadowProps {
 }
 
 /**
- * @description Wrapper that shows shadow at bottom when scrollable.
+ * @description Wrapper that shows shadows at top/bottom when content is cut off.
  * Automatically detects overflow and scroll position.
  */
 export function ScrollShadow({ children, className = '', contentClassName = '', maxHeight }: ScrollShadowProps) {
   const containerRef = useRef<HTMLDivElement>(null);
-  const [showShadow, setShowShadow] = useState(false);
+  const [showTopShadow, setShowTopShadow] = useState(false);
+  const [showBottomShadow, setShowBottomShadow] = useState(false);
 
   useEffect(() => {
     const container = containerRef.current;
@@ -30,8 +31,10 @@ export function ScrollShadow({ children, className = '', contentClassName = '', 
 
     const checkOverflow = () => {
       const hasScrollableContent = container.scrollHeight > container.clientHeight;
+      const atTop = container.scrollTop <= 2;
       const atBottom = container.scrollHeight - container.scrollTop <= container.clientHeight + 2;
-      setShowShadow(hasScrollableContent && !atBottom);
+      setShowTopShadow(hasScrollableContent && !atTop);
+      setShowBottomShadow(hasScrollableContent && !atBottom);
     };
 
     checkOverflow();
@@ -47,6 +50,15 @@ export function ScrollShadow({ children, className = '', contentClassName = '', 
 
   return (
     <div className={`relative ${className}`}>
+      {/* Top shadow indicator */}
+      <div
+        className="pointer-events-none absolute top-0 left-0 right-0 h-12 z-10 transition-opacity duration-200"
+        style={{
+          opacity: showTopShadow ? 1 : 0,
+          background: 'linear-gradient(to bottom, rgba(81, 58, 31, 0.5) 0%, transparent 100%)',
+        }}
+      />
+      
       <div
         ref={containerRef}
         className={`overflow-y-auto parchment-scrollbar ${contentClassName}`}
@@ -59,7 +71,7 @@ export function ScrollShadow({ children, className = '', contentClassName = '', 
       <div
         className="pointer-events-none absolute bottom-0 left-0 right-0 h-12 transition-opacity duration-200"
         style={{
-          opacity: showShadow ? 1 : 0,
+          opacity: showBottomShadow ? 1 : 0,
           background: 'linear-gradient(to top, rgba(81, 58, 31, 0.5) 0%, transparent 100%)',
         }}
       />
