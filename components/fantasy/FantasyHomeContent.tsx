@@ -191,8 +191,8 @@ export function FantasyHomeContent({ userProfile }: FantasyHomeContentProps) {
             ))}
           </div>
 
-          {/* Daily Champions - top 3 students for today */}
-          <DailyChampions />
+          {/* Daily Champions - temporarily hidden */}
+          {/* <DailyChampions /> */}
         </div>
       </div>
     </div>
