@@ -7,6 +7,7 @@
 import { useState } from 'react';
 import { usePathname } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
+import { deleteUserProfile } from '@/lib/services/firestore';
 import { resetUserProgress } from '@/lib/services/ranked-progress';
 import { deleteAllUserSubmissions as deleteAllRankedSubmissions } from '@/lib/services/ranked-submissions';
 import { deleteAllUserPracticeSubmissions } from '@/lib/services/practice-submissions';
@@ -47,7 +48,7 @@ function dispatchDebugEvent(args: {
 
 export function FantasyDebugMenu() {
   const pathname = usePathname();
-  const { user } = useAuth();
+  const { user, refreshProfile } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
   const [status, setStatus] = useState<string | null>(null);
   const [isTimerPaused, setIsTimerPaused] = useState(() => isDebugTimerPaused());
@@ -195,6 +196,21 @@ export function FantasyDebugMenu() {
     }
   };
 
+  const handleResetProfile = async () => {
+    if (!user) {
+      showStatus('Not logged in');
+      return;
+    }
+    try {
+      await deleteUserProfile(user.uid);
+      await refreshProfile();
+      showStatus('Profile reset! Reloading...');
+      setTimeout(() => window.location.reload(), 500);
+    } catch (err) {
+      showStatus('Failed to reset profile');
+    }
+  };
+
   const handlePasteClipboard = async () => {
     try {
       const text = await navigator.clipboard.readText();
@@ -215,6 +231,7 @@ export function FantasyDebugMenu() {
     { label: '+5 Fake Subs', action: handleAddFakeSubmissions },
     { label: 'Clear Prompt', action: handleClearPromptSubmissions },
     { label: 'Clear Skill Gaps', action: handleClearSkillGaps },
+    { label: 'Reset Profile', action: handleResetProfile },
   ];
 
   return (

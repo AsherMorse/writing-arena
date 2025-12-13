@@ -15,6 +15,7 @@ export {
   getUserProfile,
   updateUserProfile,
   updateUserStatsAfterSession,
+  deleteUserProfile,
 } from './user-profile';
 
 // Re-export writing session operations

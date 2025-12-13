@@ -4,7 +4,7 @@
  */
 
 import { db } from '../config/firebase';
-import { doc, getDoc, setDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
+import { doc, getDoc, setDoc, updateDoc, deleteDoc, serverTimestamp } from 'firebase/firestore';
 import { promoteRank as legacyPromoteRank, demoteRank as legacyDemoteRank } from './ai-students';
 import { UserProfile, SkillLevel, SkillTier } from '@/lib/types';
 import { applyLPChange, getDefaultRank } from './rank-system';
@@ -525,25 +525,19 @@ export async function updateRankAfterLessonMastery(
   const userData = userSnap.data() as UserProfile;
   const defaultRank = getDefaultRank();
   
-  // Get current rank (with defaults for missing fields)
   const currentLevel = userData.skillLevel || defaultRank.level;
   const currentTier = userData.skillTier || defaultRank.tier;
   const currentTierLP = userData.tierLP ?? defaultRank.tierLP;
   
-  // Flat +5 LP for lesson mastery
   const lpChange = LESSON_MASTERY_LP;
   
-  // Apply LP change
   const rankUpdate = applyLPChange(currentLevel, currentTier, currentTierLP, lpChange);
 
   const updates: Record<string, unknown> = {
-    // Update new rank fields
     skillLevel: rankUpdate.newLevel,
     skillTier: rankUpdate.newTier,
     tierLP: rankUpdate.newTierLP,
-    // Update totalLP
     totalLP: (userData.totalLP || 0) + lpChange,
-    // Note: stats.lessonsCompleted is handled by updateMastery, not here
     updatedAt: serverTimestamp(),
   };
 
@@ -556,4 +550,9 @@ export async function updateRankAfterLessonMastery(
     newTierLP: rankUpdate.newTierLP,
     change: rankUpdate.change,
   };
+}
+
+export async function deleteUserProfile(uid: string): Promise<void> {
+  const userRef = doc(db, 'users', uid);
+  await deleteDoc(userRef);
 }

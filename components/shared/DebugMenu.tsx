@@ -2,6 +2,8 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { usePathname } from 'next/navigation';
+import { useAuth } from '@/contexts/AuthContext';
+import { deleteUserProfile } from '@/lib/services/firestore';
 
 type DebugButton = {
   label: string;
@@ -17,6 +19,7 @@ export default function DebugMenu() {
   const pathname = usePathname();
   const [isOpen, setIsOpen] = useState(false);
   const [phaseActions, setPhaseActions] = useState<PhaseActionsDetail>({});
+  const { user, refreshProfile } = useAuth();
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -31,17 +34,27 @@ export default function DebugMenu() {
       setPhaseActions(detail);
     };
 
+    const handleResetProfile = async () => {
+      if (!user) return;
+      await deleteUserProfile(user.uid);
+      await refreshProfile();
+      window.location.reload();
+    };
+
     window.addEventListener('debug-phase-actions', handlePhaseActions as EventListener);
+    window.addEventListener('debug-reset-profile', handleResetProfile);
     return () => {
       window.removeEventListener('debug-phase-actions', handlePhaseActions as EventListener);
+      window.removeEventListener('debug-reset-profile', handleResetProfile);
     };
-  }, []);
+  }, [user, refreshProfile]);
 
   const buttons = useMemo(() => {
     const dynamicButtons: DebugButton[] = [
       { label: 'Fill Lobby w/ AI', eventName: 'debug-fill-lobby-ai' },
       { label: 'Paste Clipboard', eventName: 'debug-paste-clipboard' },
       { label: 'Force Submit Phase', eventName: 'debug-force-submit' },
+      { label: 'Reset Profile', eventName: 'debug-reset-profile' },
     ];
     dynamicButtons.push(phaseActions.primary ?? { label: 'Placeholder 1' });
     dynamicButtons.push(phaseActions.secondary ?? { label: 'Placeholder 2' });
