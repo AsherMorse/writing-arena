@@ -90,6 +90,7 @@ export interface RankedPrompt {
   activeDate: string;
   promptText: string;
   topic?: string;
+  angle?: string;
   inspirationText?: string;
   createdAt: Timestamp;
 }

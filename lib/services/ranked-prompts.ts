@@ -13,35 +13,33 @@ import { getUserSubmissionsForDate } from './ranked-submissions';
 //   'Learning', 'Sleep', 'Magic', 'Kindness', 'Colors',
 // ];
 
-const RANKED_TOPICS = [
+export const RANKED_TOPICS = [
   // Entertainment
   'Video Games', 'YouTube', 'Music', 'Movies', 'Anime', 'Sports',
   'TikTok', 'Streaming Shows', 'Social Media', 'Memes',
   
   // Food
-  'Pizza', 'Fast Food', 'Snacks', 'School Lunch', 'Ice Cream',
+  'Pizza', 'Fast Food', 'Snacks', 'School Lunch', 
   
   // Things Kids Care About
-  'Cars', 'Shoes', 'Phones', 'Bikes', 'Pets', 'Books',
-  'Skateboards', 'Hobbies', 'Collections',
+  'Cars', 'Shoes', 'Phones', 'Pets', 'Books',
+  'Skateboards', 'Hobbies',
   
   // School Life
   'Field Trips', 'Summer Break', 'Recess', 'Group Projects',
-  'After-School Clubs', 'Lunch Tables'
+  'After-School Clubs', 'Lunch Tables',
 ];
 
-const ANGLES = [
-  'Focus on what makes this topic unique or special.',
-  'Focus on how this topic affects or connects to people.',
-  'Focus on comparing this topic to something similar.',
-  'Focus on why people find this topic interesting or enjoyable.',
-  'Focus on how this topic works or functions.',
-  'Focus on the benefits or positive aspects of this topic.',
-  'Focus on different types or varieties of this topic.',
-  'Focus on what someone new to this topic should know.',
+export const VIBES = [
+  'convince a skeptical friend',
+  'explain it to someone who has never heard of it',
+  'settle an argument',
+  'give your honest hot take',
+  'hype it up',
+  'defend an unpopular opinion about it',
 ];
 
-const ESSAY_TOPICS = [
+export const ESSAY_TOPICS = [
   // Debates students care about
   'Screen Time', 'Homework', 'School Start Times', 'Dress Codes',
   'Social Media Age Limits', 'Video Game Violence', 'Phone Rules',
@@ -55,14 +53,14 @@ const ESSAY_TOPICS = [
   'Solo vs Team Activities', 'City vs Small Town Life',
 ];
 
-const ESSAY_ANGLES = [
-  'Argue for or against, considering multiple perspectives.',
-  'Compare and contrast two approaches.',
-  'Explore causes and effects.',
-  'Discuss benefits and drawbacks.',
-  'Explain why this matters and what should change.',
-  'Analyze how this affects different groups differently.',
-  'Present both sides and take a position.',
+export const ESSAY_VIBES = [
+  'settle an argument',
+  'defend an unpopular opinion',
+  'convince someone who disagrees',
+  'explain why people get it wrong',
+  'compare two sides fairly',
+  'challenge what everyone assumes',
+  'make someone care about this',
 ];
 
 function seededRandom(seed: number): () => number {
@@ -95,12 +93,12 @@ function getAngleForPrompt(
   promptIndex: number,
   level: 'paragraph' | 'essay' = 'paragraph'
 ): string {
-  const angles = level === 'essay' ? ESSAY_ANGLES : ANGLES;
+  const vibes = level === 'essay' ? ESSAY_VIBES : VIBES;
   const baseSeed = getDateSeed(dateString);
   const seed = baseSeed + promptIndex * 7919 + 1;
   const random = seededRandom(seed);
-  const index = Math.floor(random() * angles.length);
-  return angles[index];
+  const index = Math.floor(random() * vibes.length);
+  return vibes[index];
 }
 
 export async function getPromptBySequence(
@@ -256,6 +254,7 @@ async function generatePromptAtIndex(
       dailyIndex: promptIndex,
       promptText,
       topic,
+      angle,
       createdAt: serverTimestamp(),
     };
     

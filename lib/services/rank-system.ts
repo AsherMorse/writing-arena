@@ -8,7 +8,9 @@ import {
   TIER_LP_CAP,
   TIER_LP_START,
   SKILL_LEVELS,
+  LESSON_MASTERY_LP,
 } from '@/lib/utils/rank-constants';
+import { getRankDisplayName } from '@/lib/utils/score-calculator';
 
 /**
  * @description Result of a rank change operation.
@@ -169,4 +171,53 @@ export function isMaxRank(level: SkillLevel, tier: SkillTier): boolean {
  */
 export function isMinRank(level: SkillLevel, tier: SkillTier): boolean {
   return level === 'scribe' && tier === 3;
+}
+
+/**
+ * @description Get the display name of the next rank.
+ * Returns "Max Rank" if already at maximum (Loremaster I).
+ */
+export function getNextRankDisplayName(level: SkillLevel, tier: SkillTier): string {
+  const nextRank = promoteRank(level, tier);
+  
+  // Check if at max rank (no change)
+  if (nextRank.level === level && nextRank.tier === tier) {
+    return 'Max Rank';
+  }
+  
+  return getRankDisplayName(nextRank.level, nextRank.tier);
+}
+
+/**
+ * @description Calculate potential LP from completing a number of lessons.
+ * Each mastered lesson awards +5 LP.
+ */
+export function calculatePotentialLessonLP(lessonCount: number): number {
+  return lessonCount * LESSON_MASTERY_LP;
+}
+
+/**
+ * @description Get an encouraging message about lesson LP rewards.
+ * Message varies based on how much progress the lessons will provide.
+ */
+export function getEncouragingMessage(
+  currentTierLP: number,
+  lessonCount: number,
+  nextRankName: string
+): string {
+  const potentialLP = calculatePotentialLessonLP(lessonCount);
+  const lpNeeded = TIER_LP_CAP - currentTierLP;
+  const coverage = (potentialLP / lpNeeded) * 100;
+  
+  if (potentialLP >= lpNeeded) {
+    return `Complete these lessons and you'll earn enough LP to reach ${nextRankName}!`;
+  } else if (coverage >= 75) {
+    return `You're almost there! These lessons will get you ${Math.round(coverage)}% of the way to ${nextRankName}!`;
+  } else if (coverage >= 50) {
+    return `These lessons will earn you ${potentialLP} LP. You're halfway to ${nextRankName}! Keep going!`;
+  } else if (coverage >= 25) {
+    return `Earn ${potentialLP} LP from these lessons and get closer to ${nextRankName}!`;
+  } else {
+    return `Every lesson counts! Earn ${potentialLP} LP and strengthen your writing skills!`;
+  }
 }

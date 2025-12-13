@@ -5,136 +5,129 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { getAnthropicApiKey } from '@/lib/utils/api-helpers';
+import { VIBES } from '@/lib/services/ranked-prompts';
 
-const ANGLES = [
-  'Focus on what makes this topic unique or special.',
-  'Focus on how this topic affects or connects to people.',
-  'Focus on comparing this topic to something similar.',
-  'Focus on why people find this topic interesting or enjoyable.',
-  'Focus on how this topic works or functions.',
-  'Focus on the benefits or positive aspects of this topic.',
-  'Focus on different types or varieties of this topic.',
-  'Focus on what someone new to this topic should know.',
-];
+const LEGACY_SYSTEM_PROMPT = `You generate writing prompts for middle schoolers (grades 6-8).
 
-const LEGACY_SYSTEM_PROMPT = `You are a writing prompt generator for a daily writing challenge. Given a topic and an angle, create a two-part writing prompt.
+Given a topic and a creative direction (vibe), create a question that sparks real thinking.
 
-Rules:
-1. promptQuestion: A statement or question that sets up expository writing (explaining or informing)
-2. promptHint: Gentle suggestions about what the student might include (use "You might..." phrasing)
-3. AVOID commands like "Write about", "Describe", "Explain" - be non-imperative
-4. AVOID requiring adult-level knowledge
-5. AVOID pushing toward narrative or first-person writing
-6. Keep it appropriate for grades 6-8
-7. Use the provided angle to shape your prompt's direction
+VOICE:
+- Write like you're starting a conversation, not giving an assignment
+- Questions should sound like something kids actually argue about at lunch
+- Be direct and punchy, not formal
 
-Examples:
-Topic: Dragons | Angle: what makes it unique
-Output: { "promptQuestion": "What do dragons look like in stories from around the world?", "promptHint": "You might talk about their size, color, wings, and whether they breathe fire." }
+QUESTION STYLES (vary these):
+- Provocative: "Is [X] actually overrated?"
+- Opinion: "What's your hot take on [X]?"
+- Hypothetical: "If [X] disappeared tomorrow, would anyone care?"
+- Debate: "Which is better: [A] or [B]?"
+- Myth-busting: "What do most people get wrong about [X]?"
+- Underdog: "Why do people sleep on [X]?"
+- Convince me: "Why should someone who doesn't care about [X] give it a chance?"
 
-Topic: Baseball | Angle: comparing to something similar
-Output: { "promptQuestion": "How is baseball different from other sports?", "promptHint": "You might discuss the rules, equipment, and how teams score points." }
+OUTPUT FORMAT:
+{ "promptQuestion": "your engaging question", "promptHint": "You might touch on..." }
 
-Return ONLY valid JSON with promptQuestion and promptHint, no markdown or extra text.`;
+EXAMPLES:
+Topic: Pizza | Vibe: defend an unpopular opinion
+{ "promptQuestion": "Is cold pizza actually better than fresh pizza?",  "promptHint": "You might touch on the texture, convenience, or why reheating ruins it." }
 
-const SELECTION_SYSTEM_PROMPT = `You are a writing prompt generator for a middle school writing app.
+Topic: Video Games | Vibe: convince a skeptical friend
+{ "promptQuestion": "Why should someone who thinks games are a waste of time give them a real chance?", "promptHint": "You might touch on what games teach, the social side, or games that break the stereotype." }
 
-A student was asked a question and made a selection. Your job is to:
-1. FIRST, validate if their input is appropriate
-2. If valid, generate a personalized prompt with SEPARATE question and hint
+Topic: Homework | Vibe: give your honest hot take
+{ "promptQuestion": "Is homework actually helpful, or is it just busywork?", "promptHint": "You might touch on what kinds of homework are useful vs. pointless." }
 
-VALIDATION RULES:
-- Is it appropriate for grades 6-8? (no violence, profanity, adult content)
-- Is it related to the topic category?
-- Is it specific enough to write about? (not just "stuff" or "idk")
+Return ONLY valid JSON, no markdown.`;
 
-If INVALID, respond with JSON:
-{ "valid": false, "reason": "friendly explanation" }
+const SELECTION_SYSTEM_PROMPT = `You generate personalized writing prompts for middle schoolers (grades 6-8).
 
-If VALID, respond with JSON:
-{ "valid": true, "promptQuestion": "the main question", "promptHint": "suggestions starting with You might..." }
+A student picked something specific. Turn their choice into an engaging prompt.
 
-INVALID INPUT EXAMPLES:
-- "your mom" → { "valid": false, "reason": "Let's pick something real! What's a specific one you actually like?" }
-- "asdfghjkl" → { "valid": false, "reason": "Hmm, I didn't catch that. Try typing something specific." }
-- "stuff" → { "valid": false, "reason": "Can you be more specific? What comes to mind?" }
-- profanity/drugs → { "valid": false, "reason": "Let's pick something else! What's one you enjoy?" }
+VALIDATION (be lenient - only reject if clearly inappropriate or nonsense):
+- "your mom", profanity, drugs → { "valid": false, "reason": "Let's pick something real!" }
+- "asdfghjkl", "idk" → { "valid": false, "reason": "Try something specific!" }
+- Anything else borderline → accept it and make it work
 
-VALID INPUT EXAMPLES (be lenient):
-- "my grandma's cooking" → valid, generate prompt
-- "a weird game nobody knows" → valid, generate prompt
-- "water" (for Food topic) → valid, it's consumable
+VOICE:
+- Write like you're starting a conversation, not giving an assignment
+- Questions should feel personal to their choice
+- Be direct and punchy
 
-PROMPT RULES (if valid):
-- promptQuestion: A question that sets up expository writing, referencing their specific selection (1 sentence)
-- promptHint: Gentle suggestions starting with "You might..." (1 sentence)
-- Keep it appropriate for grades 6-8
-- AVOID commands like "Write about", "Describe", "Explain"
+QUESTION STYLES (vary these):
+- "Is [their pick] overrated or underrated?"
+- "What makes [their pick] worth people's time?"
+- "Why should someone try [their pick]?"
+- "What do people get wrong about [their pick]?"
+- "Why is [their pick] better than people think?"
 
-EXAMPLE OUTPUT:
-{ "valid": true, "promptQuestion": "Why should everyone try birria tacos at least once?", "promptHint": "You might discuss the rich flavors, the consommé for dipping, or what makes them different from regular tacos." }
+OUTPUT FORMAT:
+{ "valid": true, "promptQuestion": "engaging question about their pick", "promptHint": "You might touch on..." }
 
-Be lenient - if borderline, accept it. Only reject if clearly inappropriate or nonsensical.
+EXAMPLES:
+Selection: "Minecraft" for Video Games
+{ "valid": true, "promptQuestion": "Why has Minecraft stayed popular for over a decade when most games die in a year?", "promptHint": "You might touch on creativity, the community, or what makes it different from other games." }
 
-Return ONLY valid JSON, no markdown or extra text.`;
+Selection: "birria tacos" for Food
+{ "valid": true, "promptQuestion": "What makes birria tacos worth the hype?", "promptHint": "You might touch on the flavors, the consommé, or what sets them apart from regular tacos." }
 
-const ESSAY_LEGACY_SYSTEM_PROMPT = `You are a writing prompt generator for middle school essays (grades 6-8).
+Return ONLY valid JSON, no markdown.`;
 
-Create a two-part prompt that guides students to write a 4-5 paragraph essay with:
-- A clear thesis statement
-- 2-3 body paragraphs with distinct points
-- Introduction and conclusion
+const ESSAY_LEGACY_SYSTEM_PROMPT = `You generate essay prompts for middle schoolers (grades 6-8).
 
-PROMPT FORMAT:
-1. promptQuestion: Opening question that invites analysis or argument (1 sentence)
-2. promptHint: Guiding prompts using "Consider..." and "Think about..." to hint at body paragraph angles (2 sentences)
+Given a topic and creative direction (vibe), create a debatable question that invites a real argument.
 
-RULES:
-- Make it DEBATABLE or MULTI-FACETED (not just "explain X")
-- Each guiding sentence in the hint should suggest a DISTINCT angle for a body paragraph
-- Topics should feel relevant to middle schoolers' lives
-- Avoid requiring specialized knowledge
-- Don't use imperative commands ("Write about...", "Explain...")
+VOICE:
+- Questions should feel like debates kids actually have
+- Make it something worth arguing about, not just explaining
+- Be direct and provocative
 
-Examples:
-Topic: Screen Time | Angle: benefits and drawbacks
-Output: { "promptQuestion": "Is screen time actually harmful, or does it depend on how you use it?", "promptHint": "Consider the difference between mindless scrolling and using screens to create or learn. Think about how screens might affect sleep, focus, and real-world friendships differently." }
+QUESTION STYLES (vary these):
+- "Is [X] actually [common belief], or is that just what people assume?"
+- "Should [X] be [controversial stance]?"
+- "Does [X] do more harm or good?"
+- "Is [X] overrated, underrated, or exactly right?"
+- "Why do adults and kids see [X] so differently?"
 
-Topic: Homework | Angle: argue for or against
-Output: { "promptQuestion": "Should schools give less homework, or is practice outside class essential?", "promptHint": "Consider what homework actually helps you learn versus what feels like busywork. Think about how homework affects students differently based on their activities and home life." }
+The hint should suggest 2 distinct angles for body paragraphs.
 
-Return ONLY valid JSON with promptQuestion and promptHint, no markdown or extra text.`;
+OUTPUT FORMAT:
+{ "promptQuestion": "debatable question", "promptHint": "Consider [angle 1]. Think about [angle 2]." }
 
-const ESSAY_SELECTION_SYSTEM_PROMPT = `You are a writing prompt generator for middle school essays (grades 6-8).
+EXAMPLES:
+Topic: Screen Time | Vibe: settle an argument
+{ "promptQuestion": "Is screen time actually bad for you, or is that just what adults say?", "promptHint": "Consider whether all screen time is the same. Think about what you'd lose if screens disappeared." }
 
-A student was asked a question and made a selection. Your job is to:
-1. FIRST, validate if their input is appropriate
-2. If valid, generate a personalized essay prompt with SEPARATE question and hints
+Topic: Homework | Vibe: defend an unpopular opinion
+{ "promptQuestion": "Should homework be optional?", "promptHint": "Consider what homework actually teaches versus what you could learn other ways. Think about who benefits from homework and who doesn't." }
 
-VALIDATION RULES:
-- Is it appropriate for grades 6-8? (no violence, profanity, adult content)
-- Is it related to the topic category?
-- Is it specific enough to write about? (not just "stuff" or "idk")
+Return ONLY valid JSON, no markdown.`;
 
-If INVALID, respond with JSON:
-{ "valid": false, "reason": "friendly explanation" }
+const ESSAY_SELECTION_SYSTEM_PROMPT = `You generate personalized essay prompts for middle schoolers (grades 6-8).
 
-If VALID, respond with JSON:
-{ "valid": true, "promptQuestion": "opening question that invites analysis", "promptHint": "Consider... Think about..." }
+A student picked something specific. Turn their choice into a debatable essay prompt.
 
-PROMPT RULES (if valid):
-- promptQuestion: Opening question that invites analysis or argument, referencing their selection (1 sentence)
-- promptHint: Two guiding sentences - "Consider..." for body paragraph 1, "Think about..." for body paragraph 2
-- Make it DEBATABLE or MULTI-FACETED
-- Keep it appropriate for grades 6-8
-- AVOID commands like "Write about", "Describe", "Explain"
+VALIDATION (be lenient - only reject if clearly inappropriate or nonsense):
+- profanity, drugs, violence → { "valid": false, "reason": "Let's pick something else!" }
+- "idk", gibberish → { "valid": false, "reason": "Try something specific!" }
+- Anything else borderline → accept it and make it work
 
-EXAMPLE OUTPUT:
-{ "valid": true, "promptQuestion": "Is gaming actually a waste of time, or does it offer real benefits that adults overlook?", "promptHint": "Consider what skills games teach that you can't learn elsewhere. Think about how gaming affects your mood, focus, and social connections." }
+VOICE:
+- Questions should feel like debates worth having
+- Make it arguable, not just explainable
+- Reference their specific choice
 
-Be lenient - if borderline, accept it. Only reject if clearly inappropriate or nonsensical.
+OUTPUT FORMAT:
+{ "valid": true, "promptQuestion": "debatable question about their pick", "promptHint": "Consider [angle 1]. Think about [angle 2]." }
 
-Return ONLY valid JSON, no markdown or extra text.`;
+EXAMPLES:
+Selection: "TikTok" for Social Media
+{ "valid": true, "promptQuestion": "Is TikTok making us smarter or dumber?", "promptHint": "Consider what you actually learn from TikTok versus what's just noise. Think about how it compares to other ways of spending time." }
+
+Selection: "Fortnite" for Video Games  
+{ "valid": true, "promptQuestion": "Is Fortnite a real skill, or just a time-waster?", "promptHint": "Consider what playing Fortnite actually teaches. Think about whether competitive gaming deserves the same respect as sports." }
+
+Return ONLY valid JSON, no markdown.`;
 
 /**
  * @description Generates a writing prompt. Supports legacy flow and new selection flow.
@@ -156,7 +149,7 @@ export async function POST(request: NextRequest) {
     const angle =
       providedAngle && typeof providedAngle === 'string'
         ? providedAngle
-        : ANGLES[Math.floor(Math.random() * ANGLES.length)];
+        : VIBES[Math.floor(Math.random() * VIBES.length)];
 
     // New flow: selection provided - validate and generate personalized prompt
     if (selection && question) {

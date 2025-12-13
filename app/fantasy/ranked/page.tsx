@@ -41,6 +41,7 @@ import { checkBlockStatus, updateSkillGaps } from '@/lib/services/skill-gap-trac
 import { getLessonDisplayName } from '@/lib/constants/lesson-display-names';
 import { updateRankAfterRankedSubmission, getUserProfile, RankUpdateResult } from '@/lib/services/user-profile';
 import { calculateRankedLP, getRequiredMode, getRankDisplayName } from '@/lib/utils/score-calculator';
+import { getNextRankDisplayName, calculatePotentialLessonLP, getEncouragingMessage } from '@/lib/services/rank-system';
 import type { GradeResponse } from '../_lib/grading';
 import type { RankedPrompt, RankedSubmission, BlockCheckResult, SkillLevel, SkillTier, SubmissionLevel, PromptOptions } from '@/lib/types';
 import type { RankedPhase } from './_lib/ranked-phases';
@@ -85,6 +86,8 @@ export default function RankedPage() {
   /** User's current skill level for mode locking */
   const [userSkillLevel, setUserSkillLevel] = useState<SkillLevel>('scribe');
   const [userSkillTier, setUserSkillTier] = useState<SkillTier>(3);
+  /** User profile for accessing tierLP and other data */
+  const [userProfile, setUserProfile] = useState<Awaited<ReturnType<typeof getUserProfile>> | null>(null);
   /** The submission level/mode for this ranked session (based on skill level) */
   const [submissionMode, setSubmissionMode] = useState<SubmissionLevel>('paragraph');
   /** Modal visibility states */
@@ -119,6 +122,7 @@ export default function RankedPage() {
       const skillTier = profile?.skillTier ?? 3;
       setUserSkillLevel(skillLevel);
       setUserSkillTier(skillTier);
+      setUserProfile(profile);
       
       // Determine the required mode based on skill level
       const requiredMode = getRequiredMode(skillLevel);
@@ -271,7 +275,7 @@ export default function RankedPage() {
     setCustomInput('');
     
     const topic = currentPrompt.topic || 'Writing';
-    const angle = 'Focus on why people find this topic interesting or enjoyable';
+    const angle = currentPrompt.angle || 'Focus on why people find this topic interesting or enjoyable';
     
     // v1: Generate prompt directly, skip selection phase
     if (!ENABLE_SELECTION_FLOW) {
@@ -797,6 +801,90 @@ export default function RankedPage() {
                 </p>
               </div>
 
+              {/* Progression Incentive */}
+              {userProfile?.tierLP !== undefined && blockStatus.requiredLessons.length > 0 && (
+                <div
+                  className="rounded-lg p-6"
+                  style={{
+                    backgroundColor: 'rgba(251, 191, 36, 0.15)',
+                    border: '1px solid rgba(251, 191, 36, 0.4)',
+                  }}
+                >
+                  <div className="space-y-3">
+                    <h3
+                      className="font-avenir text-base"
+                      style={{ color: 'rgba(245, 230, 184, 0.9)' }}
+                    >
+                      {getEncouragingMessage(
+                        userProfile.tierLP,
+                        blockStatus.requiredLessons.length,
+                        getNextRankDisplayName(userSkillLevel, userSkillTier)
+                      )}
+                    </h3>
+                    <div className="flex items-center justify-center gap-6 text-sm">
+                      <div>
+                        <div
+                          className="font-memento uppercase tracking-wider text-xs"
+                          style={{ color: 'rgba(245, 230, 184, 0.6)' }}
+                        >
+                          Potential LP
+                        </div>
+                        <div
+                          className="font-dutch809 text-2xl"
+                          style={{ color: '#fbbf24' }}
+                        >
+                          +{calculatePotentialLessonLP(blockStatus.requiredLessons.length)}
+                        </div>
+                      </div>
+                      <div
+                        style={{
+                          width: '1px',
+                          height: '40px',
+                          background: 'rgba(245, 230, 184, 0.2)',
+                        }}
+                      />
+                      <div>
+                        <div
+                          className="font-memento uppercase tracking-wider text-xs"
+                          style={{ color: 'rgba(245, 230, 184, 0.6)' }}
+                        >
+                          LP to Next Rank
+                        </div>
+                        <div
+                          className="font-dutch809 text-2xl"
+                          style={{ color: '#fbbf24' }}
+                        >
+                          {100 - userProfile.tierLP}
+                        </div>
+                      </div>
+                    </div>
+                    {/* Progress Bar */}
+                    <div className="w-full">
+                      <div
+                        className="h-2 rounded-full overflow-hidden"
+                        style={{ backgroundColor: 'rgba(139, 99, 52, 0.3)' }}
+                      >
+                        <div
+                          className="h-full transition-all duration-300"
+                          style={{
+                            width: `${Math.min(100, userProfile.tierLP)}%`,
+                            background: 'linear-gradient(90deg, #8B6334, #fbbf24)',
+                          }}
+                        />
+                      </div>
+                      <div className="flex justify-between mt-1 text-xs font-avenir">
+                        <span style={{ color: 'rgba(245, 230, 184, 0.5)' }}>
+                          {userProfile.tierLP} LP
+                        </span>
+                        <span style={{ color: 'rgba(245, 230, 184, 0.5)' }}>
+                          100 LP
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               <div
                 className="rounded-lg p-6"
                 style={{
@@ -810,7 +898,7 @@ export default function RankedPage() {
                 >
                   Skills to Improve
                 </h3>
-                <div className="space-y-2">
+                <div className="max-h-[200px] overflow-y-auto parchment-scrollbar space-y-2">
                   {blockStatus.blockingGaps.map((gap) => (
                     <div
                       key={gap}
@@ -835,26 +923,27 @@ export default function RankedPage() {
                     className="font-memento text-sm uppercase tracking-wider mb-4"
                     style={{ color: 'rgba(245, 230, 184, 0.6)' }}
                   >
-                    Required Lessons
+                    Required Lessons{' '}
+                    <span style={{ color: 'rgba(245, 230, 184, 0.5)' }}>
+                      ({blockStatus.requiredLessons.length})
+                    </span>
                   </h3>
-                  <div className="space-y-2">
-                    {blockStatus.requiredLessons.slice(0, 5).map((lesson) => (
+                  <div className="max-h-[200px] overflow-y-auto parchment-scrollbar space-y-2">
+                    {blockStatus.requiredLessons.map((lesson) => (
                       <div
                         key={lesson}
-                        className="font-avenir text-base"
+                        className="flex items-center justify-between font-avenir text-base"
                         style={{ color: 'rgba(245, 230, 184, 0.9)' }}
                       >
-                        • {getLessonDisplayName(lesson)}
+                        <span>• {getLessonDisplayName(lesson)}</span>
+                        <span
+                          className="text-xs font-memento uppercase"
+                          style={{ color: 'rgba(245, 230, 184, 0.6)' }}
+                        >
+                          +5 LP
+                        </span>
                       </div>
                     ))}
-                    {blockStatus.requiredLessons.length > 5 && (
-                      <div
-                        className="font-avenir text-sm"
-                        style={{ color: 'rgba(245, 230, 184, 0.5)' }}
-                      >
-                        +{blockStatus.requiredLessons.length - 5} more
-                      </div>
-                    )}
                   </div>
                 </div>
               )}
@@ -869,7 +958,7 @@ export default function RankedPage() {
                   </ParchmentButton>
                 )}
                 <ParchmentButton onClick={() => router.push('/fantasy/study')} variant="golden">
-                  Go to Practice
+                  Start Learning
                 </ParchmentButton>
               </div>
             </div>

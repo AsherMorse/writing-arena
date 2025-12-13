@@ -262,8 +262,12 @@ export default function HistoryPage() {
                       {formatDateDisplay(dateStr)}
                     </h2>
                     <span
-                      className="font-avenir text-sm"
-                      style={{ color: 'rgba(245, 230, 184, 0.6)' }}
+                      className="font-avenir text-xs px-2 py-0.5 rounded-full"
+                      style={{ 
+                        color: 'rgba(245, 230, 184, 0.9)',
+                        backgroundColor: 'rgba(245, 230, 184, 0.15)',
+                        border: '1px solid rgba(245, 230, 184, 0.25)'
+                      }}
                     >
                       +{dayLP} LP
                     </span>
@@ -501,3 +505,5 @@ function ResponseModal({ submission, onClose }: ResponseModalProps) {
     </div>
   );
 }
+
+

@@ -198,12 +198,15 @@ export default function StudyPage() {
   }
 
   return (
-    <div className="relative min-h-screen">
-      <Image src="/images/backgrounds/study-2.webp" alt="" fill className="object-cover" priority />
-      <div
-        className="absolute inset-0"
-        style={{ background: 'radial-gradient(ellipse at center, rgba(0,0,0,0.3) 0%, rgba(0,0,0,0.6) 100%)' }}
-      />
+    <div className="min-h-screen">
+      {/* Fixed background that stays in place */}
+      <div className="fixed inset-0 -z-10">
+        <Image src="/images/backgrounds/study-2.webp" alt="" fill className="object-cover" priority />
+        <div
+          className="absolute inset-0"
+          style={{ background: 'radial-gradient(ellipse at center, rgba(0,0,0,0.3) 0%, rgba(0,0,0,0.6) 100%)' }}
+        />
+      </div>
 
       <div className="relative z-10 min-h-screen">
         <header className="p-4">

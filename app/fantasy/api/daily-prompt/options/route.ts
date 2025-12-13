@@ -6,66 +6,73 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAnthropicApiKey } from '@/lib/utils/api-helpers';
 
-const SYSTEM_PROMPT = `You are helping students pick what to write about. Given a broad topic and an angle, generate:
+const SYSTEM_PROMPT = `You help students pick what to write about. Generate a question and 6 options.
 
-1. A selection question that fits the angle
-2. 6 specific options students can choose from
+VOICE:
+- Questions should sound casual, like asking a friend
+- Not formal or teacher-y
 
-Critical Rule:
-- Questions should be direct and conversational
+QUESTION STYLES (vary these - don't always use the same pattern):
+- "What's your go-to [X]?"
+- "Which [X] is overrated?"
+- "Which [X] would you defend to the death?"
+- "What [X] do you wish more people knew about?"
+- "Which [X] hits different?"
+- "What's the best [X] and why?"
+- "Pick your favorite [X]"
 
-Other Rules:
-- The question should feel natural for the angle (see mappings below)
-- Options should be specific, recognizable to grades 6-8
-- Options should vary (popular + niche + different categories)
-- Keep options 1-3 words each
-- For "comparing" angle, options should be pairs like "Pizza vs Tacos"
+OPTIONS:
+- 6 specific choices recognizable to grades 6-8
+- Mix popular + underrated + different categories
+- 1-3 words each
+- Include at least one unexpected/niche option
 
-Angle → Question style:
-- "unique or special" → "Which [X] stands out from the rest?"
-- "affects or connects to people" → "Which [X] means something to you?"
-- "comparing this topic to something similar" → "Pick two [X]s to compare"
-- "why people find this topic interesting" → "Which [X] is underrated?" or "Which [X] do you love?"
-- "how this topic works" → "Which [X] would you explain to someone?"
-- "benefits or positive aspects" → "Which [X] should everyone try?"
-- "different types or varieties" → "Which type of [X] is your style?"
-- "what someone new to this topic should know" → "Which [X] would you recommend to a beginner?"
+OUTPUT FORMAT:
+{ "question": "casual question", "options": ["opt1", "opt2", "opt3", "opt4", "opt5", "opt6"] }
 
-Return ONLY valid JSON in this exact format:
-{
-  "question": "...",
-  "options": ["...", "...", "...", "...", "...", "..."]
-}`;
+EXAMPLES:
+Topic: Pizza | Vibe: hype it up
+{ "question": "What pizza topping is elite?", "options": ["Pepperoni", "Hawaiian", "Meat lovers", "Plain cheese", "BBQ chicken", "Buffalo chicken"] }
 
-const ESSAY_OPTIONS_PROMPT = `You are helping students pick what to write an essay about. Given a broad topic and an angle, generate:
+Topic: Music | Vibe: defend an unpopular opinion  
+{ "question": "What music do you secretly love?", "options": ["Country", "Classical", "K-pop", "Old school rap", "Show tunes", "Video game soundtracks"] }
 
-1. A selection question that fits the angle and invites debate
-2. 6 specific options students can choose from
+Topic: Video Games | Vibe: convince a skeptical friend
+{ "question": "What game would you make a non-gamer play?", "options": ["Minecraft", "Mario Kart", "Stardew Valley", "Wii Sports", "Tetris", "Among Us"] }
 
-Critical Rule:
-- Questions should feel like they're asking for something worth defending or analyzing
+Return ONLY valid JSON, no markdown.`;
 
-Other Rules:
-- Options should be specific and recognizable to grades 6-8
-- Options should represent different perspectives or examples within the topic
-- Keep options 1-3 words each
-- For "compare" angles, options should be pairs like "Online vs In-Person"
+const ESSAY_OPTIONS_PROMPT = `You help students pick what to write an essay about. Generate a debatable question and 6 options.
 
-Angle → Question style:
-- "Argue for or against" → "What [X] would you defend or argue against?"
-- "Compare and contrast" → "Pick two [X]s to compare"
-- "Causes and effects" → "What [X] has the biggest impact on your life?"
-- "Benefits and drawbacks" → "What [X] do you disagree with most?"
-- "Why this matters" → "What [X] should more people care about?"
-- "Different groups" → "What [X] affects teens differently than adults?"
-- "Both sides" → "What [X] debate would you want to settle?"
-- "How it's changed" → "What [X] has changed the most in recent years?"
+VOICE:
+- Questions should invite an argument or strong opinion
+- Sound like a debate topic, not a school assignment
 
-Return ONLY valid JSON in this exact format:
-{
-  "question": "...",
-  "options": ["...", "...", "...", "...", "...", "..."]
-}`;
+QUESTION STYLES (vary these):
+- "What [X] would you defend?"
+- "What [X] do people get wrong?"
+- "What [X] deserves more respect?"
+- "What [X] is the most controversial?"
+- "What [X] would you argue about?"
+- "Which [X] matters most?"
+
+OPTIONS:
+- 6 specific choices that invite different arguments
+- Should be things people actually disagree about
+- 1-3 words each
+- Mix mainstream + controversial + unexpected
+
+OUTPUT FORMAT:
+{ "question": "debatable question", "options": ["opt1", "opt2", "opt3", "opt4", "opt5", "opt6"] }
+
+EXAMPLES:
+Topic: Screen Time | Vibe: settle an argument
+{ "question": "What screen time is actually worth it?", "options": ["Gaming", "YouTube", "TikTok", "Texting", "Netflix", "Making stuff"] }
+
+Topic: School | Vibe: defend an unpopular opinion
+{ "question": "What school thing is secretly useful?", "options": ["Homework", "Group projects", "Dress codes", "Early start times", "Standardized tests", "Busy work"] }
+
+Return ONLY valid JSON, no markdown.`;
 
 /**
  * @description Generates selection options for a ranked prompt topic.

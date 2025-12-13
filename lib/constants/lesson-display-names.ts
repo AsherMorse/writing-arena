@@ -9,7 +9,7 @@
  */
 export const LESSON_DISPLAY_NAMES: Record<string, string> = {
   // Tier 1: Sentence-level lessons
-  'basic-conjunctions': 'Because, But, So',
+  'basic-conjunctions': 'Basic Conjunctions',
   'write-appositives': 'Appositives',
   'subordinating-conjunctions': 'Subordinating Conjunctions',
   'kernel-expansion': 'Sentence Expansion',
@@ -25,7 +25,7 @@ export const LESSON_DISPLAY_NAMES: Record<string, string> = {
   'elaborate-paragraphs': 'Elaborate on Paragraphs',
   'using-transition-words': 'Using Transition Words',
   'finishing-transition-words': 'Finishing Transition Words',
-  'write-cs-from-details': 'Concluding Sentences',
+  'write-cs-from-details': 'Concluding Sentences from Details',
   'write-ts-from-details': 'Topic Sentences from Details',
   'write-freeform-paragraph': 'Free-Form Paragraph',
 

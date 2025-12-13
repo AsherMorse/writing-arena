@@ -164,7 +164,7 @@ export function FantasyHomeContent({ userProfile }: FantasyHomeContentProps) {
               textShadow: '0 2px 8px rgba(0, 0, 0, 0.8)',
             }}
           >
-            Welcome back, {userProfile.displayName}
+            Welcome back, {userProfile.displayName.split(' ')[0]}!
           </p>
 
           {/* Player panel with rank and stats */}
@@ -275,7 +275,7 @@ function PlayerPanel({ rankDisplay, tierLP, progress, totalLP, dailyLP, currentS
       {/* Stats row */}
       <div className="relative px-6 py-3 flex items-center justify-around">
         <StatItem label="Total LP" value={totalLP.toLocaleString()} />
-        <StatItem label="Daily LP" value={dailyLP.toString()} />
+        <StatItem label="Today's LP" value={dailyLP.toString()} />
         <StatItem label="Streak" value={`${currentStreak} day${currentStreak !== 1 ? 's' : ''}`} />
         <StatItem 
           label="Avg Score" 

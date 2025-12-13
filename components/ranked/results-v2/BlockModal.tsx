@@ -4,6 +4,7 @@
  */
 
 import type { BlockStatus } from '@/lib/types/grading-history';
+import { calculatePotentialLessonLP } from '@/lib/services/rank-system';
 
 interface BlockModalProps {
   blockStatus: BlockStatus;
@@ -32,6 +33,7 @@ function getCriterionName(criterion: string): string {
 
 export function BlockModal({ blockStatus, onClose, onGoToPractice }: BlockModalProps) {
   const isAccumulated = blockStatus.reason === 'accumulated_gaps';
+  const potentialLP = calculatePotentialLessonLP(blockStatus.requiredLessons.length);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4">
@@ -48,6 +50,20 @@ export function BlockModal({ blockStatus, onClose, onGoToPractice }: BlockModalP
             ? 'You have recurring skill gaps that need attention before your next ranked match.'
             : 'Your recent writing showed areas that need strengthening before your next ranked match.'}
         </p>
+
+        {/* LP Incentive */}
+        {potentialLP > 0 && (
+          <div className="mb-6 rounded-[12px] border border-[rgba(251,191,36,0.4)] bg-[rgba(251,191,36,0.15)] p-4">
+            <div className="text-center space-y-2">
+              <div className="text-lg font-bold text-[#fbbf24]">
+                Earn +{potentialLP} LP
+              </div>
+              <p className="text-xs text-[rgba(255,255,255,0.6)]">
+                Master these {blockStatus.requiredLessons.length} lesson{blockStatus.requiredLessons.length > 1 ? 's' : ''} to unlock ranked and boost your rank.
+              </p>
+            </div>
+          </div>
+        )}
 
         {/* Blocking Criteria */}
         <div className="mb-6 rounded-[12px] border border-[rgba(255,255,255,0.1)] bg-[rgba(255,255,255,0.025)] p-4">
@@ -67,14 +83,14 @@ export function BlockModal({ blockStatus, onClose, onGoToPractice }: BlockModalP
 
         {/* Info */}
         <p className="mb-6 text-center text-xs text-[rgba(255,255,255,0.5)]">
-          Complete the recommended practice lessons to unlock ranked matches again.
+          Complete the recommended practice lessons to unlock ranked matches.
         </p>
 
         {/* Actions */}
         <div className="flex flex-col gap-3">
           <button
             onClick={onGoToPractice}
-            className="w-full rounded-[12px] bg-[#00e5e5] px-6 py-3 text-sm font-bold uppercase tracking-wider text-[#101012] transition hover:bg-[#00d4d4]"
+            className="w-full rounded-[12px] bg-[#fbbf24] px-6 py-3 text-sm font-bold uppercase tracking-wider text-[#101012] transition hover:bg-[#d97706]"
           >
             Go to Practice
           </button>
