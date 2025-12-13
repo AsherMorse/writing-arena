@@ -16,8 +16,8 @@ export function RequireAuth({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (!loading) {
       if (!user) {
-        const publicRoutes = ['/', '/auth', '/fantasy'];
-        const isPublicRoute = publicRoutes.includes(pathname) || pathname.startsWith('/auth') || pathname.startsWith('/fantasy');
+        const publicRoutes = ['/', '/auth'];
+        const isPublicRoute = publicRoutes.includes(pathname) || pathname.startsWith('/auth');
         
         if (!isPublicRoute) {
           logger.debug(LOG_CONTEXTS.AUTH, `Redirecting to auth page from: ${pathname}`);
@@ -40,7 +40,7 @@ export function RequireAuth({ children }: { children: React.ReactNode }) {
             ? decodeURIComponent(redirectParam)
             : storedRedirect 
               ? decodeURIComponent(storedRedirect)
-              : '/dashboard';
+              : '/home';
           
           // Clear the stored redirect
           sessionStorage.removeItem('authRedirect');

@@ -2,14 +2,14 @@ import type { Metadata } from "next";
 import { Suspense } from "react";
 import "./globals.css";
 import { AuthProvider } from "@/contexts/AuthContext";
-import DebugMenu from "@/components/shared/DebugMenu";
+import { FantasyDebugMenu } from "@/components/fantasy";
 import { RequireAuth } from "@/components/auth/RequireAuth";
 import { LoadingState } from "@/components/shared/LoadingState";
 import { dutch809, avenirNext, memento } from "./fonts";
 
 export const metadata: Metadata = {
-  title: "Writing Arena - Competitive Writing Platform",
-  description: "Transform your writing skills through competitive matches and AI-powered feedback",
+  title: "Writing Arena",
+  description: "Learn to write, one quest at a time",
 };
 
 export default function RootLayout({
@@ -26,7 +26,7 @@ export default function RootLayout({
             {children}
           </RequireAuth>
         </Suspense>
-        {process.env.NODE_ENV === 'development' && <DebugMenu />}
+        <FantasyDebugMenu />
       </AuthProvider>
     </body>
     </html>

@@ -59,10 +59,6 @@ export function FantasyDebugMenu() {
     return null;
   }
 
-  if (!pathname?.startsWith('/fantasy')) {
-    return null;
-  }
-
   const showStatus = (message: string) => {
     setStatus(message);
     setTimeout(() => setStatus(null), 2000);
@@ -139,7 +135,7 @@ export function FantasyDebugMenu() {
     showStatus(`${label} triggered`);
   };
 
-  const isRankedPage = pathname?.startsWith('/fantasy/ranked');
+  const isRankedPage = pathname?.startsWith('/ranked');
 
   const handleJumpRankedPhase = () => {
     if (!isRankedPage) return;

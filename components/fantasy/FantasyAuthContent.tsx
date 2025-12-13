@@ -28,7 +28,7 @@ export function FantasyAuthContent() {
         ? decodeURIComponent(redirectParam)
         : storedRedirect
           ? decodeURIComponent(storedRedirect)
-          : '/fantasy/home';
+          : '/home';
 
       if (typeof window !== 'undefined') {
         sessionStorage.removeItem('authRedirect');
@@ -84,7 +84,7 @@ export function FantasyAuthContent() {
 
       <div className="absolute inset-0 flex flex-col items-center px-4">
         <Link
-          href="/fantasy"
+          href="/"
           className="absolute top-6 right-6 text-xs font-semibold uppercase tracking-[0.1em] text-[#f5e6b8] opacity-50 hover:opacity-100 transition-opacity z-20"
           style={{ textShadow: '0 2px 4px rgba(0,0,0,0.8)' }}
         >

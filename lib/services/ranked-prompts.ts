@@ -217,7 +217,7 @@ async function generatePromptAtIndex(
   const promptId = `${level}-${dateString}-${promptIndex}`;
 
   try {
-    const response = await fetch('/fantasy/api/daily-prompt', {
+    const response = await fetch('/api/daily-prompt', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ topic, angle, level }),
@@ -231,7 +231,7 @@ async function generatePromptAtIndex(
 
     let inspirationText: string | undefined;
     try {
-      const inspResponse = await fetch('/fantasy/api/generate-inspiration', {
+      const inspResponse = await fetch('/api/generate-inspiration', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ prompt: promptText }),

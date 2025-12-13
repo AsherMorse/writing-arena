@@ -9,7 +9,7 @@ import {
   INTERVENTION_RULES,
   MAX_OCCURRENCES_STORED,
 } from '@/lib/constants/gap-intervention';
-import type { SkillGap } from '@/app/fantasy/_lib/grading';
+import type { SkillGap } from '@/app/_lib/grading';
 import type {
   GapOccurrence,
   SkillGapData,

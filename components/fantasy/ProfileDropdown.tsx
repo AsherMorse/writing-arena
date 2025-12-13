@@ -10,7 +10,7 @@ import {
   getParchmentContainerStyle,
   getParchmentTextStyle,
   PaperTexture,
-} from '@/app/fantasy/_components/parchment-styles';
+} from '@/app/_components/parchment-styles';
 
 interface ProfileDropdownProps {
   displayName: string;
@@ -120,7 +120,7 @@ export function ProfileDropdown({
             {/* Menu items */}
             <div className="py-1">
               <Link
-                href="/fantasy/history"
+                href="/history"
                 className="w-full px-4 py-2 flex items-center gap-3 transition-colors hover:bg-[rgba(139,99,52,0.1)]"
                 onClick={() => setIsOpen(false)}
               >
