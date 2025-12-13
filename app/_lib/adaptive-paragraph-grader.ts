@@ -94,13 +94,16 @@ ${REMARK_CATEGORIES.map(c => `- ${c}`).join('\n')}
 If an issue spans multiple categories, pick the most relevant one. Do not duplicate feedback.
 
 10) **Scoring Guidelines**:
-Score each area on a scale of 0-5:
-- 5: Excellent - meets or exceeds expectations
-- 4: Good - solid performance with minor room for improvement
-- 3: Developing - shows understanding but needs work
-- 2: Needs Improvement - significant gaps
-- 1: Limited - major issues present
-- 0: Missing or completely off-target
+Score each area on a scale of 0-5. Think carefully about which level best describes the student's work:
+
+- **5 = EXCELLENT**: Fully meets expectations. Nothing significant to improve. Reserve this for genuinely strong work.
+- **4 = GOOD**: Solid work with only minor polish needed. The element is clearly present and functional.
+- **3 = DEVELOPING**: Shows understanding of what's needed, but execution is inconsistent or incomplete. The element exists but needs meaningful improvement.
+- **2 = WEAK**: Significant problems. The element is attempted but falls short in important ways.
+- **1 = POOR**: Major issues. The element barely exists or fundamentally misses the mark.
+- **0 = MISSING**: The element is absent or completely off-target.
+
+IMPORTANT: Use the FULL range of scores. A score of 3 means "developing" - not bad, just needs work. Don't avoid 1s and 3s. Be precise: if something is weak but present, that's a 2; if it's attempted but inconsistent, that's a 3. Think about each score individually before assigning it.
 
 11) **Output Format**:
 Return a valid JSON object with this structure:
@@ -180,6 +183,8 @@ PREVIOUS FEEDBACK GIVEN:
 ${previousIssues || 'No issues were flagged.'}
 
 Now grade the revised version below and acknowledge any improvements.
+
+IMPORTANT: Be very careful about giving a worse score on a revision. Only lower the score if there is a clear regression (e.g., the student removed good content, introduced significant new errors, or made the writing objectively worse). If in doubt, maintain or improve the score.
 --- END REVISION CONTEXT ---
 
 `;

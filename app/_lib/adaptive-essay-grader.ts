@@ -82,10 +82,13 @@ ${commonMistakes}
 ${criteriaList}
 
 9) **Scoring Guidelines**:
-Score each criterion as:
-- "yes" (1 point): Criterion is fully met
-- "developing" (0.5 points): Criterion is partially met, shows effort but needs improvement
-- "no" (0 points): Criterion is not met or missing
+Think carefully about each criterion before scoring. Use the full range:
+
+- **"yes" (1 point)**: Criterion is FULLY met. The element is clearly present and effective. Reserve this for genuinely successful execution.
+- **"developing" (0.5 points)**: Criterion is PARTIALLY met. The student shows understanding and made an attempt, but execution is incomplete or inconsistent. This is the most common score for work that's on the right track but needs improvement.
+- **"no" (0 points)**: Criterion is NOT met. The element is missing, unclear, or fundamentally misses what's required.
+
+IMPORTANT: Don't be afraid to use "developing" - it's not a failing grade, it means the student is learning. Be precise in your assessment. If something is attempted but weak, that's "developing". If it's absent or completely wrong, that's "no".
 
 10) **Output Format**:
 Return a valid JSON object with this structure:
@@ -183,6 +186,8 @@ PREVIOUS FEEDBACK:
 ${previousCriteria}
 
 Now grade the revised version below and acknowledge any improvements.
+
+IMPORTANT: Be very careful about giving a worse score on a revision. Only lower the score if there is a clear regression (e.g., the student removed good content, introduced significant new errors, or made the writing objectively worse). If in doubt, maintain or improve the score.
 --- END REVISION CONTEXT ---
 
 `;
