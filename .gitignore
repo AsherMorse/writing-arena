@@ -179,3 +179,5 @@ dist
 
 _alphawrite
 _brainlift
+
+!.env.example
