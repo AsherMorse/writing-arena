@@ -3,6 +3,7 @@ import { pgTable, serial, text, timestamp, boolean, index } from "drizzle-orm/pg
 export const entries = pgTable("entries", {
   id: serial("id").primaryKey(),
   content: text("content").notNull(),
+  userId: text("user_id").notNull().references(() => user.id, { onDelete: "cascade" }),
   createdAt: timestamp("created_at").defaultNow(),
 });
 
