@@ -1,13 +1,14 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
+import { api } from "../lib/api";
 
-const API = import.meta.env.VITE_API_URL;
+type Entry = { id: number; content: string; userName: string | null };
 
 export default function Home() {
-  const [entries, setEntries] = useState<{ id: number; content: string; userName: string | null }[]>([]);
+  const [entries, setEntries] = useState<Entry[]>([]);
 
   useEffect(() => {
-    fetch(`${API}/entries`).then((r) => r.json()).then(setEntries);
+    api<Entry[]>("/entries").then(setEntries);
   }, []);
 
   return (
