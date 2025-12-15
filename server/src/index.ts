@@ -2,16 +2,22 @@ import "dotenv/config";
 import express from "express";
 import cors from "cors";
 import { desc } from "drizzle-orm";
+import { toNodeHandler } from "better-auth/node";
 import { db, entries } from "./db/index.js";
+import { auth } from "./auth.js";
 
 const app = express();
-const port = process.env.PORT || 3000;
+const port = process.env.PORT!;
 
 app.use(
   cors({
-    origin: process.env.CORS_ORIGIN || "http://localhost:5173",
+    origin: process.env.CORS_ORIGIN!,
+    credentials: true,
   })
 );
+
+app.all("/auth/*", toNodeHandler(auth));
+
 app.use(express.json());
 
 app.get("/health", (_req, res) => {
