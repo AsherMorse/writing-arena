@@ -1,5 +1,7 @@
 const BASE = import.meta.env.VITE_API_URL;
 
+type ApiResponse<T> = { success: true; data: T } | { success: false; error: { code: string; message: string } };
+
 export async function api<T>(endpoint: string, options?: { method?: string; body?: unknown }): Promise<T> {
   const res = await fetch(`${BASE}${endpoint}`, {
     method: options?.method,
@@ -7,7 +9,8 @@ export async function api<T>(endpoint: string, options?: { method?: string; body
     credentials: "include",
     body: options?.body ? JSON.stringify(options.body) : undefined,
   });
-  if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error ?? "Request failed");
-  return res.json();
+  const json: ApiResponse<T> = await res.json();
+  if (!json.success) throw new Error(json.error.message);
+  return json.data;
 }
 
