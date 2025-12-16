@@ -1,7 +1,8 @@
-import { pgTable, serial, text, timestamp, boolean, index } from "drizzle-orm/pg-core";
+import { pgTable, text, timestamp, boolean, index } from "drizzle-orm/pg-core";
+import { v7 as uuidv7 } from "uuid";
 
 export const entries = pgTable("entries", {
-  id: serial("id").primaryKey(),
+  id: text("id").primaryKey().$defaultFn(() => uuidv7()),
   content: text("content").notNull(),
   userId: text("user_id").notNull().references(() => user.id, { onDelete: "cascade" }),
   createdAt: timestamp("created_at").defaultNow(),
