@@ -1,25 +1,21 @@
 import { useEffect, useState } from "react";
 import { authClient } from "../lib/auth-client";
+import { api } from "../lib/api";
 
-const API = import.meta.env.VITE_API_URL;
+type Entry = { id: number; content: string; userName: string | null };
 
 export default function Dashboard() {
   const { data: session } = authClient.useSession();
-  const [entries, setEntries] = useState<{ id: number; content: string; userName: string | null }[]>([]);
+  const [entries, setEntries] = useState<Entry[]>([]);
   const [input, setInput] = useState("");
 
-  const load = () => fetch(`${API}/entries`, { credentials: "include" }).then((r) => r.json()).then(setEntries);
+  const load = () => api<Entry[]>("/entries").then(setEntries);
 
   useEffect(() => { load(); }, []);
 
   const submit = async () => {
     if (!input.trim()) return;
-    await fetch(`${API}/entries`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      credentials: "include",
-      body: JSON.stringify({ content: input }),
-    });
+    await api("/entries", { method: "POST", body: { content: input } });
     setInput("");
     load();
   };

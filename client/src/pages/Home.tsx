@@ -1,20 +1,27 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
+import { api } from "../lib/api";
+import { authClient } from "../lib/auth-client";
 
-const API = import.meta.env.VITE_API_URL;
+type Entry = { id: number; content: string; userName: string | null };
 
 export default function Home() {
-  const [entries, setEntries] = useState<{ id: number; content: string; userName: string | null }[]>([]);
+  const [entries, setEntries] = useState<Entry[]>([]);
+  const { data: session } = authClient.useSession();
 
   useEffect(() => {
-    fetch(`${API}/entries`).then((r) => r.json()).then(setEntries);
+    api<Entry[]>("/entries").then(setEntries);
   }, []);
 
   return (
     <div className="h-screen bg-black text-white flex flex-col p-4">
       <div className="flex justify-between items-center mb-4">
         <h1 className="text-xl font-semibold">Entries</h1>
-        <Link to="/login" className="text-zinc-400 hover:text-white">Sign in</Link>
+        {session ? (
+          <button onClick={() => authClient.signOut()} className="text-zinc-400 hover:text-white">Sign out</button>
+        ) : (
+          <Link to="/login" className="text-zinc-400 hover:text-white">Sign in</Link>
+        )}
       </div>
       <div className="flex-1 overflow-y-auto space-y-1">
         {entries.map((e) => (

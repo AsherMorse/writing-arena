@@ -1,12 +1,20 @@
 import { drizzle } from "drizzle-orm/node-postgres";
+import { Pool } from "pg";
 import * as schema from "./schema.js";
 
 if (!process.env.DATABASE_URL) {
   throw new Error("DATABASE_URL environment variable is required");
 }
 
-const db = drizzle(process.env.DATABASE_URL, { schema });
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  max: 20,
+  idleTimeoutMillis: 30000,
+  connectionTimeoutMillis: 2000,
+});
 
-export { db };
+const db = drizzle(pool, { schema });
+
+export { db, pool };
 export * from "./schema.js";
 
