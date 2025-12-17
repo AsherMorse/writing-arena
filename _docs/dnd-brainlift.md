@@ -1,0 +1,1740 @@
+Writing Arena - Brainlift (Dungeons & Dragons)
+
+- Owners
+  - Asher Morse
+  - Roger Hunt the Third
+  - Tom Jacob
+- Purpose
+  - Purpose Statement
+    - The purpose of this BrainLift is to explore how AI-powered text adventure games can motivate students (grade levels 5-8) to practice writing voluntarily while embedding proven learning science. 
+      - **writing quality determines DnD "dice roll," get immediate feedback**
+        - write well = you cross the swamp/you get to the castle/you kill the dragon/you save the princess
+      - The central hypothesis: if writing instruction feels like play, kids will write more --> more reps with feedback --> better writers.
+    - This combines two proven models: AI Dungeon's engagement (1.5M+ MAU writing voluntarily) with The Writing Revolution's pedagogy (sentence-level mastery through targeted practice). The goal is to build a game where writing quality determines gameplay success, creating natural incentives for students to improve their sentence construction, conventions, and vocabulary.
+  - In Scope
+    - DnD is inherently a multiplayer game, MVP is single player
+      - multiplayer is within scope, added in near future
+    - Motivating voluntary writing practice through engaging gameplay mechanics
+    - Game mechanics that make writing quality matter (soft consequences, quest requirements)
+    - Real-time AI grading with immediate, targeted feedback
+    - Sentence-level fluency: subordinating conjunctions, appositives, transitions, sentence expansion
+    - Convention mastery: fragments, run-ons, punctuation, capitalization, subject-verb agreement
+    - CCSS Language/Writing/Reading Standards alignment 
+    - Vocabulary development tracking via Lexile level
+    - Integration with existing AlphaWrite grader and lessons for remediation
+  - Out of Scope
+    - Full essay structure instruction (thesis, intro/body/conclusion, source integration)
+    - Long-form writing assignments or research papers
+    - Teacher dashboards and classroom management (V1 priority is student-facing)
+    - Peer-to-peer social features or synchronous collaboration
+    - Creative fiction assessment (focus is on conventions and sentence strategies, not story quality)
+- Experts
+  - Kolby Nottingham
+    - Why Follow: Head of AI [@LatitudeGamesAI](https://x.com/LatitudeGamesAI) ([@aidungeon](https://x.com/aidungeon)). PhD from [@UCIrvine](https://x.com/UCIrvine) on LLM Agents. Co-creator of [MINDcraft](https://github.com/mindcraft-bots/mindcraft).
+    - Locations: [@kolbytn](https://x.com/kolbytn) on X, [https://sites.uci.edu/kolbynottingham/](https://sites.uci.edu/kolbynottingham/)
+  - Nick Walton
+    - Main views: AI empowers human creators to do more than they could alone. Variation is crucial in AI narratives—repetitive patterns kill immersion. AI enables infinite, open-ended storytelling experiences.
+    - Why Follow: Founder/CEO of Latitude, creator of AI Dungeon
+    - Locations: [@nickwalton00](https://x.com/nickwalton00) on X, [NVIDIA AI Podcast](https://blogs.nvidia.com/blog/nick-walton-ai-podcast/), [Digital Trends interview](https://www.digitaltrends.com/gaming/voyage-nick-walton-interview/)
+  - Judith Hochman & Natalie Wexler
+    - Main views: Writing must be explicitly taught through structure and sentence development. Bottom-up progression from sentences to paragraphs to essays. Good writing is rewriting.
+    - Why Follow: Creators of The Writing Revolution (TWR), the foundational framework for WriteStep's progression model
+    - Locations: [https://www.thewritingrevolution.org](https://www.thewritingrevolution.org/)
+  - James Lester
+    - Main views: Narrative is not sugar-coating for education but a fundamental cognitive structure for sense-making. AI should function as a co-creative partner, using multimodal analytics (gaze, dialogue, actions) to scaffold learning without breaking story immersion.
+    - Why Follow: Director of NSF AI Institute for Engaged Learning. Pioneer of Narrative-Centered Learning Environments (NCLEs) where AI acts as an "experience manager" dynamically tailoring story-based games to student learning needs.
+    - Locations: [NC State profile](https://csc.ncsu.edu/people/lester/), [Google Scholar](https://scholar.google.com/citations?user=q_7mcn4AAAAJ&hl=en)
+  - Mark Riedl
+    - Main views: Human-Centered AI—systems should understand and generate human-like narratives to build trust and facilitate communication. Interactive narratives can act as intelligent tutors that adapt the plot to challenge the learner appropriately.
+    - Why Follow: Professor at Georgia Tech, leads Human-Centered AI Lab. Foundational research on Automated Story Generation and Computational Narrative Intelligence—essential for educational systems that generate coherent stories to teach concepts.
+    - Locations: [@mark_riedl](https://x.com/mark_riedl) on X, [Google Scholar](https://scholar.google.com/citations?user=Yg_QjxcAAAAJ&hl=en)
+  - Peter Gault
+    - Main views: "Feedback, not Fixing"—AI should never rewrite a student's sentence; instead, it should ask Socratic questions or provide nudges that force the student to do the cognitive work of revision.
+    - Why Follow: Founder/Executive Director of [Quill.org](http://quill.org/). Scaled AI-driven writing feedback to millions of students. At the forefront of applying LLMs to provide coaching rather than autocorrect.
+    - Locations: [@PeterGault](https://x.com/PeterGault) on X
+  - David Williamson Shaffer
+    - Main views: Students learn by "becoming" members of a community of practice. Writing is not a test but a tool for action—you write a report to get funding or publish a story to change public opinion. Uses Quantitative Ethnography to assess complex thinking in written logs.
+    - Why Follow: Professor at UW-Madison, Director of Epistemic Analytics lab. Developed Epistemic Games (e.g., Urban Science) where students role-play as professionals and solve problems by writing real-world artifacts.
+    - Locations: [UW-Madison profile](https://edpsych.education.wisc.edu/fac-staff/williamson-shaffer-david/), [Epistemic Analytics](https://www.epistemicanalytics.org/staff/david-williamson-shaffer/)
+  - Edward Deci & Richard Ryan
+    - Main views: Intrinsic motivation requires three innate psychological needs: Autonomy (control over actions), Competence (feeling effective), and Relatedness (connection to others). Extrinsic rewards undermine intrinsic motivation when they feel controlling.
+    - Why Follow: Creators of Self-Determination Theory (SDT)—the foundational psychological framework explaining why games motivate while homework doesn't. SDT explains that our game satisfies all three needs: player choices (autonomy), immediate LP feedback (competence), adventure party/leaderboards (relatedness).
+    - Locations: [SDT & Gamification - Springer](https://link.springer.com/article/10.1007/s11423-023-10337-7), [SDT in Education - PMC](https://pmc.ncbi.nlm.nih.gov/articles/PMC7924718/)
+  - Don Killgallon
+    - Main views: Learn sophisticated writing by imitating professional authors' sentence structures, not memorizing grammar rules. "Babies learn to talk by imitating sentences of people who know how to talk"—same principle for writing. Implicit learning through pattern recognition beats explicit rule instruction.
+    - Why Follow: Creator of "Sentence Composing Through Imitation"—teaches sentence sophistication through 6 activities (scrambling, imitating, combining, expanding, exchanging, matching). Our game's AI-generated story functions as a dynamic version of his static mentor texts—students implicitly absorb narrative patterns by continuing AI prose.
+    - Locations: [Sentence Composing Theory](https://sentencecomposing.com/theory-of-sentence-composing/), [Activities](https://sentencecomposing.com/sentence-composing-practices/)
+  - Joan Sedita
+    - Main views: Writing requires parallel development across 5 strands (Critical Thinking, Syntax, Text Structure, Craft, Transcription). Mentor texts are the primary vehicle for teaching craft. Writing instruction must address all strands simultaneously, not just grammar/mechanics.
+    - Why Follow: Creator of The Writing Rope framework—complements TWR (structure/syntax) by adding craft and critical thinking dimensions. Our game addresses Syntax (sentence skills), Craft (narrative voice via AI model), and Critical Thinking (NPC persuasion/explanation).
+    - Locations: [Keys to Literacy](https://keystoliteracy.com/), [NJ IDA Handouts](https://nj.dyslexiaida.org/wp-content/uploads/sites/18/2022/10/Joan-Sedita-NJ-IDA-Handouts.pdf)
+  - Wang et al. (Nature 2024)
+    - Main views: Cognitive load directly causes writing anxiety, and anxiety FULLY MEDIATES the effect of cognitive load on performance. Story continuation tasks split cognitive load and produce higher lexical diversity than argumentative writing. Reducing anxiety is the key to improving writing quality, not just teaching more skills.
+    - Why Follow: Published key empirical research validating story continuation as a format that reduces writing anxiety and improves vocabulary usage. Our game IS a story continuation writing task—this is the research backing for SPOV 3 (Anxiety is the Enemy, Not Ignorance).
+    - Locations: [Cognitive Load & Anxiety Study](https://www.nature.com/articles/s41599-024-03840-6), [Story Continuation vs. Argumentative Writing](https://www.nature.com/articles/s41599-023-02488-y)
+- DOK 4 - Spiky POVs
+  - SPOV 1: Train the Foundation, Test the Transfer
+    - Claim: You don't necessarily need to practice full essays to improve on essay-based or paragraph-based tests. Sentence-level fluency is the transferable skill, the paragraph or essay structure is just the container.
+    - Elaboration:
+      - Traditional writing instruction assumes: "To get better at essays, practice essays." This creates additional cognitive load (topic generation + organization + sentences + conventions all at once) and produces anxiety that blocks performance.
+      - Our contrarian bet: Drill sentence-level conventions relentlessly through low-stakes gameplay, then prove transfer through occasional paragraph "gates" (boss battles). Students master the foundation (sentences) without the overhead of the full structure.
+      - The math supports this: STAAR ECR allocates 40% to conventions (2/5 pts), Alpha Essays allocate 30% to conventions (6/20 pts). By mastering sentence-level skills, students secure a significant portion of test points without ever practicing "essay writing."
+      - The gate mechanic (write a full paragraph to unlock new story area) serves as proof of transfer -- you practiced sentences, now show you can compose them into coherent paragraphs. This is the "boss battle" that validates the training (Insight #1)
+      - Connected to: TWR "sentences first" philosophy, cognitive load research (Wang et al.), CCSS conventions standards (L.5-8.1-3), Assessment alignment research
+  - SPOV 2: Story Investment is the Gate (change the carrot)
+    - Claim: The best writing motivation isn't visible feedback or gamification -- it's narrative investment. When students want to see what happens next, writing quality becomes the gate to the thing they actually care about 
+    - Elaboration:
+      - ex: kid wants to write great responses to get to the swamp, defeat the ogre, get to the castle, save the princess vs. kid wanting to write for a lame prompt
+      - Traditional feedback (rubrics, scores, badges) is extrinsic -- students write to get the grade, not because they care. Even "visible" feedback (HP bars, points) is still about the meta-game, not the content.
+      - Our insight: When a player is invested in a story ("Will my character survive? What's behind the door? Will the NPC help me?"), they have intrinsic motivation to advance. The only way to advance is to write well. Writing quality becomes the gate to narrative progression.
+      - This flips the script: Instead of "write well to get points," it's "write well to find out what happens." The reward isn't a score -- it's story continuation. Students aren't writing FOR feedback; they're writing FOR narrative.
+      - Visible consequences (LP bar, health) amplify this by showing writing quality affects the story they care about. Bad writing = bad outcomes for a character they're invested in. The feedback is visible AND meaningful because it's tied to something the player wants.
+      - Connected to: Visual stakes (DOK3 #1), tangible purpose > leaderboards, AI-Powered Interactive Narratives, Self-Determination Theory (autonomy + competence)
+  - SPOV 3: Anxiety is the Enemy, Not Ignorance (change the stick)
+    - Claim: Students don't fail at writing because they lack knowledge -- they fail because anxiety blocks performance. Our game attacks anxiety on two fronts: cognitive load AND feedback fear.
+    - Elaboration:
+      - **Cognitive load anxiety**: Traditional writing = generate topic + organize + write (all at once) → overload → anxiety → poor performance. Story continuation = AI handles setup, student continues → split the load. Research shows anxiety **fully mediates** the cognitive load → performance relationship.
+      - **Feedback anxiety**: Traditional writing = teacher/peer judges your work → social evaluation → fear of criticism. Our game = NPC reacts narratively → no human judgment, just story consequence. "The dragon attacks" feels different than "You got a C." Consequence is tied to character, not to student's identity/worth.
+      - **Combined effect**: Lower cognitive load → student CAN write. Lower feedback fear → student WILLING to write. Same skill practice, dramatically different emotional experience.
+      - We're treating the disease (anxiety), not the symptom (bad writing). Traditional instruction adds MORE rules and rubrics; we REMOVE friction.
+      - Connected to: Story continuation research (Wang et al. Nature 2024), SDT (competence need), "consequence > correction" insight, NPC vs. human judgment
+  - SPOV 4: Standards Alignment Doesn't Require "School Tasks"
+    - Claim: The fastest path to standards-aligned writing practice is to relabel the standards as natural game interactions, not to wrap worksheets in a game skin.
+    - Elaboration:
+      - Traditional edtech "gamifies" school tasks: Add points to worksheets, badges to essays, leaderboards to quizzes. The task is still school; the wrapper is game. Students see through it.
+      - Our approach inverts this: The game world IS the task structure. NPC interactions naturally produce standards-aligned writing without ever showing a "writing prompt":
+        - Persuade an NPC (convince the guard, negotiate with the merchant) = Argumentative writing (CCSS W.X.1)
+        - Explain a plan / report intel (brief your allies, describe what you found) = Informational writing (CCSS W.X.2)
+        - Describe an action / scene (what does your character do?) = Narrative writing (CCSS W.X.3)
+      - Students practice all three CCSS writing modes without ever writing for a lame prompt. They're playing a game while we check standards boxes.
+      - This is why our game can claim standards alignment without feeling like school -- the alignment is structural, not cosmetic. The game isn't a wrapper around instruction; the game IS the instruction.
+      - Connected to: CCSS writing modes map to NPCs (DOK3 #2), W.5-8.1-3 standards documentation, "The Game IS the Instruction" concept
+- DOK 3 - Insights 
+  - CCSS writing modes map to NPC interaction types - *(From Writing Assessment & Standards Alignment)*
+    - All three writing modes (argument, informational, narrative) occur naturally in adventure games: 
+      - persuading NPCs = W.X.1, 
+      - explaining to NPCs = W.X.2, 
+      - describing actions/scenes = W.X.3. 
+    - This means **a single game can provide standards-aligned practice **across key writing modes without feeling like school - - the student is "playing" but actually practicing argument, explanation, and narration.
+  - Visual stakes make writing feel more meaningful - *(From AI-Powered Interactive Narratives)*
+    - AI Dungeon's "Heroes" mode added HP bars -- players write more carefully when at 1 HP.
+    - The text itself hasn't changed, but a red health bar creates emotional weight/consequence.
+    - Implication: Adding visible consequences (LP loss, health bar, survival streak) transforms casual writing into careful writing without adding rules.
+    - Linked to: AI-Powered Interactive Narratives > Game Design Patterns
+  - Vocabulary can be a gameplay variable, not just an assessment - *(From Vocabulary & Lexile Measurement)*
+    - Instead of tracking Lexile post-hoc, make it a live game mechanic: "vocabulary bonus" for using grade-appropriate words, real-time feedback when writing is below grade level, unlockable "advanced vocabulary" quests.
+    - This turns vocabulary from invisible to visible and gamified — students SEE their vocabulary level affecting gameplay, not just a report card after the fact.
+    - Linked to: Vocabulary & Lexile Measurement, CCSS L.X.4-6
+  - Story continuation splits cognitive load, which reduces anxiety, which improves writing quality - *(From Student Motivation & Writing Anxiety)*
+    - Research shows: cognitive load → anxiety → poor performance (anxiety FULLY MEDIATES the effect)
+    - Traditional writing = generate topic + organize + write (all cognitive demands at once)
+    - Story continuation = AI generates context, student continues (split the load)
+    - Bonus: Story continuation produces HIGHER lexical diversity than argumentative writing
+    - Our game is literally a "story continuation writing task" -- research-backed format
+    - Linked to: Student Motivation & Writing Anxiety, Nature 2024 (Wang et al.)
+  - The AI-generated story functions as a dynamic mentor text - *(From Mentor Texts & Modeling)*
+    - Traditional imitation (Killgallon, Franklin): Read model → write from memory → compare to original
+    - Our game: AI provides model (story context) → student continues → AI responds (implicit feedback)
+    - Key difference: Feedback is LIVE and NARRATIVE, not delayed comparison
+    - Students implicitly absorb narrative patterns by continuing AI-generated prose, similar to how babies learn language by imitating speakers
+    - Linked to: Mentor Texts & Modeling, Story Continuation Research
+  - Reading comprehension can piggyback on writing assessment - *(From Game Design)*
+    - AI generates passage → student responds → grade BOTH comprehension (did they understand the situation?) AND writing quality (did they write well?)
+    - The asymmetry: It's easier to control text complexity on the INPUT side (AI-generated passage) than OUTPUT side (forcing student to write at X level).
+    - This expands educational claims to CCSS R.X (Reading) without adding friction — two metrics, one action.
+    - Example: "The dragon approached the village. What does Kira decide to do?" grades comprehension (understood the threat) + writing (quality of response).
+    - Linked to: Game Design, CCSS Reading Standards (potential expansion)
+  - [old]
+    - Kids don't care about leaderboards or rank—that only works for the intrinsically motivated. True engagement for the "average kid" comes from the writing having a tangible purpose (winning money, winning a debate, or surviving a dungeon), not just a higher score on a screen.
+    - Traditional writing feedback is binary and delayed. AI Dungeon's "fail forward" creates immediate narrative consequences that feel meaningful without being punishing. Noel's "show what you could've had vs what you lost" maps directly to this—consequence is more motivating than correction because it's story, not judgment.
+    - Students "write random crap and hit submit" because revision is traditionally about compliance (fix what teacher marked wrong). AI Dungeon's revision is about survival. Reframing revision from "correct your mistakes" to "recover your lost LP" may solve the gaming problem—same behavior (revise), different motivation (status vs. compliance).
+- DOK 2 - Knowledge Tree
+  - Writing Assessment & Standards Alignment
+    - CCSS Language Standards
+      - CCSS Language Standards (L.5-8.1-3) - Grammar, Mechanics, & Sentence Structure
+        - Summary: These are the federal standards that define what students should know about grammar, conventions, and language use at each grade level. State tests (SBAC, PARCC, state-specific) are built on CCSS. Our game targets L.X.1 (grammar/usage), L.X.2 (conventions), and L.X.3 (sentence variety) because these are directly measurable through written output.
+        - Grade 5 Standards
+          - Sources:
+            - [CCSS L.5.1 - Grammar and Usage]
+              - DOK 1 - Facts:
+                - Anchor: "Demonstrate command of the conventions of standard English grammar and usage when writing or speaking"
+                - L.5.1.a: Explain function of conjunctions, prepositions, and interjections
+                - L.5.1.b: Form and use perfect verb tenses (I had walked; I have walked; I will have walked)
+                - L.5.1.c: Use verb tense to convey various times, sequences, states, and conditions
+                - L.5.1.d: Recognize and correct inappropriate shifts in verb tense
+                - L.5.1.e: Use correlative conjunctions (either/or, neither/nor)
+              - DOK 2 - Summary: Grade 5 grammar** focuses on verb tense mastery (perfect tenses, tense consistency) and conjunction usage**. Students should understand WHY conjunctions exist, not just use them. The "recognize and correct" language indicates students must identify errors, not just avoid them.
+              - Link: https://www.thecorestandards.org/ELA-Literacy/L/5/
+            - [CCSS L.5.2 - Conventions (Capitalization, Punctuation, Spelling)]
+              - DOK 1 - Facts:
+                - Anchor: "Demonstrate command of the conventions of standard English capitalization, punctuation, and spelling when writing"
+                - L.5.2.a: Use punctuation to separate items in a series
+                - L.5.2.b: Use a comma to separate an introductory element from the rest of the sentence
+                - L.5.2.c: Use commas to set off "yes/no," tag questions, and direct address
+                - L.5.2.d: Use underlining, quotation marks, or italics for titles
+                - L.5.2.e: Spell grade-appropriate words correctly, consulting references as needed
+              - DOK 2 - Summary: Grade 5 conventions** emphasize comma usage in multiple contexts (series, introductory elements, direct address). **The introductory element comma (L.5.2.b) directly supports sentence expansion skills — students who add "When the guard approached," must know to follow with a comma.
+              - Link: https://www.thecorestandards.org/ELA-Literacy/L/5/
+            - [CCSS L.5.3 - Language Use and Style]
+              - DOK 1 - Facts:
+                - Anchor: "Use knowledge of language and its conventions when writing, speaking, reading, or listening"
+                - L.5.3.a: Expand, combine, and reduce sentences for meaning, reader/listener interest, and style
+                - L.5.3.b: Compare and contrast varieties of English (dialects, registers) in stories, dramas, or poems
+              - DOK 2 - Summary: L.5.3.a is the key **standard for sentence-level fluency --** it explicitly requires students t**o EXPAND, COMBINE, and REDUCE sentences**. This directly maps to TWR sentence strategies (sentence expansion, sentence combining with conjunctions). This is THE standard that justifies our game's sentence-strategy requirements.
+              - Link: https://www.thecorestandards.org/ELA-Literacy/L/5/
+        - Grade 6 Standards
+          - Sources:
+            - [CCSS L.6.1 - Grammar and Usage]
+              - DOK 1 - Facts:
+                - Anchor: "Demonstrate command of the conventions of standard English grammar and usage when writing or speaking"
+                - L.6.1.a: Ensure pronouns are in proper case (subjective, objective, possessive)
+                - L.6.1.b: Use intensive pronouns (myself, ourselves)
+                - L.6.1.c: Recognize and correct inappropriate shifts in pronoun number and person
+                - L.6.1.d: Recognize and correct vague pronouns (unclear or ambiguous antecedents)
+                - L.6.1.e: Recognize variations from standard English and identify strategies to improve expression
+              - DOK 2 - Summary: Grade 6 grammar shifts focus to pronoun mastery — **case, intensive forms, and especially CLARITY (vague pronouns).** The emphasis on "recognize and correct" means assessment requires error identification, not just production. L.6.1.e is notable: students must recognize when their OWN writing deviates from standard English.
+              - Link: https://www.thecorestandards.org/ELA-Literacy/L/6/
+            - [CCSS L.6.2 - Conventions (Capitalization, Punctuation, Spelling)]
+              - DOK 1 - Facts:
+                - Anchor: "Demonstrate command of the conventions of standard English capitalization, punctuation, and spelling when writing"
+                - L.6.2.a: Use punctuation (commas, parentheses, dashes) to set off nonrestrictive/parenthetical elements
+                - L.6.2.b: Spell correctly
+              - DOK 2 - Summary: Correct spelling, use punctuation to set off nonrestrictive/parenthetical elements (technical term for appositives). Ex:  "The guard, a grizzled veteran, blocked my path"
+              - Link: https://www.thecorestandards.org/ELA-Literacy/L/6/
+            - [CCSS L.6.3 - Language Use and Style]
+              - DOK 1 - Facts:
+                - Anchor: "Use knowledge of language and its conventions when writing, speaking, reading, or listening"
+                - L.6.3.a: Vary sentence patterns for meaning, reader/listener interest, and style
+                - L.6.3.b: Maintain consistency in style and tone
+              - DOK 2 - Summary: L.6.3.a is the** sentence fluency standard** — "vary sentence patterns for meaning, interest, and style." This directly justifies grading on sentence variety (mix of simple, compound, complex)**. Students who write only simple sentences fail this standard even if error-free.**
+              - Link: https://www.thecorestandards.org/ELA-Literacy/L/6/
+        - Grade 7 Standards
+          - Sources:
+            - [CCSS L.7.1 - Grammar and Usage]
+              - DOK 1 - Facts:
+                - Anchor: "Demonstrate command of the conventions of standard English grammar and usage when writing or speaking"
+                - L.7.1.a: Explain the function of phrases and clauses in general and their function in specific sentences
+                - L.7.1.b: Choose among simple, compound, complex, and compound-complex sentences to signal differing relationships among ideas
+                - L.7.1.c: Place phrases and clauses within a sentence, recognizing and correcting misplaced and dangling modifiers
+              - DOK 2 - Summary: Grade 7 is the **key grade for sentence variety mastery.** L.7.1.b explicitly requires choosing among four sentence types (simple, compound, complex, compound-complex) based on MEANING -- not just variety for variety's sake. L.7.1.a requires students to EXPLAIN why, not just do it. This is the "why behind the skill" standard.
+              - Link: https://www.thecorestandards.org/ELA-Literacy/L/7/
+            - [CCSS L.7.2 - Conventions (Capitalization, Punctuation, Spelling)]
+              - DOK 1 - Facts:
+                - Anchor: "Demonstrate command of the conventions of standard English capitalization, punctuation, and spelling when writing"
+                - L.7.2.a: Use a comma to separate coordinate adjectives (e.g., "a fascinating, enjoyable movie" but NOT "an old[,] green shirt")
+                - L.7.2.b: Spell correctly
+              - DOK 2 - Summary: Grade 7 conventions narrow to one **specific comma rule: coordinate adjectives.** The example ("fascinating, enjoyable" vs. "old green") shows students must understand the DIFFERENCE -- adjectives that equally modify the noun need a comma; cumulative adjectives don't. This is a nuanced rule that requires understanding, not memorization.
+              - Link: [https://www.thecorestandards.org/ELA-Literacy/L/7/](https://www.thecorestandards.org/ELA-Literacy/L/7/)
+            - [CCSS L.7.3 - Language Use and Style]
+              - DOK 1 - Facts:
+                - Anchor: "Use knowledge of language and its conventions when writing, speaking, reading, or listening"
+                - L.7.3.a: Choose language that expresses ideas precisely and concisely, recognizing and eliminating wordiness and redundancy
+              - DOK 2 - Summary: Grade 7 style focuses on CONCISION -- cutting wordiness and redundancy. This is the opposite of "sentence expansion" in earlier grades. Students must now balance:** expand for detail, but don't be wordy. **This creates a natural progression difficulty.
+              - Link: https://www.thecorestandards.org/ELA-Literacy/L/7/
+        - Grade 8 Standards
+          - Sources:
+            - [CCSS L.8.1 - Grammar and Usage]
+              - DOK 1 - Facts:
+                - Anchor: "Demonstrate command of the conventions of standard English grammar and usage when writing or speaking"
+                - L.8.1.a: Explain the function of verbals (gerunds, participles, infinitives) in general and their function in particular sentences
+                - L.8.1.b: Form and use verbs in the active and passive voice
+                - L.8.1.c: Form and use verbs in the indicative, imperative, interrogative, conditional, and subjunctive mood
+                - L.8.1.d: Recognize and correct inappropriate shifts in verb voice and mood
+                - gerunds
+                  - a form that is derived from a verb but that functions as a noun, in English ending in **-ing**, e.g., **asking** in **do you mind my asking you?**.
+                  - A gerund names an activity. You can usually replace it with “the act of ___”.
+                - participle
+                  - a word formed from a verb (e.g., **going**, **gone**, **being**, **been** ) and used as an adjective (e.g., **working woman**, **burned toast** ) or a noun (e.g., **good breeding** ). In English, participles are also used to make compound verb forms (e.g., **is going**, **has been** ).
+                    - Forms:
+                      - Present participle: verb + -ing
+                      - Past participle: usually verb + -ed (or irregular: broken, written, seen)
+                    - Job:
+                      - Participles describe nouns.
+                      - Examples:
+                      - The crying baby
+                      - A boring lecture
+                      - The broken window
+                      - A written response
+                      - They answer: What kind? Which one?
+                - infinitives
+                  - the basic form of a verb, without an inflection binding it to a particular subject or tense (e.g. **see** in **we came to see**, **let him see** ).
+                  - Form:
+                    - to + base verb
+                  - Job:
+                    - Infinitives often explain why, what, or what someone wants/needs.
+              - DOK 2 - Summary: Grade 8 grammar introduces VERBALS (gerunds, participles, infinitives) -- these are the building **blocks of sophisticated sentence structures.** "Drawing my sword, I stepped forward" uses a participial phrase. Active vs. passive voice and verb mood add stylistic control. This is advanced sentence-level mastery.
+              - Link: https://www.thecorestandards.org/ELA-Literacy/L/8/
+            - [CCSS L.8.2 - Conventions (Capitalization, Punctuation, Spelling)]
+              - DOK 1 - Facts:
+                - Anchor: "Demonstrate command of the conventions of standard English capitalization, punctuation, and spelling when writing"
+                - L.8.2.a: Use punctuation (comma, ellipsis, dash) to indicate a pause or break
+                - L.8.2.b: Use an ellipsis to indicate an omission
+                - L.8.2.c: Spell correctly
+              - DOK 2 - Summary: Grade 8 conventions focus on STYLISTIC punctuation --** dashes and ellipses for effect, not just correctness. **This supports narrative writing where pauses and breaks create tension. "The door opened slowly... and there stood the king" uses ellipsis for dramatic effect.
+              - Link: https://www.thecorestandards.org/ELA-Literacy/L/8/
+            - [CCSS L.8.3 - Language Use and Style]
+              - DOK 1 - Facts:
+                - Anchor: "Use knowledge of language and its conventions when writing, speaking, reading, or listening"
+                - L.8.3.a: Use verbs in the active and passive voice and in the conditional and subjunctive mood to achieve particular effects (e.g., emphasizing the actor or the action; expressing uncertainty or describing a state contrary to fact)
+              - DOK 2 - Summary: Grade 8 style integrates grammar with PURPOSE -- use passive voice to emphasize the action, conditional mood to express uncertainty. This is the "writer's toolbox" standard: students must **know WHEN to deploy each technique, not just how.** This is the capstone of sentence-level mastery before high school.
+              - Link: https://www.thecorestandards.org/ELA-Literacy/L/8/
+        - Cross-Grade Insights
+          - Summary: The CCSS Language standards show a clear progression that maps directly to our game's design:
+            - **Grade 5**: Foundation -- expand/combine/reduce sentences, master verb tense
+            - **Grade 6**: Appositives (nonrestrictive elements), sentence variety, pronoun clarity
+            - **Grade 7**: Choose sentence type for meaning, eliminate wordiness
+            - **Grade 8**: Verbals (participles(verb as adjective), gerunds(the act of)), stylistic punctuation, voice/mood for effect
+          - Our game can scaffold difficulty by grade level: earlier grades focus on expansion and combining; later grades add requirements for concision, verbals, and stylistic choices.
+      - CCSS Language Standards (L.5-8.4-6) - Vocabulary & Word Knowledge
+        - Summary: These standards cover vocabulary strategies, figurative language, and academic vocabulary. L.X.6 is most relevant to our game because it explicitly requires transition words (however, although, nevertheless, moreover) — the same subordinating conjunctions and transitions our game requires.
+        - L.X.4 - Vocabulary Strategies (Determining Word Meaning)
+          - Sources:
+            - [CCSS L.5-8.4 - Vocabulary Strategies]
+              - DOK 1 - Facts:
+                - Anchor: "Determine or clarify the meaning of unknown and multiple-meaning words and phrases based on grade X reading and content, choosing flexibly from a range of strategies"
+                - L.5.4.a-c: Use context clues, Greek/Latin roots, reference materials
+                - L.6.4.a-d: Same + verify meaning in context or dictionary
+                - L.7.4.a-d: Same + consult specialized reference materials
+                - L.8.4.a-d: Same (consolidation)
+                - Common strategies across grades:
+                  - Use context as a clue to meaning
+                  - Use Greek/Latin affixes and roots (photograph, auditory, etc.)
+                  - Consult reference materials (dictionaries, glossaries, thesauruses)
+                  - Verify preliminary meaning determination
+              - DOK 2 - Summary: 
+                - **Partial relevance to our game**: We track Lexile vocabulary level, but we don't explicitly teach vocabulary strategies. This could be a future feature (e.g., "The wizard speaks an unfamiliar word. Use context to determine its meaning.").
+                - L.X.4 focuses on STRATEGIES for figuring out unknown words, not memorizing definitions. Students should be able to decode unfamiliar vocabulary using context, roots, and references. 
+              - Link: 
+                - [https://www.thecorestandards.org/ELA-Literacy/L/5/](https://www.thecorestandards.org/ELA-Literacy/L/5/)
+                - [https://www.thecorestandards.org/ELA-Literacy/L/6/](https://www.thecorestandards.org/ELA-Literacy/L/5/)
+                - [https://www.thecorestandards.org/ELA-Literacy/L/7/](https://www.thecorestandards.org/ELA-Literacy/L/5/)
+                - [https://www.thecorestandards.org/ELA-Literacy/L/8/](https://www.thecorestandards.org/ELA-Literacy/L/5/)
+        - L.X.5 - Figurative Language & Word Nuance
+          - Sources:
+            - [CCSS L.5-8.5 - Figurative Language]
+              - DOK 1 - Facts:
+                - Anchor: "Demonstrate understanding of figurative language, word relationships, and nuances in word meanings"
+                - L.5.5: Similes, metaphors, idioms, adages, proverbs; synonyms/antonyms/homographs
+                - L.6.5: Personification; connotations vs. denotations (stingy vs. thrifty)
+                - L.7.5: Literary/biblical/mythological allusions; analogies; connotations (refined vs. condescending)
+                - L.8.5: Verbal irony, puns; connotations (bullheaded vs. resolute)
+                - Progression: From literal figurative language (similes) to increasingly subtle distinctions (connotation, irony)
+              - DOK 2 - Summary: 
+                - **Low relevance to our game**: Hard to assess in adventure writing context. Students aren't typically using metaphors or analyzing connotations when writing "I attack the goblin." Could be a future feature for advanced players.
+                - L.X.5 covers figurative language interpretation and word nuance — understanding WHY "thrifty" has a different feel than "stingy" even though both mean "careful with money." 
+              - Link: 
+                - [https://www.thecorestandards.org/ELA-Literacy/L/5/](https://www.thecorestandards.org/ELA-Literacy/L/5/)
+                - [https://www.thecorestandards.org/ELA-Literacy/L/6/](https://www.thecorestandards.org/ELA-Literacy/L/5/)
+                - [https://www.thecorestandards.org/ELA-Literacy/L/7/](https://www.thecorestandards.org/ELA-Literacy/L/5/)
+                - [https://www.thecorestandards.org/ELA-Literacy/L/8/](https://www.thecorestandards.org/ELA-Literacy/L/5/)
+        - L.X.6 - Academic & Domain-Specific Vocabulary ⭐ Most Relevant
+          - Sources:
+            - [CCSS L.5-8.6 - Academic Vocabulary]
+              - DOK 1 - Facts:
+                - L.5.6: "Acquire and use accurately grade-appropriate general academic and domain-specific words and phrases, **including those that signal contrast, addition, and other logical relationships (e.g., however, although, nevertheless, similarly, moreover, in addition)**"
+                - L.6.6: "Acquire and use accurately grade-appropriate general academic and domain-specific words and phrases; gather vocabulary knowledge when considering a word or phrase important to comprehension or expression"
+                - L.7.6: Same as L.6.6
+                - L.8.6: Same as L.6.6
+                - Key insight: L.5.6 explicitly lists transition words: however, although, nevertheless, similarly, moreover, in addition
+              - DOK 2 - Summary: 
+                - **L.5.6 is a direct standards alignment for our game.** The standard explicitly requires students to use "words that signal contrast, addition, and other logical relationships" -- this is subordinating conjunctions and transitions. 
+                - When our game requires "Use a subordinating conjunction (although, because, since...)" we are directly assessing L.5.6. This strengthens our CCSS alignment claim beyond just L.X.1-3.
+              - Link: https://www.thecorestandards.org/ELA-Literacy/L/5/
+        - Game Alignment Summary for L.X.4-6
+          - Summary:
+            - **L.X.4 (Vocabulary Strategies)**: ⚠️ Partial — We track Lexile but don't teach decoding strategies
+            - **L.X.5 (Figurative Language)**: ❌ Low relevance — Hard to assess in adventure context
+            - **L.X.6 (Academic Vocabulary)**: ✅ **Direct alignment** — L.5.6's transition words ARE our subordinating conjunctions
+          - Updated claim: Our game aligns to CCSS L.5-8.1, L.5-8.2, L.5-8.3, and **L.5.6** (transition words/logical relationships)
+      - CCSS Writing Standards (W.5-8.1-3) -  Argumentative, Informational, & Narrative Writing
+        - Summary: These standards define the three modes of writing students must master. While our game is narrative-focused (W.X.3),** adventure game mechanics can naturally support all three modes by framing them as NPC interactions.** This expands our standards alignment beyond Language Standards.
+        - **Game Quest Types by Writing Mode**
+          - Summary: Each CCSS writing mode maps to natural NPC interaction types in the adventure game:
+            - **W.X.1 (Argument)** --> Persuade/Convince quests
+              - "Convince the king to lend you his army"
+              - "Argue your innocence before the council"
+              - "Persuade the merchant to lower the price"
+              - Quest requirement: "State your claim + give a reason"
+            - **W.X.2 (Informational)** --> Explain/Report quests
+              - "Explain your plan to the party"
+              - "Describe the artifact to the wizard so he can identify it"
+              - "Report your findings to the guild master"
+              - Quest requirement: "Include 2 specific details"
+            - **W.X.3 (Narrative)** --> Default adventure actions + description quests
+              - "Describe what you see as you enter the cave"
+              - "Write dialogue between you and the merchant"
+              - "Show your character's reaction to the news"
+              - Quest requirement: "Use a sensory detail" or "Include dialogue"
+          - This framework allows the game to hit ALL THREE writing modes while maintaining the adventure context.
+        - W.X.1 - Argumentative Writing (Opinion/Persuasion)
+          - Sources:
+            - [CCSS W.5-8.1 - Argument Writing]
+              - DOK 1 - Facts:
+                - Anchor: "Write arguments to support claims with clear reasons and relevant evidence"
+                - W.5.1: Introduce topic, state opinion, provide logically ordered reasons supported by facts/details, link opinion and reasons using words/phrases/clauses, provide concluding statement
+                - W.6.1: Support claims with clear reasons and relevant evidence, use credible sources, establish formal style
+                - W.7.1: Same + acknowledge alternate/opposing claims
+                - W.8.1: Same + distinguish claims from alternate claims, support with logical reasoning and relevant evidence
+                - Key progression: Grade 5 = state opinion with reasons → Grade 8 = acknowledge counterarguments with evidence
+              - DOK 2 - Summary: Argumentative writing requires making claims and supporting them with reasons/evidence. 
+                - **In our game context**: When students must persuade NPCs, they're practicing argument structure. "Convince the king to lend his army" requires stating a claim ("You should help us") and providing reasons ("because the enemy threatens your kingdom too").
+              - Link: [https://www.thecorestandards.org/ELA-Literacy/W/5/](https://www.thecorestandards.org/ELA-Literacy/W/5/) 
+        - W.X.2 - Informational/Explanatory Writing
+          - Sources:
+            - [CCSS W.5-8.2 - Informational/Explanatory Writing]
+              - DOK 1 - Facts:
+                - Anchor: "Write informative/explanatory texts to examine a topic and convey ideas, concepts, and information through the selection, organization, and analysis of relevant content"
+                - W.5.2: Introduce topic, group related info logically, develop with facts/definitions/concrete details/quotations, use precise language and domain-specific vocabulary, provide concluding statement
+                - W.6.2: Same + use appropriate transitions to clarify relationships among ideas, establish formal style
+                - W.7.2: Same + preview what follows, use appropriate transitions to create cohesion
+                - W.8.2: Same (consolidation)
+                - Key elements: Topic introduction, organized information, concrete details, domain vocabulary, transitions
+              - DOK 2 - Summary: Informational writing requires explaining or describing with clear organization and specific details. 
+                - **In our game context**: When students must explain to NPCs, they're practicing informational writing. "Describe the artifact to the wizard" requires organized information with concrete details. "Report your findings to the guild master" requires clear explanation of events.
+              - Link: [https://www.thecorestandards.org/ELA-Literacy/W/5/](https://www.thecorestandards.org/ELA-Literacy/W/5/)
+        - W.X.3 - Narrative Writing
+          - Sources:
+            - [CCSS W.5-8.3 - Narrative Writing]
+              - DOK 1 - Facts:
+                - Anchor: "Write narratives to develop real or imagined experiences or events using effective technique, well-chosen details, and well-structured event sequences"
+                - W.5.3.a: Orient reader by establishing situation and introducing narrator/characters; organize event sequence naturally
+                - W.5.3.b: Use narrative techniques (dialogue, description, pacing) to develop experiences/events
+                - W.5.3.c: Use transitional words/phrases/clauses to manage sequence of events
+                - W.5.3.d: Use concrete words/phrases and sensory details to convey experiences precisely
+                - W.5.3.e: Provide conclusion that follows from narrated experiences
+                - W.6-8.3: Same structure with increasing sophistication (W.7-8 adds "reflection" to conclusions)
+                - Key techniques: Dialogue, description, pacing, transitions, sensory details
+              - DOK 2 - Summary: Narrative writing is the core mode for our game — students ARE writing a story. **Direct alignment opportunities**:
+                - W.X.3.b (dialogue/description) → Quest: "Include dialogue in your response" or "Describe using 2 senses"
+                - W.X.3.c (transitions) → Already covered by subordinating conjunction requirements (overlaps L.5.6)
+                - W.X.3.d (sensory details) → Quest: "Describe what you see, hear, or smell"
+              - Link: [https://www.thecorestandards.org/ELA-Literacy/W/5/](https://www.thecorestandards.org/ELA-Literacy/W/5/)
+      - CCSS Writing Standards (W.5-8.4-10) - Limited relevance
+        - Summary: These standards cover the writing process (planning, revising, publishing), research skills, and range of writing. Less directly relevant to our game but documented for completeness.
+        - W.X.4 — Clear, Coherent Writing (Task/Purpose/Audience)
+          - Focus: Produce writing appropriate to task, purpose, and audience
+          - G5: Develop writing with guidance; appropriate to task/purpose
+          - G6-8: Produce clear, coherent writing; style appropriate to task/purpose/audience
+          - Relevance: ⚠️ Partial — students write for game context (audience = NPC, purpose = survive/persuade)
+        - W.X.5 — Develop Writing Through Planning, Revising, Editing
+          - Focus: Writing process — plan, revise, edit, rewrite, try new approaches
+          - G5: With guidance, develop/strengthen writing through planning, revising, editing, rewriting
+          - G6-8: Same, with increasing independence; focus on purpose and audience
+          - Relevance: ⚠️ Partial — if game gives feedback and student revises before resubmitting
+        - W.X.6 — Use Technology to Produce and Publish Writing
+          - Focus: Use technology (including internet) to produce/publish writing and collaborate
+          - G5: Use technology with guidance; demonstrate keyboarding skills
+          - G6-8: Use technology including internet to produce/publish; link to sources
+          - Relevance: ✅ Automatic — it's a digital game
+        - W.X.7 — Short Research Projects
+          - Focus: Conduct short research projects to answer a question
+          - G5: Conduct short research; use several sources; refocus inquiry as needed
+          - G6-8: Same + generate additional questions for further research
+          - Relevance: ❌ Not applicable — no research component in adventure game
+        - W.X.8 — Gather Information from Sources
+          - Focus: Gather relevant info from multiple sources; assess credibility; quote/paraphrase
+          - G5: Recall info from experiences; gather from print/digital; summarize; provide bibliography
+          - G6-8: Same + assess credibility/accuracy; quote or paraphrase avoiding plagiarism
+          - Relevance: ❌ Not applicable — no source integration in adventure game
+        - W.X.9 — Draw Evidence from Literary/Informational Texts
+          - Focus: Support analysis/reflection/research with evidence from texts
+          - G5: Apply grade 5 reading standards to literature and informational text
+          - G6-8: Same with grade-appropriate reading standards
+          - Relevance: ❌ Not applicable — students write original responses, not text analysis
+        - W.X.10 — Range of Writing
+          - Focus: Write routinely over extended and shorter time frames for various purposes
+          - G5-8: Write routinely for range of discipline-specific tasks, purposes, audiences
+          - Relevance: ✅ Strong — game provides routine writing practice across sessions
+    - Standardized Writing Tests
+      - Alpha Standardized Writing Tests
+        - Summary: Alpha has three tiers of standardized writing assessments. Each measures both Ideas/Organization AND Conventions, but the balance differs. For our game's sentence-level focus, the Sentences tests are the best alignment; Paragraphs tests allow a conventions-subset claim; Essay tests have lowest alignment (only 6/20 pts).
+        - Alpha Sentences Tests (I, II, III) — Grade 5 Level
+          - Sources:
+            - [Alpha Standardized Writing - Sentences I-III]
+              - DOK 1 - Facts:
+                - Format: 10-question sentence editing test
+                - Q1-5: Edit the Text (2 pts each = 10 pts total)
+                  - Ideas & Organization: 1 pt — use correct writing skill (combine sentences, add appositive, fix fragment)
+                  - Writing Conventions: 1 pt — correct grammar, spelling, punctuation
+                - Q6-10: Write a Sentence (3 pts each = 15 pts total)
+                  - Ideas & Organization: 2 pts — clearly answer question with one sentence + reason/explanation/example
+                  - Writing Conventions: 1 pt — correct grammar, spelling, punctuation
+                - Total Points: 25 pts
+                - Conventions Points: 10 pts (5 from edit + 5 from write) = 40% of total
+                - Skills Tested: sentence expansion, appositives, fragments, combining sentences, grammar, punctuation
+              - DOK 2 - Summary: The Sentences test is a perfect fit for our game. It directly assesses:
+                - Sentence expansion ("add details to tell when, where, or how")
+                - Appositives (nonrestrictive elements)
+                - Fragment correction
+                - Sentence combining
+                - Conventions (grammar, spelling, punctuation)
+                - These are exactly the skills our game targets. A full-score improvement claim is possible.
+              - Link: Internal Alpha assessment (Assignment IDs: 22232, etc.)
+        - Alpha Paragraphs Tests (I, II, III) — Grade 6 Level
+          - Sources:
+            - [Alpha Standardized Writing - Paragraphs I-III]
+              - DOK 1 - Facts:
+                - Format: Read passage, write one paragraph response
+                - Total Points: 20 pts
+                - Ideas & Organization: 15 pts (75%)
+                  - Clear main idea
+                  - Focused on that idea
+                  - Strong reasons, details, examples
+                  - Logical organization
+                - Writing Conventions: 5 pts (25%)
+                  - Correct grammar and sentence structure
+                  - Correct spelling
+                  - Proper punctuation (capitals, periods)
+                - Prompt asks students to: state central idea, organize writing, develop ideas, use evidence, use correct conventions
+              - DOK 2 - Summary: Paragraphs test measures paragraph-level composition (main idea, organization, evidence) plus conventions. Our game **can claim the conventions subset (5/20 pts)** but NOT the Ideas/Organization portion (15/20 pts) since we don't teach paragraph structure. This gives us a "subset of rubric" improvement claim.
+              - Link: Internal Alpha assessment (Assignment IDs: 22135, etc.)
+        - Alpha G6-G8 Essay Tests — Grades 6, 7, 8
+          - Sources:
+            - [Alpha Standardized Writing G6-G8]
+              - DOK 1 - Facts:
+                - Format: Read passage, write 5-paragraph expository essay
+                - Total Points: 20 pts
+                - Rubric Breakdown:
+                  - 5 clear paragraphs (intro + 3 body + conclusion): 5 pts
+                  - Evidence and explanation: 5 pts
+                  - Organization and focus (transitions, order): 4 pts
+                  - Strong sentences (vary types, formal language): 3 pts
+                  - Editing (spelling, punctuation, grammar): 3 pts
+                - Conventions-Related Points: 6 pts (Sentences 3 + Editing 3) = 30% of total
+                - Essay-Structure Points: 14 pts (paragraphs 5 + evidence 5 + organization 4) = 70% of total
+              - DOK 2 - Summary: Essay tests measure full essay composition — thesis, body paragraphs, evidence, conclusions. Our game has **weak alignment** here:
+                - ✅ Can claim: Sentences (3 pts) + Editing (3 pts) = 6/20 pts
+                - ❌ Cannot claim: Paragraph structure, thesis, evidence integration = 14/20 pts
+                - This is our weakest claim option. Use only if targeting older students (G7-8) and accepting a small subset claim.
+              - Link: Internal Alpha assessment (Assignment IDs: 22225, etc.)
+        - Test Selection for Pre/Post Assessment
+          - Summary: Decision framework for choosing which test to use for efficacy claims:
+            - | Test | Grade | Total Pts | Game-Aligned Pts | Claim Type | Test Time |
+            - |------|-------|-----------|------------------|------------|-----------|
+            - | **Sentences** | G5 | 25 | 25 (100%) | Full score | ~10 min |
+            - | **Paragraphs** | G6 | 20 | 5 (25%) | Conventions subset | ~15 min |
+            - | **G6-G8 Essays** | G6-8 | 20 | 6 (30%) | Sentences + editing subset | ~30-45 min |
+          - Recommendation: For a 4-hour intervention targeting sentence-level fluency, the **Sentences test** provides the strongest, most defensible improvement claim. It directly measures what we teach.
+      - External Standardized Tests
+        - Summary: State and national tests provide context for our claims. STAAR (Texas) is our primary state test; MAP Growth is widely used for progress monitoring but doesn't directly assess writing.
+        - STAAR RLA (Texas) --** Our Primary State Test**
+          - Sources:
+            - [Texas Education Agency - STAAR Redesign]
+              - DOK 1 - Facts:
+                - Redesigned 2022-2023: standalone writing tests (grades 4, 7) eliminated
+                - Writing now embedded in RLA grades 3-8 via constructed responses
+                - Two response types: 
+                  - Short Constructed Response (SCR) + Extended Constructed Response (ECR)
+                - ECR Rubric - 5 points total:
+                  - Development & Organization: 3 pts (central idea, focus, evidence, word choice, sentence craft)
+                  - Conventions: 2 pts (sentence construction, punctuation, capitalization, grammar, spelling)
+                - Scoring rule: If Development = 0, Conventions automatically = 0
+                - Grades 3-5: shorter compositions; Grades 6-8 + English I/II: full essays
+                - Sample Passage and Qs for grades 5-8
+                  - [GDrive Link](https://drive.google.com/drive/folders/1MjChIfhGD8p8Ep50uIHpUekB5fCSDLhj?usp=sharing) 
+              - DOK 2 - Summary: STAAR's 2/5 pts (40%) conventions weighting directly aligns with our game. 
+                - **When we say "improves writing conventions," that's exactly what STAAR measures**. Strong Texas-specific claim: "Prepares students for STAAR RLA writing conventions."
+              - Link: 
+                - [https://tea.texas.gov/student-assessment/assessment-initiatives/staar-redesign](https://tea.texas.gov/student-assessment/assessment-initiatives/staar-redesign)
+                - Sample passage and Qs for grades 5-8 ([GDrive Link](https://drive.google.com/drive/folders/1MjChIfhGD8p8Ep50uIHpUekB5fCSDLhj?usp=sharing))
+        - MAP Growth (NWEA) -- Progress Monitoring, **key Alpha success metric**
+          - Sources:
+            - [NWEA MAP Growth Language Usage]
+              - DOK 1 - Facts:
+                - Format: Adaptive test, multiple choice / tech-enhanced items (NOT essay writing)
+                - Used nationwide for benchmark/progress monitoring; many Texas districts use alongside STAAR
+                  - RIT scores allow growth tracking over time
+                  - Tests RECOGNITION of good writing (editing/revision), not PRODUCTION
+                - **Grades 3-5 Skills Tested:**
+                  - Fix grammar, capitalization, punctuation, spelling
+                  - Fix sentence fragments and run-ons
+                  - Choose better wording, transitions, sentence order
+                  - Skill domains: "understand and edit for grammar and usage," "edit mechanics," "write and revise texts for purpose and audience"
+                - **Grades 6-8 Skills Tested:**
+                  - Advanced grammar: clauses, verb tense shifts, pronoun reference, varied sentence structures
+                  - Revising multi-sentence passages for organization, tone, word choice
+                  - Research/citing sources (sometimes)
+                - **Sample Question Types:**
+                  - Subject-verb agreement: "The team of players ___ winning" (is/are)
+                  - Comma usage: "After the meeting, we went to lunch" vs. incorrect placements
+                  - Verb tense: Identify past perfect: "She had completed her assignment before..."
+                  - Pronoun usage: "He and I went to the store" vs. "Him and me went..."
+                  - Adverb/part of speech identification
+              - DOK 2 - Summary: MAP Growth has **indirect alignment** to our game. It tests language usage (grammar, conventions) via multiple choice, but not actual writing production. Our game does both — students write AND get graded. Claim: "Builds skills tested on MAP Language Usage while also developing actual writing fluency."
+                - ✅ Aligns: Grammar/usage, mechanics, sentence structure, transitions
+                - ❌ Doesn't align: Essay composition (MAP doesn't test), research/citation (we don't cover)
+              - Links:
+                - Official Fact Sheet: https://www.nwea.org/resource-center/resource/map-growth-language-usage-assessment-fact-sheet/
+                - MAP Growth Overview: https://www.nwea.org/map-growth/
+                - Sample Questions (TestPrep-Online): https://www.testprep-online.com/map-test-practice
+                - Practice Tests (GiftedReady): https://www.giftedready.com/nwea-map/language-usage-test/
+        - Other State Tests (Reference)
+          - Summary: Brief notes on other major state assessments for national context:
+            - **SBAC (Smarter Balanced)** -- ~15 states (CA, WA, OR, etc.), includes writing performance tasks with similar conventions rubric
+            - **CAASPP (California) **-- uses SBAC framework
+            - **NAEP (Nation's Report Card)** -- national sampling only (not individual scores), last writing assessment 2017 showed ~27% of 8th graders "proficient"
+          - Game alignment: SBAC has similar conventions weighting; national data shows writing proficiency is a widespread problem.
+    - Vocabulary & Lexile Measurement
+      - **Game Alignment for Vocabulary & Lexile**
+        - Summary:
+          - Direct Alignment Opportunities:
+            - Lexile of student writing: **Use Lexile Analyzer API  (available in AlphaWrite codebase) **to measure complexity of written responses; track progression toward grade-level bands
+            - Tier 2 vocabulary requirements: Require/reward academic words (already doing this via subordinating conjunctions); aligns with L.5.6
+            - Word-level Lexile tracking: Flag when students use words above/below grade level; provide targeted vocabulary feedback
+          - Potential Features:
+            - "Vocabulary bonus" for using grade-appropriate or advanced words in battle responses
+            - Post-battle vocabulary report showing Lexile of submitted text vs. grade band target
+            - Identify repeated low-Lexile patterns → recommend vocabulary-building activities
+          - Limitation:
+            - Short battle responses (2 minutes) may not generate enough text for reliable Lexile measurement
+            - **Lexile measures vocabulary sophistication, not necessarily correctness or appropriateness in context**
+      - Lexile Framework for Reading & Writing
+        - Sources:
+          - [MetaMetrics Lexile Framework Overview]
+            - DOK 1 - Facts:
+              - Two Measures on One Scale:
+                - Lexile Reader Measure: Individual's reading ability (from standardized assessments)
+                  - Lexile Text Measure: Text complexity based on semantic (word frequency) and syntactic (sentence length) features
+                - Scale Range: Below 200L (beginning readers, denoted "BR") to 1600L+ (advanced)
+                - 75% Comprehension Rule: When reader Lexile = text Lexile, expected 75% comprehension accuracy
+                - CCSS Text Complexity Stretch Bands:
+                  - Grades 2-3: 420L–820L
+                  - Grades 4-5: 740L–1010L
+                  - Grades 6-8: 925L–1185L
+                  - Grades 9-10: 1050L–1335L
+                  - Grades 11-CCR: 1185L–1385L
+                - Lexile WordBank: ~25,000–50,000 words with individual Lexile word measures (BR to 1825L)
+                  - If 800L reader encounters 800L word in 800L text → 75% expected correct
+                  - If 800L reader encounters 1200L word in 800L text → 50% expected correct
+                - Lexile Text Analyzer: Free tool that evaluates text complexity; can analyze student-written text
+                - Calculation Factors: Mean sentence length + mean log word frequency (proprietary algorithm)
+                - For texts ≤650L, also considers repetition and patterning (early reader features)
+              - DOK 2 - Summary:
+                - The Lexile Framework provides a single scale for matching readers to texts, but critically for Writing Arena, it can also measure the complexity of student-written text. This means we can objectively track whether students are writing at, below, or above grade-level vocabulary expectations. The WordBank enables identification of specific challenging words within student writing. 
+                - The CCSS stretch bands establish clear grade-level targets: **a G5 student should produce text in the 740L–1010L range, while G8 should reach 925L–1185L. This creates a potential vocabulary progression metric for the game -- **students earn more for writing with grade-appropriate or advanced vocabulary.
+              - Link:
+                - [MetaMetrics Lexile for Reading](https://www.metametrics.com/lexile-for-reading/)
+                - [Lexile Text Analyzer](https://hub.lexile.com/analyzer)
+                - [Lexile WordBank Overview](https://partnerhelp.metametricsinc.com/concept/c_wordbank_overview.html)
+                - [Lexile Educator Guide PDF](https://lexile.com/wp-content/uploads/2018/09/Lexile-Educator-Guide-MM0066W.pdf)
+      - Vocabulary Tiers Framework (Beck, McKeown, & Kucan)
+        - Sources:
+          - [Bringing Words to Life (2002, 2013)]
+            - DOK 1 - Facts:
+              - Three-Tier Model:
+                - Tier 1: Basic, high-frequency words learned in everyday speech (clock, baby, happy, run)
+                  - Rarely require explicit instruction for native speakers
+                - Tier 2: High-utility academic words that appear across domains (analyze, contrast, evidence, therefore, significant, establish, vary)
+                  - Primary instructional target for grades 3-12
+                  - Appear in mature language, texts, and formal writing
+                  - Cross-curricular: useful in ELA, science, history, math
+                  - Often the words that differentiate proficient from struggling readers/writers
+                - Tier 3: Domain-specific, low-frequency technical terms (photosynthesis, legislature, hypotenuse, isotope)
+                  - Best taught in context of specific subject instruction
+                  - Limited utility outside their domain
+              - Tier 2 Instruction Focus: "Robust vocabulary instruction" emphasizing:
+                - Multiple exposures (12+ encounters for retention)
+                - Rich contexts (not just definitions)
+                - Active processing (using words in writing/discussion)
+                - Word relationships (synonyms, antonyms, word families)
+              - CCSS Alignment: L.5.6 explicitly lists Tier 2 transition words: "however, although, nevertheless, similarly, moreover, in addition"
+            - DOK 2 - Summary:
+              - The three-tier model clarifies what vocabulary to teach and assess. 
+              - **Tier 2 words are the sweet spot for Writing Arena: they're the academic vocabulary that separates competent from struggling writers, they transfer across subjects, and they align directly with CCSS L.X.6** (which requires transition words like "however, although, nevertheless"). 
+              - Game implication: Require or reward Tier 2 word usage in student writing. The subordinating conjunctions we already target (because, although, since, however) ARE Tier 2 vocabulary—this strengthens our standards alignment claim.
+            - Link:
+              - Beck, I. L., McKeown, M. G., & Kucan, L. (2013). *Bringing Words to Life: Robust Vocabulary Instruction* (2nd ed.). Guilford Press.
+              - [Tier 2 Vocabulary Overview - Reading Rockets](https://www.readingrockets.org/topics/vocabulary/articles/three-tiers-vocabulary-and-education)
+      - Vocabulary-Reading Comprehension Research
+        - Sources:
+          - [Research on Vocabulary Breadth and Depth]
+            - DOK 1 - Facts:
+              - Bidirectional Relationship: Vocabulary knowledge improves reading comprehension AND reading comprehension builds vocabulary (reinforcing cycle)
+              - Two Dimensions of Vocabulary Knowledge:
+                - Breadth: Number of words known (how many)
+                - Depth: Understanding of word meanings, relationships, and nuances (how well)
+              - Both dimensions independently predict reading comprehension
+              - Morphological knowledge (understanding word structure: prefixes, suffixes, roots) positively associates with vocabulary and comprehension in G7-8 students
+            - DOK 2 - Summary:
+              - Vocabulary isn't binary (known/unknown) -- both breadth AND depth matter. 
+              - For Writing Arena, this suggests two assessment dimensions: 
+                - (1) Are students using a variety of words (breadth)?
+                - (2) Are they using words correctly in context (depth)? 
+                - The morphological knowledge finding is relevant for G7-8: students who understand word parts (un-, -tion, -ify) can decode AND produce more sophisticated vocabulary.
+                  - morphological meaning
+                    - *the understanding of word structure and how words are built from smaller meaningful units called morphemes, such as roots, prefixes, and suffixes*
+            - Link:
+              - [Vocabulary Breadth and Depth Study - PubMed](https://pubmed.ncbi.nlm.nih.gov/32076929/)
+              - [Bidirectional Vocabulary-Comprehension Study - PubMed](https://pubmed.ncbi.nlm.nih.gov/32189724/)
+              - [Morphological Knowledge G7-8 Study - PubMed](https://pubmed.ncbi.nlm.nih.gov/28239208/)
+  - Reading Assessment & Standards Alignment
+    - Summary: This category documents how reading comprehension CAN be assessed alongside writing in the game. The AI controls passage complexity (input), and student response quality implies comprehension. POTENTIAL for explicit comprehension questions.
+    - CCSS Reading Standards (RL/RI.5-8)
+      - Key Standards Mapped to Game:
+        - RL/RI.X.1: Cite textual evidence to support analysis
+          - DOK 1: Students must read closely and refer to specific details when responding
+          - Game Alignment: Student responses that reference story details demonstrate this skill
+        - RL/RI.X.2: Determine theme or central idea
+          - DOK 1: Identify themes and summarize supporting details
+          - Game Alignment: Coherent responses require understanding the narrative's central conflict/goal
+        - RL.X.3: Analyze how elements interact (character, setting, plot)
+          - DOK 1: Explain how characters respond to challenges or how plot events build on each other
+          - Game Alignment: Students must understand character motivations and plot context to respond appropriately
+        - RL.X.6: Point of view / narrator perspective
+          - DOK 1: Explain how author develops point of view of narrator or speaker
+          - Game Alignment: Second-person narration requires understanding "you" as protagonist
+      - DOK 2 - Summary:
+        - Reading standards emphasize close reading, textual evidence, and understanding narrative elements—all required to play the game coherently. A student who doesn't comprehend the AI-generated passage cannot respond appropriately.
+      - Link:
+        - [CCSS ELA Reading Standards](http://www.corestandards.org/ELA-Literacy/RL/introduction/)
+    - Game Alignment for Reading
+      - Implicit Comprehension (Current):
+        - Student response quality implies comprehension: incoherent or off-topic responses indicate lack of understanding
+        - AI controls passage Lexile (input complexity) → measurable text exposure at grade-appropriate levels
+        - Two metrics from one action: grade writing quality AND infer reading comprehension
+      - Explicit Comprehension (Potential Feature):
+        - Add comprehension check questions: "What does the wizard want?" / "Why is the door locked?"
+        - Quick multiple-choice or short-answer before action prompt
+        - Enables direct measurement of CCSS RL/RI.X.1-3
+        - Trade-off: Adds friction, may feel like "test" instead of game
+      - Educational Claim:
+        - Current: Indirect reading practice through exposure to grade-level narrative text
+        - With explicit Qs: Direct alignment to CCSS Reading Standards RL/RI.5-8.1-3
+  - Student Motivation & Writing Anxiety
+    - Summary: This category documents why students avoid writing and what motivates voluntary practice. Key insight: cognitive load causes anxiety, which causes poor performance. Story continuation (our game format) splits cognitive load and has research backing.
+    - Writing Anxiety & Cognitive Load Research
+      - Sources:
+        - [Nature 2024 - Wang et al. - Cognitive Load, Anxiety, and Story Continuation Writing]
+          - DOK 1 - Facts:
+            - Study: 197 Grade 12 students, story continuation writing task (SCWT)
+            - Finding 1: Cognitive load has direct effect on writing anxiety
+            - Finding 2: Writing anxiety fully mediates the effect of cognitive load on performance
+            - Finding 3: Cognitive load mainly influences "cognitive anxiety" (worry about performance)
+            - Implication: Reduce cognitive load → reduce anxiety → improve performance
+          - DOK 2 - Summary: This study validates our game design. The causal chain is: high cognitive load → writing anxiety → poor performance. Anxiety isn't just correlated with bad writing — it's the MECHANISM. Traditional writing (blank page) creates high cognitive load because students must simultaneously generate topic, organize ideas, and execute writing. Story continuation splits this load: AI provides context, student only decides "what do I do next?"
+          - Link: [https://www.nature.com/articles/s41599-024-03840-6](https://www.nature.com/articles/s41599-024-03840-6)
+        - [Nature 2023 - Story Continuation vs. Argumentative Writing]
+          - DOK 1 - Facts:
+            - Story continuation tasks produce higher lexical diversity than argumentative writing
+            - Genre differences affect writing performance more than input enhancement
+          - DOK 2 - Summary: Students use BETTER vocabulary when continuing stories vs. writing essays. This means our game format may naturally produce more sophisticated language than traditional essay assignments.
+          - Link: [https://www.nature.com/articles/s41599-023-02488-y](https://www.nature.com/articles/s41599-023-02488-y)
+        - [Nature 2024 - Writing Anxiety and EFL Performance]
+          - DOK 1 - Facts:
+            - High anxiety → decreased complexity, accuracy, and fluency in narrative writing
+            - Writing anxiety negatively affects all dimensions of writing quality
+          - DOK 2 - Summary: Anxious students write SIMPLER, less accurate text. This creates a vicious cycle: anxiety → worse writing → more anxiety. Breaking the cycle requires reducing anxiety first, not just teaching writing skills.
+          - Link: [https://www.nature.com/articles/s41598-024-61537-x](https://www.nature.com/articles/s41598-024-61537-x)
+    - Self-Determination Theory (Deci & Ryan)
+      - Sources:
+        - [SDT Framework - Autonomy, Competence, Relatedness]
+          - DOK 1 - Facts:
+            - Three innate human needs for intrinsic motivation:
+              - **Autonomy**: Need to feel in control of actions/decisions
+              - **Competence**: Need to feel effective and capable
+              - **Relatedness**: Need to feel connected to others
+            - Games satisfy these through: meaningful choices (autonomy), appropriate challenge + feedback (competence), social elements (relatedness)
+          - DOK 2 - Summary: SDT explains WHY games are intrinsically motivating while homework isn't. Our game maps directly:
+            - Autonomy = player chooses actions, not teacher assigns prompts
+            - Competence = immediate feedback + visible progression (LP, streaks), not delayed grades
+            - Relatedness = adventure party, NPCs, leaderboards — not isolated essay writing
+          - Links:
+            - https://link.springer.com/article/10.1007/s11423-023-10337-7
+            - https://pmc.ncbi.nlm.nih.gov/articles/PMC7924718/
+    - Gamification & Habit Formation (Duolingo Research)
+      - Sources:
+        - [Duolingo Gamification Analysis]
+          - DOK 1 - Facts:
+            - 7-day streak users are **3.6x more likely** to stay engaged long-term
+            - iOS widget (visual streak reminder) increased commitment by **60%**
+            - 'Streak Freeze' reduced churn by **21%** for at-risk users
+            - XP leaderboards: users complete **40% more lessons** per week
+            - Leagues increased lesson completion by **25%**
+            - Daily Quests increased DAU by **25%**
+            - Badges: users **30% more likely** to finish a course
+            - Warning: Streaks can cause stress — some users report tension/guilt
+          - DOK 2 - Summary: Streaks work via **loss aversion** — avoiding loss is more motivating than gaining rewards. The streak is a visual, persistent reminder. For our game: survival streaks, LP (Life Points), visible consequences all leverage loss aversion. But need "grace mechanics" (like Streak Freeze) to prevent stress-induced dropout.
+          - Links:
+            - https://www.orizon.co/blog/duolingos-gamification-secrets
+            - https://idevie.com/design/ux/duolingo-analyzing-all-engagement-and-retention-techniques
+    - Game Alignment for Motivation
+      - Summary: How our game addresses motivation research:
+        - 
+        - [gdrive image backup [table, traditional writing vs dnd game]](https://drive.google.com/file/d/1qpr_hGdbeCymxwqLQADO3jJWSM6a08Yr/view?usp=sharing)
+  - AI-Powered Interactive Narratives
+    - Technical Architecture of AI Dungeon Models
+      - DOK 1 - Facts
+        - Wayfarer-2-12B Specs:
+          - Likely based on Mistral-Nemo 12B (a 12B parameter model released mid-2024).
+          - Fine-tuned specifically on "Adventure Data" (millions of lines of roleplay logs, Choose Your Own Adventure texts).
+          - Context Window: Typically 128k (standard for modern small models), allowing for long-term narrative consistency without "forgetting" the beginning of the story.
+        - Difference from GPT-4:
+          - GPT-4: A "Helpful Assistant" RLHF model. It is trained to be safe, moralizing, and usually refuses violence/conflict. It often tries to "wrap up" stories or lecture the player.
+          - Wayfarer: A "Roleplay" model. It is biased towards narrative momentum (keeping the story going), consequence (allowing bad things to happen to the player), and conflict (essential for adventure genres).
+        - Sampling Settings for Storytelling:
+          - Temperature: 0.8 – 1.2 (High). Narrative requires creativity; low temperature (0.1) results in repetitive loops.
+          - Top P (Nucleus): 0.9. Cuts off the bottom 10% of least likely tokens to prevent pure nonsense while keeping "surprising" verbs.
+          - Repetition Penalty: Essential for smaller models (12B) to prevent them from repeating the same phrase ("You feel a shiver down your spine...") endlessly.
+          - Min P: A newer setting (often 0.05) preferred by the roleplay community over Top P, as it dynamically truncates tokens based on the probability of the top token.
+      - DOK 2 - Summary
+        - Wayfarer-2-12B represents a shift from "smart but moralizing" models (GPT-4) to "specialized and uninhibited" models. 
+        - While GPT-4 has higher logic reasoning, it creates friction in gameplay by refusing violent/dark scenarios or trying to "solve" the plot for the player. Wayfarer is optimized for mimetic engagement  -- it plays along with the user's fantasy, accepts player actions without judgment, and prioritizes "fun" over "safety." The 12B size is a strategic sweet spot: intelligent enough to follow instructions, but cheap enough to run locally or at scale with massive context windows (128k) that are cost-prohibitive on GPT-4.
+      - Link:
+        - [Wayfarer-2-12B on HuggingFace](https://huggingface.co/LatitudeGames/Wayfarer-2-12B)
+        - [Mistral-Nemo 12B (Base Model)](https://huggingface.co/mistralai/Mistral-Nemo-Base-2407)
+    - Psychology of Second-Person Present Tense ("You are...")
+      - DOK 1 - Facts
+        - Mimetic vs. Diegetic:
+          - Third-person ("He went to the door") is diegetic (telling a story).
+          - Second-person ("You go to the door") is mimetic (imitating an experience).
+        - Agency & Immersion:
+          - Research in interactive fiction (IF) suggests "You" collapses the distance between Player and Protagonist.
+          - It bypasses the "translation layer" in the brain. The player thinks "I want to open the door," and the text confirms "You open the door."
+        - The "Simulator" Effect:
+          - When an AI says "You", it frames the output as a direct consequence of player input, not an author's arbitrary decision.
+          - This creates a "Magic Circle" where the player feels responsible for outcomes, driving higher engagement than passive reading.
+      - DOK 2 - Summary
+        - The "You" perspective is the technical engine of immersion in AI Dungeon. By using second-person present tense, the AI forces the player into the protagonist role immediately. 
+        - It triggers a psychological state where the player feels accountable for the story's direction ("I did this") rather than an observer ("The author wrote this"). This agency is what drives the "voluntary writing" behavior-- students aren't writing an assignment; they are acting in a simulation.
+      - Link:
+        - [Twisty Little Passages by Nick Montfort](https://mitpress.mit.edu/9780262633185/twisty-little-passages/)
+        - [Second Person Perspective in Narrative Theory](https://en.wikipedia.org/wiki/Second-person_narrative)
+    - Engagement Mechanics of AI Dungeon
+      - DOK 1 - Facts
+        - Voluntary Writing Phenomenon:
+          - Players act as "Co-Authors," not just readers.
+          - The "Yes, And" Engine: The AI accepts any input, validating the player's ideas instantly. This removes the "blank page anxiety" because the AI provides the context, and the player just has to react.
+          - Average Session Length: High engagement is driven by "just one more turn" mechanics. Users often write thousands of words per session in a flow state, treating it more like a creative hobby than a game.
+        - Open-Ended vs. Structured:
+          - Freedom: The core value proposition is "You can do anything." (e.g., You can ignore the dragon and open a bakery).
+          - Contrast: Traditional games have "invisible walls." AI Dungeon has none. This feeling of limitless agency is the primary retention driver.
+        - Failure Modes:
+          - Repetitive Loops: "The AI keeps repeating itself" is a top retention killer. (Fix requires strict repetition penalties and sampling tweaks).
+          - Coherence Loss: Over long sessions (beyond context window), the AI "forgets" established facts (e.g., NPC names, player inventory).
+        - Soft Consequences vs. Death:
+          - Standard Game: You die -> Game Over screen -> Reload. (High stakes, stops flow).
+          - AI Dungeon: You "die" -> The story continues as a ghost, or you wake up in a hospital, or it was a dream.
+          - Mechanism: The story never stops. Failure is just a plot twist, not a stoppage state. This keeps the "writing flow" unbroken.
+      - DOK 2 - Summary
+        - AI Dungeon's engagement is rooted in unlimited agency and unbroken flow. Unlike traditional assignments where constraints are high ("Write 5 paragraphs on this topic"), AI Dungeon offers a "sandbox of infinite probability." The psychological hook is that the player is not judged by the system; they are accepted by it. The "Yes, And" mechanic creates a safe space for experimentation.
+        - Implication for Education: To replicate this engagement, we must avoid "Game Over" states. Poor writing shouldn't stop the game; it should lead to interesting complications (soft consequences) rather than hard blocks.
+      - Link:
+        - [AI Dungeon - Wikipedia](https://en.wikipedia.org/wiki/AI_Dungeon)
+        - [Self-Determination Theory](https://selfdeterminationtheory.org/)
+    - Failure Modes and Safety
+      - DOK 1 - Facts
+        - Repetitive Loops (The "Lobotomy" Effect):
+          - Cause: LLMs prioritize high-probability tokens. Once a phrase is generated (e.g., "a chill runs down your spine"), its probability increases, causing a feedback loop.
+          - Impact: Breaks immersion immediately. Players feel they are talking to a broken machine, not a character.
+          - Fix: Dynamic repetition penalty (increases as tokens repeat) and higher "Temperature" (randomness) for creative writing models.
+        - Inappropriate Content & "Safe Mode":
+          - Challenge: Generative AI has no inherent moral compass. It can generate graphic violence or inappropriate content if prompted (or randomly).
+          - Safe Mode: AI Dungeon implements a classifier-based filter (not just keyword blocking) that intercepts outputs.
+            - Strict: Blocks any mature themes.
+            - Moderate: Allows violence but blocks sexual content.
+          - Educational Risk: Schools require strict filtering. The failure mode is "False Positives" (blocking a student's creative story about a battle) vs "False Negatives" (allowing inappropriate text).
+        - Coherence Decay:
+          - Mechanism: As the story grows longer than the model's context window (e.g., 8k tokens), the earliest details fall off.
+          - Result: The AI forgets the quest goal or the companion's name. This kills long-term emotional investment.
+          - Mitigation: "Memory" systems (summarizing past events and injecting them into the prompt) are essential for long-form engagement.
+      - DOK 2 - Summary
+        - The three killers of AI narrative engagement are Repetition, Inappropriateness, and Amnesia.
+        - For an educational tool, Safety is the primary constraint. We must wrap models in robust classification layers for school use.
+        - Coherence is the "hidden" failure mode -- students will engage for 10 minutes, but if the AI forgets their story in minute 20, they will abandon the app. We need a "Summary/Memory" system that persists key plot points.
+      - Link:
+        - [AI Dungeon Help: How to Fix Repetition](https://help.aidungeon.com/faq/how-to-avoidfix-repetition-in-my-story)
+        - [AI Dungeon Community Guidelines](https://help.aidungeon.com/community)
+    - Stakes without Death (Consequence Design)
+      - DOK 1 - Facts
+        - The "Game Over" Problem:
+          - In writing, a "Game Over" (stop and restart) may be discouraging. It creates frustration, not learning.
+        - Soft Consequences (The "Fail Forward" Mechanic):
+          - Definition: Failure changes the context but doesn't stop the action.
+          - Example: If you fail to pick the lock (bad writing), you don't just "fail." The guard hears you (new problem). You must now talk your way out (new writing prompt).
+        - Wayfarer Brutality:
+          - The Wayfarer model is tuned to be "unforgiving." It readily kills characters if they make stupid choices.
+          - Educational Adaptation: We need to tune the Narrative Prompt to interpret "death" as "setback." (e.g., "You are knocked unconscious and wake up in a cell").
+        - Survival Mechanics (Heroes/Hardcore):
+          - Health/Stamina: AI Dungeon introduced "Heroes" mode with HP bars.
+          - Impact: Adds tension. Players write more carefully when they have 1 HP left.
+          - Lesson: Visual stakes (a red health bar) make the text feel more meaningful.
+      - DOK 2 - Summary
+        - "Fail Forward" is the critical design principle for educational interactive fiction.
+        - If a student writes a poor sentence, the game shouldn't say "Wrong, try again" (boring). It should say, "Your sword slips (because of the fragment), and the goblin disarms you. What do you do now?"
+        - This turns correction into content. The student wants to write a better sentence next time to avoid the complication, rather than just to please the teacher. Visual stakes (HP/Gold) reinforce this by giving an immediate, quantifiable metric to writing quality.
+      - Link:
+        - [Wayfarer-2-12B Model Card](https://huggingface.co/LatitudeGames/Wayfarer-2-12B)
+        - [AI Dungeon - Wikipedia](https://en.wikipedia.org/wiki/AI_Dungeon)
+  - Competitor Analysis
+    - AI Dungeon ([aidungeon.com](http://aidungeon.com/))
+      - DOK 1 - Facts
+        - Company: Latitude (founded ~2019 by Nick Walton)
+        - User Base: 1.5M+ players (as of June 2020), 4.4/5 rating on App Store (~26K reviews)
+          - ~4M monthly visitors (as of December 2025) ([https://www.toolbit.ai/ai-tool/ai-dungeon](https://www.toolbit.ai/ai-tool/ai-dungeon))
+        - Core Value Proposition: "Infinite Story Generation" — complete narrative freedom where players can do literally anything
+        - Key Features:
+          - Open-ended storytelling — no invisible walls, "You can ignore the dragon and open a bakery"
+          - Custom scenarios — user-generated content library
+          - Multiplayer — collaborative story creation
+          - Multiple AI models — Griffin (free), Dragon (premium), Wayfarer-2-12B (proprietary)
+          - Cross-platform — web, iOS, Android, desktop apps
+        - Pricing Model:
+          - Free tier with Griffin model
+          - Premium subscription for Dragon/advanced models
+          - Turn-based consumption system
+        - Technical Architecture:
+          - Wayfarer-2-12B: Based on Mistral-Nemo 12B, fine-tuned on roleplay/adventure data
+          - 128k context window for long-term narrative consistency
+          - High temperature sampling (0.8-1.2) for creativity
+          - Repetition penalty to prevent loops
+        - 2021 Controversy:
+          - Content filter implementation caused significant community backlash
+          - Privacy concerns emerged around data handling
+          - Many users migrated to alternatives (NovelAI, KoboldAI, HoloAI)
+        - Reddit User Sentiment (aggregated):
+          - Positive: "Expansive storytelling capabilities," creative freedom, active community sharing prompts/tips
+          - Negative: Content moderation controversies, subscription pricing dissatisfaction, "AI produces nonsensical or repetitive content," memory/coherence issues
+      - DOK 2 - Summary
+        - AI Dungeon proves the core hypothesis: **people will write voluntarily when writing has purpose.** The "Yes, And" mechanic removes blank page anxiety by validating player input. Soft consequences (death = plot twist, not game over) maintain flow state. Second-person perspective ("You") creates agency and accountability.
+        - **Critical failure modes for educational adaptation:**
+          - Repetition loops ("AI keeps repeating itself") — top retention killer
+          - Coherence decay — AI "forgets" established facts beyond context window
+          - Content moderation — too strict kills engagement, too loose creates K-8 liability
+        - **Gap for Writing Arena:** AI Dungeon has zero educational outcomes. No feedback on writing quality. No skill progression. No standards alignment. Students get better at gaming the AI, not at writing.
+      - Link
+        - Official site: https://aidungeon.com/
+        - Wikipedia: https://en.wikipedia.org/wiki/AI_Dungeon
+        - App Store: https://apps.apple.com/us/app/ai-dungeon/id1491268416
+        - Community/Discord: https://help.aidungeon.com/community
+    - Friends & Fables ([fables.gg](http://fables.gg/))
+      - DOK 1 - Facts
+        - Company: Newer entrant (2024-2025)
+        - User Base: Claims 100,000+ players and world builders
+        - Core Value Proposition: "The Ultimate AI RPG Platform" — D&D 5e-inspired structured play with AI Game Master
+        - Key Features:
+          - AI Game Master "Franz" — adapts to choices, maintains memory, handles rules adjudication
+          - World Building Tools — map makers, character generators, lore integration
+          - Tactical 5e Combat — turn-based with battlemaps, spells, abilities
+            - DnD 5th Edition
+          - Multiplayer — parties up to 6 players
+          - Quests & One-Shots — structured branching adventures
+          - Travel System — explore beyond the tavern
+          - Text-to-Speech — AI narration with character voices
+          - Image Generation — for characters, locations, items
+          - Cross-platform — desktop, tablet, mobile
+        - Pricing Model:
+          - Free world building
+          - 50 free turns to start
+          - No credit card required initially
+          - Unlimited play via subscription upgrade
+        - Differentiators from AI Dungeon:
+          - Structure — D&D rules create clear success/failure conditions
+          - Visual elements — battlemaps, generated images
+          - Stakes — HP bars, tactical combat add tension
+          - Lore persistence — dump lore and AI "learns" it instantly
+        - Reddit Presence: Very limited — "smaller user base or less community engagement compared to AI Dungeon"
+        - Reddit Feedback (limited):
+          - Positive: "Cooperative storytelling approach," "more cohesive" guided narratives
+          - Negative: "Lacks depth or polish," learning curve for new players, desires for more content
+        - Third-party trust concerns: Some review sites flagged trust score issues (may not reflect actual UX)
+      - DOK 2 - Summary
+        - Friends & Fables represents the "structured" end of AI narrative games — D&D 5e rules provide scaffolding that creates clear success/failure without killing flow. Visual stakes (HP bars) make text feel more meaningful. World building tools create ownership.
+        - **Key insight for Writing Arena:** Structure doesn't kill engagement — it can enhance it by providing clear goals. The D&D rules framework proves that constraints + stakes can coexist with creative freedom.
+        - **Gap for Writing Arena:** Like AI Dungeon, **zero educational outcomes**. Combat is the skill being tested, not writing. No feedback on sentence quality, grammar, or conventions.
+        - **Community warning:** 100K+ claimed users but minimal Reddit presence suggests either inflated numbers or low engagement — being "AI-native" isn't enough for word-of-mouth.
+      - Link
+        - Official site: https://fables.gg/
+        - Press: https://fables.gg/press
+    - Competitive Landscape Insights
+      - DOK 1 - Facts
+        - Dimension Comparison:
+          - Writing as Input:
+            - AI Dungeon: Freeform text actions
+            - Friends & Fables: Mix of choices + text
+            - Writing Arena Opportunity: Writing quality = gameplay success
+          - Stakes:
+            - AI Dungeon: Soft (story continues)
+            - Friends & Fables: Moderate (HP, combat)
+            - Writing Arena Opportunity: Soft consequences + visible LP loss
+          - Structure:
+            - AI Dungeon: None (total freedom)
+            - Friends & Fables: D&D 5e rules
+            - Writing Arena Opportunity: TWR scaffolds + rubrics
+          - Feedback:
+            - AI Dungeon: AI narrative response only
+            - Friends & Fables: Combat outcomes
+            - Writing Arena Opportunity: Targeted grammar/fluency feedback
+          - Educational Alignment:
+            - AI Dungeon: None
+            - Friends & Fables: None
+            - Writing Arena Opportunity: CCSS L.5-8 standards
+          - Audience:
+            - AI Dungeon: General/adult
+            - Friends & Fables: TTRPG enthusiasts
+            - Writing Arena Opportunity: K-8 students
+          - Flow State:
+            - AI Dungeon: Yes ("just one more turn")
+            - Friends & Fables: Moderate (combat breaks)
+            - Writing Arena Opportunity: Battle cycles (4.5-15 min)
+          - Motivation:
+            - AI Dungeon: Intrinsic (agency)
+            - Friends & Fables: Mixed (story + combat wins)
+            - Writing Arena Opportunity: Competition + XP recovery
+        - What AI Dungeon Proves:
+          - People WILL write voluntarily for thousands of words when writing has purpose
+          - "Yes, And" acceptance removes blank page anxiety
+          - Soft consequences > game over — failure is a plot twist, not stoppage
+          - Second-person perspective ("You") creates agency and accountability
+          - Repetition and memory loss are retention killers
+        - What Friends & Fables Adds:
+          - Visual stakes (HP bars) make text feel more meaningful
+          - Structured rules create clear success/failure without killing flow
+          - Lore persistence matters for investment
+          - World building tools create ownership and creativity
+        - Gaps Neither Platform Addresses (Writing Arena's Opportunity):
+          - No educational outcomes — neither teaches writing skills or aligns to standards
+          - No targeted feedback — responses are narrative, not instructional
+          - No progression on skill — you get better at gaming the AI, not at writing
+          - No competitive/peer element — both are solo or cooperative, not head-to-head
+          - No revision loop — write once and move on, no editing for improvement
+      - DOK 2 - Summary
+        - **The market gap is clear:** Existing platforms prove voluntary writing engagement is possible (AI Dungeon's 1.5M+ users), but no platform turns that engagement into educational outcomes. Writing Arena can be the first to combine:
+          - AI Dungeon's engagement mechanics (soft consequences, "Yes, And," flow state)
+          - Friends & Fables' structured stakes (visual HP/LP, clear success conditions)
+          - TWR's learning science (targeted feedback, sentence-level scaffolds, CCSS alignment)
+        - **Critical design principles from competitor analysis:**
+          - Fail Forward: Poor writing → interesting complication, not "Wrong, try again"
+          - Visual LP/XP: Quantifiable metric makes quality tangible
+          - Memory Systems: Summary/persistence prevents coherence decay
+          - One-shot Revision: Show potential vs. lost XP (Noel's solution for gaming prevention)
+          - Content Safety: Robust filtering for K-8 without killing engagement
+      - Link
+        - AI Dungeon Wikipedia: https://en.wikipedia.org/wiki/AI_Dungeon
+        - Friends & Fables: https://fables.gg/
+  - Existing Writing Instruction Models & What Work
+    - Summary
+      - This category examines evidence-based writing instruction approaches to understand what works, why, and what gaps competitive practice can fill. By analyzing **TWR's bottom-up progression, SRSD's metacognitive strategies, and Direct Instruction scaffolding**, we can design battles that complement (not replace) structured curriculum while adding the missing ingredient: **high-volume, rapid-feedback iteration.**
+    - Mentor Texts & Modeling
+      - Sources:
+        - [Benjamin Franklin - Self-Taught Writing Method]
+          - DOK 1 - Facts
+            - Method (from Franklin's Autobiography):
+              - 1. Read essays from The Spectator
+              - 2. Take notes on the ideas (not the words)
+              - 3. Put the original aside
+              - 4. Rewrite the essay from memory
+              - 5. Compare his version to the original
+              - 6. Revise to improve clarity, order, and style
+            - Self-directed learning: No teacher required
+            - Feedback loop: Comparison to original provides immediate assessment
+            - Franklin became one of the best writers of his era using this method
+          - DOK 2 - Summary
+            - Franklin's method is imitation + self-assessment without a teacher. The key insight: comparison to a model provides built-in feedback. 
+            - Our game does this dynamically: AI provides the "model" (story context), student writes continuation, and the AI's response (narrative consequence) serves as implicit feedback on quality.
+          - Links:
+            - Franklin's Autobiography excerpt: https://history.hanover.edu/courses/excerpts/143franklin-one.html
+            - X thread: https://x.com/jumbo_laptop/status/1999553029662490856
+        - [Don Killgallon - Sentence Composing Through Imitation]
+          - DOK 1 - Facts
+            - Core Philosophy: Learn sophisticated writing by imitating professional authors' structure, not through memorizing rigid grammar rules
+              - *"The foundation of the sentence composing approach is imitation**. Everybody knows that a baby learns to talk partly by imitating **the sentences of people who know how to talk."*
+            - Six Sentence Composing Activities
+              - Scrambling: Unscramble sentences to see how professionals arrange ideas
+              - Imitating: Copy sentence structure with different content
+              - Combining: Merge short sentences into complex structures
+              - Expanding: Add details using target phrases (absolutes, appositives, participials)
+              - Exchanging: Swap sentence parts to see effect on meaning/emphasis
+              - Matching: Identify which professional author wrote which sentence
+            - Target Audience: Grade 6+ (requires baseline grammar/vocabulary)
+            - Pedagogy: Implicit learning through pattern recognition and imitation, not explicit rule instruction
+          - DOK 2 - Summary
+            - Killgallon teaches sentence sophistication through imitating professional authors (6 activities: scrambling, imitating, combining, expanding, exchanging, matching) to build implicit understanding of complex structures (participials, appositives, absolutes). 
+            - Students internalize syntax without memorizing rules by copying patterns with different content. 
+            - Limitations: (1) Grade 6+ only; (2) Imitation without understanding WHY doesn't transfer; (3) Sentence-level skill doesn't address argument/evidence; (4) Whole text analysis creates cognitive overload; (5) No built-in assessment.
+          - Link:
+            - Killgallon Sentence Composing: https://sentencecomposing.com/theory-of-sentence-composing/
+            - Activities: https://sentencecomposing.com/sentence-composing-practices/
+            - Phrase definitions: [https://www.butte.edu/departments/cas/tipsheets/grammar/phrases.html](https://www.butte.edu/departments/cas/tipsheets/grammar/phrases.html) 
+        - [Joan Sedita - The Writing Rope]
+          - DOK 1 - Facts
+            - The Writing Rope framework identifies 5 strands of writing development:
+              - Critical Thinking
+              - Syntax (sentence-level skills)
+              - Text Structure (organization)
+              - Writing Craft (voice, word choice, genre)
+              - Transcription (handwriting, typing, spelling)
+            - Mentor texts recommended as primary vehicle for teaching craft and structure
+            - Students learn by analyzing "how strong writing achieves effects" in authentic published work
+            - Variety of exemplars: professional authors, student writing, teacher models
+            - Process Writing Routine: Think (brainstorm, gather info) --> Plan (organize) --> Write (draft) --> Revise (review content + proofread)
+            - Focus areas for mentor texts include: introductions/conclusions, transitions, organization, idea development, word choice, voice, sentence expansion, text features
+          - DOK 2 - Summary
+            - The Writing Rope framework shows writing requires parallel development across 5 strands (Critical Thinking, Syntax, Text Structure, Craft, Transcription), using mentor texts to teach techniques in context. Complements TWR (structure/syntax) and SRSD (strategic thinking) by adding craft/critical thinking strands.
+            - **Limitations:** (1) Whole text analysis creates overload; (2) Imitation without explicit WHY; (3) Requires strong reading comprehension; (4) Time-intensive; (5) Quality, and relatable exemplars is critical; (6) Can produce style over substance; (7) No motivation/audience (unlike a collaborative writing); (8) No assessment framework.
+          - Link:
+            - The Writing Rope resource: [https://keystoliteracy.com](https://keystoliteracy.com/)
+            - NJ IDA Handouts (framework overview): [https://nj.dyslexiaida.org/wp-content/uploads/sites/18/2022/10/Joan-Sedita-NJ-IDA-Handouts.pdf](https://nj.dyslexiaida.org/wp-content/uploads/sites/18/2022/10/Joan-Sedita-NJ-IDA-Handouts.pdf)
+            - 
+    - The Writing Revolution (TWR) - Hochman & Wexler
+      - Sources:
+        - [Hochman & Wexler (2017) - The Writing Revolution + TWR 2.0]
+          - DOK 1 - Facts
+            - Core Philosophy: "Good writing is rewriting" - revision as essential skill
+            - Explicit, direct, expository instruction
+            - Bottom-Up Progression: Sentences --> Paragraphs --> Essays (prerequisite skills established before complex tasks)
+            - Key Activities/Scaffolds -- "The Hochman Method":
+              - Sentence-level patterns: Because/but/so conjunctions, appositive phrases, subordinating conjunctions, coordinating conjunctions (FANBOYS), sentence combining, sentence expansion, transitions within sentences
+              - SPO (Single Paragraph Outline): Plan before writing, categorize ideas
+              - PTO (Pre-Transition Outline): For those in elementary school, who are not ready for the TO or MPO formats, TWR suggests a hybrid of an SPO and TO
+              - TO (Transition Outline): Transform outline into flowing paragraph
+              - MPO (Multiple Paragraph Outline): Multi-paragraph essay planning
+            - TWR 2.0 Rubric (4 Criteria for Assessing Quality):
+              - **Structure:** Are sentences in the paragraph AND the paragraphs themselves in a longer composition arranged appropriately?
+              - **Coherence: **Are sentences (and paragraphs) logically related to one another?
+              - **Unity:** Does every sentence support the paragraph's main idea? Does every paragraph support the composition's main idea?
+              - **Well-Constructed Sentences: **Are the sentences grammatically correct and clear? Are there compound/complex sentences in addition to simple, active ones? Do the sentences begin in a variety of ways?
+            - TWR 2.0 Grade-by-Grade Sequence: Granular progression ensuring prerequisite skills before advancement (detailed in TWR 2.0 book)
+              - We assume this is the baseline for where Alpha wants their students to be at for grade level
+              - 
+              - 
+            - Cognitive Load Management: Breaking complex writing into manageable chunks reduces extraneous load
+            - Cross-Curricular: Designed for all subjects (science, history, math), not just ELA
+            - Research Base: Grounded in cognitive load theory; sentence-first approach mirrors computational thinking
+            - difference between TWR level 1 and 2
+              - Level 1 (Foundational) -  K–5 (Kindergarten through 5th grade)
+                - Focus: Mastering sentences: identifying parts, correcting errors (run-ons), expanding, combining, and using conjunctions.
+                - Goal: Ensure students can construct clear, correct, and varied sentences before moving on.
+                - Who: Primary school students or older students needing remediation in basic writing.
+              - Level 2 (Intermediate) - 6–12 (6th grade through 12th grade)
+                - Focus: Moving from sentences to single paragraphs (Single Paragraph Outline - SPO), adding transitions, and starting to build compositions.
+                - Goal: Develop structured, coherent writing with more complex ideas.
+                - Who: Secondary-age students or those who have mastered Level 1 skills.
+          - DOK 2 - Summary
+            - TWR provides explicit, systematic instruction in sentence-level skills before paragraph/essay construction, directly managing cognitive load by teaching prerequisites first. 
+            - The SPO --> TO --> MPO sequence scaffolds planning, making the invisible process of structuring an argument visible and reproducible. The TWR 2.0 rubric deliberately emphasizes thinking alongside sentence quality, **ensuring students can organize ideas and cognitive resources do not need to be consumed by sentence construction  **(lower intrinsic load = learn more). 
+            - **Limitations:** (1) No built-in motivation system, relies on teacher implementation to create engagement; (2) Revision-heavy approach assumes ample class time for multiple drafts (not realistic in time-constrained settings); (3) Rubric focuses on logical arrangement but doesn't address voice, personality, or audience engagement (the "boring but correct" problem Austin Scholar identified); (4) Designed for teacher-led instruction, not self-paced or competitive formats; (5) Weak on authentic audience, students write for teacher evaluation, not peer response.
+          - Link:
+            - Book: Hochman, J., & Wexler, N. (2017). The Writing Revolution
+            - TWR 2.0: The Writing Revolution 2.0 book (grade-by-grade sequence), p.294-p.303
+            - 
+            - 
+            - Website: [https://www.thewritingrevolution.org](https://www.thewritingrevolution.org/)
+            - [https://www.youtube.com/watch?v=obTP3xLrxUg](https://www.youtube.com/watch?v=obTP3xLrxUg)
+    - Self-Regulated Strategy Development (SRSD) - Graham & Harris
+      - Sources:
+        - [Graham & Harris - SRSD Meta-Analyses and Research Base]
+          - DOK 1 - Facts
+            - 6-Stage Instructional Model:
+              - 1. Develop background knowledge (genre features, vocabulary)
+              - 2. Discuss it (purpose, benefits of strategy)
+              - 3. Model it (teacher demonstrates thinking process aloud)
+              - 4. Memorize it (strategy steps, mnemonic devices)
+              - 5. Support it (guided practice with scaffolding)
+              - 6. Independent performance (gradual release)
+            - 4 Self-Regulation Processes Explicitly Taught:
+              - Goal-setting (what am I trying to accomplish?)
+              - Self-monitoring (am I including all the parts?)
+              - Self-instruction (positive self-talk during writing)
+              - Self-reinforcement (celebrate progress)
+            - Research Base: 170+ studies showing K-12 effectiveness across general and special education populations
+            - Effect Sizes: +0.5 to +1.0 SD for various writing outcomes (comparable to tutoring, direct instruction)
+            - Genre-Specific Strategies: DARE (opinion), TREE (persuasive), POW (planning mnemonic)
+            - Time Frame: Typically 20-40 hours of instruction per strategy (multiple weeks/months)
+            - Evidence Base Strongest For:
+              - Grades 2-8 (less robust research for high school)
+              - Students with LD (learning disability) or ADHD
+              - Basic argument, narrative, informational writing
+              - Limited research on: AP-level literary analysis, research papers, long-form writing, discipline-specific writing (history DBQs, science explanations)
+                - DBQ = Document-Based Question
+            - Student Motivation Challenges:
+              - Some students resist: self-talk exercises, memorizing mnemonics, graphic organizers, repetitive modeling/role-play
+              - Older students (especially high school) perceive SRSD as "babyish"
+          - DOK 2 - Summary
+            - SRSD makes the cognitive and metacognitive processes of writing explicit through systematic strategy instruction and self-regulation training. The 6-stage model scaffolds from observing expert thinking (modeling) to independent application, while the 4 self-regulation processes help students manage their own writing behaviour. The mnemonic-based strategies (DARE, TREE, POW) provide concrete frameworks that reduce planning load. **SRSD's strength is teaching students *how to think* while writing, not just what to write. **
+            - **Limitations:** 
+              - (1) Time-intensive (20-40 hours per strategy limits scalability); 
+              - (2) Teacher-dependent -- requires fidelity to 6-stage model (implementation quality varies); 
+              - (3) Evidence base strongest for Grades 2-8, struggling writers, and basic genres -- less robust research for high school (Grades 9-12), AP-level literary analysis, or discipline-specific writing; 
+              - (4) Motivational challenges -- older students (especially high school) resist self-talk, mnemonics, and graphic organizers as "babyish"; 
+              - (5) Mnemonic strategies risk becoming formulaic templates if applied mechanically without genuine self-regulation; 
+              - (6) No built-in feedback on quality -- students self-monitor for strategy completion ("did I include all parts?") but not for argument strength or sophistication.
+          - Link:
+            - Introductory guide: https://www.thinksrsd.com/wp-content/uploads/2022/07/SRSD-Introductory-Overview-V2.pdf
+            - Theoretical overview: [https://srsdonline.org/wp-content/uploads/2024/09/EPR-2024.SRSD-Theoretical.pdf](https://srsdonline.org/wp-content/uploads/2024/09/EPR-2024.SRSD-Theoretical.pdf)
+            - SRSD Online: https://srsdonline.org
+    - Direct Instruction (DI) Principles Applied to Writing
+      - Sources:
+        - [Engelmann & Carnine - Direct Instruction Model]
+          - DOK 1 - Facts
+            - Core Sequence: "I Do" (Model) --> "We Do" (Guided Practice) --> "You Do" (Independent Practice) --> Review/Corrective Feedback
+            - Key Principles:
+              - Explicit teaching: **Nothing is assumed,** all skills taught directly
+              - Fast-paced instruction: Maximize engaged time, minimize downtime
+              - **Immediate corrective feedback**: Errors addressed in real-time
+              - Mastery-based progression: Don't advance until prerequisite skills automated
+              - Scripted lessons: Reduce teacher variability; ensure consistency
+            - Effect Sizes: Meta-analyses show +0.5 to +0.8 SD gains when implemented with fidelity
+            - Application to Writing: **TWR incorporates DI** principles through:
+              - Explicit sentence pattern instruction (because/but/so)
+              - Model --> Guided --> Independent cycle for each activity (SPO, TO, MPO)
+              - Mastery of simple sentences before complex structures
+            - Research Base: Project Follow Through (largest education study ever) showed DI as most effective model for basic skills
+            - Concrete Example - Teaching "Because/But/So" Conjunctions (from TWR):
+              - I Do (Model): Teacher displays sentences: "The dog barked. The mailman arrived." Teacher thinks aloud: "I want to show why the dog barked. I'll use 'because.' Watch me: 'The dog barked BECAUSE the mailman arrived.'" (Explicit demonstration of thought process)
+              - We Do (Guided Practice): Class chorally combines sentences using "because": "It rained. The game was cancelled." --> "The game was cancelled BECAUSE it rained." Teacher provides immediate feedback: "Good! You showed the cause-and-effect relationship."
+              - You Do (Independent Practice): Students write 5 sentence combinations independently. Teacher circulates, gives instant corrective feedback: "This one uses 'but' correctly, but this one needs 'because' to show the cause."
+              - Review: Next day, students complete 3 more examples. Errors from previous day are retaught immediately.
+              - Source: This cycle matches TWR's explicit instruction model (Hochman & Wexler, 2017, Chapter 3: "The Basic Six Activities"), page 8
+                - 
+            - Limitations When Applied to Writing:
+              - Not fully decomposable; sentence mastery doesn't transfer to essay coherence
+              - Procedural fluency != meaningful content, developmental mismatch (feels juvenile to teens)
+              - Weak on advanced genres requiring flexible thinking, motivation limited to teacher praise
+              - **Implication:** DI essential for foundational skills but has clear weaknesses in improving AP/ACT-level writing which requires flexibility, voice, and authentic purpose.
+          - DOK 2 - Summary
+            - Direct Instruction provides the pedagogical framework underlying effective writing programs like TWR. **The "I Do, We Do, You Do" cycle provides immediate corrective feedback.**
+            - DI's emphasis on mastery before advancement prevents students from attempting essays before automating sentence-level skills, directly managing cognitive load.
+            - However, DI's strengths (discrete skill mastery, procedural automation) can become limitations for advanced writing: 
+              - (1) High school students may perceive lockstep routines as juvenile; 
+              - (2) Procedural fluency doesn't guarantee meaningful content; 
+              - (3) Advanced genres (rhetorical/literary analysis) require flexible thinking that resists procedural decomposition; 
+              - (4) Extrinsic motivation (teacher praise) doesn't build authentic audience awareness or voice. 
+            - For** competitive app design, DI principles inform foundational skill instruction but must be adapted for older students (grades 9-12) **through autonomy, immediate AI and peer feedback, and authentic purpose.
+          - Link:
+            - Research overview: https://education-consumers.org/pdf/CT_111811.pdf
+            - National Institute for Direct Instruction: [https://www.nifdi.org](https://www.nifdi.org/)
+            - The Writing Revolution, Hochman & Wexler, 2017
+              - 
+    - Templates & Structure as Scaffolding
+      - Sources:
+        - [Austin Scholar #48 - AP 5 via Templates Case Study]
+          - DOK 1 - Facts
+            - Austin Scholar's Strategy: Created and memorized "super specific templates for every essay (complete with pre-written sentences, prompting words, and examples)"
+            - Execution: On exam day, only fill in question-specific details
+            - Result: Scored 5 on AP Lang exam (top 10% of test-takers)
+            - Student Reflection: "No one would actually want to read those essays. They're too boring, academic, and formulaic"
+            - Key Insight: "Anyone could've written those essays...there's nothing distinctive about it"
+            - Templates used: Essay-specific structures for synthesis, rhetorical analysis, and argument essays
+            - Cognitive Load Reduction: Pre-written transitions, thesis frames, and topic sentences eliminated planning burden during timed exam
+          - DOK 2 - Summary
+            - **Templates reduce cognitive load, allowing students to focus on ideas over structure. **Austin Scholar case study proves templates enable AP 5s through rubric compliance (thesis, evidence, line of reasoning) but reveal critical limitation: scoring high != writing well. 
+            - Student's templates produced technically correct essays "no one would want to read," boring and formulaic despite meeting rubric criteria. Templates master mechanics but not critical thinking, voice, or authentic engagement. 
+            - Limitations: (1) Become crutches without fading; (2) Rubric compliance != readable writing; (3) Inhibit voice/personality; (4) Over-scaffolding prevents independent rhetorical choices; (5) Sophistication trap, plateau at scoring 4-5; (6) No authentic audience motivation.
+          - Link: https://austinscholar.substack.com/p/austin-scholar-48-how-to-teach-kids
+        - [TWR Outlines as Templates]
+          - DOK 1 - Facts
+            - SPO (Single Paragraph Outline), TO (Transitional Outline), MPO (Multiple Paragraph Outline) function as templates
+            - Provide structure (topic sentence, supporting details, conclusion) without dictating content
+            - Designed to be faded as students internalize organizational patterns
+            - Cognitive load reduction: separates planning from drafting
+          - DOK 2 - Summary
+            - TWR's outlines are templates with a key difference from Austin Scholar's pre-written frames, they scaffold structure without prescribing language. SPO/TO/MPO teach organizational patterns (categorization, sequencing) that students can apply flexibly across contexts. The goal is eventual independence: **students internalize the planning process and no longer need the outline scaffold. **
+            - Limitations: Same risks as any template approach**, over-reliance without fading leads to dependency; **students can follow structure mechanically without genuine critical thinking about idea quality or rhetorical choices.
+          - Link: Hochman & Wexler (2017), The Writing Revolution
+    - 6+1 Trait Writing Assessment Framework
+      - Sources:
+        - [Education Northwest - 6+1 Trait Writing Rubrics]
+          - DOK 1 - Facts
+            - Six traits:** Ideas, Organization, Voice, Word Choice, Sentence Fluency, Conventions**
+            - Plus one: Presentation
+            - Each trait scored on rubric scale (typically 1-5 or 1-6)
+            - Applies to all types of writing across all grade levels
+            - Provides common language for discussing writing quality
+            - Widely used formative assessment framework in classrooms
+          - DOK 2 - Summary
+            - 6+1 Traits names the dimensions of quality (Ideas, Organization, Voice, Word Choice, Sentence Fluency, Conventions, Presentation) that teachers use for formative feedback, overlapping with AP/ACT/SBAC constructs. 
+            - **Makes criteria explicit but inherits traditional instruction's limitation, teacher-dependent trait scoring creates delayed feedback and low rep volume. **
+            - Limitations: 
+              - (1) Slow feedback (scoring 6-7 traits per essay); 
+              - (2) Time-intensive; 
+              - (3) Trait isolation can fragment writing; 
+              - (4) No authentic audience; 
+              - (5) Evaluative, not generative -- identifies problems but doesn't teach solutions.
+          - Link: https://educationnorthwest.org/sites/default/files/resources/traits-rubrics-3-12.pdf
+    - Lucy Calkins Writing Workshop Model
+      - Sources:
+        - [Calkins - Units of Study & Teachers College Reading and Writing Project]
+          - DOK 1 - Facts:
+            - Core Philosophy: Student choice and agency drive engagement; writers develop through authentic purposes, ownership of topics, and sustained daily writing time in a supportive community
+              - both reading and writing rely on a workshop model (described below)
+            - Workshop Structure (60-minute block):
+              - Mini-lesson (10-15 min): Teacher models specific craft technique or strategy through think-aloud
+              - Independent writing time (30-40 min): Students work on self-selected projects at individual pace while teacher conducts one-on-one or small group conferences
+              - Sharing/closure (5-10 min): Students share work-in-progress with peers for feedback
+            - Key Components:
+              - Writing Process Stages: Recursive movement through prewriting, drafting, revising, editing, publishing (not linear)
+              - Mentor texts: Professional authors' **published work analyzed to identify craft moves students can imitate**
+              - Writing conferences: Individualized teacher feedback sessions focused on one teaching point per conference
+              - Genre studies: Multi-week deep dives into specific types (narrative, opinion/argument, informational, poetry)
+            - Units of Study Curriculum: Grade-by-grade (K-8) structured lesson sequences organized by genre with scripted mini-lessons, conferring prompts, and assessment tools
+            - Theoretical Grounding: Rooted in reading recovery principles; balanced literacy approach emphasizing meaning-making, student voice, and implicit skill acquisition through immersion (not isolated drill)
+            - **Target Audience: K-8 (primary research base and curriculum design)**; high school adaptations exist but evidence base significantly weaker for grades 9-12
+            - Teacher Role: Facilitator/coach providing responsive, individualized support through conferring; not direct whole-class instruction
+            - Assessment: Conferring notes, writing portfolio rubrics, process-focused evaluation (growth over time); not designed for standardized test preparation
+            - **2023-2025 Controversy**: Calkins' *reading instruction* methods (balanced literacy, three-cueing) face major controversy, TCRWP dissolved by Columbia (2023), lawsuit over insufficient phonics instruction filed (2024, dismissed 2025). **Reading methods now considered scientifically wrong by Science of Reading advocates. **Writing workshop has separate pedagogical critiques focused on lack of explicit instruction and high school evidence gaps. (See detailed Science of Reading controversy analysis: [https://workflowy.com/s/OOhr.3DOKUG3vFY#/9e56d0d206e7](https://workflowy.com/s/OOhr.3DOKUG3vFY#/9e56d0d206e7))
+              - [https://x.com/NielsHoven/status/1700214979205673029](https://x.com/NielsHoven/status/1700214979205673029)
+          - Summary:
+            - The Calkins Workshop Model creates a student-centered environment where young writers (K-8) develop intrinsic motivation through choice, authentic purposes, and sustained writing time. 
+            - The model's strength is **cultivating a writer's identity and engagement, students see themselves as authors with voice and agency, not test-takers** executing formulaic responses.
+              - Mentor texts and genre studies help students internalize professional craft techniques through analysis and imitation.
+            - **Limitations:**
+              - (1) **Weak high school evidence base**: curriculum designed for K-8; insufficient research for grades 9-12, AP-level analysis, or discipline-specific writing; (2) **Standardized test misalignment**: process-focused approach doesn't prepare for timed AP/ACT assessments; lacks explicit instruction in argument structure, evidence synthesis, thesis-driven analysis; (3) **Feedback bottleneck**: one teacher conferring with 25-30 students = 1-2 conferences per 4-6 week unit (~10 days between feedback); insufficient iteration volume for skill automation; (4) **Teacher expertise dependency**: effective conferring requires deep content knowledge and diagnostic skill; implementation quality varies dramatically (most teachers receive <10 hours training); (5) **High school motivational mismatch**: adolescents perceive elementary-designed routines as juvenile; prefer peer comparison over teacher conferences and adult-led sharing circles; (6) **Implicit learning assumption**: presumes immersion develops skills organically, but research shows struggling writers need explicit instruction in sentence construction, paragraph organization, and genre conventions before independent application (see TWR, SRSD effect sizes); choice without prerequisites creates floundering; (7) **No authentic peer audience**: students write for teacher evaluation, not genuine peer stakes; doesn't leverage adolescent motivation via competition, status, or visible ranking.
+          - Link:
+            - Teachers College Reading and Writing Project: https://www.tc.columbia.edu/reading-and-writing-project/
+            - Units of Study overview: https://www.unitsofstudy.com/
+            - Calkins profile: https://www.linkedin.com/in/lucy-calkins-3189238
+            - Science of Reading controversy deep-dive: https://workflowy.com/s/OOhr.3DOKUG3vFY#/9e56d0d206e7
+            - Niels Hoven critique: [https://x.com/NielsHoven/status/1700214979205673029](https://x.com/NielsHoven/status/1700214979205673029)
+  - Primary Research
+    - Summary: This category captures original research through interviews, calls, and direct observations with educators, students, and domain experts.
+    - Demo Calls
+      - Sources:
+        - [AndyM Demo Call - November 11, 2025]
+          - DOK 1 - Facts:
+            - Learning Science Foundation:
+              - Can lean on The Writing Revolution as core learning science framework
+              - Emphasized importance of repetitions: write with feedback repeatedly
+              - Competitive game combined with good learning science is the approach
+              - Must write AND pass academic standards
+            - AlphaWrite Reference:
+              - Should look at AlphaWrite app (The Writing Revolution implementation)
+              - Can use or ignore the existing AlphaWrite codebase
+          - DOK 2 - Summary:
+            - Andy established The Writing Revolution as the foundational learning science framework. The key insight is combining competitive game mechanics with proven pedagogy rather than choosing one over the other. The repetition-with-feedback model mirrors deliberate practice principles while the AlphaWrite reference provides existing implementation to build from or learn from.
+          - Source: https://app.read.ai/analytics/meetings/01KA1H3ZNJERH8X74JHNFHM1SY
+        - [AndyM Demo Call - November 12, 2025]
+          - DOK 1 - Facts:
+            - TWR Implementation Details:
+              - Emphasizes targeted, immediate feedback (e.g., sentence structure, clarity, use of conjunctions) instead of vague overall comments like "expand your ideas"
+              - Emphasizes frequent, short writing exercises, not just long essays
+              - Students repeatedly practice one specific structure:
+                - Example: writing several "because" sentences
+                - Example: combining two ideas with "although"
+            - Approval Pathway:
+              - Noel is key contact for academic validation
+              - To get approved need: 1 minute demo + BrainLift document
+              - Trying to get approved ASAP, going through the Nils checklist
+              - Asked about anywhere else to look for guidance
+          - DOK 2 - Summary:
+            - This call provided specific implementation details for TWR: the emphasis on targeted (not vague) feedback and repeated practice of specific structures (not general writing) directly addresses the cognitive load problem in traditional instruction. The approval pathway (demo + BrainLift) establishes the validation criteria Andy expects. Noel emerges as the key academic stakeholder for educational validation.
+          - Source: [Call notes - no recording link available]
+        - [Roger <> Noel Call - November 13, 2025]
+          - DOK 1 - Facts:
+            - Current State of AlphaWrite:
+              - AlphaWrite covers grades 3-8
+                - Grades 3-5 are "okay"
+                - Grades 6-8 are "better because essays"
+                  - Currently expository only, not argumentative or opinion based as they should be
+                  - Based on CCSS writing standards
+              - Need more content beyond current scope
+              - Assumption: students already have sentence-level and paragraph-level scaffolded skills from AlphaWrite
+            - Biggest Gaps/Opportunities:
+              - High school students (biggest need):
+                - Something to help them learn to write essays
+                - Half of Alpha has graduated out of grade 8 writing
+                - Only other writing is AP courses with free-response questions (FRQ)
+              - Scaffolding battles as way to learn essay writing skills:
+                - Learn argumentative writing by starting with prompt then debating with opponent
+                - Learn how to construct arguments and counter-arguments
+                - Noel: "not based on learning science but is a good idea"
+              - SAT problem:
+                - MCQs only on SAT now
+                - Students good only if answers given to them
+                - Can't evaluate unless it's given to them
+              - Potential mastery test: college application essay as exit test
+              - K-8: need to consolidate writing skills a bit better
+            - Peer Review Challenges:
+              - Noel: "Referee football game without knowing football"
+              - Roger suggestion: grade students on quality of feedback they provide
+            - Joe + Andy's Broader Vision:
+              - Writing improves learning outcomes across the board
+              - Need to get writing integrated in whole academic schema so students perform better
+            - Andy's Key Questions (via Noel):
+              - What tests do they pass? Solve for them passing current standardized tests
+              - Quality of direct instruction:
+                - Must abide by Engelmann-related direct instruction principles
+                - Short and sweet, one core concept at a time
+              - Learning science foundation:
+                - The Writing Revolution
+                  - Very specific, tricky to implement
+                  - Needs to be applied in all subject areas (because/but/so in math/science/biology etc)
+                - AlphaWrite lessons learned:
+                  - AI generated topic choice created "mayhem"
+                  - Better approach: content packs for each grade level (e.g., science pack for your grade level)
+              - Desired outcome: students become effective, efficient writers
+            - Critical Missing Skill - Proofreading & Revision:
+              - "Skill that they don't learn is proofreading and revising their writing"
+              - Current behavior: "write whatever random crap comes to mind and hit submit because they just want the XP"
+              - Problem: "if you don't do it accurately and precisely, you're not going to get the XP, and that's something that's not clicking for them"
+            - XP System & Eigen's Revision Attempt:
+              - Eigen built revision loop into AlphaWrite sentences and paragraphs
+              - Not approved: couldn't prove it prevents gaming the XP system
+              - Current problem: students write crap, revise repeatedly to recover XP
+              - XP system is "sacred to Andy"
+              - Noel's proposed solution:
+                - Do battle, get grading
+                - Show XP lost for specific errors
+                - One revision shot to recover as much lost XP as possible
+                - "Show what you could've had and what you lost"
+              - Current revision problem quote: "Some of them go over 20, 30 attempts because there's nothing actually blocking them or pausing them and saying like, hey, you're clearly making an error here. Let's isolate that error rather than just saying you're failing the skill as a whole and fix that so that you can plug one hole and build, plug another hole and build, plug another hole and build."
+              - "The revision step missing is a big issue because it affects not just AlphaWrite, it affects their test behaviors, which affects their test performance"
+            - Immediate Opportunity:
+              - 56 high school students available for testing
+              - "No one paying attention to them"
+              - "Good at giving feedback"
+              - Could pilot writing competitions for high school students
+            - AI Grading Challenge:
+              - "AI grading writing is hard, many ways to screw up writing"
+          - DOK 2 - Summary:
+            - Noel identified high school essay writing as the biggest gap in Alpha's current writing curriculum, with half of Alpha having graduated from grade 8 AlphaWrite and no systematic essay instruction except AP FRQs. The scaffolded battle concept (argumentative debate format) addresses this but must align with Andy's requirements: pass standardized tests, follow direct instruction principles (one concept at a time), and apply TWR across subjects using curated content packs (not AI-generated chaos). The most critical insight is the missing revision/proofreading skill - students optimize for XP rather than quality, submitting "random crap" because the system doesn't force error correction. Eigen's revision loop failed approval due to XP gaming concerns, but Noel's proposed solution (one-shot revision showing lost vs potential XP) could thread the needle. The 56 available high school students present immediate testing opportunity. The revision problem extends beyond the app to actual test performance, making it a high-leverage fix.
+          - Source: https://app.read.ai/analytics/meetings/01K9YH1263T1CSBP2Z0F2CKA0X/transcript
+        - [AndyM Demo Call - November 13, 2025]
+          - DOK 1 - Facts:
+            - AI Rubric & Competition Design:
+              - "Pass the competition which is the rubric"
+              - Students "want to win, embedded inside" the competition
+              - Goal is to "trick them into passing the test" through game mechanics
+            - Iterative Feedback System:
+              - Must include iterative feedback: revise and fix cycles
+            - Target Audience:
+              - Grades 6, 7, 8 (later mentioned could be 3-8)
+            - Success Criteria:
+              - Must demonstrate clear educational outcome
+          - DOK 2 - Summary:
+            - Andy revealed sophisticated pedagogical stance: embed academic standards within intrinsically motivating competition rather than making standards explicit. "Trick them into passing the test" means students pursue competitive victory (extrinsic motivation) while unknowingly practicing to academic standards. This requires iterative revision cycles where feedback serves both competitive improvement and rubric alignment.
+          - Source: https://app.read.ai/analytics/meetings/01K9YYMD9TGB03H63735FX4CKT?utm_source=Share_Nav
+        - [AndyM Demo Call - November 14, 2025]
+          - DOK 1 - Facts:
+            - Beta Readiness Question:
+              - "What do we need to start on Monday? Why won't you let us beta on Monday?"
+            - Launch Blockers Identified:
+              - Need access to tests to figure out what they're testing
+              - Need rubrics for grades 2-8 to put into evaluation prompts
+              - These rubrics are prerequisites for building the AI evaluation system
+          - DOK 2 - Summary:
+            - This call identified concrete blockers preventing beta launch. The requirement for actual test rubrics (grades 2-8) reveals that Alpha's AI evaluation must align with existing assessment infrastructure rather than creating independent criteria. This grounds the competitive mechanics in real academic standards and ensures the "trick them into passing" approach actually leads to passing real Alpha assessments.
+          - Source: https://app.read.ai/analytics/meetings/01KA1H3ZNJERH8X74JHNFHM1SY?utm_source=Share_Nav
+        - [AndyM Demo Call - November 15, 2025]
+          - DOK 1 - Facts:
+            - Technical Architecture:
+              - Recommended using API to grade essays and provide feedback
+              - Should get "eigen stuff" from Itamar (unclear what this refers to)
+              - Emphasized need to be able to execute solo (without dependencies)
+            - Motivation & Engagement Insights:
+              - Peer review is fun for students
+              - Writing for an audience kids care about drives engagement
+            - Adjacent Opportunities:
+              - Andy mentioned need for Zern replacement (math K-3) as separate opportunity
+          - DOK 2 - Summary:
+            - This call surfaced technical architecture decisions (API-based grading, solo execution capability) and motivation insights. The peer review and authentic audience comments connect to Self-Determination Theory (relatedness) and suggest competitive mechanics work because they create real audiences students care about (peers judging their work) rather than abstract adult evaluation. The Zern comment suggests Andy sees pattern-matching opportunity between competitive math and competitive writing.
+          - Source: [Call notes - no recording link available]
+        - [DR/Itamar <> Group BrainLift Call - November 17 2025]
+          - DOK 1 - Facts:
+            - Positive Initial Reception:
+              - DR liked the one-liner
+              - Referenced "David Van story" as model/goal
+            - Immediate Action Items:
+              - Talk to Alpha high schoolers
+              - Get it out there ASAP
+            - Success Criteria - AP Pilot Model:
+              - Goal: "Crush AP pilot results"
+              - Reference example has strong stats:
+                - "Average score was X, unit X was % faster"
+                - Kids rated app 3.6/5
+              - Question posed: "CAN WE PRODUCE LIKE DAVID VAN STORY"
+            - Required Validation Elements:
+              - Must be laser focused on outcome
+              - Clear on learning science that can give them an edge
+              - Validated with learning science expert
+              - Really good testing plan
+                - "How will we set this up"
+            - Value Proposition Target:
+              - "Half the time and twice as good"
+            - Communication/Presentation Guidance:
+              - Short snippets > big blogs
+              - Right > voluminous
+              - Contrarian POV (prioritize being correct with strong viewpoint over comprehensive)
+            - Strategic Focus:
+              - AP Lang < AP Lit (AP Lang is better/easier target)
+            - Timeline:
+              - Joe travelling next 3 weeks
+              - Potential meeting: week after... maybe Dec 14
+            - Next Steps:
+              - Fill in gaps according to Andy feedback
+              - "What would it take to get this in Alpha High student hands?"
+          - DOK 2 - Summary:
+            - DR/Itamar emphasized validation-first approach mirroring David Van's successful AP pilot: clear outcome metrics (score improvements, time efficiency), student satisfaction data (ratings), and expert-validated learning science. The "half the time and twice as good" positioning sets aggressive but necessary bar for Alpha adoption. Communication strategy favors concise, contrarian insights over comprehensive documentation, aligning with how Alpha makes decisions (strong POV backed by data). AP Lang chosen as better target than AP Lit. Immediate path forward: engage high schoolers quickly, build rigorous testing plan, address Andy's feedback gaps.
+          - Source:
+            - https://docs.google.com/document/d/14b8fEbypZ2RyfAMNPjXE9JjJTM65Qnp52qa9KFpIjJs/edit?tab=t.0
+            - https://notes.granola.ai/d/a28270fa-1bd9-4270-9971-b7c4c26ea57d
+        - [AndyM Demo Call - November 19, 2025]
+          - DOK 1 - Facts:
+            - Required Pitch Structure:
+              - "Here's my experiment. Students will get a 5 on AP Lang essays if they do X in my app."
+            - Validation Sequence:
+              - Step 1: Validate everything's working
+              - Step 2: Show Andy it works
+              - Step 3: Academics team validates
+              - Step 4: Then deploy to students
+            - Student Time Philosophy:
+              - "Students have time, they invest their time like money"
+              - Value proposition must be explicit: "If you put in 15 minutes you will get this outcome"
+              - Students opt in when value is clear: "I totally want to learn how to get a 5 on the AP by spending 5 hours in this course"
+              - Shorter time commitments drive higher completion: asking for 5 minutes more likely than 15 minutes
+              - Students use app based on what they actually get out of putting in that time
+            - Alpha Core Philosophy:
+              - "We don't just force students to do whatever"
+              - "Only replacing time with something better, better learning outcome in it for them"
+            - Existing Benchmark:
+              - AlphaLearn AP Lang course (Abby) as reference point
+          - DOK 2 - Summary:
+            - This call crystallized Alpha's student agency philosophy and validation requirements. Students are treated as rational actors who allocate scarce time based on explicit ROI, not compliance. This fundamentally contradicts traditional education's assumption of captive audiences. The staged validation sequence (expert → academic team → students) prevents wasting student time on unproven approaches. The emphasis on minimal time commitments (5 min beats 15 min) suggests bite-sized competitive battles align better with student psychology than extended practice sessions. The AlphaLearn AP Lang reference establishes the existing bar this app must clear.
+          - Source: https://app.read.ai/analytics/meetings/01KAED54BVCG9ZS9TNHHMAXKA2
+          - Additional Reference: https://app.alphalearn.school/course/ap-language-and-composition-6ad4de4c
+        - [Roger <> Noel Call - November 20, 2025]
+          - DOK 1 - Facts:
+            - Roger's Initial Pitch - Battle Structure:
+              - Battle format:
+                - 2 minutes: writing response to simple prompt
+                - 1.5 minutes: peer review where you score peer response
+                - 1 minute: revision
+              - League Points (LP) change afterwards based on performance
+              - Target audience: students who finished AlphaWrite (up to grade 8)
+                - Not "here's how you use this word" level
+                - Goal: become "expert paragraph writers"
+              - Value proposition: 40 minutes total → turn kid into diamond level paragraph writers
+                - "They will be able to do well on AP Lang"
+              - Philosophy: "Somebody who can sprint fast can probably jog fast too"
+                - Hardest part is getting that first bit out
+              - Testing approach: get one of the guides to bring few kids to do AP comp assessment, then iterate
+            - Noel's Response - Learning Outcome Clarification:
+              - Mechanical learning outcome: help students build writing fluency
+              - Question: As they scale up levels, do the prompts become more challenging?
+                - Roger: The other writers become more challenging – you compete against other players more than against the prompts
+                - Score relative to other writers (better or worse)
+                - Roger: Can definitely make the prompts different too
+              - Question: Do they ever get more time than 2 minutes?
+                - Roger: Stick to 2 minutes for now to test hypothesis, then adjust afterwards
+            - Discussing Struggling Students (Andy's Likely Question):
+              - Anticipated question: What happens if student struggles to get from novice to expert level?
+              - Roger's answer:
+                - If you keep losing, you'll go down in ranking
+                - Students can begin to mimic other players
+                - MVP feature: analyze your work, identify repeated mistakes
+                  - System recommends: "Here's the courses you'll need to take to hole-fill"
+                  - Use AI for back-and-forth Q&A where student gets exactly what they need
+            - Noel's Expansion Ideas:
+              - "In this way you would never need hole-filling"
+              - Can do exact same thing with grades 3-8, no need to limit
+                - The more you can do accurately in 2 minutes, the better your score
+              - Rather than general free-write, work through TWR scaffold:
+                - Then work through mini-response type essay prompts
+                - Free-writing essays that they could progress towards would be beneficial
+              - Foundation sounds malleable
+              - Context: quite a few high school students who have graduated out of AlphaWrite
+                - "There are students who have used it successfully"
+              - Biggest bottleneck in AlphaWrite currently is grade 3
+                - Only 2.5 or 3 hours of writing in total
+                - As they develop fluency they develop a lot faster
+            - Roger's Response - Scalability:
+              - Explicit lessons generated by AI in the moment
+              - Can expand down to grade 3
+            - Noel's Reality Check - Time Constraints & Implementation:
+              - Product status: this would be supplementary tool until you have proof
+              - Time budget constraints:
+                - K-8: 20-25 minutes max (fairly hard line)
+                - 9-12: closer to 3 hours a day
+                  - Structure: achieve goals in subject A, then can do subject B for 2 hours
+              - AlphaWrite context - time pressure issues:
+                - Not enough time to go through proper writing process
+                - "Vomit out your draft" - but draft should take longer than revision and polishing steps
+              - Eigen's testing data (essays courses):
+                - Had live testing students for essays
+                - Average of 2 hours to complete one essay
+                - Each essay only worth 125 XP, but should be 200-220 XP activity
+              - Full composition writing reality:
+                - "Purely because of mechanics, some things just take more time"
+                - Caution: "Let's try this short burst approach, but maybe it turns out that they need the full time to actually get to the full AP fluency level"
+                - "If we need more, we can adjust"
+              - Pilot requirements:
+                - For pilot: need students to actually sit for AP Lang exam
+                - Testing cadence: "On Monday we have them sit for this exam for 2 hours, then Friday have them sit again"
+          - DOK 2 - Summary:
+            - Roger pitched 4.5-minute competitive battle cycles (write-review-revise) targeting post-AlphaWrite students, positioning paragraph writing fluency as transferable to AP Lang success via the "sprint enables jogging" theory. Noel validated the mechanical learning outcome (writing fluency) and expanded the vision to grades 3-8 using TWR scaffolds instead of general free-writes, suggesting the competitive format is grade-agnostic. The core tension emerged around time constraints: K-8 students have 20-25 minute hard cap while Eigen's data shows full essays require 2 hours average. Noel's caution is critical - short bursts may not scale to full AP fluency, but the pilot approach (Monday/Friday AP exam testing) will validate the hypothesis. The AI-generated hole-filling and peer mimicry features address skill gaps without manual curriculum. Status: supplementary tool pending proof of concept.
+          - Source: https://app.read.ai/analytics/meetings/01KAGN3G1YWCR0DXXV6XW5WQM1?utm_source=Share_Nav
+        - [AndyM Demo Call Prep - November 21, 2025]
+          - What Andy Actually Wants:
+            - The One-Liner (11/19 call is clearest on this):
+              - "Students will get a 5 on AP Lang essays if they spend X hours doing Y in my app"
+              - Explicit time investment → explicit outcome
+              - Not "improve writing" - a specific, measurable test score
+            - Validation Sequence (he's looking for PROOF you're ready):
+              - ✅ It works (you can show it functioning)
+              - ✅ You've tested it yourself
+              - ⏳ Academics team (Noel) validates it works
+              - ⏳ Then students
+            - Sacred Constraints (non-negotiables):
+              - Must align with existing rubrics/tests (11/14 - the blocker)
+              - Respects XP system - can't be gamed through revision spam
+              - TWR as learning science foundation (11/11, 11/12)
+              - Direct instruction principles: one concept at a time, short and sweet (via Noel)
+              - Time budget: K-8 get 20-25 min max, 9-12 get more freedom
+            - The "Trick" (11/13 - this is his pedagogical philosophy):
+              - Students chase competitive victory (extrinsic motivation)
+              - Standards are embedded in the competition, not explicit
+              - "Pass the competition which is the rubric"
+          - Your 1-Minute Demo Script:
+            - Opening (10 seconds):
+              - "Students who've finished AlphaWrite will score a 5 on AP Lang free-response questions after 40 total minutes of competitive paragraph battles - that's half the time of a full essay with twice the transfer."
+            - Show the cycle (30 seconds):
+              - 2-min write: "Respond to this prompt" [show simple argumentative prompt]
+              - 1.5-min peer review: "Score your opponent on TWR rubric" [show targeted feedback: structure, coherence, sentence variety - NOT vague]
+              - 1-min revision: "One shot to recover lost LP" [show what they could've had vs what they lost]
+              - LP changes: [show rank movement]
+            - The Hook (10 seconds):
+              - "The competition IS the rubric - they're chasing diamond rank while unknowingly practicing to [your grade X test]. They think it's about beating peers, but the scoring criteria are your academic standards."
+            - Validation (10 seconds):
+              - "Grounded in TWR - targeted feedback on specific structures, repeated practice, one concept at a time. Ready for Noel to validate, then we test with the 56 available high schoolers."
+          - What NOT to Say:
+            - ❌ "This will make students better writers" (too vague)
+            - ❌ "We'll iterate and figure it out" (he wants proof NOW)
+            - ❌ "Students will love it because games are fun" (he doesn't care about fun, he cares about outcomes)
+            - ❌ Talking about features before outcomes
+            - ❌ "We need to build X first" (show what works NOW)
+          - The Real Test Questions He'll Ask:
+            - Question 1: "What test do they pass?"
+              - Answer: [specific grade-level test OR AP Lang FRQ OR both]
+              - You MUST have the rubric loaded into your evaluation already
+            - Question 2: "How do you prevent XP gaming in revision?"
+              - Answer: One-shot revision showing lost vs potential LP (Noel's solution from 11/13 call)
+            - Question 3: "What's the learning science?"
+              - Answer: TWR - targeted feedback on specific structures (because/but/so), repeated practice, direct instruction (one concept at a time)
+            - Question 4: "How much time?"
+              - Answer: 4.5 minutes per battle, 40 minutes total to reach diamond = expert paragraph writer ready for AP Lang
+            - Question 5: "When can we test with students?"
+              - Answer: After Noel validates, with the 56 high schoolers who graduated AlphaWrite (from Nov 13 call)
+          - Bottom Line:
+            - Andy doesn't want a pitch about potential. He wants you to show him it already works, tell him the exact outcome students will get for exact time invested, prove it's grounded in TWR and aligned with his tests, and have a concrete plan for Noel to validate it this week.
+            - The magic words: "Half the time, twice the transfer, ready for Noel to validate."
+        - [Noel feedback - November 25, 2025]
+          - Purpose: To review and determine the validity of Writing Arena (WeWillWrite clone) as a high school gamified writing app after students complete AlphaWrite G8.
+          - Strenghts of the app:
+            - High Engagement Through Competition
+              - The battle format is inherently motivating for high-school students. Ranking, time pressure, and matchmaking create a game-like environment that can significantly increase student engagement and practice volume.
+            - Strong Alignment With Writing Fluency Goals
+              - Short, repeatable writing bursts encourage students to produce more writing in less time—a proven way to build fluency and confidence. The write → peer review → revise loop is instructionally powerful when executed with sufficient time.
+            - Clear Integration of TWR Concepts
+              - Embedding structural cues and targeted feedback aligns well with The Writing Revolution. The model encourages purposeful writing, clarity, and revision—the exact habits strong writers need.
+            - Scalable Use of AI for Feedback & Opponents
+              - AI opponents and AI-generated feedback ensure consistency, reduce peer variability, and allow battles to start instantly. This makes the system widely accessible and smooth to use.
+          - Learning-Science Concerns:
+            - Cognitive Load Exceeds What Students Can Handle in 5 Minutes
+              - The current timing requires students to:
+                - read and interpret the prompt,
+                - plan and write a coherent mini-response,
+                - read and analyze a peer’s writing,
+                - respond to multiple feedback questions, and
+                - revise their own draft meaningfully.
+              - In a compressed 5-minute window, this risks developing patterns of shallow writing, weak feedback, and rushed revisions. Cognitive load theory suggests students need more time for these complex tasks to produce meaningful learning rather than surface-level output.
+            - Peer Review Phase Is Too Demanding for 90 Seconds
+              - Students cannot realistically read, understand, and evaluate another student’s work using five criteria in that time. This risks low-quality feedback and misaligned evaluations, which could harm learning.
+            - Revision Phase Is Too Short to Apply Feedback Effectively
+              - A 90-second revision window allows for cosmetic edits, not structural improvements. Students need time to interpret feedback, make decisions, and actually revise their writing.
+            - Misalignment With TWR's Requirement for Scaffolded, Deliberate Practice
+              - TWR emphasizes step-by-step practice and controlled cognitive load. Compressing writing, analysis, and revision into extremely short bursts pushes students into "performance mode" rather than "learning mode."
+            - Motivation Risks for Adolescents Under Excessive Time Pressure
+              - According to Yeager’s research, adolescents shut down when tasks feel impossible within the timeframe provided. If students repeatedly produce rushed or low-quality work, the experience becomes demotivating rather than empowering.
+          - Recommended adjustments
+            - Increase the cycle length to 10-15 minutes
+              - 
+              - This aligns better with:
+                - working-memory limitations
+                - TWR’s emphasis on deliberate revision
+                - cognitive load theory
+                - authentic AP Lang expectations
+                - Yeager’s motivation research (students feel belief + pressure, not impossibility)
+              - This allows students to:
+                - Phase 1:
+                  - Read prompt
+                  - Plan using TWR (even a quick Because–But–So or thesis+2 supporting details)
+                  - Draft with clarity
+                - Phase 2:
+                  - Uphold higher feedback standards
+                  - Build belief in ability
+                  - Make feedback concise and actionable
+                - Phase 3:
+                  - Give students time to read feedback
+                  - Gain clarity around structuring feedback
+                  - Apply feedback meaningfully
+                  - Focus on targeted improvements
+            - Reduce peer-review to three targeted questions.
+              - What is the main idea?
+              - What is one strength?
+              - What is one specific suggestion?
+            - Tier battle difficulty by rank to ensure proper scaffolding as students improve.
+              - Bronze → sentence-level TWR tasks at high school level
+              - Silver → paragraph tasks
+              - Gold → micro-essays
+              - Platinum+ → AP-Level FRQ compressions
+              - Time must scale up as complexity of compositions increase:
+                - 
+          - source: [Writing Arena Review](https://workflowy.com/#/73dfe57e8952)
+        - [Andy Demo - December 5, 2025]
+          - Andy general feedback was go younger (like WeWillWrite audience) -- K-8
+          - Use AlphaWrite repo for learning science, focus on motivation
+        - [Andy Demo and Itamar feedback - December 11, 2025]
+          - Andy demo
+            - need better prompts --> should be something kids will like (writing for an audience of your peers)
+              - ex: favorite video game
+              - better topic generation and details
+            - overview/conclusion for the whole text
+            - revision is messed up
+            - 1 targeted lesson, not many
+              - show the student how much they'll gain if they complete the lesson
+            - ~~Don't obfuscate names~~
+          - Itamar feedback on demo
+            - Have a clear ask during Andy demo meetings, make sure there are no obvious bugs.
+            - You can even just show an Andy a doc during demo and have him review it
+            - You should not be asking Andy about things you should be able to answer yourself
+            - Your team loses credibility if you show broken things off, be careful
+        - [Joe Demo and Feedback - December 13, 2025]
+          - Joe feedback
+            - The average kid doesn't care about getting an A on their paper; they care about getting $100
+            - JoeQ: Does TSA agree with your #1 SPOV?
+            - JoeQ: you're just saying "this leaderboard matters" - and I'm saying this won't work.
+            - JoeQ: how is this technically different from AlphaWrite? So this is AlphaWrite - but added some stuff on top?
+            - JoeQ: This seems like the opposite of Andy Montegomery. His feedback would be - write out what you love, until you love to write. You have a different design goal - you didn't write this down anywhere.
+            - JoeQ: Al Dungeon? You guys don't like this?
+            - Joe Feedback: this is rejected. You need more so that kids want to do this. Whether it's Al Dungeon, or head to head battles on defending a position, ...
+        - [CeCe Hill Feedback - December 15, 2025]
+          - Is there a tool like this already?
+            - “Write a story about you and your soccer buddies as the avengers?”
+              - Doesnt know
+          - Making students love writing
+          - Common writing anxieties
+            - How to fix
+          - L2 meaning
+            - I think twr l2 - dungeons and dragons and debates
+              - 1 character
+              - 5th and 6th – no writing
+              - Stanford’s classroom debate rubric
+            - L2 - 4th and 5th
+            - L3 - 5th and 3rd
+          - As learning tool
+            - Original idea was give feedback at end
+            - better learning science is immediate feedback
+          - Reading comprehension
+            - Use as reading tool
+  - From: Andy writing brainlift
+    - Summary: This category is a collection of mirrors from Andy's [brainlift on writing](https://workflowy.com/s/OOhr.3DOKUG3vFY#/0405eb16c893)
+    - aidungeon - students practice writing or choose your own adventure
+      - start w/ something engaging and add some rigor
+      - does reading and writing
+      - grade performance, give feedback, grant XP
+      - cece would like something like this that scores grammar after a session
+      - [https://www.loom.com/share/](https://www.loom.com/share/2a81cb7fbf3e44a9b75807b003b331e1?sid=a35961e3-34ac-4890-9779-ef2584a3ee3d)[2a81cb7fbf3e44a9b75807b003b331](https://www.loom.com/share/2a81cb7fbf3e44a9b75807b003b331e1?sid=a35961e3-34ac-4890-9779-ef2584a3ee3d)[e1?sid=a35961e3-34ac-4890-](https://www.loom.com/share/2a81cb7fbf3e44a9b75807b003b331e1?sid=a35961e3-34ac-4890-9779-ef2584a3ee3d)[9779-ef2584a3ee3d](https://www.loom.com/share/2a81cb7fbf3e44a9b75807b003b331e1?sid=a35961e3-34ac-4890-9779-ef2584a3ee3d)
+    - Students don't like reading or writing boring essays
+      - let them write what they love
+      - let them know writing is super valuable skill in their careers
+      - fewest number of words/sentences is best to be clear (not writing enough, or being verbose or flowery)
+      - [https://x.com/paulg/status/1846856466319176187?s=58&t=8_mwT6_AF5tOVsj-WQV_zw](https://x.com/paulg/status/1846856466319176187?s=58&t=8_mwT6_AF5tOVsj-WQV_zw)

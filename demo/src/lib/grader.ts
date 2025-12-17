@@ -1,57 +1,53 @@
-import Anthropic from "@anthropic-ai/sdk";
+/**
+ * @fileoverview Writing grader for the adventure game.
+ * Uses the enhanced D&D Conventions Grader for detailed grammar checking.
+ */
+
+import { gradeDnDResponse, type DnDGraderResult } from "./grading";
 
 export type GradeResult = {
   score: number;
   feedback: string[];
+  // Enhanced fields from D&D grader
+  hpDamage?: number;
+  errorCount?: number;
+  feedbackSummary?: string;
+  errors?: DnDGraderResult['prioritizedErrors'];
 };
 
-const client = new Anthropic();
-
-const GRADING_PROMPT = `You are a writing quality grader for a game. Grade the player's sentence on grammar, spelling, punctuation, and sentence structure.
-
-Return JSON only, no other text:
-{"score": <0-100>, "feedback": ["issue 1", "issue 2"]}
-
-Scoring guide:
-- 90-100: Perfect or near-perfect writing
-- 70-89: Good writing with minor issues
-- 50-69: Acceptable but has noticeable errors
-- 30-49: Poor writing with multiple errors
-- 0-29: Very poor, barely comprehensible or extremely short
-
-Keep feedback brief (2-4 words per item). If perfect, feedback can be ["Well written!"].
-If the input is just a few words or not a real sentence, score low and note it.`;
-
+/**
+ * @description Grade a player's written response.
+ * Returns both the simple score/feedback format and enhanced grading details.
+ */
 export async function gradeResponse(text: string): Promise<GradeResult> {
   try {
-    const response = await client.messages.create({
-      model: "claude-3-5-haiku-latest",
-      max_tokens: 150,
-      system: GRADING_PROMPT,
-      messages: [{ role: "user", content: `Grade this: "${text}"` }],
+    const result = await gradeDnDResponse({
+      studentResponse: text,
+      gradeLevel: 6,
+      categoryPreset: 'strict',
     });
 
-    const content = response.content[0];
-    if (content.type !== "text") {
-      return fallbackGrade(text);
-    }
-
-    const jsonMatch = content.text.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) {
-      return fallbackGrade(text);
-    }
-
-    const parsed = JSON.parse(jsonMatch[0]);
-    return {
-      score: Math.max(0, Math.min(100, parsed.score)),
-      feedback: parsed.feedback || [],
+    const gradeResult = {
+      score: result.score,
+      feedback: result.feedback,
+      hpDamage: result.hpDamage,
+      errorCount: result.errorCount,
+      feedbackSummary: result.feedbackSummary,
+      errors: result.prioritizedErrors,
     };
+
+    console.log("Grader response:", JSON.stringify(gradeResult, null, 2));
+
+    return gradeResult;
   } catch (error) {
     console.error("Grader error:", error);
     return fallbackGrade(text);
   }
 }
 
+/**
+ * @description Fallback grading when the LLM call fails.
+ */
 function fallbackGrade(text: string): GradeResult {
   const wordCount = text.trim().split(/\s+/).length;
   const hasCapital = /^[A-Z]/.test(text.trim());
