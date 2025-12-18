@@ -129,6 +129,10 @@ export type NarrativeContext = {
   currentObjective?: string;
   /** Any constraints (e.g., "must not harm villagers") */
   questConstraints?: string[];
+
+  // Story context
+  /** Summary of recent story events (what has happened so far) */
+  recentStorySummary?: string;
 };
 
 // =============================================================================

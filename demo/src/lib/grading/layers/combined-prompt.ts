@@ -73,6 +73,11 @@ function buildContextSection(context: NarrativeContext): string {
   parts.push(`**Location**: ${context.currentLocation}`);
   parts.push(`**Scene**: ${context.sceneDescription}`);
 
+  // Include story summary if available - this is CRITICAL for understanding context
+  if (context.recentStorySummary) {
+    parts.push(`**Story So Far**: ${context.recentStorySummary}`);
+  }
+
   if (context.characterClass) {
     const abilities = context.characterAbilities?.join(', ') || 'none specified';
     parts.push(`**Character**: ${context.characterClass} with abilities: ${abilities}`);

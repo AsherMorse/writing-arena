@@ -75,7 +75,7 @@ export async function gradeDnDResponse(
   try {
     // Call Claude API
     const response = await client.messages.create({
-      model: "claude-sonnet-4-20250514",
+      model: "claude-opus-4-5-20251101",
       max_tokens: 2000,
       temperature: 0,
       system: systemPrompt,

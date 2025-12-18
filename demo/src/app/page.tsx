@@ -8,6 +8,8 @@ type Message = {
   score?: number;
   feedback?: string[];
   damage?: number;
+  blocked?: boolean;
+  blockReason?: string;
 };
 
 const OPENING_NARRATIVE = `The cave mouth yawns before you, your torch casting dancing shadows on wet stone walls. The dragon's rumbling breath echoes from deep within, and the glint of gold teases from the darkness ahead. A narrow ledge hugs the left wall leading to higher ground, the main path slopes down through scattered bones, and a crack in the right wall looks just wide enough to squeeze through.`;
@@ -21,6 +23,7 @@ export default function Home() {
   const [isLoading, setIsLoading] = useState(false);
   const [health, setHealth] = useState(MAX_HEALTH);
   const [ending, setEnding] = useState<{ title: string; message: string } | null>(null);
+  const [storySummary, setStorySummary] = useState("");
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
@@ -37,7 +40,21 @@ export default function Home() {
   }, [started, isLoading, messages, isGameOver]);
 
   const buildHistory = () => {
-    return messages.map((m) => ({
+    // Filter out blocked exchanges - they shouldn't be part of the story history
+    // If an AI message is blocked, skip it AND the preceding user message
+    const filtered: Message[] = [];
+    for (let i = 0; i < messages.length; i++) {
+      const msg = messages[i];
+      if (msg.blocked) {
+        // Skip this blocked message and remove the preceding user message if present
+        if (filtered.length > 0 && filtered[filtered.length - 1].role === "user") {
+          filtered.pop();
+        }
+        continue;
+      }
+      filtered.push(msg);
+    }
+    return filtered.map((m) => ({
       role: m.role === "ai" ? "assistant" : "user",
       content: m.content,
     }));
@@ -54,6 +71,7 @@ export default function Home() {
     setMessages([]);
     setHealth(MAX_HEALTH);
     setEnding(null);
+    setStorySummary("");
   };
 
   const submitAction = async () => {
@@ -72,6 +90,7 @@ export default function Home() {
           userInput: userMessage,
           history: buildHistory(),
           health,
+          storySummary,
         }),
       });
 
@@ -101,6 +120,18 @@ export default function Home() {
                   ...prev,
                   { role: "ai", content: "", score: currentScore, feedback: currentFeedback },
                 ]);
+              } else if (data.type === "blocked") {
+                // Response was blocked by Layer 2/3 - show feedback, let them retry
+                setMessages((prev) => [
+                  ...prev,
+                  { 
+                    role: "ai", 
+                    content: data.reason || "That action isn't valid. Try something else!", 
+                    blocked: true,
+                    blockReason: data.reason,
+                    feedback: data.feedback,
+                  },
+                ]);
               } else if (data.type === "text") {
                 narrativeText += data.text;
                 setMessages((prev) => {
@@ -128,6 +159,28 @@ export default function Home() {
               }
             } catch {}
           }
+        }
+      }
+
+      // Update story summary after successful narrative (not blocked)
+      if (narrativeText) {
+        try {
+          const summaryRes = await fetch("/api/summarize", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              previousSummary: storySummary,
+              playerAction: userMessage,
+              storyResponse: narrativeText.replace(/\{\{DAMAGE:\d+\}\}/g, ""),
+            }),
+          });
+          const { summary } = await summaryRes.json();
+          if (summary) {
+            setStorySummary(summary);
+            console.log("📜 Story summary:", summary);
+          }
+        } catch (e) {
+          console.error("Summary update failed:", e);
         }
       }
     } catch (err) {
@@ -245,6 +298,25 @@ export default function Home() {
                         </div>
                       </div>
                     )}
+                  </div>
+                ) : msg.blocked ? (
+                  <div className="bg-amber-950/30 border border-amber-800/50 rounded-xl p-6">
+                    <div className="flex items-start gap-4">
+                      <span className="text-2xl">⚠️</span>
+                      <div>
+                        <p className="text-amber-200 text-xl leading-relaxed mb-3">
+                          {msg.content}
+                        </p>
+                        {msg.feedback && msg.feedback.length > 0 && (
+                          <p className="text-amber-400/70 text-base">
+                            {msg.feedback.join(" · ")}
+                          </p>
+                        )}
+                        <p className="text-neutral-500 text-base mt-3">
+                          Try a different action.
+                        </p>
+                      </div>
+                    </div>
                   </div>
                 ) : (
                   <p className="text-neutral-200 leading-relaxed text-2xl">

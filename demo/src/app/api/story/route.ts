@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
-import { gradeResponse } from "@/lib/grader";
+import { gradeResponse, type GameContext } from "@/lib/grader";
 
 const client = new Anthropic();
 
@@ -58,19 +58,67 @@ Do NOT artificially extend the story. Once the objective is resolved, END IT imm
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { userInput, history, health } = body;
+    const { userInput, history, health, gameContext: clientContext, storySummary } = body;
 
-    const { score, feedback } = await gradeResponse(userInput);
+    // Extract previous player responses from history for duplicate detection
+    const previousResponses = history
+      .filter((msg: Anthropic.MessageParam) => msg.role === "user")
+      .map((msg: Anthropic.MessageParam) => {
+        const content = typeof msg.content === "string" ? msg.content : "";
+        // Extract just the player action part (after "Player action:")
+        const match = content.match(/Player action: "(.+?)"/);
+        return match ? match[1] : content;
+      })
+      .filter((s: string) => s.length > 0);
+
+    // Build game context for 3-layer grading
+    const gameContext: GameContext = {
+      location: clientContext?.location ?? "Dragon's Lair",
+      scene: clientContext?.scene ?? "A massive red dragon sleeps atop a mountain of gold.",
+      characterClass: "Thief",
+      abilities: ["stealth", "lockpicking", "dagger fighting", "climbing"],
+      inventory: ["dagger", "rope", "lockpicks", "small pouch"],
+      objective: "Steal treasure without waking the dragon",
+      previousResponses,
+      recentStory: storySummary,
+    };
+
+    const gradeResult = await gradeResponse(userInput, gameContext);
+    const { score, feedback, accepted, blockingReason } = gradeResult;
 
     const currentHealth = health ?? 100;
     const healthContext = `[Player health: ${currentHealth}/100${currentHealth <= 20 ? " - CRITICAL, near death" : currentHealth <= 40 ? " - badly wounded" : currentHealth <= 60 ? " - injured" : ""}]`;
+
+    const encoder = new TextEncoder();
+
+    // If the response was blocked by Layer 2/3, return feedback without calling LLM
+    if (!accepted) {
+      const stream = new ReadableStream({
+        start(controller) {
+          // Send the blocking feedback
+          controller.enqueue(encoder.encode(`data: ${JSON.stringify({ 
+            type: "blocked", 
+            reason: blockingReason,
+            feedback 
+          })}\n\n`));
+          controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: "done" })}\n\n`));
+          controller.close();
+        },
+      });
+
+      return new Response(stream, {
+        headers: {
+          "Content-Type": "text/event-stream",
+          "Cache-Control": "no-cache",
+          Connection: "keep-alive",
+        },
+      });
+    }
 
     const messages: Anthropic.MessageParam[] = [
       ...history,
       { role: "user" as const, content: `[Writing score: ${score}/100]\n${healthContext}\n\nPlayer action: "${userInput}"` }
     ];
-
-    const encoder = new TextEncoder();
 
     const stream = new ReadableStream({
       async start(controller) {
