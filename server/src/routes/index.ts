@@ -1,7 +1,6 @@
 import { Express } from "express";
-import entriesRoutes from "../modules/entries/entries.routes.js";
+import v1Routes from "./v1/index.js";
 
 export const registerRoutes = (app: Express) => {
-  app.use("/entries", entriesRoutes);
+  app.use("/v1", v1Routes);
 };
-

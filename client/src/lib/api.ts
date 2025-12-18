@@ -3,7 +3,7 @@ const BASE = import.meta.env.VITE_API_URL;
 type ApiResponse<T> = { success: true; data: T } | { success: false; error: { code: string; message: string } };
 
 export async function api<T>(endpoint: string, options?: { method?: string; body?: unknown }): Promise<T> {
-  const res = await fetch(`${BASE}${endpoint}`, {
+  const res = await fetch(`${BASE}/v1${endpoint}`, {
     method: options?.method,
     headers: options?.body ? { "Content-Type": "application/json" } : undefined,
     credentials: "include",
