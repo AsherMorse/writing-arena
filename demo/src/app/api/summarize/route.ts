@@ -12,13 +12,14 @@ Track:
 - What the player has OBTAINED (items picked up, treasure stolen)
 - Current situation/location
 - Any injuries or status changes
+- Items/objects CURRENTLY VISIBLE or available in the scene (mentioned in the story response)
 
 Keep additions SHORT (2-4 sentences max). Focus on FACTS that affect what actions make sense.
 
 Example:
 Previous: "Player entered dragon's lair via crack in wall."
-Latest: Player grabbed ruby chalice, snuck back out.
-Updated: "Player entered dragon's lair via crack in wall. Successfully stole a ruby-encrusted chalice and retreated to the entrance passage."`;
+Latest: Player grabbed ruby chalice. Story: "The chalice slides into your pouch. A ruby crown sits tantalizingly close on the treasure pile."
+Updated: "Player entered dragon's lair via crack in wall. Successfully stole a ruby-encrusted chalice. Currently visible: ruby crown on treasure pile."`;
 
 export async function POST(req: NextRequest) {
   try {

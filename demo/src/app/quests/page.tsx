@@ -18,6 +18,12 @@ type SavedQuest = {
   health: number;
   checkpoint: number;
   lastPlayed: string;
+  completed?: boolean;
+  outcome?: {
+    outcome: string;
+    title: string;
+    message: string;
+  };
 };
 
 const AVAILABLE_QUESTS: Quest[] = [
@@ -113,39 +119,96 @@ function QuestSelectionContent() {
                 </button>
               </div>
             ) : (
-              savedQuests.map((save) => (
-                <div
-                  key={save.id}
-                  className="bg-neutral-900 border border-neutral-800 rounded-xl p-6 hover:border-neutral-700 transition-colors"
-                >
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <h3 className="text-xl font-semibold mb-1">{save.questName}</h3>
-                      <div className="flex items-center gap-4 text-neutral-500 text-sm">
-                        <span>HP: {save.health}/100</span>
-                        <span>Checkpoint {save.checkpoint}</span>
-                        <span>
-                          {new Date(save.lastPlayed).toLocaleDateString()}
-                        </span>
+              <>
+                {/* In-progress quests */}
+                {savedQuests.filter(s => !s.completed).length > 0 && (
+                  <div className="space-y-4">
+                    {savedQuests.filter(s => !s.completed).map((save) => (
+                      <div
+                        key={save.id}
+                        className="bg-neutral-900 border border-neutral-800 rounded-xl p-6 hover:border-neutral-700 transition-colors"
+                      >
+                        <div className="flex items-start justify-between">
+                          <div className="flex-1">
+                            <h3 className="text-xl font-semibold mb-1">{save.questName}</h3>
+                            <div className="flex items-center gap-4 text-neutral-500 text-sm">
+                              <span>HP: {save.health}/100</span>
+                              <span>Checkpoint {save.checkpoint}</span>
+                              <span>
+                                {new Date(save.lastPlayed).toLocaleDateString()}
+                              </span>
+                            </div>
+                          </div>
+                          <div className="flex gap-2">
+                            <button
+                              onClick={() => continueQuest(save)}
+                              className="bg-amber-500 hover:bg-amber-400 text-neutral-900 px-6 py-2 rounded-lg font-medium transition-colors"
+                            >
+                              Continue
+                            </button>
+                            <button
+                              onClick={() => deleteSave(save.id)}
+                              className="bg-neutral-800 hover:bg-red-900/50 text-neutral-400 hover:text-red-400 px-4 py-2 rounded-lg transition-colors"
+                            >
+                              Delete
+                            </button>
+                          </div>
+                        </div>
                       </div>
-                    </div>
-                    <div className="flex gap-2">
-                      <button
-                        onClick={() => continueQuest(save)}
-                        className="bg-amber-500 hover:bg-amber-400 text-neutral-900 px-6 py-2 rounded-lg font-medium transition-colors"
-                      >
-                        Continue
-                      </button>
-                      <button
-                        onClick={() => deleteSave(save.id)}
-                        className="bg-neutral-800 hover:bg-red-900/50 text-neutral-400 hover:text-red-400 px-4 py-2 rounded-lg transition-colors"
-                      >
-                        Delete
-                      </button>
-                    </div>
+                    ))}
                   </div>
-                </div>
-              ))
+                )}
+
+                {/* Completed quests */}
+                {savedQuests.filter(s => s.completed).length > 0 && (
+                  <div className="space-y-4">
+                    {savedQuests.filter(s => !s.completed).length > 0 && (
+                      <h2 className="text-neutral-500 text-sm uppercase tracking-wider mt-8 mb-2">Completed</h2>
+                    )}
+                    {savedQuests.filter(s => s.completed).map((save) => (
+                      <div
+                        key={save.id}
+                        className="bg-neutral-900/50 border border-neutral-800/50 rounded-xl p-6 hover:border-neutral-700 transition-colors"
+                      >
+                        <div className="flex items-start justify-between">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-3 mb-1">
+                              <h3 className="text-xl font-semibold text-neutral-300">{save.questName}</h3>
+                              <span className={`text-xs px-2 py-1 rounded-full ${
+                                save.outcome?.outcome === "DEATH" 
+                                  ? "bg-red-900/50 text-red-400" 
+                                  : "bg-emerald-900/50 text-emerald-400"
+                              }`}>
+                                {save.outcome?.title || "Completed"}
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-4 text-neutral-600 text-sm">
+                              <span>Final HP: {save.health}/100</span>
+                              <span>
+                                {new Date(save.lastPlayed).toLocaleDateString()}
+                              </span>
+                            </div>
+                          </div>
+                          <div className="flex gap-2">
+                            <button
+                              onClick={() => continueQuest(save)}
+                              className="bg-neutral-700 hover:bg-neutral-600 text-neutral-200 px-6 py-2 rounded-lg font-medium transition-colors"
+                            >
+                              Review
+                            </button>
+                            <button
+                              onClick={() => deleteSave(save.id)}
+                              className="bg-neutral-800 hover:bg-red-900/50 text-neutral-400 hover:text-red-400 px-4 py-2 rounded-lg transition-colors"
+                            >
+                              Delete
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </>
             )}
           </div>
         )}

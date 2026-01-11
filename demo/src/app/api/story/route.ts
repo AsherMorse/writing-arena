@@ -58,12 +58,30 @@ Examples:
 - [END:ESCAPE: Fled {You survived, but left empty-handed.}]
 - [END:DEATH: Devoured {The dragon's hunger is satisfied.}]
 
-Do NOT artificially extend the story. Once the objective is resolved, END IT immediately.`;
+Do NOT artificially extend the story. Once the objective is resolved, END IT immediately.
+
+CHECKPOINTS:
+Add [CHECKPOINT] when the player reaches a natural safe moment:
+- Entering a new area or chamber
+- Successfully avoiding or escaping danger
+- Completing a conversation or negotiation
+- Finding temporary shelter or hiding spot
+- Any moment of relative calm between dangers
+
+Do NOT checkpoint during:
+- Active combat or chase sequences
+- Immediate danger situations
+- Mid-action moments
+
+Place [CHECKPOINT] at the END of your response, after the narrative.`;
 
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { userInput, history, health, gameContext: clientContext, storySummary } = body;
+    const { userInput, history, health, gameContext: clientContext, storySummary, recentAIResponses } = body;
+    
+    console.log('\n🎮 ========== NEW STORY REQUEST ==========');
+    console.log('📝 User Input:', userInput);
 
     // Extract previous player responses from history for duplicate detection
     const previousResponses = history
@@ -86,6 +104,7 @@ export async function POST(req: NextRequest) {
       objective: "Steal treasure without waking the dragon",
       previousResponses,
       recentStory: storySummary,
+      recentAIResponses,
     };
 
     const gradeResult = await gradeResponse(userInput, gameContext);
@@ -101,12 +120,17 @@ export async function POST(req: NextRequest) {
       const stream = new ReadableStream({
         start(controller) {
           // Send the blocking feedback
-          controller.enqueue(encoder.encode(`data: ${JSON.stringify({ 
+          const blockedMessage = `data: ${JSON.stringify({ 
             type: "blocked", 
             reason: blockingReason,
             feedback 
-          })}\n\n`));
-          controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: "done" })}\n\n`));
+          })}\n\n`;
+          // console.log('📤 SENDING BLOCKED:', blockedMessage);
+          controller.enqueue(encoder.encode(blockedMessage));
+          
+          const doneMessage = `data: ${JSON.stringify({ type: "done" })}\n\n`;
+          // console.log('📤 SENDING DONE:', doneMessage);
+          controller.enqueue(encoder.encode(doneMessage));
           controller.close();
         },
       });
@@ -127,17 +151,21 @@ export async function POST(req: NextRequest) {
 
     const stream = new ReadableStream({
       async start(controller) {
-        controller.enqueue(encoder.encode(`data: ${JSON.stringify({ 
+        const scoreMessage = `data: ${JSON.stringify({ 
           type: "score", 
           score, 
           feedback,
           errors: errors || [],
           errorCount: errorCount || 0
-        })}\n\n`));
+        })}\n\n`;
+        console.log('📤 SENDING SCORE:', scoreMessage);
+        controller.enqueue(encoder.encode(scoreMessage));
         
         // Send HP damage from grader immediately after score
         if (hpDamage && hpDamage !== 0) {
-          controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: "damage", damage: Math.abs(hpDamage) })}\n\n`));
+          const damageMessage = `data: ${JSON.stringify({ type: "damage", damage: Math.abs(hpDamage) })}\n\n`;
+          console.log('📤 SENDING HP DAMAGE:', damageMessage);
+          controller.enqueue(encoder.encode(damageMessage));
         }
 
         let textBuffer = "";
@@ -147,7 +175,9 @@ export async function POST(req: NextRequest) {
         const flushText = (text: string) => {
           if (text) {
             const cleaned = text.replace(/\*\*/g, "").replace(/\*/g, "");
-            controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: "text", text: cleaned })}\n\n`));
+            const textMessage = `data: ${JSON.stringify({ type: "text", text: cleaned })}\n\n`;
+            // console.log('📤 SENDING TEXT:', textMessage);
+            controller.enqueue(encoder.encode(textMessage));
           }
         };
 
@@ -171,6 +201,7 @@ export async function POST(req: NextRequest) {
               } else if (char === "]" && inBracket) {
                 bracketBuffer += "]";
                 const damageMatch = bracketBuffer.match(/\[DAMAGE:\s*(\d+)\]/i);
+                const checkpointMatch = bracketBuffer.match(/\[CHECKPOINT\]/i);
                 
                 // New format: [END:OUTCOME: Title {message}]
                 const endMatch = bracketBuffer.match(/\[END:(\w+):\s*(.+?)\s*\{(.+?)\}\]/i);
@@ -180,13 +211,17 @@ export async function POST(req: NextRequest) {
                 if (damageMatch) {
                   const damage = parseInt(damageMatch[1], 10);
                   if (damage > 0) {
-                    controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: "damage", damage })}\n\n`));
+                    const damageMessage = `data: ${JSON.stringify({ type: "damage", damage })}\n\n`;
+                    console.log('📤 SENDING DAMAGE (from AI):', damageMessage);
+                    controller.enqueue(encoder.encode(damageMessage));
                   }
                 } else if (endMatch) {
                   const outcome = endMatch[1].toUpperCase();
                   const title = endMatch[2].trim();
                   const message = endMatch[3].trim();
-                  controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: "end", outcome, title, message })}\n\n`));
+                  const endMessage = `data: ${JSON.stringify({ type: "end", outcome, title, message })}\n\n`;
+                  console.log('📤 SENDING END:', endMessage);
+                  controller.enqueue(encoder.encode(endMessage));
                 // } else if (endMatchLegacy && !endMatch) {
                 //   // Fallback: infer outcome from title for backwards compatibility
                 //   const title = endMatchLegacy[1].trim();
@@ -198,6 +233,10 @@ export async function POST(req: NextRequest) {
                 //       ? "VICTORY" 
                 //       : "ESCAPE";
                 //   controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: "end", outcome, title, message })}\n\n`));
+                } else if (checkpointMatch) {
+                  const checkpointMessage = `data: ${JSON.stringify({ type: "checkpoint" })}\n\n`;
+                  console.log('📤 SENDING CHECKPOINT:', checkpointMessage);
+                  controller.enqueue(encoder.encode(checkpointMessage));
                 } else if (bracketBuffer.match(/\[Player health:/i) || bracketBuffer.match(/\[Writing score:/i)) {
                   // Silently discard prompt metadata that LLM echoed back
                 } else {
@@ -224,7 +263,10 @@ export async function POST(req: NextRequest) {
           flushText(bracketBuffer);
         }
 
-        controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: "done" })}\n\n`));
+        const doneMessage = `data: ${JSON.stringify({ type: "done" })}\n\n`;
+        console.log('📤 SENDING DONE:', doneMessage);
+        console.log('✅ ========== STREAM COMPLETE ==========\n');
+        controller.enqueue(encoder.encode(doneMessage));
         controller.close();
       },
     });

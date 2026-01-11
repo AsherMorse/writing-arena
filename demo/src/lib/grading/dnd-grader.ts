@@ -112,6 +112,7 @@ export async function gradeDnDTurn(
   try {
     const response = await client.messages.create({
       model: 'claude-opus-4-5-20251101',
+      // model: 'claude-sonnet-4-5-20250929',
       max_tokens: 2500,
       temperature: 0,
       system: systemPrompt,
@@ -324,7 +325,7 @@ function createBlockedResult(options: {
 
   return {
     accepted: false,
-    blockingReason: options.explanation,
+    blockingReason: '', // No suggestion for prevalidation errors
     hpDamage: 0,
     layer1Errors: [],
     layer2Errors: [error],
@@ -357,7 +358,7 @@ function createBlockedResultFromLayer2(
 
   return {
     accepted: false,
-    blockingReason: error.explanation,
+    blockingReason: '', // No suggestion for layer 2 errors
     hpDamage: 0,
     layer1Errors: llmResult.layer1Errors,
     layer2Errors: [error],
@@ -386,21 +387,22 @@ function createBlockedResultFromLayer3(
   },
   categoriesChecked: string[]
 ): DnDGraderResult {
-  let feedback = blockingError.explanation;
-  if (blockingError.suggestedAlternative) {
-    feedback += `\n\n💡 Try: ${blockingError.suggestedAlternative}`;
-  }
+  // Put suggestion in blockingReason (shown as msg.content)
+  // Put explanation in feedback array (shown as msg.feedback)
+  const suggestion = blockingError.suggestedAlternative
+    ? `💡 ${blockingError.suggestedAlternative}`
+    : '';
 
   return {
     accepted: false,
-    blockingReason: feedback,
+    blockingReason: suggestion,
     hpDamage: 0,
     layer1Errors: llmResult.layer1Errors,
     layer2Errors: [],
     layer3Errors: llmResult.layer3Errors,
     allErrors: combineErrors(llmResult),
     prioritizedErrors: [blockingError],
-    feedbackSummary: `❌ ${feedback}`,
+    feedbackSummary: `❌ ${blockingError.explanation}`,
     gradeTimestamp: Date.now(),
     evaluationMethod: 'llm',
     hasErrors: true,

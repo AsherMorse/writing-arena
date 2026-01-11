@@ -166,9 +166,12 @@ Web only                →    Web                      →    Web + Mobile
 
 | Question | Decision |
 |----------|----------|
-| **Checkpoint frequency?** | Roughly every 5 minutes of gameplay. |
+| **Checkpoint triggers?** | Two triggers: (1) **Every 5 turns** (guaranteed minimum), (2) **AI tags `[CHECKPOINT]`** at natural story beats (entering new area, escaping danger, completing mini-objective). |
+| **What triggers AI checkpoint?** | AI decides on the fly based on narrative context. Prompted to checkpoint at "safe moments" — entering new areas, escaping danger, completing conversations, finding shelter. Not during active combat. |
+| **HP at respawn?** | Always **70%** (not preserved from checkpoint). Ensures player has fighting chance regardless of state when checkpoint was saved. |
+| **What state is saved?** | Messages and story summary. HP is NOT saved — respawn always resets to 70%. |
 | **What do you lose on death?** | Progress since last checkpoint only. No XP loss for now. |
-| **Respawn UX?** | Yes, player sees "Here's what went wrong" feedback before retry. |
+| **Respawn UX?** | Modal: "You Died — Returning to last checkpoint..." with Continue button. Player sees "Here's what went wrong" feedback before retry. |
 
 ---
 
@@ -314,6 +317,20 @@ Web only                →    Web                      →    Web + Mobile
 - Reject inappropriate input with friendly retry prompt
 - AI output filtered before display
 
+### Ending System
+- Story endings use tag format: `[END:OUTCOME: Title {message}]`
+- OUTCOME must be one of: `DEATH`, `VICTORY`, or `ESCAPE`
+- `DEATH` endings set HP to 0 and display "finishing blow" damage in narrative
+- HP reaching 0 from accumulated damage also triggers death ending
+- Health bar always accurately reflects player state (dead = 0 HP)
+
+### Checkpoint System
+- Checkpoints triggered by: `[CHECKPOINT]` tag from AI OR every 5 turns (fallback)
+- AI prompted to checkpoint at "safe moments" (new areas, escaping danger, completing objectives)
+- Checkpoint saves: messages, storySummary (NOT health)
+- On respawn: HP resets to 70%, state restored to checkpoint
+- Death → respawn modal → restore checkpoint → continue playing
+
 ---
 
 ## Open Questions / Future Decisions
@@ -324,6 +341,7 @@ Web only                →    Web                      →    Web + Mobile
 - [x] ~~World theme~~ → "The Shattered Kingdom" (classic fantasy)
 - [x] ~~HP healing amount~~ → 25 HP (25% of max)
 - [x] ~~Damage scaling~~ → Story-driven, AI determines contextually
+- [x] ~~Checkpoint system~~ → Every 5 turns OR AI `[CHECKPOINT]` tag; respawn at 70% HP
 - [ ] One-shot revision mechanic details (if implemented)
 - [ ] Quest line narrative for The Shattered Kingdom (MVP = 1 quest)
 - [ ] Checkpoint visual representation in UI

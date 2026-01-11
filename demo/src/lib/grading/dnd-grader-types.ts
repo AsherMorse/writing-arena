@@ -133,6 +133,8 @@ export type NarrativeContext = {
   // Story context
   /** Summary of recent story events (what has happened so far) */
   recentStorySummary?: string;
+  /** Last 1-2 AI narrative responses for immediate context about visible items */
+  recentNarrative?: string[];
 };
 
 // =============================================================================

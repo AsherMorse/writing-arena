@@ -29,6 +29,8 @@ export type GameContext = {
   previousResponses?: string[];
   /** Recent story events for context (last few exchanges) */
   recentStory?: string;
+  /** Last 1-2 AI narrative responses for immediate context */
+  recentAIResponses?: string[];
 };
 
 /**
@@ -50,6 +52,7 @@ export async function gradeResponse(
       inventoryItems: gameContext?.inventory ?? ["dagger", "rope", "lockpicks", "small pouch"],
       currentObjective: gameContext?.objective ?? "Steal treasure from the dragon's hoard without waking the beast",
       recentStorySummary: gameContext?.recentStory,
+      recentNarrative: gameContext?.recentAIResponses,
     };
 
     const result = await gradeDnDTurn({

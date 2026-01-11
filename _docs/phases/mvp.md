@@ -55,7 +55,7 @@ The fundamental play cycle that everything else supports.
 | Consequence display | ✅ DONE | Narrative + HP change + feedback in page.tsx |
 | HP system (100 HP, damage) | ✅ DONE | Working with animations |
 | HP healing | ⬜ TODO | A- or better = heal 25 HP (25%) |
-| Checkpoint system | ⬜ TODO | localStorage save every ~5 min, respawn on death |
+| Checkpoint system | ⬜ TODO | Trigger: every 5 turns OR AI `[CHECKPOINT]` tag. Respawn at 70% HP. |
 | Paragraph gate (boss battle) | ⬜ TODO | 1 per scenario, dual prompt format |
 | Session flow orchestration | 🔄 PARTIAL | Basic flow works, needs boss gate + checkpoints |
 
@@ -125,8 +125,8 @@ Screens, components, and modals.
 **Modals**
 | Task | Status | Notes |
 |------|--------|-------|
-| Death Modal | ⬜ TODO | "You have fallen!", feedback, spectator button |
-| Checkpoint Modal | ⬜ TODO | "Returning to checkpoint...", continue button |
+| Respawn Modal | ⬜ TODO | "You Died — Returning to checkpoint...", continue button, with feedback on what you're doing wrong |
+| Checkpoint Indicator | ⬜ TODO | Brief toast or visual when checkpoint is saved |
 
 ### 6. 📖 Content Creation
 Quest content for MVP.
@@ -222,16 +222,17 @@ MVP is successful if:
 - [x] localStorage save/load utilities
 - [x] Auto-save on state changes
 - [x] "Continue Quest" loads from localStorage
-- [ ] Checkpoint intervals (~5 min)
-- [ ] Death → respawn at last checkpoint
+- [ ] Checkpoint triggers (every 5 turns OR AI `[CHECKPOINT]` tag)
+- [ ] Death → respawn at checkpoint with 70% HP
+- [ ] Add `[CHECKPOINT]` parsing to story API
 
 **M1d: Polish Solo Flow** 🔄 PARTIAL
 - [x] Home Screen UI (Continue/New/Friends buttons)
 - [x] Quest Selection UI (Dragon's Lair + The Shattered Kingdom cards)
 - [x] Victory Screen UI (stats, XP, share prompt)
 - [ ] HP healing logic (A- or better = +25 HP)
-- [ ] Death Modal
-- [ ] Checkpoint Modal
+- [ ] Respawn Modal ("You Died — Returning to checkpoint...")
+- [ ] Checkpoint saved indicator (optional toast/visual)
 
 ### M2: Content Complete
 

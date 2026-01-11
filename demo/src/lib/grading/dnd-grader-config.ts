@@ -67,7 +67,8 @@ export const QUEST_CATEGORY_DESCRIPTIONS: Record<QuestCategory, string> = {
  */
 export const NARRATIVE_SEVERITY_TIERS: Record<NarrativeCategory, 'blocking' | 'warning'> = {
   [NARRATIVE_CATEGORIES.IMPOSSIBLE_ACTION]: 'blocking',
-  [NARRATIVE_CATEGORIES.ANACHRONISM]: 'blocking',
+  // [NARRATIVE_CATEGORIES.ANACHRONISM]: 'blocking',
+  [NARRATIVE_CATEGORIES.ANACHRONISM]: 'warning',
   [NARRATIVE_CATEGORIES.PHYSICS_BREAK]: 'blocking',
   [NARRATIVE_CATEGORIES.OUT_OF_CHARACTER]: 'warning',
   [NARRATIVE_CATEGORIES.META_GAMING]: 'warning',
@@ -129,7 +130,8 @@ export const HP_DAMAGE_WEIGHTS: Record<ErrorSeverity, number> = {
  */
 export const NARRATIVE_HP_DAMAGE: Record<NarrativeCategory, number> = {
   [NARRATIVE_CATEGORIES.IMPOSSIBLE_ACTION]: 0, // blocking
-  [NARRATIVE_CATEGORIES.ANACHRONISM]: 0, // blocking
+  // [NARRATIVE_CATEGORIES.ANACHRONISM]: 0, // blocking
+  [NARRATIVE_CATEGORIES.ANACHRONISM]: -2, // warning
   [NARRATIVE_CATEGORIES.PHYSICS_BREAK]: 0, // blocking
   [NARRATIVE_CATEGORIES.OUT_OF_CHARACTER]: -2, // warning
   [NARRATIVE_CATEGORIES.META_GAMING]: -1, // warning (lighter penalty)

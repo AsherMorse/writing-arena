@@ -78,6 +78,11 @@ function buildContextSection(context: NarrativeContext): string {
     parts.push(`**Story So Far**: ${context.recentStorySummary}`);
   }
 
+  // Include recent narrative for immediate context about visible items/objects
+  if (context.recentNarrative?.length) {
+    parts.push(`**Recent Narrative** (items/objects mentioned here ARE available): ${context.recentNarrative.join(' | ')}`);
+  }
+
   if (context.characterClass) {
     const abilities = context.characterAbilities?.join(', ') || 'none specified';
     parts.push(`**Character**: ${context.characterClass} with abilities: ${abilities}`);
