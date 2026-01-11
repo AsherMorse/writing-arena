@@ -105,6 +105,8 @@ export async function gradeDnDTurn(
 
   const userPrompt = buildUserPrompt(studentResponse);
 
+  console.log('systemPrompt', systemPrompt);
+  console.log('userPrompt', userPrompt);
   console.log(`🤖 [DnDGrader] Calling LLM for 3-layer evaluation...`);
 
   try {

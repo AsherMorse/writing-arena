@@ -45,13 +45,18 @@ Example: "The dragon's claw rakes across your arm [DAMAGE:20] as you dive behind
 
 ENDING THE STORY:
 When the story ends, add this tag at the END of your response:
-[END: Title {Subtitle message}]
+[END:OUTCOME: Title {Subtitle message}]
+
+OUTCOME must be one of:
+- DEATH - Player dies (from wounds, eaten, killed, etc.)
+- VICTORY - Player achieves their objective  
+- ESCAPE - Player survives but fails the objective
 
 Examples:
-- [END: Victory {You escaped with the dragon's treasure!}]
-- [END: You Died {The dragon's lair claims another victim.}]
-- [END: Escaped {You survived, but left empty-handed.}]
-- [END: Devoured {The dragon's hunger is satisfied.}]
+- [END:VICTORY: Treasure Claimed {You escaped with the dragon's treasure!}]
+- [END:DEATH: You Died {The dragon's lair claims another victim.}]
+- [END:ESCAPE: Fled {You survived, but left empty-handed.}]
+- [END:DEATH: Devoured {The dragon's hunger is satisfied.}]
 
 Do NOT artificially extend the story. Once the objective is resolved, END IT immediately.`;
 
@@ -84,7 +89,7 @@ export async function POST(req: NextRequest) {
     };
 
     const gradeResult = await gradeResponse(userInput, gameContext);
-    const { score, feedback, accepted, blockingReason } = gradeResult;
+    const { score, feedback, accepted, blockingReason, hpDamage, errors, errorCount } = gradeResult;
 
     const currentHealth = health ?? 100;
     const healthContext = `[Player health: ${currentHealth}/100${currentHealth <= 20 ? " - CRITICAL, near death" : currentHealth <= 40 ? " - badly wounded" : currentHealth <= 60 ? " - injured" : ""}]`;
@@ -122,7 +127,18 @@ export async function POST(req: NextRequest) {
 
     const stream = new ReadableStream({
       async start(controller) {
-        controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: "score", score, feedback })}\n\n`));
+        controller.enqueue(encoder.encode(`data: ${JSON.stringify({ 
+          type: "score", 
+          score, 
+          feedback,
+          errors: errors || [],
+          errorCount: errorCount || 0
+        })}\n\n`));
+        
+        // Send HP damage from grader immediately after score
+        if (hpDamage && hpDamage !== 0) {
+          controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: "damage", damage: Math.abs(hpDamage) })}\n\n`));
+        }
 
         let textBuffer = "";
         let bracketBuffer = "";
@@ -136,7 +152,7 @@ export async function POST(req: NextRequest) {
         };
 
         const anthropicStream = client.messages.stream({
-          model: "claude-opus-4-5-20251101",
+          model: "claude-sonnet-4-5-20250929",
           max_tokens: 200,
           system: SYSTEM_PROMPT,
           messages,
@@ -155,18 +171,35 @@ export async function POST(req: NextRequest) {
               } else if (char === "]" && inBracket) {
                 bracketBuffer += "]";
                 const damageMatch = bracketBuffer.match(/\[DAMAGE:\s*(\d+)\]/i);
-                const victoryMatch = bracketBuffer.match(/\[VICTORY\]/i);
-                const deathMatch = bracketBuffer.match(/\[DEATH\]/i);
                 
-                const endMatch = bracketBuffer.match(/\[END:\s*(.+?)\s*\{(.+?)\}\]/i);
+                // New format: [END:OUTCOME: Title {message}]
+                const endMatch = bracketBuffer.match(/\[END:(\w+):\s*(.+?)\s*\{(.+?)\}\]/i);
+                // Fallback for old format: [END: Title {message}]
+                // const endMatchLegacy = bracketBuffer.match(/\[END:\s*(.+?)\s*\{(.+?)\}\]/i);
                 
                 if (damageMatch) {
                   const damage = parseInt(damageMatch[1], 10);
-                  controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: "damage", damage })}\n\n`));
+                  if (damage > 0) {
+                    controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: "damage", damage })}\n\n`));
+                  }
                 } else if (endMatch) {
-                  const title = endMatch[1].trim();
-                  const message = endMatch[2].trim();
-                  controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: "end", title, message })}\n\n`));
+                  const outcome = endMatch[1].toUpperCase();
+                  const title = endMatch[2].trim();
+                  const message = endMatch[3].trim();
+                  controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: "end", outcome, title, message })}\n\n`));
+                // } else if (endMatchLegacy && !endMatch) {
+                //   // Fallback: infer outcome from title for backwards compatibility
+                //   const title = endMatchLegacy[1].trim();
+                //   const message = endMatchLegacy[2].trim();
+                //   const titleLower = title.toLowerCase();
+                //   const outcome = (titleLower.includes("died") || titleLower.includes("death") || titleLower.includes("devoured") || titleLower.includes("killed")) 
+                //     ? "DEATH" 
+                //     : (titleLower.includes("victory") || titleLower.includes("treasure")) 
+                //       ? "VICTORY" 
+                //       : "ESCAPE";
+                //   controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: "end", outcome, title, message })}\n\n`));
+                } else if (bracketBuffer.match(/\[Player health:/i) || bracketBuffer.match(/\[Writing score:/i)) {
+                  // Silently discard prompt metadata that LLM echoed back
                 } else {
                   flushText(bracketBuffer);
                 }

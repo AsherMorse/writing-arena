@@ -1,6 +1,10 @@
 /**
  * @fileoverview D&D Grading Module - Main Exports
  * Exports the full 3-layer grading system and Layer 1-only for backward compatibility.
+ * 
+ * ⚠️ WARNING: This module imports the Anthropic SDK and should only be used in
+ * server components/API routes. For client components, import from:
+ * `@/lib/grading/client-constants`
  */
 
 // =============================================================================
@@ -48,8 +52,11 @@ export {
 export {
   GRAMMAR_CATEGORY_PRESETS,
   ERROR_SEVERITY_TIERS,
-  SEVERITY_ICONS,
 } from './dnd-conventions-config';
+
+export {
+  SEVERITY_ICONS,
+} from './dnd-grader-config';
 
 export {
   getErrorSeverity,

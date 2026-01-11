@@ -11,7 +11,7 @@ If writing instruction feels like play, kids will write more → more reps with 
 
 ## Target Audience
 - **Primary**: Grades 5-8 students who have completed AlphaWrite basics
-- **Focus**: K-8 per Andy's direction (12/5), not high school initially
+- **Focus**: Middle school (5-8), not high school initially
 - **Assumption**: Students already have foundational sentence-level skills from AlphaWrite
 
 ## The Problem We're Solving
@@ -32,12 +32,12 @@ Best writing motivation isn't feedback or gamification—it's narrative investme
 Students fail at writing because anxiety blocks performance, not lack of knowledge. Story continuation splits cognitive load (AI handles setup, student continues) reducing anxiety.
 
 ### SPOV 4: Standards Alignment Doesn't Require "School Tasks"
-Game world interactions ARE the task structure. NPC persuasion = argumentative writing, explaining plans = informational, describing actions = narrative (CCSS W.X.1-3).
+Game world interactions map to writing standards. MVP focuses on conventions and grammar (CCSS L.X.1-3). In v1, explicit writing modes: NPC persuasion = argumentative writing (W.X.1), explaining plans = informational (W.X.2), describing actions = narrative (W.X.3).
 
 ## Critical Feedback & Pivots
 
 ### Andy Feedback (12/5, 12/11)
-- ✅ **Go younger**: K-8, not high school
+- ✅ **Target middle school**: Grades 5-8, not high school
 - ✅ **Use AlphaWrite repo** for learning science, focus on motivation
 - ⚠️ **Better prompts**: Writing for peers about topics kids love (favorite video games, not generic prompts)
 - ⚠️ **1 targeted lesson** per session, show LP gain from completing it
@@ -61,10 +61,12 @@ Game world interactions ARE the task structure. NPC persuasion = argumentative w
 ### Core Mechanic
 **D&D Adventure + Writing = Gameplay**
 - AI narrates second-person adventure ("You enter the dark forest...")
-- Student writes actions/responses
+- Student writes actions/responses (3-5 per session)
 - Writing quality determines narrative outcomes (not just scores)
 - Poor writing = complications 
 - Good writing = progression + rewards
+- **Weekly paragraph challenge**: Longer writing challenge once per week
+- **Real-time multiplayer**: Party of 2-4 tackles quest together in MVP
 
 ### Key Differentiators from AI Dungeon
 1. **Educational outcomes**: Real-time grading on TWR sentence strategies, conventions
@@ -99,9 +101,11 @@ Game world interactions ARE the task structure. NPC persuasion = argumentative w
 
 ## Standards Alignment
 
-### Direct Hits
+### Direct Hits (MVP)
+- **CCSS L.X.1-3**: Grammar, conventions, sentence variety (34 GrammarGuard categories)
 - **CCSS L.5.6**: Transition words (however, although, because...)
-- **CCSS L.X.1-3**: Grammar, conventions, sentence variety
+
+### Direct Hits (v1)
 - **CCSS W.X.1-3**: Argument (persuade NPC), Informational (explain plan), Narrative (describe action)
 
 ### Assessment Targets
@@ -121,8 +125,11 @@ Game world interactions ARE the task structure. NPC persuasion = argumentative w
 
 ### Grading System: AlphaWrite GrammarGuard
 - **Direct integration** with AlphaWrite's GrammarGuard (34 grammar categories)
-- **HP-based consequences** - Writing errors deal damage (100 HP starting)
-- **Weighted severity tiers**: Critical (-4 HP), Major (-2 HP), Minor (-1 HP), Style (-0.5 HP)
+- **MVP Focus**: Conventions (fragments, run-ons, punctuation, basic grammar - CCSS L.5-6.1-2)
+- **Dual HP depletion modes** (100 HP starting):
+  - **Gradual damage**: Writing errors deal severity-based damage (Critical -4, Major -2, Minor -1, Style -0.5)
+  - **Narrative damage**: Story failures (jumping off cliff, attacking king) = narrative-driven HP loss (could be instant-death)
+- **Context amplification**: High-stakes moments amplify gradual damage
 - **Category presets**: `strict`, `balanced`, `lenient`, `fantasy` for different contexts
 - **Top 2-3 errors shown** prioritized by severity
 - **Separate feedback panel** from narrative (story vs. writing feedback)
@@ -144,10 +151,11 @@ Game world interactions ARE the task structure. NPC persuasion = argumentative w
 
 ## Open Questions
 1. **Format**: Pure AI Dungeon clone vs. Debate battles vs. Hybrid?
-2. **Time per session**: How much time do K-8 students have? (20-25 min per Noel)
-3. **Progression**: How do students advance? (Boss battles? League system?)
-4. **Integration**: Required after AlphaWrite or standalone?
-5. **Validation**: What test results will prove this works?
+2. **Time per session**: Target 10-20 minutes for grades 5-8
+3. **Real-time co-op mechanics**: Sequential turns vs. simultaneous writing? Shared HP or individual?
+4. **Progression**: How do students advance? (Boss battles? League system?)
+5. **Integration**: Required after AlphaWrite or standalone?
+6. **Validation**: What test results will prove this works?
 
 ## Next Steps
 
@@ -175,6 +183,9 @@ Game world interactions ARE the task structure. NPC persuasion = argumentative w
 | Document | Description |
 |----------|-------------|
 | [`project-overview.md`](./project-overview.md) | This file - high-level project context |
+| [`phases/mvp.md`](./phases/mvp.md) | MVP phase plan with workstreams & milestones |
+| [`phases/screens.md`](./phases/screens.md) | Screens, components, and modals spec |
+| [`game-design-doc.md`](./game-design-doc.md) | Detailed game mechanics & UX decisions |
 | [`dnd-conventions-grader-plan.md`](./dnd-conventions-grader-plan.md) | Detailed grading system implementation plan |
 | [`dnd-brainlift.md`](./dnd-brainlift.md) | Full research & background (1700+ lines) |
 

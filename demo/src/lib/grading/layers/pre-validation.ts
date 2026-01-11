@@ -113,14 +113,14 @@ export function preValidateResponse(
   }
 
   // 6. Repeated characters (keyboard mashing) - 5+ consecutive repeated chars
-  if (/(.)\1{4,}/.test(trimmed)) {
-    return {
-      valid: false,
-      category: 'GIBBERISH_INPUT',
-      reason: 'repeated characters',
-      feedback: "That doesn't look like a real response. Please write a clear action for your character.",
-    };
-  }
+  // if (/(.)\1{4,}/.test(trimmed)) {
+  //   return {
+  //     valid: false,
+  //     category: 'GIBBERISH_INPUT',
+  //     reason: 'repeated characters',
+  //     feedback: "That doesn't look like a real response. Please write a clear action for your character.",
+  //   };
+  // }
 
   // 7. Too short (configurable, default 3 words) - check AFTER gibberish detection
   const words = trimmed.split(/\s+/).filter(w => w.length > 0);

@@ -12,7 +12,8 @@ export type GradeResult = {
   hpDamage?: number;
   errorCount?: number;
   feedbackSummary?: string;
-  errors?: DnDGraderResult['prioritizedErrors'];
+  // errors?: DnDGraderResult['prioritizedErrors'];
+  errors?: DnDGraderResult['allErrors'];
   // 3-layer specific
   accepted: boolean;
   blockingReason?: string;
@@ -65,7 +66,8 @@ export async function gradeResponse(
       hpDamage: result.hpDamage,
       errorCount: result.errorCount,
       feedbackSummary: result.feedbackSummary,
-      errors: result.prioritizedErrors,
+      // errors: result.prioritizedErrors,
+      errors: result.allErrors,
       accepted: result.accepted,
       blockingReason: result.blockingReason,
     };
