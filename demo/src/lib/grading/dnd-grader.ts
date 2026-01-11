@@ -76,8 +76,6 @@ export async function gradeDnDTurn(
     previousResponses = [],
   } = input;
 
-  console.log(`🎲 [DnDGrader] Evaluating response (${studentResponse.length} chars)`);
-
   // STEP 1: Pre-validation (programmatic checks)
   const preCheck = preValidateResponse(studentResponse, {
     minWordCount: 3,
@@ -105,8 +103,8 @@ export async function gradeDnDTurn(
 
   const userPrompt = buildUserPrompt(studentResponse);
 
-  console.log('systemPrompt', systemPrompt);
-  console.log('userPrompt', userPrompt);
+  // console.log('systemPrompt', systemPrompt);
+  // console.log('userPrompt', userPrompt);
   console.log(`🤖 [DnDGrader] Calling LLM for 3-layer evaluation...`);
 
   try {
@@ -147,10 +145,10 @@ export async function gradeDnDTurn(
     const prioritizedErrors = prioritizeErrors(allErrors);
     const feedbackSummary = formatFeedbackSummary(prioritizedErrors, allErrors.length);
 
-    console.log(
-      `✅ [DnDGrader] Accepted - L1: ${llmResult.layer1Errors.length} errors, ` +
-      `L3 warnings: ${llmResult.layer3Errors.length}, HP: ${hpDamage}`
-    );
+    // console.log(
+    //   `✅ [DnDGrader] Accepted - L1: ${llmResult.layer1Errors.length} errors, ` +
+    //   `L3 warnings: ${llmResult.layer3Errors.length}, HP: ${hpDamage}`
+    // );
 
     return {
       accepted: true,

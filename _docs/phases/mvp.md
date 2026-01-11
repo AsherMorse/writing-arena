@@ -35,11 +35,23 @@
 - **Game Screen** (`/game/[sessionId]`) — Full game loop with localStorage auto-save
 - **Victory Screen** (`/victory/[sessionId]`) — Stats summary, XP display, share prompt
 
+### ✅ Components (M1b Complete)
+- **Game Components** — HPBar, StoryDisplay, WritingInput, FeedbackDisplay extracted
+- **Modals** — RespawnModal, EndingSection, CheckpointToast extracted
+- **Shared Types** — Message, GameState, CheckpointState, Ending in `lib/types.ts`
+- **Quest Config** — QUEST_CONFIG centralized in `lib/quests/config.ts`
+
+### ✅ Checkpoint System (M1c Complete)
+- **Checkpoint Triggers** — Every 5 turns OR AI `[CHECKPOINT]` tag
+- **Respawn Modal** — Death feedback with writing errors shown
+- **Checkpoint Toast** — Visual indicator when checkpoint is saved
+- **HP Reset** — Respawn at 70% HP, state restored to last checkpoint
+
 ### ❌ Not Yet Built
-- Component extraction (still inline in Game Screen)
-- Checkpoint/respawn system
 - Multiplayer (WebSocket, lobby, turns)
 - "The Shattered Kingdom" content (placeholder only)
+- HP healing logic (A- or better = +25 HP)
+- Paragraph gate (boss battle)
 
 ---
 
@@ -50,14 +62,14 @@ The fundamental play cycle that everything else supports.
 
 | Task | Status | Notes |
 |------|--------|-------|
-| Story display (AI narrates scenario) | ✅ DONE | Working in page.tsx, 2nd person present tense |
-| Writing input | ✅ DONE | Free text in page.tsx |
-| Consequence display | ✅ DONE | Narrative + HP change + feedback in page.tsx |
-| HP system (100 HP, damage) | ✅ DONE | Working with animations |
+| Story display (AI narrates scenario) | ✅ DONE | Extracted to StoryDisplay component |
+| Writing input | ✅ DONE | Extracted to WritingInput component |
+| Consequence display | ✅ DONE | Narrative + HP change + feedback in StoryDisplay |
+| HP system (100 HP, damage) | ✅ DONE | Working with animations, extracted HPBar component |
 | HP healing | ⬜ TODO | A- or better = heal 25 HP (25%) |
-| Checkpoint system | ⬜ TODO | Trigger: every 5 turns OR AI `[CHECKPOINT]` tag. Respawn at 70% HP. |
+| Checkpoint system | ✅ DONE | Every 5 turns OR AI `[CHECKPOINT]` tag. Respawn at 70% HP. |
 | Paragraph gate (boss battle) | ⬜ TODO | 1 per scenario, dual prompt format |
-| Session flow orchestration | 🔄 PARTIAL | Basic flow works, needs boss gate + checkpoints |
+| Session flow orchestration | 🔄 PARTIAL | Basic flow works, needs boss gate + HP healing |
 
 ### 2. ✍️ Grading System
 Integration with AlphaWrite GrammarGuard for real-time writing assessment.
@@ -116,17 +128,18 @@ Screens, components, and modals.
 **Components (Game Screen)**
 | Task | Status | Notes |
 |------|--------|-------|
-| Story Component | 🔄 PARTIAL | Inline in page.tsx, needs extraction |
-| Writing Component | 🔄 PARTIAL | Inline in page.tsx, needs extraction |
-| Consequence Component | 🔄 PARTIAL | Inline in page.tsx, needs extraction |
-| HP Bar Component | 🔄 PARTIAL | Inline in page.tsx, needs extraction |
+| Story Component | ✅ DONE | StoryDisplay.tsx in components/game |
+| Writing Component | ✅ DONE | WritingInput.tsx in components/game |
+| Feedback Component | ✅ DONE | FeedbackDisplay.tsx (expandable error list) |
+| HP Bar Component | ✅ DONE | HPBar.tsx in components/game |
 | Party Status Component | ⬜ TODO | For multiplayer |
 
 **Modals**
 | Task | Status | Notes |
 |------|--------|-------|
-| Respawn Modal | ⬜ TODO | "You Died — Returning to checkpoint...", continue button, with feedback on what you're doing wrong |
-| Checkpoint Indicator | ⬜ TODO | Brief toast or visual when checkpoint is saved |
+| Respawn Modal | ✅ DONE | RespawnModal.tsx with death feedback and writing errors |
+| Ending Section | ✅ DONE | EndingSection.tsx for victory/death outcomes |
+| Checkpoint Indicator | ✅ DONE | CheckpointToast.tsx auto-hides after 3s |
 
 ### 6. 📖 Content Creation
 Quest content for MVP.
@@ -211,28 +224,32 @@ MVP is successful if:
 - [x] Create route: `/game/[sessionId]` (Game)
 - [x] Create route: `/victory/[sessionId]` (Victory)
 
-**M1b: Component Extraction**
-- [ ] Extract `StoryComponent` from Game page
-- [ ] Extract `WritingComponent` from Game page
-- [ ] Extract `ConsequenceComponent` from Game page
-- [ ] Extract `HPBarComponent` from Game page
-- [ ] Create shared components folder
+**M1b: Component Extraction** ✅ COMPLETE
+- [x] Extract `StoryDisplay` from Game page (includes message rendering)
+- [x] Extract `WritingInput` from Game page (textarea + submit)
+- [x] Extract `FeedbackDisplay` from Game page (expandable errors)
+- [x] Extract `HPBar` from Game page (health visualization)
+- [x] Extract `RespawnModal`, `EndingSection`, `CheckpointToast`
+- [x] Create shared `lib/types.ts` (Message, GameState, CheckpointState, Ending)
+- [x] Create `lib/quests/config.ts` (QUEST_CONFIG, MAX_HEALTH)
+- [x] Create `components/game/` folder with barrel export
 
-**M1c: Save & Checkpoint System** 🔄 PARTIAL
+**M1c: Save & Checkpoint System** ✅ COMPLETE
 - [x] localStorage save/load utilities
 - [x] Auto-save on state changes
 - [x] "Continue Quest" loads from localStorage
-- [ ] Checkpoint triggers (every 5 turns OR AI `[CHECKPOINT]` tag)
-- [ ] Death → respawn at checkpoint with 70% HP
-- [ ] Add `[CHECKPOINT]` parsing to story API
+- [x] Checkpoint triggers (every 5 turns OR AI `[CHECKPOINT]` tag)
+- [x] Death → respawn at checkpoint with 70% HP
+- [x] `[CHECKPOINT]` parsing in story API
+- [x] Respawn Modal with death feedback
+- [x] Checkpoint saved toast indicator
 
 **M1d: Polish Solo Flow** 🔄 PARTIAL
 - [x] Home Screen UI (Continue/New/Friends buttons)
 - [x] Quest Selection UI (Dragon's Lair + The Shattered Kingdom cards)
 - [x] Victory Screen UI (stats, XP, share prompt)
 - [ ] HP healing logic (A- or better = +25 HP)
-- [ ] Respawn Modal ("You Died — Returning to checkpoint...")
-- [ ] Checkpoint saved indicator (optional toast/visual)
+- [ ] Paragraph gate (boss battle) implementation
 
 ### M2: Content Complete
 

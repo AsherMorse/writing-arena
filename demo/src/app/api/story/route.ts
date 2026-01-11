@@ -80,8 +80,8 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const { userInput, history, health, gameContext: clientContext, storySummary, recentAIResponses } = body;
     
-    console.log('\n🎮 ========== NEW STORY REQUEST ==========');
-    console.log('📝 User Input:', userInput);
+    // console.log('\n🎮 ========== NEW STORY REQUEST ==========');
+    // console.log('📝 User Input:', userInput);
 
     // Extract previous player responses from history for duplicate detection
     const previousResponses = history

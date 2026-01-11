@@ -329,7 +329,15 @@ Web only                →    Web                      →    Web + Mobile
 - AI prompted to checkpoint at "safe moments" (new areas, escaping danger, completing objectives)
 - Checkpoint saves: messages, storySummary (NOT health)
 - On respawn: HP resets to 70%, state restored to checkpoint
-- Death → respawn modal → restore checkpoint → continue playing
+- Death → respawn modal with feedback → restore checkpoint → continue playing
+- **Status**: ✅ Fully implemented with RespawnModal and CheckpointToast components
+
+### Component Architecture (M1b Complete)
+- **Game page refactored** from 779 → 530 lines
+- **7 extracted components**: HPBar, StoryDisplay, WritingInput, FeedbackDisplay, RespawnModal, EndingSection, CheckpointToast
+- **Shared types** in `lib/types.ts`: Message, GameState, CheckpointState, Ending
+- **Quest config** centralized in `lib/quests/config.ts`
+- **Clean separation**: Page handles orchestration, components handle presentation
 
 ---
 
@@ -342,9 +350,12 @@ Web only                →    Web                      →    Web + Mobile
 - [x] ~~HP healing amount~~ → 25 HP (25% of max)
 - [x] ~~Damage scaling~~ → Story-driven, AI determines contextually
 - [x] ~~Checkpoint system~~ → Every 5 turns OR AI `[CHECKPOINT]` tag; respawn at 70% HP
+- [x] ~~Checkpoint visual representation~~ → CheckpointToast component (3s auto-hide)
+- [x] ~~Component architecture~~ → 7 components extracted, shared types/config
 - [ ] One-shot revision mechanic details (if implemented)
 - [ ] Quest line narrative for The Shattered Kingdom (MVP = 1 quest)
-- [ ] Checkpoint visual representation in UI
+- [ ] HP healing implementation (A- or better = +25 HP)
+- [ ] Paragraph gate (boss battle) format and triggers
 
 ---
 

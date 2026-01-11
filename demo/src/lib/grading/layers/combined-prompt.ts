@@ -176,7 +176,9 @@ ${categoryList}
 - Basic physics apply unless magic explains otherwise
 - Be lenient with creative actions - block only clearly impossible ones
 - For OUT_OF_CHARACTER and META_GAMING, prefer warning over blocking
-- Provide a helpful suggested alternative when blocking${characterNote}`;
+- Provide a helpful suggested alternative when blocking
+- **CRITICAL: Unwise or risky actions are NOT errors.** If an action would have bad consequences (like screaming near a sleeping dragon, or attacking a powerful enemy), LET IT THROUGH with no errors. The story will handle consequences naturally.
+- **PHYSICS_BREAK is ONLY for truly impossible actions** like walking through solid walls, teleporting, flying without wings/magic, or lifting impossibly heavy objects. Normal human actions (screaming, running, jumping, fighting) are NEVER physics breaks, even if they're strategically foolish.${characterNote}`;
 }
 
 function buildOutputSection(): string {
